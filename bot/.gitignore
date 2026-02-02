@@ -1,0 +1,17 @@
+# Binary
+scheduler-bot
+
+# Environment
+.env
+
+# Database
+data/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Misc
+.DS_Store

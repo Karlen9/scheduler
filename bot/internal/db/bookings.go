@@ -1,0 +1,227 @@
+package db
+
+import (
+	"database/sql"
+	"time"
+
+	"github.com/google/uuid"
+
+	"scheduler-bot/internal/models"
+)
+
+func CreateBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string) (*models.Booking, error) {
+	id := uuid.New().String()
+
+	_, err := DB.Exec(`
+		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetBookingByID(id)
+}
+
+func GetBookingByID(id string) (*models.Booking, error) {
+	var b models.Booking
+	var clientMessage sql.NullString
+	var cancelReason sql.NullString
+	var cancelledBy sql.NullString
+
+	err := DB.QueryRow(`
+		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		FROM bookings
+		WHERE id = ?
+	`, id).Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
+		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if clientMessage.Valid {
+		b.ClientMessage = clientMessage.String
+	}
+	if cancelReason.Valid {
+		b.CancelReason = cancelReason.String
+	}
+	if cancelledBy.Valid {
+		b.CancelledBy = models.CancelledBy(cancelledBy.String)
+	}
+
+	// Load session type
+	st, err := GetSessionTypeByID(b.SessionTypeID)
+	if err != nil {
+		return nil, err
+	}
+	b.SessionType = st
+
+	return &b, nil
+}
+
+func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
+	rows, err := DB.Query(`
+		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		FROM bookings
+		WHERE client_id = ?
+		ORDER BY starts_at DESC
+	`, clientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanBookings(rows)
+}
+
+func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
+	rows, err := DB.Query(`
+		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		FROM bookings
+		WHERE client_id = ? AND status IN ('pending', 'confirmed')
+		ORDER BY starts_at ASC
+	`, clientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanBookings(rows)
+}
+
+func GetBookingsByTrainerIDAndDateRange(trainerID string, start, end time.Time) ([]models.Booking, error) {
+	rows, err := DB.Query(`
+		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		FROM bookings
+		WHERE trainer_id = ? AND starts_at >= ? AND starts_at < ? AND status IN ('pending', 'confirmed')
+		ORDER BY starts_at ASC
+	`, trainerID, start, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanBookings(rows)
+}
+
+func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
+	var bookings []models.Booking
+	for rows.Next() {
+		var b models.Booking
+		var clientMessage sql.NullString
+		var cancelReason sql.NullString
+		var cancelledBy sql.NullString
+
+		if err := rows.Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
+			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt); err != nil {
+			return nil, err
+		}
+
+		if clientMessage.Valid {
+			b.ClientMessage = clientMessage.String
+		}
+		if cancelReason.Valid {
+			b.CancelReason = cancelReason.String
+		}
+		if cancelledBy.Valid {
+			b.CancelledBy = models.CancelledBy(cancelledBy.String)
+		}
+
+		// Load session type
+		st, err := GetSessionTypeByID(b.SessionTypeID)
+		if err != nil {
+			return nil, err
+		}
+		b.SessionType = st
+
+		bookings = append(bookings, b)
+	}
+
+	return bookings, rows.Err()
+}
+
+func UpdateBookingStatus(bookingID string, status models.BookingStatus) error {
+	_, err := DB.Exec(`UPDATE bookings SET status = ? WHERE id = ?`, status, bookingID)
+	return err
+}
+
+func CancelBooking(bookingID string, reason string, cancelledBy models.CancelledBy) error {
+	_, err := DB.Exec(`
+		UPDATE bookings
+		SET status = 'cancelled', cancel_reason = ?, cancelled_by = ?
+		WHERE id = ?
+	`, reason, cancelledBy, bookingID)
+	return err
+}
+
+func HasConflictingBooking(trainerID string, startsAt, endsAt time.Time, excludeBookingID string) (bool, error) {
+	var count int
+	err := DB.QueryRow(`
+		SELECT COUNT(*) FROM bookings
+		WHERE trainer_id = ?
+		  AND id != ?
+		  AND status IN ('pending', 'confirmed')
+		  AND starts_at < ?
+		  AND ends_at > ?
+	`, trainerID, excludeBookingID, endsAt, startsAt).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func GetBookingsByTrainerID(trainerID string, status string) ([]models.Booking, error) {
+	var rows *sql.Rows
+	var err error
+
+	if status != "" {
+		rows, err = DB.Query(`
+			SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+			       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+			FROM bookings
+			WHERE trainer_id = ? AND status = ?
+			ORDER BY starts_at DESC
+		`, trainerID, status)
+	} else {
+		rows, err = DB.Query(`
+			SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+			       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+			FROM bookings
+			WHERE trainer_id = ?
+			ORDER BY starts_at DESC
+		`, trainerID)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanBookings(rows)
+}
+
+func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+	endOfDay := startOfDay.AddDate(0, 0, 1)
+
+	var count int
+	err := DB.QueryRow(`
+		SELECT COUNT(*) FROM bookings
+		WHERE client_id = ?
+		  AND status IN ('pending', 'confirmed')
+		  AND starts_at >= ?
+		  AND starts_at < ?
+	`, clientID, startOfDay, endOfDay).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

@@ -1,0 +1,28 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Go
+bot/scheduler-bot
+bot/data/*.db
+*.exe
+
+# Node
+node_modules/
+.next/
+out/
+.vercel
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude internal state
+.claude/
