@@ -1,8 +1,15 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
 
 	"scheduler-bot/internal/api"
 	"scheduler-bot/internal/config"
@@ -41,19 +48,70 @@ func main() {
 		return handler.NotifyTrainerNewBooking(booking)
 	}
 
-	// Start HTTP server in goroutine
-	router := api.NewRouter(cfg.TelegramBotToken)
+	publicBaseURL := strings.TrimRight(cfg.PublicBaseURL, "/")
+	webhookURL := publicBaseURL + "/tg/webhook/" + cfg.WebhookSecret
+	if err := bot.SetWebhook(webhookURL, cfg.WebhookSecret); err != nil {
+		log.Printf("Failed to set webhook: %v", err)
+	} else {
+		log.Printf("Webhook set to %s", webhookURL)
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/tg/webhook/"+cfg.WebhookSecret, webhookHandler(handler, cfg.WebhookSecret))
+	mux.Handle("/", api.NewRouter(cfg.TelegramBotToken))
+
+	server := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
 	go func() {
-		addr := ":" + cfg.APIPort
-		log.Printf("Starting HTTP server on %s", addr)
-		if err := http.ListenAndServe(addr, router); err != nil {
+		log.Printf("Starting HTTP server on %s", server.Addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP server error: %v", err)
 		}
 	}()
 
-	// Start bot polling (blocking)
-	log.Println("Starting bot polling...")
-	bot.PollUpdates(handler.HandleUpdate)
+	shutdownCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	<-shutdownCtx.Done()
+
+	log.Println("Shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("HTTP server shutdown error: %v", err)
+	}
+}
+
+func webhookHandler(handler *telegram.Handler, webhookSecret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		secretHeader := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
+		if secretHeader == "" || secretHeader != webhookSecret {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		defer r.Body.Close()
+
+		var update telegram.Update
+		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		go func(u telegram.Update) {
+			handler.HandleUpdate(u)
+		}(update)
+	}
 }
 
 func seedData(cfg *config.Config) error {

@@ -100,6 +100,19 @@ type GetMeResponse struct {
 	} `json:"result"`
 }
 
+// SetWebhookRequest is the request body for setWebhook
+type SetWebhookRequest struct {
+	URL         string `json:"url"`
+	SecretToken string `json:"secret_token,omitempty"`
+}
+
+// SetWebhookResponse is the response from setWebhook
+type SetWebhookResponse struct {
+	OK          bool   `json:"ok"`
+	Result      bool   `json:"result"`
+	Description string `json:"description,omitempty"`
+}
+
 // SendMessageResponse is the response from sendMessage
 type SendMessageResponse struct {
 	OK     bool    `json:"ok"`
@@ -147,6 +160,47 @@ func (b *Bot) GetUpdates(offset int) ([]Update, error) {
 	}
 
 	return result.Result, nil
+}
+
+// SetWebhook sets the webhook URL for the bot
+func (b *Bot) SetWebhook(url string, secretToken string) error {
+	req := SetWebhookRequest{
+		URL:         url,
+		SecretToken: secretToken,
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/setWebhook",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result SetWebhookResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+
+	if !result.OK {
+		if result.Description != "" {
+			return fmt.Errorf("setWebhook returned not OK: %s", result.Description)
+		}
+		return fmt.Errorf("setWebhook returned not OK")
+	}
+
+	if !result.Result {
+		return fmt.Errorf("setWebhook returned false")
+	}
+
+	return nil
 }
 
 // SendMessage sends a message

@@ -12,7 +12,9 @@ type Config struct {
 	TelegramBotToken  string
 	WebAppURL         string
 	DatabasePath      string
-	APIPort           string
+	Port              string
+	PublicBaseURL     string
+	WebhookSecret     string
 	TrainerTelegramID int64
 	TrainerName       string
 }
@@ -28,7 +30,9 @@ func Load() *Config {
 		TelegramBotToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
 		WebAppURL:         os.Getenv("WEB_APP_URL"),
 		DatabasePath:      os.Getenv("DATABASE_PATH"),
-		APIPort:           os.Getenv("API_PORT"),
+		Port:              os.Getenv("PORT"),
+		PublicBaseURL:     os.Getenv("PUBLIC_BASE_URL"),
+		WebhookSecret:     os.Getenv("WEBHOOK_SECRET"),
 		TrainerTelegramID: trainerID,
 		TrainerName:       os.Getenv("TRAINER_NAME"),
 	}
@@ -45,12 +49,24 @@ func Load() *Config {
 		cfg.DatabasePath = "./data/scheduler.db"
 	}
 
-	if cfg.APIPort == "" {
-		cfg.APIPort = "8080"
+	if cfg.Port == "" {
+		cfg.Port = os.Getenv("API_PORT")
+	}
+
+	if cfg.Port == "" {
+		cfg.Port = "8080"
 	}
 
 	if cfg.TrainerName == "" {
 		cfg.TrainerName = "Trainer"
+	}
+
+	if cfg.PublicBaseURL == "" {
+		log.Fatal("PUBLIC_BASE_URL environment variable is required")
+	}
+
+	if cfg.WebhookSecret == "" {
+		log.Fatal("WEBHOOK_SECRET environment variable is required")
 	}
 
 	return cfg
