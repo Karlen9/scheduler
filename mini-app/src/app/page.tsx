@@ -48,15 +48,8 @@ export default function HomePage() {
       className="min-h-screen bg-[#f1f5fe]"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
-      {/* Top Header Image */}
-      <div className="relative h-[96px] w-full overflow-hidden bg-gradient-to-r from-[#5984d8] to-[#7c9fe8]">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-white text-2xl font-bold">Scheduler</span>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="px-4 pt-6 pb-32 space-y-6">
+      <div className="px-4 pt-4 pb-32 space-y-6">
         {/* Trainer Card */}
         <TrainerCard
           name="Карлен Мисакян"
