@@ -1,0 +1,41 @@
+"use client";
+
+import { User, DollarSign, Clock, Bell, HelpCircle } from "lucide-react";
+import { TopBar } from "@/components/TopBar";
+import { SettingsMenuItem } from "@/components/SettingsMenuItem";
+
+export default function SettingsPage() {
+  return (
+    <div>
+      <TopBar title="Настройки" />
+
+      <div className="bg-white">
+        <SettingsMenuItem
+          icon={User}
+          label="Профиль"
+          href="/admin/settings/profile"
+        />
+        <SettingsMenuItem
+          icon={DollarSign}
+          label="Услуги и цены"
+          href="/admin/settings/services"
+        />
+        <SettingsMenuItem
+          icon={Clock}
+          label="Расписание"
+          href="/admin/settings/schedule"
+        />
+        <SettingsMenuItem
+          icon={Bell}
+          label="Уведомления"
+          href="/admin/settings/notifications"
+        />
+        <SettingsMenuItem
+          icon={HelpCircle}
+          label="Помощь"
+          href="/admin/settings/help"
+        />
+      </div>
+    </div>
+  );
+}

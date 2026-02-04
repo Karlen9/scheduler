@@ -6,16 +6,25 @@ import { useRouter } from "next/navigation";
 interface TopBarProps {
   title: string;
   showBack?: boolean;
+  onBack?: () => void;
 }
 
-export function TopBar({ title, showBack = false }: TopBarProps) {
+export function TopBar({ title, showBack = false, onBack }: TopBarProps) {
   const router = useRouter();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      router.back();
+    }
+  };
 
   return (
     <div className="sticky top-0 z-10 flex items-center h-14 px-4 bg-[var(--app-bg)] border-b border-[var(--app-divider)]">
       {showBack && (
         <button
-          onClick={() => router.back()}
+          onClick={handleBack}
           className="flex items-center justify-center w-10 h-10 -ml-2 mr-1"
           aria-label="Назад"
         >
