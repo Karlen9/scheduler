@@ -42,10 +42,13 @@ func migrate() error {
 		`CREATE TABLE IF NOT EXISTS trainers (
 			id TEXT PRIMARY KEY,
 			telegram_user_id INTEGER UNIQUE NOT NULL,
-			bot_token TEXT NOT NULL,
+			bot_token TEXT UNIQUE NOT NULL,
+			bot_username TEXT NOT NULL,
+			webhook_secret TEXT UNIQUE NOT NULL,
 			name TEXT NOT NULL,
 			timezone TEXT DEFAULT 'Europe/Moscow',
 			cancel_cutoff_hrs INTEGER DEFAULT 24,
+			is_active BOOLEAN DEFAULT 1,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS clients (

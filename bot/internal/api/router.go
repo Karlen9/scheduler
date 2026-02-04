@@ -31,6 +31,9 @@ func NewRouter(botToken string) http.Handler {
 		w.Write([]byte("OK"))
 	})
 
+	// Super admin (list all trainers) - protect in production!
+	r.Get("/superadmin/trainers", HandleListAllTrainers)
+
 	// API routes with auth
 	r.Route("/api", func(r chi.Router) {
 		r.Use(TelegramAuthMiddleware(botToken))

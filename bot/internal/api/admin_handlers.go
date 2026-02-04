@@ -463,3 +463,35 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)
 }
+
+// ========== Super Admin ==========
+
+type TrainerListItem struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	BotUsername string `json:"botUsername"`
+	IsActive    bool   `json:"isActive"`
+	CreatedAt   string `json:"createdAt"`
+}
+
+func HandleListAllTrainers(w http.ResponseWriter, r *http.Request) {
+	trainers, err := db.GetAllActiveTrainers()
+	if err != nil {
+		log.Printf("Error getting trainers: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	result := make([]TrainerListItem, len(trainers))
+	for i, t := range trainers {
+		result[i] = TrainerListItem{
+			ID:          t.ID,
+			Name:        t.Name,
+			BotUsername: t.BotUsername,
+			IsActive:    t.IsActive,
+			CreatedAt:   t.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	writeJSON(w, result)
+}

@@ -6,9 +6,12 @@ type Trainer struct {
 	ID              string    `json:"id"`
 	TelegramUserID  int64     `json:"telegramUserId"`
 	BotToken        string    `json:"-"`
+	BotUsername     string    `json:"botUsername"`
+	WebhookSecret   string    `json:"-"`
 	Name            string    `json:"name"`
 	Timezone        string    `json:"timezone"`
 	CancelCutoffHrs int       `json:"cancelCutoffHours"`
+	IsActive        bool      `json:"-"`
 	CreatedAt       time.Time `json:"createdAt"`
 }
 

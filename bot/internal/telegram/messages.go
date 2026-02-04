@@ -140,3 +140,94 @@ func FormatBookingPendingClient(booking *models.Booking) string {
 		formatDateTime(booking.StartsAt),
 	)
 }
+
+// Master bot messages for trainer onboarding
+
+// MasterMsgWelcome is sent when trainer starts onboarding
+const MasterMsgWelcome = `👋 Привет! Я помогу создать бота для онлайн-записи ваших клиентов.
+
+🎯 Что вы получите:
+• Личный бот с вашим именем (@vashe_imya_bot)
+• Клиенты записываются сами — вы только подтверждаете
+• Календарь, услуги и цены — всё настраивается
+• Уведомления о новых записях прямо в Telegram
+
+⏱ Настройка займёт 2 минуты.
+
+📝 Первый шаг — создать бота в Telegram:
+
+1. Откройте @BotFather (нажмите на ссылку)
+2. Отправьте команду /newbot
+3. Введите название (например: "Тренер Иван")
+4. Введите username (например: trener_ivan_bot)
+5. Скопируйте токен — длинную строку с цифрами и буквами
+
+Отправьте мне токен вашего бота:`
+
+// MasterMsgHelp is the help message for master bot
+const MasterMsgHelp = `🤖 Этот бот помогает создать бота для записи клиентов.
+
+Команды:
+/start - Начать создание бота
+/cancel - Отменить текущую операцию
+
+Если у вас уже есть бот, отправьте /start чтобы проверить статус.`
+
+// MasterMsgHelpAdmin is the help message for admin
+const MasterMsgHelpAdmin = `🤖 Этот бот помогает создать бота для записи клиентов.
+
+Команды:
+/start - Начать создание бота
+/cancel - Отменить текущую операцию
+
+👑 Админ-команды:
+/trainers - Список всех тренеров
+/stats - Статистика`
+
+// MasterMsgUnknown is sent for unknown messages
+const MasterMsgUnknown = `Не понимаю. Используйте /start чтобы начать или /help для справки.`
+
+// MasterMsgError is sent on server errors
+const MasterMsgError = `❌ Произошла ошибка. Попробуйте позже.`
+
+// MasterMsgCancelled is sent when user cancels
+const MasterMsgCancelled = `❌ Отменено. Отправьте /start чтобы начать заново.`
+
+// MasterMsgInvalidToken is sent when token is invalid
+const MasterMsgInvalidToken = `❌ Неверный токен. Убедитесь, что вы скопировали токен полностью из сообщения BotFather.
+
+Токен выглядит примерно так:
+123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+
+Попробуйте ещё раз:`
+
+// MasterMsgTokenAlreadyUsed is sent when token is already registered
+const MasterMsgTokenAlreadyUsed = `❌ Этот бот уже зарегистрирован. Если это ваш бот, обратитесь в поддержку.`
+
+// MasterMsgTokenAccepted is sent when token is valid (with bot username)
+const MasterMsgTokenAccepted = `✅ Отлично! Бот @%s подключён.
+
+Теперь введите ваше имя (как вас будут видеть клиенты):`
+
+// MasterMsgNameTooShort is sent when name is too short
+const MasterMsgNameTooShort = `❌ Имя слишком короткое. Введите ваше полное имя:`
+
+// MasterMsgSuccess is sent when onboarding is complete
+const MasterMsgSuccess = `🎉 Поздравляем, %s!
+
+Ваш бот @%s готов к работе.
+
+🚀 Что делать дальше:
+
+1️⃣ Откройте @%s → отправьте /start
+2️⃣ Настройте услуги и расписание под себя
+3️⃣ Отправьте ссылку t.me/%s клиентам
+
+Клиенты смогут выбрать время и записаться, а вы получите уведомление с кнопками "Подтвердить" или "Отклонить".
+
+Удачи! 💪`
+
+// MasterMsgAlreadyRegistered is sent when user already has a bot
+const MasterMsgAlreadyRegistered = `✅ У вас уже есть бот: @%s
+
+Откройте его и отправьте /start чтобы использовать.`

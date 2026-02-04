@@ -24,9 +24,11 @@ bun lint          # ESLint
 ### Bot (Go)
 ```bash
 cd bot
-go run main.go    # Run bot (requires TELEGRAM_BOT_TOKEN and WEB_APP_URL env vars)
+go run .          # Run server (webhook + API)
 go build -o scheduler-bot  # Build binary
 ```
+
+Required env vars: `TELEGRAM_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`, `WEBHOOK_SECRET`, `TRAINER_TELEGRAM_ID`, `TRAINER_NAME`
 
 ### Deployment
 ```bash
@@ -44,16 +46,28 @@ bunx vercel       # Deploy to Vercel
 - **components/** - Reusable UI components (Calendar, TimeSlots, BookingCard, etc.)
 - **lib/** - Core utilities
   - `telegram.ts` - Telegram WebApp SDK integration (theme, user data, navigation buttons)
-  - `api.ts` - Mock API client (currently uses mock-data.ts, to be replaced with real backend)
+  - `api.ts` - API client connecting to Go backend
   - `types.ts` - TypeScript interfaces (Trainer, SessionType, Booking, TimeSlot, WorkingHours)
 
 ### Bot Structure (bot/)
-- `main.go` - Long-polling bot that handles /start and /help commands, opens mini-app via inline keyboard
+- `main.go` - HTTP server with Telegram webhook + REST API on single port
+- `internal/telegram/` - Bot logic, webhook handling, message templates
+- `internal/api/` - REST API handlers, middleware, router
+- `internal/db/` - SQLite database layer
+- `internal/config/` - Environment configuration
 
 ### Data Flow
 1. User opens trainer's Telegram bot → /start → "Open Scheduler" button
 2. Mini-app loads → `initTelegramApp()` → applies Telegram theme colors
-3. User selects date/time → `api.createBooking()` → confirmation
+3. User selects date/time → `api.createBooking()` → booking created with status "pending"
+4. Trainer receives Telegram notification with Accept/Reject buttons
+5. Trainer clicks button → webhook → booking status updated → user notified
+
+### Webhook Setup
+Bot uses Telegram webhooks (not long polling):
+- Webhook URL: `{PUBLIC_BASE_URL}/tg/webhook/{WEBHOOK_SECRET}`
+- Secret token validated via `X-Telegram-Bot-Api-Secret-Token` header
+- For local dev, use ngrok: `ngrok http 8080` and set `PUBLIC_BASE_URL`
 
 ### Telegram Integration
 The mini-app uses the Telegram WebApp SDK (`telegram.org/js/telegram-web-app.js`):
@@ -64,7 +78,9 @@ The mini-app uses the Telegram WebApp SDK (`telegram.org/js/telegram-web-app.js`
 
 ## Key Patterns
 
-- Mock API in `api.ts` simulates backend with delay - replace endpoints when backend is ready
+- Backend serves both webhook (`/tg/webhook/*`) and REST API (`/api/*`) on single port
 - Telegram theme colors set via CSS custom properties in root element
 - All timestamps in ISO format, working hours use "HH:MM" strings
-- Booking conflicts checked client-side against existing bookings
+- UUIDs for all database primary keys
+- Session types: `personal`, `pair`, `consultation` (enum)
+- One booking per client per day limit enforced server-side

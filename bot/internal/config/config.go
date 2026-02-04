@@ -4,17 +4,38 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
+func parseAdminIDs(s string) []int64 {
+	if s == "" {
+		return nil
+	}
+	s = strings.Trim(s, "[]")
+	parts := strings.Split(s, ",")
+	var ids []int64
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if id, err := strconv.ParseInt(p, 10, 64); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
 type Config struct {
+	// Required
+	WebAppURL      string
+	DatabasePath   string
+	Port           string
+	PublicBaseURL  string
+	MasterBotToken string  // Master bot for trainer onboarding
+	AdminIDs       []int64 // Telegram IDs with admin access
+
+	// Optional - for initial single-bot setup (legacy)
 	TelegramBotToken  string
-	WebAppURL         string
-	DatabasePath      string
-	Port              string
-	PublicBaseURL     string
-	WebhookSecret     string
 	TrainerTelegramID int64
 	TrainerName       string
 }
@@ -27,18 +48,17 @@ func Load() *Config {
 	trainerID, _ := strconv.ParseInt(os.Getenv("TRAINER_TELEGRAM_ID"), 10, 64)
 
 	cfg := &Config{
+		WebAppURL:      os.Getenv("WEB_APP_URL"),
+		DatabasePath:   os.Getenv("DATABASE_PATH"),
+		Port:           os.Getenv("PORT"),
+		PublicBaseURL:  os.Getenv("PUBLIC_BASE_URL"),
+		MasterBotToken: os.Getenv("MASTER_BOT_TOKEN"),
+		AdminIDs:       parseAdminIDs(os.Getenv("ADMIN_IDS")),
+
+		// Legacy single-bot setup
 		TelegramBotToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
-		WebAppURL:         os.Getenv("WEB_APP_URL"),
-		DatabasePath:      os.Getenv("DATABASE_PATH"),
-		Port:              os.Getenv("PORT"),
-		PublicBaseURL:     os.Getenv("PUBLIC_BASE_URL"),
-		WebhookSecret:     os.Getenv("WEBHOOK_SECRET"),
 		TrainerTelegramID: trainerID,
 		TrainerName:       os.Getenv("TRAINER_NAME"),
-	}
-
-	if cfg.TelegramBotToken == "" {
-		log.Fatal("TELEGRAM_BOT_TOKEN environment variable is required")
 	}
 
 	if cfg.WebAppURL == "" {
@@ -65,8 +85,8 @@ func Load() *Config {
 		log.Fatal("PUBLIC_BASE_URL environment variable is required")
 	}
 
-	if cfg.WebhookSecret == "" {
-		log.Fatal("WEBHOOK_SECRET environment variable is required")
+	if cfg.MasterBotToken == "" {
+		log.Println("Warning: MASTER_BOT_TOKEN not set, trainer onboarding disabled")
 	}
 
 	return cfg
