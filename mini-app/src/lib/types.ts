@@ -3,6 +3,11 @@ export interface Trainer {
   name: string;
   timezone: string;
   cancelCutoffHours: number;
+  telegramHandle?: string;
+  phone?: string;
+  specialization?: string;
+  bio?: string;
+  photoUrl?: string;
 }
 
 export interface SessionType {

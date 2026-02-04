@@ -96,6 +96,12 @@ func migrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
+		// Migration: add trainer profile fields
+		`ALTER TABLE trainers ADD COLUMN telegram_handle TEXT`,
+		`ALTER TABLE trainers ADD COLUMN phone TEXT`,
+		`ALTER TABLE trainers ADD COLUMN specialization TEXT`,
+		`ALTER TABLE trainers ADD COLUMN bio TEXT`,
+		`ALTER TABLE trainers ADD COLUMN photo_url TEXT`,
 	}
 
 	for _, migration := range migrations {

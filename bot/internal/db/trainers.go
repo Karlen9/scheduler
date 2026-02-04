@@ -18,9 +18,11 @@ func generateWebhookSecret() string {
 
 func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	var t models.Trainer
+	var telegramHandle, phone, specialization, bio, photoURL sql.NullString
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
+		&telegramHandle, &phone, &specialization, &bio, &photoURL,
 		&t.IsActive, &t.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -29,10 +31,15 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.TelegramHandle = telegramHandle.String
+	t.Phone = phone.String
+	t.Specialization = specialization.String
+	t.Bio = bio.String
+	t.PhotoURL = photoURL.String
 	return &t, nil
 }
 
-const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, is_active, created_at`
+const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, is_active, created_at`
 
 func GetTrainerByTelegramID(telegramUserID int64) (*models.Trainer, error) {
 	row := DB.QueryRow(`
@@ -125,6 +132,18 @@ func UpdateTrainer(id, name, timezone string, cancelCutoffHrs int) (*models.Trai
 		SET name = ?, timezone = ?, cancel_cutoff_hrs = ?
 		WHERE id = ?
 	`, name, timezone, cancelCutoffHrs, id)
+	if err != nil {
+		return nil, err
+	}
+	return GetTrainerByID(id)
+}
+
+func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoURL string) (*models.Trainer, error) {
+	_, err := DB.Exec(`
+		UPDATE trainers
+		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?, photo_url = ?
+		WHERE id = ?
+	`, telegramHandle, phone, specialization, bio, photoURL, id)
 	if err != nil {
 		return nil, err
 	}

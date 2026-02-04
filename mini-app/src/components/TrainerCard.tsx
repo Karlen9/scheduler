@@ -20,12 +20,13 @@ export function TrainerCard({
   specialization,
   bio,
   photoUrl,
-  phone = "+7(987)654-32-10",
-  telegram = "@karlenptsd",
+  phone,
+  telegram,
   onServices,
   onShare,
 }: TrainerCardProps) {
   const handleMessage = () => {
+    if (!telegram) return;
     const username = telegram.replace("@", "");
     window.open(`https://t.me/${username}`, "_blank");
   };
@@ -52,16 +53,22 @@ export function TrainerCard({
           </p>
 
           {/* Contact Info */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <Phone className="w-3 h-3 text-[var(--app-subtext)]" />
-              <p className="text-xs text-[var(--app-subtext)]">{phone}</p>
+          {(phone || telegram) && (
+            <div className="space-y-1.5">
+              {phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-3 h-3 text-[var(--app-subtext)]" />
+                  <p className="text-xs text-[var(--app-subtext)]">{phone}</p>
+                </div>
+              )}
+              {telegram && (
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-3 h-3 text-[var(--app-subtext)]" />
+                  <p className="text-xs text-[var(--app-subtext)]">{telegram}</p>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-3 h-3 text-[var(--app-subtext)]" />
-              <p className="text-xs text-[var(--app-subtext)]">{telegram}</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -72,12 +79,14 @@ export function TrainerCard({
 
       {/* Action Buttons */}
       <div className="flex gap-2">
-        <button
-          onClick={handleMessage}
-          className="flex-1 py-3 px-4 rounded-[28px] bg-[#5984d8] text-white text-sm font-medium transition-opacity active:opacity-80"
-        >
-          Написать
-        </button>
+        {telegram && (
+          <button
+            onClick={handleMessage}
+            className="flex-1 py-3 px-4 rounded-[28px] bg-[#5984d8] text-white text-sm font-medium transition-opacity active:opacity-80"
+          >
+            Написать
+          </button>
+        )}
         <button
           onClick={onServices}
           className="flex-1 py-3 px-4 rounded-[28px] bg-white border border-[#c9c9c9] text-[#8e8e8e] text-sm font-medium transition-opacity active:opacity-80"

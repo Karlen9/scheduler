@@ -11,6 +11,11 @@ type Trainer struct {
 	Name            string    `json:"name"`
 	Timezone        string    `json:"timezone"`
 	CancelCutoffHrs int       `json:"cancelCutoffHours"`
+	TelegramHandle  string    `json:"telegramHandle"`
+	Phone           string    `json:"phone"`
+	Specialization  string    `json:"specialization"`
+	Bio             string    `json:"bio"`
+	PhotoURL        string    `json:"photoUrl"`
 	IsActive        bool      `json:"-"`
 	CreatedAt       time.Time `json:"createdAt"`
 }
