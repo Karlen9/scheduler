@@ -9,7 +9,6 @@ import { CalendarView } from "@/components/CalendarView";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SuccessModal } from "@/components/SuccessModal";
-import { CalendarSkeleton } from "@/components/LoadingSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { BottomSafeArea } from "@/components/BottomSafeArea";
 
@@ -119,15 +118,11 @@ function BookingPageContent() {
           <h3 className="text-sm font-medium text-(--app-subtext) mb-2">
             {step === "date" ? "Выберите дату" : "Выбрана дата"}
           </h3>
-          {isLoading ? (
-            <CalendarSkeleton />
-          ) : (
-            <CalendarView
-              selectedDate={selectedDate}
-              onSelectDate={handleDateSelect}
-            />
-          )}
-          {selectedDate && step === "date" && (
+          <CalendarView
+            selectedDate={selectedDate}
+            onSelectDate={handleDateSelect}
+          />
+          {selectedDate && step === "date" && !isLoading && (
             <div className="mt-3 p-3 bg-[var(--app-surface)] rounded-lg text-center">
               <p className="text-sm text-[var(--app-text)]">
                 Выбрана дата:{" "}
@@ -137,7 +132,25 @@ function BookingPageContent() {
           )}
         </div>
 
-        {step === "time" && selectedDate && (
+        {isLoading && (
+          <div>
+            <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-2">
+              Выберите время
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="py-3 rounded-lg bg-[var(--app-surface)] animate-pulse text-sm text-transparent"
+                >
+                  00:00
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === "time" && selectedDate && !isLoading && (
           <div>
             <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-2">
               Выберите время
