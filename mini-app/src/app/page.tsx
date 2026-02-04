@@ -1,18 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar } from "lucide-react";
 import { TrainerCard } from "@/components/TrainerCard";
-import { WeekDatePicker } from "@/components/WeekDatePicker";
-import { TimeSlotPicker } from "@/components/TimeSlotPicker";
 import { BottomSafeArea } from "@/components/BottomSafeArea";
 import { initTelegramApp } from "@/lib/telegram";
 
 export default function HomePage() {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   useEffect(() => {
     initTelegramApp();
@@ -29,14 +25,7 @@ export default function HomePage() {
   };
 
   const handleBooking = () => {
-    if (selectedDate && selectedTime) {
-      const dateStr = selectedDate.toISOString();
-      router.push(
-        `/book?date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(selectedTime)}`,
-      );
-    } else {
-      router.push("/book");
-    }
+    router.push("/book");
   };
 
   const handleMyBookings = () => {
@@ -45,7 +34,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="min-h-screen bg-[#f1f5fe]"
+      className="min-h-screen bg-[var(--app-bg)]"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       {/* Main Content */}
@@ -61,29 +50,8 @@ export default function HomePage() {
           onShare={handleShare}
         />
 
-        {/* Online Booking Section */}
-        <div className="bg-white rounded-[30px] px-4 py-6 shadow-sm">
-          <h2 className="text-lg font-medium text-[#101010] text-center mb-6">
-            Онлайн запись
-          </h2>
 
-          <div className="border-t border-[#e9e9e9] mb-6" />
-
-          {/* Week Date Picker */}
-          <WeekDatePicker
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-          />
-
-          {/* Time Slot Picker */}
-          <div className="mt-6">
-            <TimeSlotPicker
-              selectedTime={selectedTime}
-              onSelectTime={setSelectedTime}
-            />
-          </div>
-        </div>
-      </div>
+      </div> 
 
       {/* Fixed Bottom Button */}
       <div

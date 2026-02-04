@@ -99,13 +99,13 @@ function BookingPageContent() {
   return (
     <div
       className="min-h-screen bg-[var(--app-bg)] flex flex-col"
-      style={{ maxWidth: "390px", margin: "0 auto" }}
+      style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       <TopBar title="Запись на тренировку" showBack />
 
       <div className="flex-1 p-4 space-y-4 pb-24">
         <div>
-          <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-2">
+          <h3 className="text-sm font-medium text-(--app-subtext) mb-2">
             Тип тренировки
           </h3>
           <SessionTypeSelector
@@ -116,7 +116,7 @@ function BookingPageContent() {
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-2">
+          <h3 className="text-sm font-medium text-(--app-subtext) mb-2">
             {step === "date" ? "Выберите дату" : "Выбрана дата"}
           </h3>
           {isLoading ? (
@@ -162,7 +162,7 @@ function BookingPageContent() {
       {step === "time" && !noSlotsAvailable && (
         <div
           className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--app-bg)] border-t border-[var(--app-divider)]"
-          style={{ maxWidth: "390px", margin: "0 auto", width: "100%" }}
+          style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
         >
           <PrimaryButton onClick={handleConfirm} disabled={!canConfirm}>
             Подтвердить запись
