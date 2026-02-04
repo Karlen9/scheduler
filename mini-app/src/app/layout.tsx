@@ -1,34 +1,25 @@
-import type { Metadata, Viewport } from "next";
-import Script from "next/script";
+import type { Metadata } from "next";
+import { ToastProvider } from "@/components/ToastProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Расписание тренировок",
-  description: "Запись на тренировки",
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  title: "Scheduler - Фитнес тренер",
+  description: "Запись на тренировки к фитнес-тренеру",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="ru">
       <head>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
+        <script src="https://telegram.org/js/telegram-web-app.js" />
       </head>
-      <body className="antialiased">
+      <body>
         {children}
+        <ToastProvider />
       </body>
     </html>
   );

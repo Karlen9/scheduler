@@ -1,182 +1,182 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { api } from "@/lib/api";
-import { Booking, Trainer } from "@/lib/types";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarX } from "lucide-react";
+import { TopBar } from "@/components/TopBar";
 import { BookingCard } from "@/components/BookingCard";
-import { Loading } from "@/components/Loading";
-import { getTelegramWebApp } from "@/lib/telegram";
+import { EmptyState } from "@/components/EmptyState";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { BottomSafeArea } from "@/components/BottomSafeArea";
+import { BookingCardSkeleton } from "@/components/LoadingSkeleton";
 
-function BookingsContent() {
+interface Booking {
+  id: string;
+  date: string;
+  time: string;
+  sessionType: string;
+  location: string;
+  status: "confirmed" | "cancelled";
+}
+
+const mockBookings: Booking[] = [
+  {
+    id: "1",
+    date: "5 февраля 2026",
+    time: "10:00 - 11:00",
+    sessionType: "Персональная тренировка",
+    location: 'Фитнес-клуб "Энергия"',
+    status: "confirmed",
+  },
+  {
+    id: "2",
+    date: "8 февраля 2026",
+    time: "14:00 - 14:45",
+    sessionType: "Онлайн тренировка",
+    location: "Онлайн",
+    status: "confirmed",
+  },
+  {
+    id: "3",
+    date: "1 февраля 2026",
+    time: "16:00 - 16:45",
+    sessionType: "Растяжка",
+    location: 'Фитнес-клуб "Энергия"',
+    status: "cancelled",
+  },
+];
+
+export default function BookingsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [trainer, setTrainer] = useState<Trainer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
+  const [isLoading, setIsLoading] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
 
-  const [cancelModal, setCancelModal] = useState<Booking | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const handleReschedule = (bookingId: string) => {
+    // In a real app, you would pass the booking ID to the booking page
+    router.push("/book");
+  };
 
-  useEffect(() => {
-    const webApp = getTelegramWebApp();
-    webApp?.BackButton.show();
+  const handleCancelClick = (bookingId: string) => {
+    setBookingToCancel(bookingId);
+    setCancelDialogOpen(true);
+  };
 
-    const handleBack = () => {
-      router.push("/");
-    };
-
-    webApp?.BackButton.onClick(handleBack);
-
-    return () => {
-      webApp?.BackButton.offClick(handleBack);
-      webApp?.BackButton.hide();
-    };
-  }, [router]);
-
-  useEffect(() => {
-    if (searchParams.get("success") === "1") {
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+  const handleCancelConfirm = () => {
+    if (bookingToCancel) {
+      setBookings(
+        bookings.map((booking) =>
+          booking.id === bookingToCancel
+            ? { ...booking, status: "cancelled" as const }
+            : booking,
+        ),
+      );
+      setBookingToCancel(null);
     }
-  }, [searchParams]);
-
-  useEffect(() => {
-    Promise.all([api.getBookings(), api.getTrainer()]).then(([b, t]) => {
-      setBookings(b);
-      setTrainer(t);
-      setIsLoading(false);
-    });
-  }, []);
-
-  const canModifyBooking = (booking: Booking): boolean => {
-    if (!trainer) return false;
-    const cutoffMs = trainer.cancelCutoffHours * 60 * 60 * 1000;
-    const startsAt = new Date(booking.startsAt).getTime();
-    const now = Date.now();
-    return startsAt - now > cutoffMs;
   };
 
-  const handleCancel = async () => {
-    if (!cancelModal) return;
-    setIsSubmitting(true);
-
-    try {
-      await api.cancelBooking(cancelModal.id, cancelReason);
-      setBookings((prev) => prev.filter((b) => b.id !== cancelModal.id));
-      setCancelModal(null);
-      setCancelReason("");
-    } catch (error) {
-      console.error("Cancel failed:", error);
-    }
-
-    setIsSubmitting(false);
-  };
-
-  const handleReschedule = (booking: Booking) => {
-    // Store booking to reschedule and navigate to booking flow
-    sessionStorage.setItem("rescheduleBooking", JSON.stringify(booking));
-    router.push("/book?reschedule=1");
-  };
+  const confirmedBookings = bookings.filter((b) => b.status === "confirmed");
+  const cancelledBookings = bookings.filter((b) => b.status === "cancelled");
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loading />
+      <div
+        className="min-h-screen bg-[var(--app-bg)]"
+        style={{ maxWidth: "390px", margin: "0 auto" }}
+      >
+        <TopBar title="Мои записи" showBack />
+        <div className="p-4 space-y-3">
+          <BookingCardSkeleton />
+          <BookingCardSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  if (bookings.length === 0) {
+    return (
+      <div
+        className="min-h-screen bg-[var(--app-bg)] flex flex-col"
+        style={{ maxWidth: "390px", margin: "0 auto" }}
+      >
+        <TopBar title="Мои записи" showBack />
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState
+            icon={<CalendarX className="w-16 h-16" />}
+            title="У вас пока нет записей"
+            description="Выберите удобное время и запишитесь на тренировку"
+            action={
+              <PrimaryButton onClick={() => router.push("/book")}>
+                Записаться
+              </PrimaryButton>
+            }
+          />
+        </div>
+        <BottomSafeArea />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-b from-blue-50 to-white">
-      <h1 className="text-2xl font-bold mb-6">Мои записи</h1>
+    <div
+      className="min-h-screen bg-[var(--app-bg)]"
+      style={{ maxWidth: "390px", margin: "0 auto" }}
+    >
+      <TopBar title="Мои записи" showBack />
 
-      {/* Success message */}
-      {showSuccess && (
-        <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
-          <p className="text-blue-800 font-medium">Заявка отправлена!</p>
-          <p className="text-blue-600 text-sm mt-1">Ожидайте подтверждения от тренера</p>
-        </div>
-      )}
-
-      {/* Bookings list */}
-      {bookings.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-[var(--tg-theme-hint-color)] mb-4">
-            У вас пока нет записей
-          </p>
-          <button
-            onClick={() => router.push("/book")}
-            className="text-[var(--tg-theme-link-color)] font-medium"
-          >
-            Записаться на тренировку
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {bookings.map((booking) => (
-            <BookingCard
-              key={booking.id}
-              booking={booking}
-              canModify={canModifyBooking(booking)}
-              onCancel={(b) => setCancelModal(b)}
-              onReschedule={handleReschedule}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Cancel Modal */}
-      {cancelModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
-          <div
-            className="w-full max-w-lg rounded-t-2xl p-4"
-            style={{ backgroundColor: "var(--tg-theme-bg-color)" }}
-          >
-            <h2 className="text-lg font-bold mb-4">Отмена записи</h2>
-            <p className="text-[var(--tg-theme-hint-color)] mb-4">
-              {cancelModal.sessionType.name}
-            </p>
-
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Причина отмены (необязательно)"
-              className="w-full p-3 rounded-lg border mb-4 bg-[var(--tg-theme-secondary-bg-color)] text-[var(--tg-theme-text-color)] resize-none"
-              rows={3}
-            />
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setCancelModal(null);
-                  setCancelReason("");
-                }}
-                className="flex-1 py-3 rounded-lg bg-[var(--tg-theme-secondary-bg-color)]"
-              >
-                Назад
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={isSubmitting}
-                className="flex-1 py-3 rounded-lg bg-red-500 text-white disabled:opacity-50"
-              >
-                {isSubmitting ? "Отмена..." : "Отменить запись"}
-              </button>
+      <div className="p-4 space-y-4">
+        {confirmedBookings.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-3">
+              Активные записи
+            </h3>
+            <div className="space-y-3">
+              {confirmedBookings.map((booking) => (
+                <BookingCard
+                  key={booking.id}
+                  {...booking}
+                  onReschedule={() => handleReschedule(booking.id)}
+                  onCancel={() => handleCancelClick(booking.id)}
+                />
+              ))}
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        )}
 
-export default function BookingsPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loading /></div>}>
-      <BookingsContent />
-    </Suspense>
+        {cancelledBookings.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-3">
+              Отмененные записи
+            </h3>
+            <div className="space-y-3">
+              {cancelledBookings.map((booking) => (
+                <BookingCard key={booking.id} {...booking} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-4">
+          <PrimaryButton onClick={() => router.push("/book")}>
+            Новая запись
+          </PrimaryButton>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        isOpen={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        onConfirm={handleCancelConfirm}
+        title="Отменить запись?"
+        description="Вы уверены, что хотите отменить эту тренировку?"
+        confirmText="Да, отменить"
+        cancelText="Не отменять"
+        destructive
+      />
+
+      <BottomSafeArea />
+    </div>
   );
 }

@@ -1,130 +1,80 @@
 "use client";
 
-import { Booking } from "@/lib/types";
-import { Card } from "./Card";
-import { Button } from "./Button";
+import { Calendar, Clock, MapPin, Video } from "lucide-react";
 
 interface BookingCardProps {
-  booking: Booking;
-  onReschedule: (booking: Booking) => void;
-  onCancel: (booking: Booking) => void;
-  canModify: boolean;
+  id: string;
+  date: string;
+  time: string;
+  sessionType: string;
+  location: string;
+  status: "confirmed" | "cancelled";
+  onReschedule?: () => void;
+  onCancel?: () => void;
 }
 
-const DAYS = ["воскресенье", "понедельник", "вторник", "среду", "четверг", "пятницу", "субботу"];
-const MONTHS_GENITIVE = [
-  "января", "февраля", "марта", "апреля", "мая", "июня",
-  "июля", "августа", "сентября", "октября", "ноября", "декабря"
-];
-
-function formatDateTime(isoString: string): { date: string; time: string; dayName: string } {
-  const d = new Date(isoString);
-  const day = d.getDate();
-  const month = MONTHS_GENITIVE[d.getMonth()];
-  const hours = d.getHours().toString().padStart(2, "0");
-  const minutes = d.getMinutes().toString().padStart(2, "0");
-
-  return {
-    date: `${day} ${month}`,
-    time: `${hours}:${minutes}`,
-    dayName: DAYS[d.getDay()],
-  };
-}
-
-function formatPrice(price: number, currency: string): string {
-  if (currency === "RUB") {
-    return `${price.toLocaleString("ru-RU")} руб.`;
-  }
-  return `${price} ${currency}`;
-}
-
-function getStatusBadge(status: string): { text: string; className: string } | null {
-  switch (status) {
-    case "pending":
-      return { text: "Ожидает подтверждения", className: "bg-yellow-100 text-yellow-800" };
-    case "confirmed":
-      return { text: "Подтверждено", className: "bg-green-100 text-green-800" };
-    case "rejected":
-      return { text: "Отклонено", className: "bg-red-100 text-red-800" };
-    default:
-      return null;
-  }
-}
-
-export function BookingCard({ booking, onReschedule, onCancel, canModify }: BookingCardProps) {
-  const { date, time, dayName } = formatDateTime(booking.startsAt);
-  const statusBadge = getStatusBadge(booking.status);
-
+export function BookingCard({
+  date,
+  time,
+  sessionType,
+  location,
+  status,
+  onReschedule,
+  onCancel,
+}: BookingCardProps) {
   return (
-    <Card>
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-semibold text-lg">{booking.sessionType.name}</h3>
-            <p className="text-[var(--tg-theme-hint-color)] text-sm">
-              {booking.sessionType.durationMinutes} мин. | {formatPrice(booking.sessionType.price, booking.sessionType.currency)}
-            </p>
+    <div className="bg-[var(--app-surface)] rounded-xl p-4">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="w-4 h-4 text-[var(--app-subtext)]" />
+            <span className="text-sm text-[var(--app-text)]">{date}</span>
           </div>
-          {statusBadge && (
-            <span className={`text-xs px-2 py-1 rounded-full ${statusBadge.className}`}>
-              {statusBadge.text}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-[var(--tg-theme-text-color)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <path d="M16 2v4M8 2v4M3 10h18" />
-          </svg>
-          <span>{date}, {dayName}</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-[var(--tg-theme-text-color)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-          <span>{time}</span>
-        </div>
-
-        {booking.status === "rejected" ? (
-          <p className="text-sm text-red-600 mt-2">
-            Тренер отклонил эту заявку. Попробуйте выбрать другое время.
-          </p>
-        ) : booking.status === "pending" ? (
-          <div className="mt-2">
-            <Button
-              variant="danger"
-              onClick={() => onCancel(booking)}
-              className="w-full"
-            >
-              Отменить заявку
-            </Button>
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-4 h-4 text-[var(--app-subtext)]" />
+            <span className="text-sm text-[var(--app-text)]">{time}</span>
           </div>
-        ) : canModify ? (
-          <div className="flex gap-2 mt-2">
-            <Button
-              variant="secondary"
-              onClick={() => onReschedule(booking)}
-              className="flex-1"
+          <div className="flex items-center gap-2">
+            {location === "Онлайн" ? (
+              <Video className="w-4 h-4 text-[var(--app-subtext)]" />
+            ) : (
+              <MapPin className="w-4 h-4 text-[var(--app-subtext)]" />
+            )}
+            <span className="text-sm text-[var(--app-text)]">{location}</span>
+          </div>
+        </div>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-medium ${
+            status === "confirmed"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {status === "confirmed" ? "Подтверждено" : "Отменено"}
+        </span>
+      </div>
+
+      <div className="pt-3 border-t border-[var(--app-divider)]">
+        <p className="text-sm font-medium text-[var(--app-text)] mb-3">
+          {sessionType}
+        </p>
+        {status === "confirmed" && (
+          <div className="flex gap-2">
+            <button
+              onClick={onReschedule}
+              className="flex-1 py-2 px-4 rounded-lg bg-[var(--app-bg)] text-[var(--app-text)] text-sm font-medium transition-opacity active:opacity-70"
             >
               Перенести
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => onCancel(booking)}
-              className="flex-1"
+            </button>
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2 px-4 rounded-lg bg-[var(--app-bg)] text-[var(--app-destructive)] text-sm font-medium transition-opacity active:opacity-70"
             >
               Отменить
-            </Button>
+            </button>
           </div>
-        ) : (
-          <p className="text-sm text-[var(--tg-theme-hint-color)] mt-2">
-            Изменение невозможно (менее 24ч до начала)
-          </p>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

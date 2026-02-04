@@ -4,7 +4,10 @@ import { getInitData } from "./telegram";
 // API base URL - set via environment variable or default to localhost
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
+async function fetchAPI<T>(
+  endpoint: string,
+  options?: RequestInit,
+): Promise<T> {
   const initData = getInitData();
 
   const headers: HeadersInit = {
@@ -42,8 +45,13 @@ export const api = {
     return fetchAPI<WorkingHours[]>("/api/working-hours");
   },
 
-  async getAvailableSlots(date: string, sessionType: string): Promise<TimeSlot[]> {
-    return fetchAPI<TimeSlot[]>(`/api/availability?date=${date}&sessionType=${sessionType}`);
+  async getAvailableSlots(
+    date: string,
+    sessionType: string,
+  ): Promise<TimeSlot[]> {
+    return fetchAPI<TimeSlot[]>(
+      `/api/availability?date=${date}&sessionType=${sessionType}`,
+    );
   },
 
   async getBookings(): Promise<Booking[]> {
@@ -55,7 +63,7 @@ export const api = {
     date: string,
     time: string,
     name: string,
-    message?: string
+    message?: string,
   ): Promise<Booking> {
     return fetchAPI<Booking>("/api/bookings", {
       method: "POST",
@@ -80,7 +88,7 @@ export const api = {
     booking: Booking,
     date: string,
     time: string,
-    reason: string
+    reason: string,
   ): Promise<Booking> {
     // Reschedule is done by cancelling and creating a new booking
     await this.cancelBooking(booking.id, reason);
@@ -89,7 +97,7 @@ export const api = {
       date,
       time,
       booking.clientName,
-      undefined
+      undefined,
     );
   },
 };

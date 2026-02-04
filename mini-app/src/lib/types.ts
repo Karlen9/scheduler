@@ -17,7 +17,7 @@ export interface SessionType {
 export interface WorkingHours {
   dayOfWeek: number; // 0 = Sunday, 6 = Saturday
   startTime: string; // "09:00"
-  endTime: string;   // "18:00"
+  endTime: string; // "18:00"
 }
 
 export interface Booking {

@@ -64,15 +64,17 @@ export function initTelegramApp() {
 
 export function getThemeParams() {
   const webApp = getTelegramWebApp();
-  return webApp?.themeParams ?? {
-    bg_color: "#ffffff",
-    text_color: "#000000",
-    hint_color: "#999999",
-    link_color: "#2678b6",
-    button_color: "#2678b6",
-    button_text_color: "#ffffff",
-    secondary_bg_color: "#f0f0f0",
-  };
+  return (
+    webApp?.themeParams ?? {
+      bg_color: "#ffffff",
+      text_color: "#000000",
+      hint_color: "#999999",
+      link_color: "#2678b6",
+      button_color: "#2678b6",
+      button_text_color: "#ffffff",
+      secondary_bg_color: "#f0f0f0",
+    }
+  );
 }
 
 export function getUserName(): string {
