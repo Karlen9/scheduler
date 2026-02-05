@@ -22,6 +22,7 @@ type TrainerResponse struct {
 	Name            string `json:"name"`
 	Timezone        string `json:"timezone"`
 	CancelCutoffHrs int    `json:"cancelCutoffHours"`
+	BotUsername     string `json:"botUsername,omitempty"`
 	TelegramHandle  string `json:"telegramHandle,omitempty"`
 	Phone           string `json:"phone,omitempty"`
 	Specialization  string `json:"specialization,omitempty"`
@@ -41,6 +42,7 @@ func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 		Name:            trainer.Name,
 		Timezone:        trainer.Timezone,
 		CancelCutoffHrs: trainer.CancelCutoffHrs,
+		BotUsername:     trainer.BotUsername,
 		TelegramHandle:  trainer.TelegramHandle,
 		Phone:           trainer.Phone,
 		Specialization:  trainer.Specialization,

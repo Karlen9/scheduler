@@ -3,6 +3,7 @@ export interface Trainer {
   name: string;
   timezone: string;
   cancelCutoffHours: number;
+  botUsername?: string;
   telegramHandle?: string;
   phone?: string;
   specialization?: string;

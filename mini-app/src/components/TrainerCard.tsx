@@ -11,6 +11,7 @@ interface TrainerCardProps {
   photoUrl?: string;
   phone?: string;
   telegram?: string;
+  botUsername?: string;
   onServices?: () => void;
   onShare?: () => void;
 }
@@ -22,13 +23,15 @@ export function TrainerCard({
   photoUrl,
   phone,
   telegram,
+  botUsername,
   onServices,
   onShare,
 }: TrainerCardProps) {
   const handleMessage = () => {
-    if (!telegram) return; 
-    const username = telegram.replace("@", "");
-    window.open(`https://t.me/${username}`, "_blank");
+    // Open chat with trainer's bot
+    if (botUsername) {
+      window.open(`https://t.me/${botUsername}`, "_blank");
+    }
   };
   return (
     <div className="bg-card rounded-xl p-4">
@@ -79,7 +82,7 @@ export function TrainerCard({
 
       {/* Action Buttons */}
       <div className="flex gap-2">
-        {telegram && (
+        {botUsername && (
           <button
             onClick={handleMessage}
             className="flex-1 py-3 px-4 rounded-[28px] bg-brand text-white text-sm font-medium transition-opacity active:opacity-80"

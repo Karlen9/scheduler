@@ -74,6 +74,7 @@ export default function HomePage() {
             photoUrl={trainer.photoUrl}
             phone={trainer.phone}
             telegram={trainer.telegramHandle}
+            botUsername={trainer.botUsername}
             onServices={handleServices}
             onShare={handleShare}
           />
