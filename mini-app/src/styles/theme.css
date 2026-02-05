@@ -1,25 +1,25 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Telegram WebApp Theme Variables - fallback values */
-  --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #000000;
+  /* Dark theme - always used */
+  --tg-theme-bg-color: #1e1e1e;
+  --tg-theme-text-color: #ffffff;
   --tg-theme-hint-color: #999999;
-  --tg-theme-link-color: #2481cc;
-  --tg-theme-button-color: #2481cc;
+  --tg-theme-link-color: #6ab2f2;
+  --tg-theme-button-color: #5288c1;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f4f4f5;
-  --tg-theme-header-bg-color: #ffffff;
-  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-secondary-bg-color: #2a2a2a;
+  --tg-theme-header-bg-color: #1e1e1e;
+  --tg-theme-section-bg-color: #1e1e1e;
   --tg-theme-subtitle-text-color: #999999;
   --tg-theme-destructive-text-color: #e53935;
 
-  /* Semantic tokens for Telegram Mini App */
+  /* Semantic tokens */
   --app-bg: var(--tg-theme-bg-color);
   --app-surface: var(--tg-theme-secondary-bg-color);
   --app-text: var(--tg-theme-text-color);
   --app-subtext: var(--tg-theme-hint-color);
-  --app-divider: rgba(0, 0, 0, 0.08);
+  --app-divider: rgba(255, 255, 255, 0.08);
   --app-primary: var(--tg-theme-button-color);
   --app-primary-text: var(--tg-theme-button-text-color);
   --app-destructive: var(--tg-theme-destructive-text-color);
@@ -42,70 +42,18 @@
   --destructive: var(--app-destructive);
   --destructive-foreground: #ffffff;
   --border: var(--app-divider);
-  --input: transparent;
-  --input-background: var(--app-surface);
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: var(--app-primary);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  /* Dark theme Telegram variables - fallback values */
-  --tg-theme-bg-color: #1e1e1e;
-  --tg-theme-text-color: #ffffff;
-  --tg-theme-hint-color: #999999;
-  --tg-theme-link-color: #6ab2f2;
-  --tg-theme-button-color: #5288c1;
-  --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #2a2a2a;
-  --tg-theme-header-bg-color: #1e1e1e;
-  --tg-theme-section-bg-color: #1e1e1e;
-  --tg-theme-subtitle-text-color: #999999;
-  --tg-theme-destructive-text-color: #e53935;
-
-  --app-divider: rgba(255, 255, 255, 0.08);
-
-  --background: var(--app-bg);
-  --foreground: var(--app-text);
-  --card: var(--app-surface);
-  --card-foreground: var(--app-text);
-  --popover: var(--app-surface);
-  --popover-foreground: var(--app-text);
-  --primary: var(--app-primary);
-  --primary-foreground: var(--app-primary-text);
-  --secondary: var(--app-surface);
-  --secondary-foreground: var(--app-text);
-  --muted: var(--app-surface);
-  --muted-foreground: var(--app-subtext);
-  --accent: var(--app-surface);
-  --accent-foreground: var(--app-text);
-  --destructive: var(--app-destructive);
-  --destructive-foreground: #ffffff;
-  --border: var(--app-divider);
   --input: var(--app-surface);
-  --ring: var(--app-primary);
+  --input-background: var(--app-surface);
+  --switch-background: #4a4a4a;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
+  --ring: var(--app-primary);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  --radius: 0.75rem;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
