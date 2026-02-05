@@ -1,105 +1,198 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { TimePickerModal } from "@/components/TimePickerModal";
+import { WorkingHours } from "@/lib/types";
+import { api } from "@/lib/api";
+
+const DAY_NAMES = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
+interface DaySchedule {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+}
 
 export default function SchedulePage() {
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("23:00");
-  const [allowReschedule, setAllowReschedule] = useState(true);
-  const [blockCancellation, setBlockCancellation] = useState(true);
-  const [cancelCutoffHours, setCancelCutoffHours] = useState("12");
-  const [isSaving, setIsSaving] = useState(false);
+  const [schedule, setSchedule] = useState<Record<number, DaySchedule>>({
+    0: { enabled: false, startTime: "09:00", endTime: "18:00" },
+    1: { enabled: true, startTime: "09:00", endTime: "21:00" },
+    2: { enabled: true, startTime: "09:00", endTime: "21:00" },
+    3: { enabled: true, startTime: "09:00", endTime: "21:00" },
+    4: { enabled: true, startTime: "09:00", endTime: "21:00" },
+    5: { enabled: true, startTime: "09:00", endTime: "21:00" },
+    6: { enabled: false, startTime: "09:00", endTime: "18:00" },
+  });
 
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const [pickerDay, setPickerDay] = useState<number | null>(null);
+  const [pickerType, setPickerType] = useState<"start" | "end">("start");
+  const [showPicker, setShowPicker] = useState(false);
+
+  const fetchWorkingHours = useCallback(async () => {
+    try {
+      setError(null);
+      const hours = await api.admin.getWorkingHours();
+
+      // Reset all days to disabled first
+      const newSchedule: Record<number, DaySchedule> = {
+        0: { enabled: false, startTime: "09:00", endTime: "18:00" },
+        1: { enabled: false, startTime: "09:00", endTime: "21:00" },
+        2: { enabled: false, startTime: "09:00", endTime: "21:00" },
+        3: { enabled: false, startTime: "09:00", endTime: "21:00" },
+        4: { enabled: false, startTime: "09:00", endTime: "21:00" },
+        5: { enabled: false, startTime: "09:00", endTime: "21:00" },
+        6: { enabled: false, startTime: "09:00", endTime: "18:00" },
+      };
+
+      // Enable days that have working hours
+      hours.forEach((wh) => {
+        newSchedule[wh.dayOfWeek] = {
+          enabled: true,
+          startTime: wh.startTime,
+          endTime: wh.endTime,
+        };
+      });
+
+      setSchedule(newSchedule);
+    } catch (err) {
+      console.error("Failed to fetch working hours:", err);
+      setError("Ошибка загрузки расписания");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWorkingHours();
+  }, [fetchWorkingHours]);
+
+  const handleDayToggle = (day: number) => {
+    setSchedule((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], enabled: !prev[day].enabled },
+    }));
+  };
+
+  const openTimePicker = (day: number, type: "start" | "end") => {
+    setPickerDay(day);
+    setPickerType(type);
+    setShowPicker(true);
+  };
+
+  const handleTimeSelect = (time: string) => {
+    if (pickerDay === null) return;
+
+    setSchedule((prev) => ({
+      ...prev,
+      [pickerDay]: {
+        ...prev[pickerDay],
+        [pickerType === "start" ? "startTime" : "endTime"]: time,
+      },
+    }));
+    setShowPicker(false);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
-    // TODO: Implement save API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      const hours: WorkingHours[] = [];
+      for (let day = 0; day < 7; day++) {
+        if (schedule[day].enabled) {
+          hours.push({
+            dayOfWeek: day,
+            startTime: schedule[day].startTime,
+            endTime: schedule[day].endTime,
+          });
+        }
+      }
+
+      await api.admin.updateWorkingHours(hours);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2000);
+    } catch (err) {
+      console.error("Failed to save working hours:", err);
+      setError("Ошибка сохранения");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div>
+        <TopBar title="Расписание" showBack />
+        <div className="p-4 flex justify-center items-center min-h-[200px]">
+          <div className="text-[var(--app-subtext)]">Загрузка...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <TopBar title="Расписание" showBack />
 
       <div className="p-4 space-y-6">
-        {/* Working Hours */}
-        <div>
-          <h3 className="text-sm text-[var(--app-subtext)] mb-3">Рабочие часы</h3>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block text-xs text-[var(--app-subtext)] mb-1">
-                Начало
-              </label>
-              <button
-                onClick={() => setShowStartPicker(true)}
-                className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] text-left outline-none focus:ring-2 focus:ring-[#5984d8]"
-              >
-                {startTime}
-              </button>
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs text-[var(--app-subtext)] mb-1">
-                Конец
-              </label>
-              <button
-                onClick={() => setShowEndPicker(true)}
-                className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] text-left outline-none focus:ring-2 focus:ring-[#5984d8]"
-              >
-                {endTime}
-              </button>
-            </div>
+        {/* Status Messages */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+            {error}
           </div>
-        </div>
+        )}
+        {success && (
+          <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm text-center">
+            Расписание сохранено
+          </div>
+        )}
 
-        {/* Allow Reschedule */}
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={allowReschedule}
-            onChange={(e) => setAllowReschedule(e.target.checked)}
-            className="mt-1 w-5 h-5 rounded border-[var(--app-divider)] text-[#5984d8] focus:ring-[#5984d8]"
-          />
-          <span className="text-[var(--app-text)]">
-            Разрешить клиентам меняться временем
-          </span>
-        </label>
-
-        {/* Block Cancellation */}
-        <div className="space-y-3">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={blockCancellation}
-              onChange={(e) => setBlockCancellation(e.target.checked)}
-              className="mt-1 w-5 h-5 rounded border-[var(--app-divider)] text-[#5984d8] focus:ring-[#5984d8]"
-            />
-            <span className="text-[var(--app-text)]">
-              Блокировать возможность отмены занятия за N времени до начала
-            </span>
-          </label>
-
-          {blockCancellation && (
-            <div className="ml-8">
-              <label className="block text-xs text-[var(--app-subtext)] mb-1">
-                Времени до отмены
-              </label>
-              <input
-                type="number"
-                value={cancelCutoffHours}
-                onChange={(e) => setCancelCutoffHours(e.target.value)}
-                min="1"
-                max="72"
-                className="w-24 px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] outline-none focus:ring-2 focus:ring-[#5984d8]"
-              />
-              <span className="ml-2 text-sm text-[var(--app-subtext)]">часов</span>
-            </div>
-          )}
+        {/* Working Hours per Day */}
+        <div>
+          <h3 className="text-sm text-[var(--app-subtext)] mb-3">Рабочие дни</h3>
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5, 6, 0].map((day) => (
+              <div
+                key={day}
+                className="flex items-center gap-3 p-3 bg-[var(--app-surface)] rounded-lg"
+              >
+                <input
+                  type="checkbox"
+                  checked={schedule[day].enabled}
+                  onChange={() => handleDayToggle(day)}
+                  className="w-5 h-5 rounded border-[var(--app-divider)] text-[#5984d8] focus:ring-[#5984d8]"
+                />
+                <span className="w-8 text-[var(--app-text)] font-medium">
+                  {DAY_NAMES[day]}
+                </span>
+                {schedule[day].enabled && (
+                  <div className="flex-1 flex items-center gap-2 text-sm">
+                    <button
+                      onClick={() => openTimePicker(day, "start")}
+                      className="px-3 py-1 rounded bg-white text-[var(--app-text)]"
+                    >
+                      {schedule[day].startTime}
+                    </button>
+                    <span className="text-[var(--app-subtext)]">–</span>
+                    <button
+                      onClick={() => openTimePicker(day, "end")}
+                      className="px-3 py-1 rounded bg-white text-[var(--app-text)]"
+                    >
+                      {schedule[day].endTime}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Save Button */}
@@ -108,20 +201,17 @@ export default function SchedulePage() {
         </PrimaryButton>
       </div>
 
-      {/* Time Pickers */}
+      {/* Time Picker */}
       <TimePickerModal
-        isOpen={showStartPicker}
-        onClose={() => setShowStartPicker(false)}
-        onSelect={setStartTime}
-        selectedTime={startTime}
-        title="Начало рабочего дня"
-      />
-      <TimePickerModal
-        isOpen={showEndPicker}
-        onClose={() => setShowEndPicker(false)}
-        onSelect={setEndTime}
-        selectedTime={endTime}
-        title="Конец рабочего дня"
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+        onSelect={handleTimeSelect}
+        selectedTime={
+          pickerDay !== null
+            ? schedule[pickerDay][pickerType === "start" ? "startTime" : "endTime"]
+            : "09:00"
+        }
+        title={pickerType === "start" ? "Начало работы" : "Конец работы"}
       />
     </div>
   );

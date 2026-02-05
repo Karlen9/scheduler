@@ -14,28 +14,36 @@ function formatTime(hour: number): string {
   return `${hour.toString().padStart(2, "0")}:00`;
 }
 
-function getBookingPosition(booking: Booking, startHour: number): { top: number; height: number } {
+// Convert time to grid row (1-based, 4 rows per hour)
+function getGridRow(date: Date, startHour: number): number {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const hourOffset = hours - startHour;
+  const quarterSlot = Math.floor(minutes / 15);
+  return hourOffset * 4 + quarterSlot + 1; // 1-based for CSS grid
+}
+
+function getBookingGridPosition(
+  booking: Booking,
+  startHour: number
+): { rowStart: number; rowSpan: number } {
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
 
-  const startMinutes = startsAt.getHours() * 60 + startsAt.getMinutes();
-  const endMinutes = endsAt.getHours() * 60 + endsAt.getMinutes();
-  const baseMinutes = startHour * 60;
+  const rowStart = getGridRow(startsAt, startHour);
+  const rowEnd = getGridRow(endsAt, startHour);
+  const rowSpan = Math.max(rowEnd - rowStart, 1);
 
-  const top = ((startMinutes - baseMinutes) / 60) * 64; // 64px per hour
-  const height = ((endMinutes - startMinutes) / 60) * 64;
-
-  return { top, height: Math.max(height, 40) };
+  return { rowStart, rowSpan };
 }
 
-function formatBookingTime(booking: Booking): string {
-  const startsAt = new Date(booking.startsAt);
-  const endsAt = new Date(booking.endsAt);
-  const format = (d: Date) => d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-  return `${format(startsAt)} – ${format(endsAt)}`;
-}
-
-const BOOKING_COLORS = ["#f5a623", "#5984d8", "#4caf50", "#9c27b0"];
+// Background and border colors for bookings
+const BOOKING_COLORS = [
+  { bg: "#fef3e2", border: "#f5a623" },
+  { bg: "#e8f0fc", border: "#5984d8" },
+  { bg: "#e8f5e9", border: "#4caf50" },
+  { bg: "#f3e5f5", border: "#9c27b0" },
+];
 
 export function DayTimeline({
   date,
@@ -44,7 +52,11 @@ export function DayTimeline({
   endHour = 21,
   onBookingClick,
 }: DayTimelineProps) {
-  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+  const hours = Array.from(
+    { length: endHour - startHour + 1 },
+    (_, i) => startHour + i
+  );
+  const totalRows = hours.length * 4; // 4 rows per hour (15-min slots)
 
   // Filter bookings for this day
   const dayStart = new Date(date);
@@ -58,10 +70,28 @@ export function DayTimeline({
   });
 
   const formatDateHeader = (d: Date) => {
-    const days = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+    const days = [
+      "Воскресенье",
+      "Понедельник",
+      "Вторник",
+      "Среда",
+      "Четверг",
+      "Пятница",
+      "Суббота",
+    ];
     const months = [
-      "Января", "Февраля", "Марта", "Апреля", "Мая", "Июня",
-      "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря"
+      "Января",
+      "Февраля",
+      "Марта",
+      "Апреля",
+      "Мая",
+      "Июня",
+      "Июля",
+      "Августа",
+      "Сентября",
+      "Октября",
+      "Ноября",
+      "Декабря",
     ];
     return `${d.getDate()} ${months[d.getMonth()]}, ${days[d.getDay()]}`;
   };
@@ -72,48 +102,71 @@ export function DayTimeline({
         {formatDateHeader(date)}
       </h3>
 
-      <div className="relative">
-        {/* Hour lines */}
-        {hours.map((hour) => (
-          <div key={hour} className="flex items-start h-16 border-t border-[var(--app-divider)]">
-            <span className="text-xs text-[var(--app-subtext)] w-12 -mt-2 pr-2">
-              {formatTime(hour)}
-            </span>
-            <div className="flex-1 relative" />
+      {/* Grid: 2 columns (time labels + bookings), N rows (4 per hour) */}
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: "48px 1fr",
+          gridTemplateRows: `repeat(${totalRows}, 16px)`,
+        }}
+      >
+        {/* Time labels - one per hour, spanning 4 rows */}
+        {hours.map((hour, hourIndex) => (
+          <div
+            key={hour}
+            className="text-xs text-[var(--app-subtext)] pr-2 border-t border-[var(--app-divider)]"
+            style={{
+              gridColumn: 1,
+              gridRow: `${hourIndex * 4 + 1} / span 4`,
+            }}
+          >
+            {formatTime(hour)}
           </div>
         ))}
 
-        {/* Bookings */}
-        <div className="absolute left-12 right-0 top-0">
-          {dayBookings.map((booking, index) => {
-            const { top, height } = getBookingPosition(booking, startHour);
-            const color = BOOKING_COLORS[index % BOOKING_COLORS.length];
+        {/* Hour dividers in the booking column */}
+        {hours.map((hour, hourIndex) => (
+          <div
+            key={`divider-${hour}`}
+            className="border-t border-[var(--app-divider)]"
+            style={{
+              gridColumn: 2,
+              gridRow: `${hourIndex * 4 + 1} / span 4`,
+            }}
+          />
+        ))}
 
-            return (
-              <button
-                key={booking.id}
-                onClick={() => onBookingClick?.(booking)}
-                style={{
-                  top: `${top}px`,
-                  height: `${height}px`,
-                  backgroundColor: `${color}20`,
-                  borderLeft: `3px solid ${color}`,
-                }}
-                className="absolute left-1 right-1 rounded-lg p-2 text-left transition-opacity active:opacity-80 overflow-hidden"
-              >
-                <p className="text-sm font-medium text-[var(--app-text)] truncate">
-                  {booking.clientName}
-                </p>
+        {/* Bookings */}
+        {dayBookings.map((booking, index) => {
+          const { rowStart, rowSpan } = getBookingGridPosition(
+            booking,
+            startHour
+          );
+          const colors = BOOKING_COLORS[index % BOOKING_COLORS.length];
+
+          return (
+            <button
+              key={booking.id}
+              onClick={() => onBookingClick?.(booking)}
+              className="mx-1 rounded-lg p-2 text-left transition-opacity active:opacity-80 overflow-hidden z-10"
+              style={{
+                gridColumn: 2,
+                gridRow: `${rowStart} / span ${rowSpan}`,
+                backgroundColor: colors.bg,
+                borderLeft: `3px solid ${colors.border}`,
+              }}
+            >
+              <p className="text-sm font-medium text-[var(--app-text)] truncate">
+                {booking.clientName}
+              </p>
+              {rowSpan >= 2 && (
                 <p className="text-xs text-[var(--app-subtext)] truncate">
                   {booking.sessionType?.name || "Тренировка"}
                 </p>
-                <p className="text-xs text-[var(--app-subtext)]">
-                  {formatBookingTime(booking)}
-                </p>
-              </button>
-            );
-          })}
-        </div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -37,28 +37,41 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			initData := r.Header.Get("X-Telegram-Init-Data")
-			if initData == "" {
-				// For development, allow requests without auth
-				log.Println("Warning: No Telegram initData provided")
-				next.ServeHTTP(w, r)
-				return
+			trainerID := r.Header.Get("X-Trainer-ID")
+			if trainerID == "" {
+				trainerID = r.URL.Query().Get("trainer")
 			}
 
-			user, ok := validateInitData(initData, botToken)
-			if !ok {
-				http.Error(w, "Invalid Telegram authentication", http.StatusUnauthorized)
-				return
+			// Get trainer by ID or fall back to first trainer
+			var trainer *models.Trainer
+			var err error
+			if trainerID != "" {
+				trainer, err = db.GetTrainerByID(trainerID)
+			} else {
+				trainer, err = db.GetFirstTrainer()
 			}
-
-			// Get trainer (for now, just get the first one)
-			trainer, err := db.GetFirstTrainer()
 			if err != nil {
 				log.Printf("Error getting trainer: %v", err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
 			if trainer == nil {
-				http.Error(w, "Trainer not configured", http.StatusInternalServerError)
+				http.Error(w, "Trainer not found", http.StatusNotFound)
+				return
+			}
+
+			if initData == "" {
+				// For development, allow requests without auth
+				log.Println("Warning: No Telegram initData provided")
+				ctx := context.WithValue(r.Context(), TrainerContextKey, trainer)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			// Validate initData using the trainer's bot token
+			user, ok := validateInitData(initData, trainer.BotToken)
+			if !ok {
+				http.Error(w, "Invalid Telegram authentication", http.StatusUnauthorized)
 				return
 			}
 
@@ -169,7 +182,7 @@ func AdminAuthMiddleware(next http.Handler) http.Handler {
 }
 
 // DevAuthMiddleware is a simple middleware for development that creates a mock client
-func DevAuthMiddleware(trainerID int64) func(http.Handler) http.Handler {
+func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check if we already have auth from Telegram middleware
@@ -178,12 +191,17 @@ func DevAuthMiddleware(trainerID int64) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Get trainer
-			trainer, err := db.GetFirstTrainer()
-			if err != nil || trainer == nil {
-				log.Printf("Error getting trainer: %v", err)
-				http.Error(w, "Trainer not configured", http.StatusInternalServerError)
-				return
+			// Get trainer from context (set by TelegramAuthMiddleware)
+			trainer := GetTrainerFromContext(r)
+			if trainer == nil {
+				// Fall back to first trainer
+				var err error
+				trainer, err = db.GetFirstTrainer()
+				if err != nil || trainer == nil {
+					log.Printf("Error getting trainer: %v", err)
+					http.Error(w, "Trainer not configured", http.StatusInternalServerError)
+					return
+				}
 			}
 
 			// For dev, use a mock user ID from query or header

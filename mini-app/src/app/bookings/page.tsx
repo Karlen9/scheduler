@@ -45,7 +45,7 @@ export default function BookingsPage() {
   if (isLoading) {
     return (
       <div
-        className="min-h-screen bg-[var(--app-bg)]"
+        className="min-h-screen bg-(--app-bg)"
         style={{ maxWidth: "430px", margin: "0 auto" }}
       >
         <TopBar title="Мои записи" showBack />
@@ -60,7 +60,7 @@ export default function BookingsPage() {
   if (bookings.length === 0) {
     return (
       <div
-        className="min-h-screen bg-[var(--app-bg)] flex flex-col"
+        className="min-h-screen bg-(--app-bg) flex flex-col"
         style={{ maxWidth: "430px", margin: "0 auto" }}
       >
         <TopBar title="Мои записи" showBack />
@@ -78,7 +78,7 @@ export default function BookingsPage() {
 
   return (
     <div
-      className="min-h-screen bg-[var(--app-bg)]"
+      className="min-h-screen bg-(--app-bg)"
       style={{ maxWidth: "390px", margin: "0 auto" }}
     >
       <TopBar title="Мои записи" showBack />
@@ -86,7 +86,7 @@ export default function BookingsPage() {
       <div className="p-4 space-y-4">
         {confirmedBookings.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-3">
+            <h3 className="text-sm font-medium text-(--app-subtext) mb-3">
               Активные записи
             </h3>
             <div className="space-y-3">

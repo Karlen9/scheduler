@@ -1,70 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { NearestBookingCard } from "@/components/NearestBookingCard";
 import { ScheduleTabs } from "@/components/ScheduleTabs";
 import { DayTimeline } from "@/components/DayTimeline";
 import { WeekGrid } from "@/components/WeekGrid";
-import { WeekDatePicker } from "@/components/WeekDatePicker";
+import { MonthCalendar } from "@/components/MonthCalendar";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Booking } from "@/lib/types";
-
-// Mock data for development
-const mockBookings: Booking[] = [
-  {
-    id: "1",
-    startsAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    endsAt: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-    clientName: "Райан Гослинг",
-    status: "confirmed",
-    sessionType: {
-      id: "1",
-      type: "personal",
-      name: "Тренировка стандарт",
-      durationMinutes: 60,
-      price: 2500,
-      currency: "RUB",
-    },
-  },
-  {
-    id: "2",
-    startsAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-    endsAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-    clientName: "Анна Иванова",
-    status: "confirmed",
-    sessionType: {
-      id: "2",
-      type: "personal",
-      name: "Персональная тренировка",
-      durationMinutes: 60,
-      price: 3000,
-      currency: "RUB",
-    },
-  },
-  {
-    id: "3",
-    startsAt: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
-    endsAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-    clientName: "Петр Сидоров",
-    status: "pending",
-    sessionType: {
-      id: "1",
-      type: "personal",
-      name: "Тренировка стандарт",
-      durationMinutes: 60,
-      price: 2500,
-      currency: "RUB",
-    },
-  },
-];
+import { Booking, DayOff } from "@/lib/types";
+import { api } from "@/lib/api";
 
 export default function AdminSchedulePage() {
   const [activeTab, setActiveTab] = useState<"day" | "week">("day");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [bookings] = useState<Booking[]>(mockBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [daysOff, setDaysOff] = useState<DayOff[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [bookingsData, daysOffData] = await Promise.all([
+        api.admin.getBookings(),
+        api.admin.getDaysOff(),
+      ]);
+      setBookings(bookingsData);
+      setDaysOff(daysOffData);
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+      setError(err instanceof Error ? err.message : "Ошибка загрузки");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Find nearest upcoming booking
   const now = new Date();
@@ -87,9 +64,14 @@ export default function AdminSchedulePage() {
     setShowCancelDialog(true);
   };
 
-  const handleConfirmCancel = () => {
-    // TODO: Implement cancel API call
-    console.log("Cancel booking:", selectedBooking?.id);
+  const handleConfirmCancel = async () => {
+    if (!selectedBooking) return;
+    try {
+      await api.admin.updateBookingStatus(selectedBooking.id, "cancelled");
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to cancel booking:", err);
+    }
     setShowCancelDialog(false);
     setSelectedBooking(null);
   };
@@ -98,6 +80,27 @@ export default function AdminSchedulePage() {
     setSelectedDate(date);
     setActiveTab("day");
   };
+
+  // Convert daysOff to Date array
+  const daysOffDates = daysOff.map((d) => new Date(d.date));
+
+  if (loading) {
+    return (
+      <div className="p-4 flex justify-center items-center min-h-[200px]">
+        <div className="text-[var(--app-subtext)]">Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-center">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -117,12 +120,14 @@ export default function AdminSchedulePage() {
       {/* Tabs */}
       <ScheduleTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Date Picker (Day view) */}
+      {/* Calendar (Day view) */}
       {activeTab === "day" && (
         <div className="mb-4">
-          <WeekDatePicker
+          <MonthCalendar
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
+            bookingDates={bookings.map((b) => new Date(b.startsAt))}
+            daysOff={daysOffDates}
           />
         </div>
       )}

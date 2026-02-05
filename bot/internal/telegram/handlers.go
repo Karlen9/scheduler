@@ -36,15 +36,51 @@ func (h *Handler) handleMessage(msg *Message) {
 	switch msg.Text {
 	case "/start":
 		h.handleStart(msg)
+	case "/admin":
+		h.handleAdmin(msg)
 	case "/help":
 		h.handleHelp(msg)
 	}
 }
 
 func (h *Handler) handleStart(msg *Message) {
-	_, err := h.Bot.SendWebAppButton(msg.Chat.ID, MsgWelcome, h.WebAppURL)
+	// Get trainer by bot token to include trainer ID in URL
+	trainer, err := db.GetTrainerByBotToken(h.Bot.Token)
+	if err != nil || trainer == nil {
+		log.Printf("Error getting trainer for bot: %v", err)
+		_, _ = h.Bot.SendMessage(msg.Chat.ID, "Ошибка конфигурации бота", nil)
+		return
+	}
+
+	// Include trainer ID in WebApp URL
+	webAppURL := h.WebAppURL + "?trainer=" + trainer.ID
+	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, MsgWelcome, webAppURL)
 	if err != nil {
 		log.Printf("Error sending start message: %v", err)
+	}
+}
+
+func (h *Handler) handleAdmin(msg *Message) {
+	// Check if user is the trainer (owner of this bot)
+	trainer, err := db.GetTrainerByBotToken(h.Bot.Token)
+	if err != nil {
+		log.Printf("Error getting trainer: %v", err)
+		return
+	}
+
+	if trainer == nil || trainer.TelegramUserID != msg.From.ID {
+		_, err := h.Bot.SendMessage(msg.Chat.ID, "⛔ Эта команда доступна только тренеру.", nil)
+		if err != nil {
+			log.Printf("Error sending admin denied message: %v", err)
+		}
+		return
+	}
+
+	// Open admin panel with trainer ID
+	adminURL := h.WebAppURL + "/admin?trainer=" + trainer.ID
+	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, "🔧 Панель управления", adminURL)
+	if err != nil {
+		log.Printf("Error sending admin message: %v", err)
 	}
 }
 

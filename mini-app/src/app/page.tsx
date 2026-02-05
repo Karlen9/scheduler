@@ -43,27 +43,27 @@ export default function HomePage() {
 
   return (
     <div
-      className="min-h-screen bg-[var(--app-bg)]"
+      className="min-h-screen bg-(--app-bg)"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       {/* Main Content */}
       <div className="px-4 pt-4 pb-32 space-y-6">
         {/* Trainer Card */}
         {isLoading ? (
-          <div className="bg-[var(--app-surface)] rounded-xl p-4 animate-pulse">
+          <div className="bg-(--app-surface) rounded-xl p-4 animate-pulse">
             <div className="flex gap-4 mb-4">
-              <div className="w-[127px] h-[127px] rounded-full bg-[var(--app-divider)]" />
+              <div className="w-[127px] h-[127px] rounded-full bg-(--app-divider)" />
               <div className="flex-1 space-y-3">
-                <div className="h-6 bg-[var(--app-divider)] rounded w-3/4" />
-                <div className="h-4 bg-[var(--app-divider)] rounded w-1/2" />
-                <div className="h-3 bg-[var(--app-divider)] rounded w-2/3" />
+                <div className="h-6 bg-(--app-divider) rounded w-3/4" />
+                <div className="h-4 bg-(--app-divider) rounded w-1/2" />
+                <div className="h-3 bg-(--app-divider) rounded w-2/3" />
               </div>
             </div>
-            <div className="h-16 bg-[var(--app-divider)] rounded mb-4" />
+            <div className="h-16 bg-(--app-divider) rounded mb-4" />
             <div className="flex gap-2">
-              <div className="flex-1 h-12 bg-[var(--app-divider)] rounded-[28px]" />
-              <div className="flex-1 h-12 bg-[var(--app-divider)] rounded-[28px]" />
-              <div className="w-12 h-12 bg-[var(--app-divider)] rounded-[28px]" />
+              <div className="flex-1 h-12 bg-(--app-divider) rounded-[28px]" />
+              <div className="flex-1 h-12 bg-(--app-divider) rounded-[28px]" />
+              <div className="w-12 h-12 bg-(--app-divider) rounded-[28px]" />
             </div>
           </div>
         ) : trainer ? (
@@ -78,7 +78,7 @@ export default function HomePage() {
             onShare={handleShare}
           />
         ) : (
-          <div className="bg-[var(--app-surface)] rounded-xl p-4 text-center text-[var(--app-subtext)]">
+          <div className="bg-(--app-surface) rounded-xl p-4 text-center text-(--app-subtext)">
             Не удалось загрузить информацию о тренере
           </div>
         )}

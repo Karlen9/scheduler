@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func NewRouter(botToken string) http.Handler {
+func NewRouter() http.Handler {
 	r := chi.NewRouter()
 
 	// Middleware
@@ -20,7 +20,7 @@ func NewRouter(botToken string) http.Handler {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Dev-User-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Dev-User-ID", "X-Trainer-ID"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -36,8 +36,8 @@ func NewRouter(botToken string) http.Handler {
 
 	// API routes with auth
 	r.Route("/api", func(r chi.Router) {
-		r.Use(TelegramAuthMiddleware(botToken))
-		r.Use(DevAuthMiddleware(0)) // Fallback for dev
+		r.Use(TelegramAuthMiddleware("")) // botToken not used, we look it up per trainer
+		r.Use(DevAuthMiddleware(0))       // Fallback for dev
 
 		r.Get("/trainer", HandleGetTrainer)
 		r.Get("/services", HandleGetServices)
@@ -70,6 +70,15 @@ func NewRouter(botToken string) http.Handler {
 			// Bookings management
 			r.Get("/bookings", HandleAdminGetBookings)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
+
+			// Days off management
+			r.Get("/days-off", HandleGetDaysOff)
+			r.Post("/days-off", HandleCreateDayOff)
+			r.Delete("/days-off/{id}", HandleDeleteDayOff)
+
+			// Profile management
+			r.Get("/profile", HandleGetProfile)
+			r.Put("/profile", HandleUpdateProfile)
 		})
 	})
 

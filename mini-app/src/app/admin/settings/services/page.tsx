@@ -1,56 +1,61 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { ServiceCard } from "@/components/ServiceCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SessionType } from "@/lib/types";
-
-const mockServices: SessionType[] = [
-  {
-    id: "1",
-    type: "personal",
-    name: "Мужская тренировка",
-    durationMinutes: 60,
-    price: 2500,
-    currency: "RUB",
-  },
-  {
-    id: "2",
-    type: "personal",
-    name: "Персональная тренировка",
-    durationMinutes: 60,
-    price: 3000,
-    currency: "RUB",
-  },
-];
+import { api } from "@/lib/api";
 
 interface ServiceFormData {
+  type: string;
   name: string;
   price: string;
   duration: string;
 }
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<SessionType[]>(mockServices);
+  const [services, setServices] = useState<SessionType[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<SessionType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ServiceFormData>({
+    type: "personal",
     name: "",
     price: "",
     duration: "60",
   });
 
+  const fetchServices = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await api.admin.getServices();
+      setServices(data);
+    } catch (err) {
+      console.error("Failed to fetch services:", err);
+      setError("Ошибка загрузки услуг");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
   const handleAddClick = () => {
     setEditingService(null);
-    setFormData({ name: "", price: "", duration: "60" });
+    setFormData({ type: "personal", name: "", price: "", duration: "60" });
     setShowForm(true);
   };
 
   const handleEditClick = (service: SessionType) => {
     setEditingService(service);
     setFormData({
+      type: service.type,
       name: service.name,
       price: service.price.toString(),
       duration: service.durationMinutes.toString(),
@@ -58,39 +63,50 @@ export default function ServicesPage() {
     setShowForm(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || !formData.price || !formData.duration) return;
 
-    if (editingService) {
-      // Update existing
-      setServices((prev) =>
-        prev.map((s) =>
-          s.id === editingService.id
-            ? {
-                ...s,
-                name: formData.name,
-                price: parseInt(formData.price),
-                durationMinutes: parseInt(formData.duration),
-              }
-            : s
-        )
-      );
-    } else {
-      // Add new
-      const newService: SessionType = {
-        id: Date.now().toString(),
-        type: "personal",
-        name: formData.name,
-        price: parseInt(formData.price),
-        durationMinutes: parseInt(formData.duration),
-        currency: "RUB",
-      };
-      setServices((prev) => [...prev, newService]);
-    }
+    setSaving(true);
+    setError(null);
 
-    setShowForm(false);
-    setEditingService(null);
+    try {
+      if (editingService) {
+        await api.admin.updateService(editingService.type, {
+          name: formData.name,
+          price: parseInt(formData.price),
+          durationMinutes: parseInt(formData.duration),
+        });
+      } else {
+        await api.admin.createService({
+          type: formData.type,
+          name: formData.name,
+          price: parseInt(formData.price),
+          durationMinutes: parseInt(formData.duration),
+          currency: "RUB",
+        });
+      }
+
+      await fetchServices();
+      setShowForm(false);
+      setEditingService(null);
+    } catch (err) {
+      console.error("Failed to save service:", err);
+      setError(err instanceof Error ? err.message : "Ошибка сохранения");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div>
+        <TopBar title="Услуги и цены" showBack />
+        <div className="p-4 flex justify-center items-center min-h-[200px]">
+          <div className="text-[var(--app-subtext)]">Загрузка...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (showForm) {
     return (
@@ -102,6 +118,29 @@ export default function ServicesPage() {
         />
 
         <div className="p-4 space-y-4">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          {!editingService && (
+            <div>
+              <label className="block text-sm text-[var(--app-subtext)] mb-1">
+                Тип услуги
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] outline-none focus:ring-2 focus:ring-[#5984d8]"
+              >
+                <option value="personal">Персональная</option>
+                <option value="pair">Парная</option>
+                <option value="consultation">Консультация</option>
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm text-[var(--app-subtext)] mb-1">
               Название
@@ -141,8 +180,8 @@ export default function ServicesPage() {
             />
           </div>
 
-          <PrimaryButton onClick={handleSave}>
-            {editingService ? "Сохранить" : "Добавить услугу"}
+          <PrimaryButton onClick={handleSave} disabled={saving}>
+            {saving ? "Сохранение..." : editingService ? "Сохранить" : "Добавить услугу"}
           </PrimaryButton>
         </div>
       </div>
@@ -154,6 +193,12 @@ export default function ServicesPage() {
       <TopBar title="Услуги и цены" showBack />
 
       <div className="p-4 space-y-4">
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
+
         {/* Add Button */}
         <button
           onClick={handleAddClick}
@@ -164,13 +209,19 @@ export default function ServicesPage() {
         </button>
 
         {/* Services List */}
-        {services.map((service) => (
-          <ServiceCard
-            key={service.id}
-            service={service}
-            onEdit={() => handleEditClick(service)}
-          />
-        ))}
+        {services.length === 0 ? (
+          <div className="text-center text-[var(--app-subtext)] py-8">
+            Нет добавленных услуг
+          </div>
+        ) : (
+          services.map((service) => (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              onEdit={() => handleEditClick(service)}
+            />
+          ))
+        )}
       </div>
     </div>
   );

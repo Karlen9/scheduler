@@ -88,3 +88,12 @@ type TimeSlot struct {
 	Time      string `json:"time"`
 	Available bool   `json:"available"`
 }
+
+// DayOff represents a day when trainer is not available
+type DayOff struct {
+	ID        string    `json:"id"`
+	TrainerID string    `json:"-"`
+	Date      time.Time `json:"date"`
+	Reason    string    `json:"reason,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+}

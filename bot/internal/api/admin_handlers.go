@@ -5,12 +5,18 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
 )
+
+// parseDate parses a date string in YYYY-MM-DD format
+func parseDate(dateStr string) (time.Time, error) {
+	return time.Parse("2006-01-02", dateStr)
+}
 
 // ========== Trainer Settings ==========
 
@@ -454,14 +460,212 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	oldStatus := booking.Status
 	if err := db.UpdateBookingStatus(bookingID, models.BookingStatus(req.Status)); err != nil {
 		log.Printf("Error updating booking status: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("🔄 BOOKING STATUS [%s] %s → %s | Client: %s | Trainer: %s (@%s)",
+		bookingID[:8],
+		oldStatus,
+		req.Status,
+		booking.ClientName,
+		trainer.Name,
+		trainer.BotUsername,
+	)
+
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)
+}
+
+// ========== Days Off ==========
+
+type CreateDayOffRequest struct {
+	Date   string `json:"date"` // YYYY-MM-DD
+	Reason string `json:"reason,omitempty"`
+}
+
+func HandleGetDaysOff(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	daysOff, err := db.GetDaysOffByTrainerID(trainer.ID)
+	if err != nil {
+		log.Printf("Error getting days off: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if daysOff == nil {
+		daysOff = []models.DayOff{}
+	}
+
+	writeJSON(w, daysOff)
+}
+
+func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	var req CreateDayOffRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Date == "" {
+		http.Error(w, "date is required (YYYY-MM-DD)", http.StatusBadRequest)
+		return
+	}
+
+	date, err := parseDate(req.Date)
+	if err != nil {
+		http.Error(w, "Invalid date format (use YYYY-MM-DD)", http.StatusBadRequest)
+		return
+	}
+
+	// Check if already exists
+	existing, _ := db.GetDayOff(trainer.ID, date)
+	if existing != nil {
+		http.Error(w, "Day off already exists for this date", http.StatusConflict)
+		return
+	}
+
+	dayOff, err := db.CreateDayOff(trainer.ID, date, req.Reason)
+	if err != nil {
+		log.Printf("Error creating day off: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	writeJSON(w, dayOff)
+}
+
+func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	dayOffID := chi.URLParam(r, "id")
+	if dayOffID == "" {
+		http.Error(w, "Day off ID is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.DeleteDayOff(dayOffID); err != nil {
+		log.Printf("Error deleting day off: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ========== Profile ==========
+
+type UpdateProfileRequest struct {
+	Name           string `json:"name,omitempty"`
+	TelegramHandle string `json:"telegramHandle,omitempty"`
+	Phone          string `json:"phone,omitempty"`
+	Specialization string `json:"specialization,omitempty"`
+	Bio            string `json:"bio,omitempty"`
+	PhotoURL       string `json:"photoUrl,omitempty"`
+}
+
+func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	resp := TrainerResponse{
+		ID:              trainer.ID,
+		Name:            trainer.Name,
+		Timezone:        trainer.Timezone,
+		CancelCutoffHrs: trainer.CancelCutoffHrs,
+		TelegramHandle:  trainer.TelegramHandle,
+		Phone:           trainer.Phone,
+		Specialization:  trainer.Specialization,
+		Bio:             trainer.Bio,
+		PhotoURL:        trainer.PhotoURL,
+	}
+
+	writeJSON(w, resp)
+}
+
+func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	var req UpdateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Update name if provided
+	if req.Name != "" {
+		trainer.Name = req.Name
+		db.UpdateTrainer(trainer.ID, trainer.Name, trainer.Timezone, trainer.CancelCutoffHrs)
+	}
+
+	// Update profile fields
+	telegramHandle := trainer.TelegramHandle
+	if req.TelegramHandle != "" {
+		telegramHandle = req.TelegramHandle
+	}
+	phone := trainer.Phone
+	if req.Phone != "" {
+		phone = req.Phone
+	}
+	specialization := trainer.Specialization
+	if req.Specialization != "" {
+		specialization = req.Specialization
+	}
+	bio := trainer.Bio
+	if req.Bio != "" {
+		bio = req.Bio
+	}
+	photoURL := trainer.PhotoURL
+	if req.PhotoURL != "" {
+		photoURL = req.PhotoURL
+	}
+
+	updated, err := db.UpdateTrainerProfile(trainer.ID, telegramHandle, phone, specialization, bio, photoURL)
+	if err != nil {
+		log.Printf("Error updating profile: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := TrainerResponse{
+		ID:              updated.ID,
+		Name:            updated.Name,
+		Timezone:        updated.Timezone,
+		CancelCutoffHrs: updated.CancelCutoffHrs,
+		TelegramHandle:  updated.TelegramHandle,
+		Phone:           updated.Phone,
+		Specialization:  updated.Specialization,
+		Bio:             updated.Bio,
+		PhotoURL:        updated.PhotoURL,
+	}
+
+	writeJSON(w, resp)
 }
 
 // ========== Super Admin ==========

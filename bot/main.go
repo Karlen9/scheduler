@@ -249,7 +249,7 @@ func main() {
 	})
 
 	// API routes
-	mux.Handle("/", api.NewRouter(""))
+	mux.Handle("/", api.NewRouter())
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

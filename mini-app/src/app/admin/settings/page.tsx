@@ -1,6 +1,6 @@
 "use client";
 
-import { User, DollarSign, Clock, Bell, HelpCircle } from "lucide-react";
+import { User, DollarSign, Clock, Bell, HelpCircle, CalendarOff } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { SettingsMenuItem } from "@/components/SettingsMenuItem";
 
@@ -24,6 +24,11 @@ export default function SettingsPage() {
           icon={Clock}
           label="Расписание"
           href="/admin/settings/schedule"
+        />
+        <SettingsMenuItem
+          icon={CalendarOff}
+          label="Выходные дни"
+          href="/admin/settings/days-off"
         />
         <SettingsMenuItem
           icon={Bell}

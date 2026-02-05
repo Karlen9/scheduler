@@ -96,7 +96,26 @@ func migrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
-		// Migration: add trainer profile fields
+		`CREATE TABLE IF NOT EXISTS days_off (
+			id TEXT PRIMARY KEY,
+			trainer_id TEXT NOT NULL REFERENCES trainers(id),
+			date DATE NOT NULL,
+			reason TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(trainer_id, date)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_days_off_trainer_id ON days_off(trainer_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_days_off_date ON days_off(date)`,
+	}
+
+	for _, migration := range migrations {
+		if _, err := DB.Exec(migration); err != nil {
+			return err
+		}
+	}
+
+	// Run ALTER TABLE migrations (ignore "duplicate column" errors)
+	alterMigrations := []string{
 		`ALTER TABLE trainers ADD COLUMN telegram_handle TEXT`,
 		`ALTER TABLE trainers ADD COLUMN phone TEXT`,
 		`ALTER TABLE trainers ADD COLUMN specialization TEXT`,
@@ -104,10 +123,8 @@ func migrate() error {
 		`ALTER TABLE trainers ADD COLUMN photo_url TEXT`,
 	}
 
-	for _, migration := range migrations {
-		if _, err := DB.Exec(migration); err != nil {
-			return err
-		}
+	for _, migration := range alterMigrations {
+		DB.Exec(migration) // Ignore errors for duplicate columns
 	}
 
 	return nil

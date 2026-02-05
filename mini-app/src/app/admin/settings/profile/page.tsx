@@ -1,24 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Camera } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { api } from "@/lib/api";
 
 export default function ProfilePage() {
-  const [name, setName] = useState("Карлен Мисакян");
-  const [specialization, setSpecialization] = useState("Фитнес-тренер");
+  const [name, setName] = useState("");
+  const [specialization, setSpecialization] = useState("");
   const [bio, setBio] = useState("");
-  const [phone, setPhone] = useState("+7(987)654-32-10");
-  const [telegram, setTelegram] = useState("@karlenptsd");
+  const [phone, setPhone] = useState("");
+  const [telegram, setTelegram] = useState("");
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await api.admin.getProfile();
+        setName(profile.name || "");
+        setSpecialization(profile.specialization || "");
+        setBio(profile.bio || "");
+        setPhone(profile.phone || "");
+        setTelegram(profile.telegramHandle || "");
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        setError("Ошибка загрузки профиля");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
-    // TODO: Implement save API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
+    setError(null);
+    setSuccess(false);
+    try {
+      await api.admin.updateProfile({
+        name,
+        specialization,
+        bio,
+        phone,
+        telegramHandle: telegram,
+      });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2000);
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+      setError("Ошибка сохранения");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div>
+        <TopBar title="Профиль" showBack />
+        <div className="p-4 flex justify-center items-center min-h-[200px]">
+          <div className="text-[var(--app-subtext)]">Загрузка...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -29,13 +78,25 @@ export default function ProfilePage() {
         <div className="flex justify-center">
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-[var(--app-surface)] flex items-center justify-center text-3xl text-[var(--app-subtext)]">
-              {name.charAt(0)}
+              {name.charAt(0) || "?"}
             </div>
             <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#5984d8] flex items-center justify-center shadow-lg">
               <Camera className="w-4 h-4 text-white" />
             </button>
           </div>
         </div>
+
+        {/* Status Messages */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm text-center">
+            Профиль сохранен
+          </div>
+        )}
 
         {/* Form */}
         <div className="space-y-4">

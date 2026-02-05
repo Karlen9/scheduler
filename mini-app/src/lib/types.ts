@@ -41,3 +41,10 @@ export interface TimeSlot {
   time: string; // "09:00"
   available: boolean;
 }
+
+export interface DayOff {
+  id: string;
+  date: string; // ISO date string
+  reason?: string;
+  createdAt: string;
+}

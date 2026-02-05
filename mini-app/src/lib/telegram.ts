@@ -90,3 +90,9 @@ export function getInitData(): string {
   const webApp = getTelegramWebApp();
   return webApp?.initData ?? "";
 }
+
+export function getTrainerId(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get("trainer");
+}

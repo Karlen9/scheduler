@@ -312,6 +312,17 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log booking creation
+	log.Printf("📅 NEW BOOKING [%s] Client: %s | Session: %s | Time: %s %s | Trainer: %s (@%s)",
+		booking.ID[:8],
+		req.Name,
+		sessionType.Name,
+		req.Date,
+		req.Time,
+		trainer.Name,
+		trainer.BotUsername,
+	)
+
 	// Notify trainer
 	if NotifyBookingFunc != nil {
 		if err := NotifyBookingFunc(booking); err != nil {
@@ -372,6 +383,12 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("❌ BOOKING CANCELLED [%s] Client: %s cancelled their booking (reason: %s)",
+		bookingID[:8],
+		booking.ClientName,
+		req.Reason,
+	)
 
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)

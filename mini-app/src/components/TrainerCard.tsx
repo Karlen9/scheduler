@@ -26,12 +26,12 @@ export function TrainerCard({
   onShare,
 }: TrainerCardProps) {
   const handleMessage = () => {
-    if (!telegram) return;
+    if (!telegram) return; 
     const username = telegram.replace("@", "");
     window.open(`https://t.me/${username}`, "_blank");
   };
   return (
-    <div className="bg-[var(--app-surface)] rounded-xl p-4">
+    <div className="bg-(--app-surface) rounded-xl p-4">
       {/* Profile Header */}
       <div className="flex gap-4 mb-4">
         <div className="relative w-[127px] h-[127px] rounded-full overflow-hidden flex-shrink-0 bg-[var(--app-divider)]">
