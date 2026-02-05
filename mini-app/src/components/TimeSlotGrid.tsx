@@ -19,10 +19,10 @@ export function TimeSlotGrid({ slots, selected, onSelect }: TimeSlotGridProps) {
           disabled={!slot.available}
           className={`py-3 rounded-lg text-sm transition-colors ${
             selected === slot.time
-              ? "bg-[var(--app-primary)] text-[var(--app-primary-text)]"
+              ? "bg-primary text-primary-foreground"
               : slot.available
-                ? "bg-[var(--app-surface)] text-[var(--app-text)] hover:bg-[var(--app-divider)]"
-                : "bg-[var(--app-surface)] text-[var(--app-subtext)] opacity-40 cursor-not-allowed"
+                ? "bg-card text-foreground hover:bg-border"
+                : "bg-card text-muted-foreground opacity-40 cursor-not-allowed"
           }`}
         >
           {slot.time}

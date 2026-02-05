@@ -98,7 +98,7 @@ export function DayTimeline({
 
   return (
     <div>
-      <h3 className="text-base font-medium text-[var(--app-text)] mb-4">
+      <h3 className="text-base font-medium text-foreground mb-4">
         {formatDateHeader(date)}
       </h3>
 
@@ -114,7 +114,7 @@ export function DayTimeline({
         {hours.map((hour, hourIndex) => (
           <div
             key={hour}
-            className="text-xs text-[var(--app-subtext)] pr-2 border-t border-[var(--app-divider)]"
+            className="text-xs text-muted-foreground pr-2 border-t border-border"
             style={{
               gridColumn: 1,
               gridRow: `${hourIndex * 4 + 1} / span 4`,
@@ -128,7 +128,7 @@ export function DayTimeline({
         {hours.map((hour, hourIndex) => (
           <div
             key={`divider-${hour}`}
-            className="border-t border-[var(--app-divider)]"
+            className="border-t border-border"
             style={{
               gridColumn: 2,
               gridRow: `${hourIndex * 4 + 1} / span 4`,
@@ -156,11 +156,11 @@ export function DayTimeline({
                 borderLeft: `3px solid ${colors.border}`,
               }}
             >
-              <p className="text-sm font-medium text-[var(--app-text)] truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {booking.clientName}
               </p>
               {rowSpan >= 2 && (
-                <p className="text-xs text-[var(--app-subtext)] truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {booking.sessionType?.name || "Тренировка"}
                 </p>
               )}

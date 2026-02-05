@@ -13,11 +13,11 @@ export function SettingsMenuItem({ icon: Icon, label, href }: SettingsMenuItemPr
   return (
     <Link
       href={href}
-      className="flex items-center gap-4 px-4 py-4 border-b border-[var(--app-divider)] transition-colors active:bg-[var(--app-surface)]"
+      className="flex items-center gap-4 px-4 py-4 border-b border-border transition-colors active:bg-card"
     >
-      <Icon className="w-5 h-5 text-[var(--app-text)]" />
-      <span className="flex-1 text-[var(--app-text)]">{label}</span>
-      <ChevronRight className="w-5 h-5 text-[var(--app-subtext)]" />
+      <Icon className="w-5 h-5 text-foreground" />
+      <span className="flex-1 text-foreground">{label}</span>
+      <ChevronRight className="w-5 h-5 text-muted-foreground" />
     </Link>
   );
 }

@@ -96,7 +96,7 @@ export default function DaysOffPage() {
       <div>
         <TopBar title="Выходные дни" showBack />
         <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-[var(--app-subtext)]">Загрузка...</div>
+          <div className="text-muted-foreground">Загрузка...</div>
         </div>
       </div>
     );
@@ -109,7 +109,7 @@ export default function DaysOffPage() {
 
         <div className="p-4 space-y-4">
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+            <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
               {error}
             </div>
           )}
@@ -121,7 +121,7 @@ export default function DaysOffPage() {
           />
 
           <div>
-            <label className="block text-sm text-[var(--app-subtext)] mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Причина (необязательно)
             </label>
             <input
@@ -129,7 +129,7 @@ export default function DaysOffPage() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Отпуск, болезнь, праздник..."
-              className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] outline-none focus:ring-2 focus:ring-[#5984d8]"
+              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
@@ -150,7 +150,7 @@ export default function DaysOffPage() {
 
       <div className="p-4 space-y-4">
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+          <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
             {error}
           </div>
         )}
@@ -158,7 +158,7 @@ export default function DaysOffPage() {
         {/* Add Button */}
         <button
           onClick={() => setShowCalendar(true)}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-[var(--app-divider)] text-[var(--app-subtext)] transition-colors active:bg-[var(--app-surface)]"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors active:bg-card"
         >
           <Plus className="w-5 h-5" />
           <span>Добавить выходной</span>
@@ -166,7 +166,7 @@ export default function DaysOffPage() {
 
         {/* Days Off List */}
         {daysOff.length === 0 ? (
-          <div className="text-center py-8 text-[var(--app-subtext)]">
+          <div className="text-center py-8 text-muted-foreground">
             <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>Нет запланированных выходных</p>
           </div>
@@ -175,24 +175,24 @@ export default function DaysOffPage() {
             {daysOff.map((dayOff) => (
               <div
                 key={dayOff.id}
-                className="flex items-center gap-3 bg-white rounded-xl p-4"
+                className="flex items-center gap-3 bg-card rounded-xl p-4"
               >
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-red-500" />
+                <div className="w-10 h-10 rounded-full bg-red-900/30 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-red-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-[var(--app-text)]">
+                  <p className="font-medium text-foreground">
                     {formatDate(new Date(dayOff.date))}
                   </p>
                   {dayOff.reason && (
-                    <p className="text-sm text-[var(--app-subtext)]">
+                    <p className="text-sm text-muted-foreground">
                       {dayOff.reason}
                     </p>
                   )}
                 </div>
                 <button
                   onClick={() => handleRemoveDayOff(dayOff.id)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--app-subtext)] hover:bg-[var(--app-surface)]"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-card"
                 >
                   <X className="w-5 h-5" />
                 </button>

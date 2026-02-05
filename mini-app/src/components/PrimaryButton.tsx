@@ -19,8 +19,8 @@ export function PrimaryButton({
         fullWidth ? "w-full" : ""
       } ${
         disabled
-          ? "bg-[var(--app-primary)] text-[var(--app-primary-text)] opacity-40 cursor-not-allowed"
-          : "bg-[var(--app-primary)] text-[var(--app-primary-text)] active:opacity-80"
+          ? "bg-primary text-primary-foreground opacity-40 cursor-not-allowed"
+          : "bg-primary text-primary-foreground active:opacity-80"
       }`}
     >
       {children}

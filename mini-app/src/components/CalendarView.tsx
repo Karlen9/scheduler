@@ -96,31 +96,31 @@ export function CalendarView({
   };
 
   return (
-    <div className="bg-[var(--app-surface)] rounded-xl p-4">
+    <div className="bg-card rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[var(--app-divider)] transition-colors"
+          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-border transition-colors"
           aria-label="Предыдущий месяц"
         >
-          <ChevronLeft className="w-5 h-5 text-[var(--app-text)]" />
+          <ChevronLeft className="w-5 h-5 text-foreground" />
         </button>
-        <h3 className="text-base font-medium text-[var(--app-text)]">
+        <h3 className="text-base font-medium text-foreground">
           {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </h3>
         <button
           onClick={nextMonth}
-          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[var(--app-divider)] transition-colors"
+          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-border transition-colors"
           aria-label="Следующий месяц"
         >
-          <ChevronRight className="w-5 h-5 text-[var(--app-text)]" />
+          <ChevronRight className="w-5 h-5 text-foreground" />
         </button>
       </div>
 
       <div className="grid grid-cols-7 gap-1 mb-2">
         {dayNames.map((day) => (
           <div key={day} className="flex items-center justify-center h-10">
-            <span className="text-xs font-medium text-[var(--app-subtext)]">
+            <span className="text-xs font-medium text-muted-foreground">
               {day}
             </span>
           </div>
@@ -136,12 +136,12 @@ export function CalendarView({
                 disabled={isPast(date)}
                 className={`w-full h-full flex items-center justify-center rounded-lg text-sm transition-colors ${
                   isSelected(date)
-                    ? "bg-[var(--app-primary)] text-[var(--app-primary-text)]"
+                    ? "bg-primary text-primary-foreground"
                     : isPast(date)
-                      ? "text-[var(--app-subtext)] opacity-40 cursor-not-allowed"
+                      ? "text-muted-foreground opacity-40 cursor-not-allowed"
                       : isToday(date)
-                        ? "bg-[var(--app-divider)] text-[var(--app-text)] font-medium"
-                        : "text-[var(--app-text)] hover:bg-[var(--app-divider)]"
+                        ? "bg-border text-foreground font-medium"
+                        : "text-foreground hover:bg-border"
                 }`}
               >
                 {date.getDate()}

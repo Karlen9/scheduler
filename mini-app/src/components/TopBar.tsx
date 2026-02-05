@@ -21,17 +21,17 @@ export function TopBar({ title, showBack = false, onBack }: TopBarProps) {
   };
 
   return (
-    <div className="sticky top-0 z-10 flex items-center h-14 px-4 bg-[var(--app-bg)] border-b border-[var(--app-divider)]">
+    <div className="sticky top-0 z-10 flex items-center h-14 px-4 bg-background border-b border-border">
       {showBack && (
         <button
           onClick={handleBack}
           className="flex items-center justify-center w-10 h-10 -ml-2 mr-1"
           aria-label="Назад"
         >
-          <ArrowLeft className="w-6 h-6 text-[var(--app-text)]" />
+          <ArrowLeft className="w-6 h-6 text-foreground" />
         </button>
       )}
-      <h1 className="flex-1 text-lg font-medium text-[var(--app-text)]">
+      <h1 className="flex-1 text-lg font-medium text-foreground">
         {title}
       </h1>
     </div>

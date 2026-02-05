@@ -97,14 +97,14 @@ function BookingPageContent() {
 
   return (
     <div
-      className="min-h-screen bg-[var(--app-bg)] flex flex-col"
+      className="min-h-screen bg-background flex flex-col"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       <TopBar title="Запись на тренировку" showBack />
 
       <div className="flex-1 p-4 space-y-4 pb-24">
         <div>
-          <h3 className="text-sm font-medium text-(--app-subtext) mb-2">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
             Тип тренировки
           </h3>
           <SessionTypeSelector
@@ -115,7 +115,7 @@ function BookingPageContent() {
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-(--app-subtext) mb-2">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {step === "date" ? "Выберите дату" : "Выбрана дата"}
           </h3>
           <CalendarView
@@ -123,8 +123,8 @@ function BookingPageContent() {
             onSelectDate={handleDateSelect}
           />
           {selectedDate && step === "date" && !isLoading && (
-            <div className="mt-3 p-3 bg-[var(--app-surface)] rounded-lg text-center">
-              <p className="text-sm text-[var(--app-text)]">
+            <div className="mt-3 p-3 bg-card rounded-lg text-center">
+              <p className="text-sm text-foreground">
                 Выбрана дата:{" "}
                 <span className="font-medium">{formatDate(selectedDate)}</span>
               </p>
@@ -134,14 +134,14 @@ function BookingPageContent() {
 
         {isLoading && (
           <div>
-            <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-2">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">
               Выберите время
             </h3>
             <div className="grid grid-cols-3 gap-2">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div
                   key={i}
-                  className="py-3 rounded-lg bg-[var(--app-surface)] animate-pulse text-sm text-transparent"
+                  className="py-3 rounded-lg bg-card animate-pulse text-sm text-transparent"
                 >
                   00:00
                 </div>
@@ -152,7 +152,7 @@ function BookingPageContent() {
 
         {step === "time" && selectedDate && !isLoading && (
           <div>
-            <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-2">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">
               Выберите время
             </h3>
             {noSlotsAvailable ? (
@@ -174,7 +174,7 @@ function BookingPageContent() {
 
       {step === "time" && !noSlotsAvailable && (
         <div
-          className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--app-bg)] border-t border-[var(--app-divider)]"
+          className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border"
           style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
         >
           <PrimaryButton onClick={handleConfirm} disabled={!canConfirm}>
@@ -199,7 +199,7 @@ export default function BookingPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[var(--app-bg)] flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           Загрузка...
         </div>
       }

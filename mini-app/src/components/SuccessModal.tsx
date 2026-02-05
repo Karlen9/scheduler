@@ -20,16 +20,16 @@ export function SuccessModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-[var(--app-bg)] rounded-2xl p-6 w-full max-w-sm">
+      <div className="bg-background rounded-2xl p-6 w-full max-w-sm">
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-16 h-16 flex items-center justify-center mb-4">
             <CheckCircle2 className="w-16 h-16 text-green-500" />
           </div>
-          <h3 className="text-lg font-medium text-[var(--app-text)] mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             {title}
           </h3>
           {description && (
-            <p className="text-sm text-[var(--app-subtext)]">{description}</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </div>
         <PrimaryButton onClick={onClose}>Отлично</PrimaryButton>

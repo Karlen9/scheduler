@@ -13,11 +13,11 @@ interface ToggleProps {
 
 function Toggle({ label, description, checked, onChange }: ToggleProps) {
   return (
-    <label className="flex items-start justify-between gap-4 py-4 border-b border-[var(--app-divider)] cursor-pointer">
+    <label className="flex items-start justify-between gap-4 py-4 border-b border-border cursor-pointer">
       <div className="flex-1">
-        <span className="block text-[var(--app-text)]">{label}</span>
+        <span className="block text-foreground">{label}</span>
         {description && (
-          <span className="block text-sm text-[var(--app-subtext)] mt-1">
+          <span className="block text-sm text-muted-foreground mt-1">
             {description}
           </span>
         )}
@@ -25,11 +25,11 @@ function Toggle({ label, description, checked, onChange }: ToggleProps) {
       <div
         onClick={() => onChange(!checked)}
         className={`relative w-12 h-7 rounded-full transition-colors ${
-          checked ? "bg-[#5984d8]" : "bg-[var(--app-divider)]"
+          checked ? "bg-brand" : "bg-border"
         }`}
       >
         <div
-          className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+          className={`absolute top-1 w-5 h-5 rounded-full bg-[#e0e0e0] shadow transition-transform ${
             checked ? "translate-x-6" : "translate-x-1"
           }`}
         />
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
       <TopBar title="Уведомления" showBack />
 
       <div className="p-4">
-        <div className="bg-white rounded-xl">
+        <div className="bg-card rounded-xl">
           <div className="px-4">
             <Toggle
               label="Новые записи"

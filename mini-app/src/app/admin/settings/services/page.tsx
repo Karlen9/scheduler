@@ -102,7 +102,7 @@ export default function ServicesPage() {
       <div>
         <TopBar title="Услуги и цены" showBack />
         <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-[var(--app-subtext)]">Загрузка...</div>
+          <div className="text-muted-foreground">Загрузка...</div>
         </div>
       </div>
     );
@@ -119,20 +119,20 @@ export default function ServicesPage() {
 
         <div className="p-4 space-y-4">
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+            <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
               {error}
             </div>
           )}
 
           {!editingService && (
             <div>
-              <label className="block text-sm text-[var(--app-subtext)] mb-1">
+              <label className="block text-sm text-muted-foreground mb-1">
                 Тип услуги
               </label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] outline-none focus:ring-2 focus:ring-[#5984d8]"
+                className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
               >
                 <option value="personal">Персональная</option>
                 <option value="pair">Парная</option>
@@ -142,7 +142,7 @@ export default function ServicesPage() {
           )}
 
           <div>
-            <label className="block text-sm text-[var(--app-subtext)] mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Название
             </label>
             <input
@@ -150,12 +150,12 @@ export default function ServicesPage() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Парная тренировка"
-              className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] outline-none focus:ring-2 focus:ring-[#5984d8]"
+              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[var(--app-subtext)] mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Цена
             </label>
             <input
@@ -163,12 +163,12 @@ export default function ServicesPage() {
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               placeholder="2500"
-              className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] outline-none focus:ring-2 focus:ring-[#5984d8]"
+              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[var(--app-subtext)] mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Длительность в минутах
             </label>
             <input
@@ -176,7 +176,7 @@ export default function ServicesPage() {
               value={formData.duration}
               onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
               placeholder="60"
-              className="w-full px-4 py-3 rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] outline-none focus:ring-2 focus:ring-[#5984d8]"
+              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
@@ -194,7 +194,7 @@ export default function ServicesPage() {
 
       <div className="p-4 space-y-4">
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+          <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
             {error}
           </div>
         )}
@@ -202,7 +202,7 @@ export default function ServicesPage() {
         {/* Add Button */}
         <button
           onClick={handleAddClick}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-[var(--app-divider)] text-[var(--app-subtext)] transition-colors active:bg-[var(--app-surface)]"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors active:bg-card"
         >
           <Plus className="w-5 h-5" />
           <span>Добавить услугу</span>
@@ -210,7 +210,7 @@ export default function ServicesPage() {
 
         {/* Services List */}
         {services.length === 0 ? (
-          <div className="text-center text-[var(--app-subtext)] py-8">
+          <div className="text-center text-muted-foreground py-8">
             Нет добавленных услуг
           </div>
         ) : (

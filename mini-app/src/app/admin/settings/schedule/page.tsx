@@ -132,7 +132,7 @@ export default function SchedulePage() {
       <div>
         <TopBar title="Расписание" showBack />
         <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-[var(--app-subtext)]">Загрузка...</div>
+          <div className="text-muted-foreground">Загрузка...</div>
         </div>
       </div>
     );
@@ -145,46 +145,46 @@ export default function SchedulePage() {
       <div className="p-4 space-y-6">
         {/* Status Messages */}
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
+          <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm text-center">
+          <div className="bg-green-900/20 text-green-400 p-3 rounded-lg text-sm text-center">
             Расписание сохранено
           </div>
         )}
 
         {/* Working Hours per Day */}
         <div>
-          <h3 className="text-sm text-[var(--app-subtext)] mb-3">Рабочие дни</h3>
+          <h3 className="text-sm text-muted-foreground mb-3">Рабочие дни</h3>
           <div className="space-y-2">
             {[1, 2, 3, 4, 5, 6, 0].map((day) => (
               <div
                 key={day}
-                className="flex items-center gap-3 p-3 bg-[var(--app-surface)] rounded-lg"
+                className="flex items-center gap-3 p-3 bg-card rounded-lg"
               >
                 <input
                   type="checkbox"
                   checked={schedule[day].enabled}
                   onChange={() => handleDayToggle(day)}
-                  className="w-5 h-5 rounded border-[var(--app-divider)] text-[#5984d8] focus:ring-[#5984d8]"
+                  className="w-5 h-5 rounded border-border text-brand focus:ring-brand"
                 />
-                <span className="w-8 text-[var(--app-text)] font-medium">
+                <span className="w-8 text-foreground font-medium">
                   {DAY_NAMES[day]}
                 </span>
                 {schedule[day].enabled && (
                   <div className="flex-1 flex items-center gap-2 text-sm">
                     <button
                       onClick={() => openTimePicker(day, "start")}
-                      className="px-3 py-1 rounded bg-white text-[var(--app-text)]"
+                      className="px-3 py-1 rounded bg-surface-hover text-foreground"
                     >
                       {schedule[day].startTime}
                     </button>
-                    <span className="text-[var(--app-subtext)]">–</span>
+                    <span className="text-muted-foreground">–</span>
                     <button
                       onClick={() => openTimePicker(day, "end")}
-                      className="px-3 py-1 rounded bg-white text-[var(--app-text)]"
+                      className="px-3 py-1 rounded bg-surface-hover text-foreground"
                     >
                       {schedule[day].endTime}
                     </button>

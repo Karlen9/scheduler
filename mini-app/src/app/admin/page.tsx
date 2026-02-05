@@ -87,7 +87,7 @@ export default function AdminSchedulePage() {
   if (loading) {
     return (
       <div className="p-4 flex justify-center items-center min-h-[200px]">
-        <div className="text-[var(--app-subtext)]">Загрузка...</div>
+        <div className="text-muted-foreground">Загрузка...</div>
       </div>
     );
   }
@@ -95,7 +95,7 @@ export default function AdminSchedulePage() {
   if (error) {
     return (
       <div className="p-4">
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-center">
+        <div className="bg-red-900/20 text-red-400 p-4 rounded-xl text-center">
           {error}
         </div>
       </div>
@@ -113,7 +113,7 @@ export default function AdminSchedulePage() {
       )}
 
       {/* Schedule Header */}
-      <h2 className="text-base font-medium text-[var(--app-text)] mb-3">
+      <h2 className="text-base font-medium text-foreground mb-3">
         Расписание
       </h2>
 

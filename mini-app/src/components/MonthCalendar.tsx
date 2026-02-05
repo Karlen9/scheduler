@@ -96,28 +96,28 @@ export function MonthCalendar({
   };
 
   return (
-    <div className="bg-white rounded-xl p-4">
+    <div className="bg-card rounded-xl p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--app-surface)] transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-card transition-colors"
         >
-          <ChevronLeft className="w-5 h-5 text-[var(--app-subtext)]" />
+          <ChevronLeft className="w-5 h-5 text-muted-foreground" />
         </button>
 
         <button
           onClick={goToToday}
-          className="text-base font-medium text-[var(--app-text)]"
+          className="text-base font-medium text-foreground"
         >
           {monthNames[currentMonth]} {currentYear}
         </button>
 
         <button
           onClick={nextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--app-surface)] transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-card transition-colors"
         >
-          <ChevronRight className="w-5 h-5 text-[var(--app-subtext)]" />
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
 
@@ -126,7 +126,7 @@ export function MonthCalendar({
         {dayNames.map((name) => (
           <div
             key={name}
-            className="text-center text-xs font-medium text-[var(--app-subtext)] py-2"
+            className="text-center text-xs font-medium text-muted-foreground py-2"
           >
             {name}
           </div>
@@ -151,15 +151,15 @@ export function MonthCalendar({
               onClick={() => onSelectDate(date)}
               className={`
                 relative h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors
-                ${selected ? "bg-[#5984d8] text-white" : ""}
-                ${!selected && dayOff ? "bg-red-100 text-red-500" : ""}
-                ${!selected && !dayOff && todayDate ? "bg-[var(--app-surface)] text-[#5984d8] font-bold" : ""}
-                ${!selected && !dayOff && !todayDate ? "text-[var(--app-text)] hover:bg-[var(--app-surface)]" : ""}
+                ${selected ? "bg-brand text-white" : ""}
+                ${!selected && dayOff ? "bg-red-900/30 text-red-400" : ""}
+                ${!selected && !dayOff && todayDate ? "bg-card text-brand font-bold" : ""}
+                ${!selected && !dayOff && !todayDate ? "text-foreground hover:bg-card" : ""}
               `}
             >
               {date.getDate()}
               {hasBooking && !selected && !dayOff && (
-                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#5984d8]" />
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand" />
               )}
             </button>
           );

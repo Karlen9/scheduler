@@ -9,7 +9,7 @@ export default function SettingsPage() {
     <div>
       <TopBar title="Настройки" />
 
-      <div className="bg-white">
+      <div className="bg-card">
         <SettingsMenuItem
           icon={User}
           label="Профиль"

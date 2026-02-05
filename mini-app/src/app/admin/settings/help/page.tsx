@@ -41,20 +41,20 @@ function FAQAccordion({ item }: { item: FAQItem }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-[var(--app-divider)]">
+    <div className="border-b border-border">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between py-4 text-left"
       >
-        <span className="text-[var(--app-text)] pr-4">{item.question}</span>
+        <span className="text-foreground pr-4">{item.question}</span>
         <ChevronDown
-          className={`w-5 h-5 text-[var(--app-subtext)] transition-transform flex-shrink-0 ${
+          className={`w-5 h-5 text-muted-foreground transition-transform flex-shrink-0 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </button>
       {isOpen && (
-        <div className="pb-4 text-sm text-[var(--app-subtext)]">
+        <div className="pb-4 text-sm text-muted-foreground">
           {item.answer}
         </div>
       )}
@@ -74,10 +74,10 @@ export default function HelpPage() {
       <div className="p-4 space-y-6">
         {/* FAQ Section */}
         <div>
-          <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">
             Частые вопросы
           </h3>
-          <div className="bg-white rounded-xl px-4">
+          <div className="bg-card rounded-xl px-4">
             {faqItems.map((item, index) => (
               <FAQAccordion key={index} item={item} />
             ))}
@@ -86,12 +86,12 @@ export default function HelpPage() {
 
         {/* Contact Support */}
         <div>
-          <h3 className="text-sm font-medium text-[var(--app-subtext)] mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">
             Нужна помощь?
           </h3>
           <button
             onClick={handleContactSupport}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#5984d8] text-white font-medium transition-opacity active:opacity-80"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-brand text-white font-medium transition-opacity active:opacity-80"
           >
             <MessageCircle className="w-5 h-5" />
             <span>Написать в поддержку</span>

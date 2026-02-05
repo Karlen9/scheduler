@@ -88,7 +88,7 @@ export function WeekDatePicker({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-lg font-medium text-[#101010]">Выберите дату</h3>
+        <h3 className="text-lg font-medium text-foreground">Выберите дату</h3>
 
         <div className="flex items-center gap-4">
           <button
@@ -97,12 +97,12 @@ export function WeekDatePicker({
             aria-label="Предыдущий месяц"
           >
             <ChevronLeft
-              className="w-[11.4px] h-[11.4px] text-[#999999]"
+              className="w-[11.4px] h-[11.4px] text-muted-foreground"
               strokeWidth={2}
             />
           </button>
 
-          <span className="text-base font-medium text-[#999999] min-w-[110px] text-center">
+          <span className="text-base font-medium text-muted-foreground min-w-[110px] text-center">
             {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </span>
 
@@ -112,7 +112,7 @@ export function WeekDatePicker({
             aria-label="Следующий месяц"
           >
             <ChevronRight
-              className="w-[11.4px] h-[11.4px] text-[#999999]"
+              className="w-[11.4px] h-[11.4px] text-muted-foreground"
               strokeWidth={2}
             />
           </button>
@@ -132,15 +132,15 @@ export function WeekDatePicker({
               disabled={past}
               className={`
                 relative flex flex-col items-center gap-3 py-3 rounded-[70px] transition-all
-                border border-[#e9e9e9] bg-white
-                ${selected ? "outline outline-2 outline-[#5381e3]" : ""}
-                ${past && !selected ? "bg-[#e6e6e6] opacity-100 cursor-not-allowed" : ""}
+                border border-surface-border bg-card
+                ${selected ? "outline outline-2 outline-brand" : ""}
+                ${past && !selected ? "bg-surface-hover opacity-100 cursor-not-allowed" : ""}
                 ${!past && !selected ? "active:opacity-70" : ""}
               `}
             >
               {/* Day Name */}
               <span
-                className={`text-sm font-medium leading-none ${selected ? "text-[#0c0c0c]" : past ? "text-[#676767] opacity-30" : "text-[#676767]"}`}
+                className={`text-sm font-medium leading-none ${selected ? "text-white" : past ? "text-muted-foreground opacity-30" : "text-muted-foreground"}`}
               >
                 {dayNames[index]}
               </span>
@@ -150,7 +150,7 @@ export function WeekDatePicker({
                 <div
                   className={`
                   absolute inset-0 rounded-full
-                  ${selected ? "bg-[#5381e3]" : past ? "bg-[#cecece] opacity-50" : "bg-[#f5f5f5] opacity-50"}
+                  ${selected ? "bg-brand" : past ? "bg-surface-hover opacity-50" : "bg-surface-hover opacity-50"}
                 `}
                 />
 
@@ -158,7 +158,7 @@ export function WeekDatePicker({
                 <span
                   className={`
                   relative text-base font-medium leading-none z-10
-                  ${selected ? "text-white" : past ? "text-[#676767] opacity-30" : "text-[#676767]"}
+                  ${selected ? "text-white" : past ? "text-muted-foreground opacity-30" : "text-foreground"}
                 `}
                 >
                   {date.getDate()}

@@ -49,7 +49,7 @@ export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
     <div>
       <div className="grid grid-cols-7 gap-1 mb-2">
         {DAY_NAMES.map((name) => (
-          <div key={name} className="text-center text-xs text-[var(--app-subtext)]">
+          <div key={name} className="text-center text-xs text-muted-foreground">
             {name}
           </div>
         ))}
@@ -66,11 +66,11 @@ export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
               onClick={() => onDayClick?.(date)}
               className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
                 isToday
-                  ? "bg-[#5984d8] text-white"
-                  : "bg-[var(--app-surface)] hover:bg-[var(--app-divider)]"
+                  ? "bg-brand text-white"
+                  : "bg-card hover:bg-border"
               }`}
             >
-              <span className={`text-sm font-medium ${isToday ? "text-white" : "text-[var(--app-text)]"}`}>
+              <span className={`text-sm font-medium ${isToday ? "text-white" : "text-foreground"}`}>
                 {date.getDate()}
               </span>
               {dayBookings.length > 0 && (
@@ -79,12 +79,12 @@ export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
                     <div
                       key={i}
                       className={`w-1.5 h-1.5 rounded-full ${
-                        isToday ? "bg-white/70" : "bg-[#5984d8]"
+                        isToday ? "bg-white/70" : "bg-brand"
                       }`}
                     />
                   ))}
                   {dayBookings.length > 3 && (
-                    <span className={`text-[8px] ${isToday ? "text-white/70" : "text-[var(--app-subtext)]"}`}>
+                    <span className={`text-[8px] ${isToday ? "text-white/70" : "text-muted-foreground"}`}>
                       +{dayBookings.length - 3}
                     </span>
                   )}

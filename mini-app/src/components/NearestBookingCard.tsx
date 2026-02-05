@@ -33,29 +33,29 @@ export function NearestBookingCard({ booking, onClick }: NearestBookingCardProps
 
   return (
     <div className="mb-6">
-      <h3 className="text-base font-medium text-[var(--app-text)] mb-3">
+      <h3 className="text-base font-medium text-foreground mb-3">
         Ближайшая запись
       </h3>
       <button
         onClick={onClick}
-        className="w-full bg-white rounded-xl p-4 border-l-4 border-l-[#f5a623] shadow-sm text-left transition-opacity active:opacity-80"
+        className="w-full bg-card rounded-xl p-4 border-l-4 border-l-warning text-left transition-opacity active:opacity-80"
       >
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <p className="font-medium text-[var(--app-text)]">
+            <p className="font-medium text-foreground">
               {booking.clientName}
             </p>
-            <p className="text-sm text-[var(--app-subtext)]">
+            <p className="text-sm text-muted-foreground">
               {booking.sessionType?.name || "Тренировка"}
             </p>
-            <p className="text-xs text-[var(--app-subtext)] mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {timeUntil}
             </p>
-            <p className="text-sm font-medium text-[var(--app-text)] mt-1">
+            <p className="text-sm font-medium text-foreground mt-1">
               {formatTime(startsAt)} – {formatTime(endsAt)}
             </p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-[var(--app-surface)] flex items-center justify-center text-lg text-[var(--app-subtext)]">
+          <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-lg text-muted-foreground">
             {booking.clientName.charAt(0)}
           </div>
         </div>

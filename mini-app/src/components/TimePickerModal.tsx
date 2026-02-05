@@ -30,17 +30,17 @@ export function TimePickerModal({
 
       {/* Modal */}
       <div
-        className="relative w-full bg-white rounded-t-2xl p-4 max-h-[80vh] overflow-auto"
+        className="relative w-full bg-background rounded-t-2xl p-4 max-h-[80vh] overflow-auto"
         style={{ maxWidth: "430px" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-[var(--app-text)]">{title}</h3>
+          <h3 className="text-lg font-medium text-foreground">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-[var(--app-surface)]"
+            className="p-1 rounded-full hover:bg-card"
           >
-            <X className="w-5 h-5 text-[var(--app-subtext)]" />
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
@@ -55,8 +55,8 @@ export function TimePickerModal({
               }}
               className={`py-3 rounded-lg text-sm transition-colors ${
                 selectedTime === time
-                  ? "bg-[#5984d8] text-white"
-                  : "bg-[var(--app-surface)] text-[var(--app-text)] active:bg-[var(--app-divider)]"
+                  ? "bg-brand text-white"
+                  : "bg-card text-foreground active:bg-border"
               }`}
             >
               {time}

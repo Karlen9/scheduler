@@ -37,14 +37,14 @@ export function TimeSlotPicker({
     const isSelected = selectedTime === slot.time;
 
     if (slot.status === "taken") {
-      return "bg-[#e6e6e6] border border-[#e9e9e9] text-[#c8c8c8] cursor-not-allowed";
+      return "bg-surface-hover border border-surface-border text-muted-foreground cursor-not-allowed";
     }
 
     if (isSelected) {
-      return "bg-white border-2 border-[#5984d8] text-[#5984d8]";
+      return "bg-brand border-2 border-[#5984d8] text-white";
     }
 
-    return "bg-white border border-[#e9e9e9] text-[#676767]";
+    return "bg-card border border-surface-border text-foreground";
   };
 
   const handleSlotClick = (slot: TimeSlot) => {
@@ -53,13 +53,13 @@ export function TimeSlotPicker({
   };
 
   return (
-    <div className="bg-[#f0f4ff] rounded-[10px] p-4">
+    <div className="bg-card rounded-[10px] p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[#101010] text-base font-semibold font-['Inter']">
+        <h3 className="text-foreground text-base font-semibold font-['Inter']">
           Выберите время
         </h3>
-        <p className="text-[#999] text-xs font-medium font-['Inter']">
+        <p className="text-muted-foreground text-xs font-medium font-['Inter']">
           Рабочие часы с 9:00 до 23:00
         </p>
       </div>
@@ -67,14 +67,14 @@ export function TimeSlotPicker({
       {/* Legend */}
       <div className="flex items-center gap-6 mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-[21px] h-[22px] bg-white border border-[#e9e9e9] rounded-full" />
-          <span className="text-[#595959] text-sm font-medium font-['Inter']">
+          <div className="w-[21px] h-[22px] bg-card border border-surface-border rounded-full" />
+          <span className="text-muted-foreground text-sm font-medium font-['Inter']">
             Свободно
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-[21px] h-[22px] bg-[#d4d4d4] border border-[#e9e9e9] rounded-full" />
-          <span className="text-[#595959] text-sm font-medium font-['Inter']">
+          <div className="w-[21px] h-[22px] bg-surface-hover border border-surface-border rounded-full" />
+          <span className="text-muted-foreground text-sm font-medium font-['Inter']">
             Занято
           </span>
         </div>

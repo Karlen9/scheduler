@@ -22,8 +22,8 @@ export function SessionTypeSelector({
           onClick={() => onChange(option.id)}
           className={`px-4 py-2 rounded-full text-sm transition-colors ${
             selected === option.id
-              ? "bg-[var(--app-primary)] text-[var(--app-primary-text)]"
-              : "bg-[var(--app-surface)] text-[var(--app-text)]"
+              ? "bg-primary text-primary-foreground"
+              : "bg-card text-foreground"
           }`}
         >
           {option.label}

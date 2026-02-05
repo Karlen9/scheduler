@@ -10,7 +10,7 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div
-      className="min-h-screen bg-[var(--app-bg)]"
+      className="min-h-screen bg-background"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       <div className="pb-20">{children}</div>
