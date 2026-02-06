@@ -43,6 +43,7 @@ func NewRouter() http.Handler {
 		r.Get("/services", HandleGetServices)
 		r.Get("/working-hours", HandleGetWorkingHours)
 		r.Get("/availability", HandleGetAvailability)
+		r.Get("/days-off", HandleGetPublicDaysOff)
 		r.Get("/bookings", HandleGetBookings)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)

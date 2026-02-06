@@ -7,11 +7,15 @@ interface CalendarViewProps {
   selectedDate: Date | null;
   onSelectDate: (date: Date) => void;
   disabledDates?: Date[];
+  nonWorkingDays?: number[]; // days of week (0=Sun, 6=Sat) that have no working hours
+  daysOff?: string[]; // specific ISO date strings ("2025-01-15") that are days off
 }
 
 export function CalendarView({
   selectedDate,
   onSelectDate,
+  nonWorkingDays,
+  daysOff,
 }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -83,6 +87,21 @@ export function CalendarView({
     return checkDate < today;
   };
 
+  const isUnavailable = (date: Date) => {
+    if (nonWorkingDays && nonWorkingDays.includes(date.getDay())) {
+      return true;
+    }
+    if (daysOff) {
+      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      if (daysOff.includes(iso)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const isDisabled = (date: Date) => isPast(date) || isUnavailable(date);
+
   const prevMonth = () => {
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
@@ -132,12 +151,12 @@ export function CalendarView({
           <div key={index} className="aspect-square">
             {date ? (
               <button
-                onClick={() => !isPast(date) && onSelectDate(date)}
-                disabled={isPast(date)}
+                onClick={() => !isDisabled(date) && onSelectDate(date)}
+                disabled={isDisabled(date)}
                 className={`w-full h-full flex items-center justify-center rounded-lg text-sm transition-colors ${
                   isSelected(date)
                     ? "bg-primary text-primary-foreground"
-                    : isPast(date)
+                    : isDisabled(date)
                       ? "text-muted-foreground opacity-40 cursor-not-allowed"
                       : isToday(date)
                         ? "bg-border text-foreground font-medium"

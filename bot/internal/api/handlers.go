@@ -116,6 +116,18 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if this date is a day off
+	isDayOff, err := db.IsDayOff(trainer.ID, date)
+	if err != nil {
+		log.Printf("Error checking day off: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if isDayOff {
+		writeJSON(w, []models.TimeSlot{})
+		return
+	}
+
 	// Get session type by type name
 	sessionType, err := db.GetSessionTypeByType(trainer.ID, sessionTypeParam)
 	if err != nil || sessionType == nil {
@@ -394,6 +406,35 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)
+}
+
+// PublicDayOff is the public response for days off (no reason exposed)
+type PublicDayOff struct {
+	Date string `json:"date"`
+}
+
+func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	daysOff, err := db.GetDaysOffByTrainerID(trainer.ID)
+	if err != nil {
+		log.Printf("Error getting days off: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	result := make([]PublicDayOff, 0, len(daysOff))
+	for _, d := range daysOff {
+		result = append(result, PublicDayOff{
+			Date: d.Date.Format("2006-01-02"),
+		})
+	}
+
+	writeJSON(w, result)
 }
 
 func writeJSON(w http.ResponseWriter, data interface{}) {

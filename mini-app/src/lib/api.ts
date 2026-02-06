@@ -50,6 +50,10 @@ export const api = {
     return fetchAPI<WorkingHours[]>("/api/working-hours");
   },
 
+  async getDaysOff(): Promise<{ date: string }[]> {
+    return fetchAPI<{ date: string }[]>("/api/days-off");
+  },
+
   async getAvailableSlots(
     date: string,
     sessionType: string,
