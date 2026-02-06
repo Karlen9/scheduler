@@ -1,0 +1,11 @@
+services:
+  bot:
+    build:
+      context: ./bot
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./bot-data:/data
+    env_file:
+      - bot/.env
+    restart: unless-stopped
