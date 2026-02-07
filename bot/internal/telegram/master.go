@@ -92,7 +92,7 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 	case StateAwaitingToken:
 		h.handleTokenInput(chatID, userID, text, session)
 	case StateAwaitingName:
-		h.handleNameInput(chatID, userID, text, session)
+		h.handleNameInput(chatID, userID, text, session, msg.From.Username)
 	}
 }
 
@@ -243,7 +243,7 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
-func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, session *OnboardingSession) {
+func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, session *OnboardingSession, username string) {
 	name := strings.TrimSpace(text)
 	if len(name) < 2 {
 		h.bot.SendMessage(chatID, MasterMsgNameTooShort, nil)
@@ -263,6 +263,13 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		log.Printf("Error creating trainer: %v", err)
 		h.bot.SendMessage(chatID, MasterMsgError, nil)
 		return
+	}
+
+	// Save trainer's personal Telegram handle
+	if username != "" {
+		if _, err := db.UpdateTrainerProfile(trainer.ID, username, "", "", "", ""); err != nil {
+			log.Printf("Error saving telegram handle: %v", err)
+		}
 	}
 
 	// Register webhook

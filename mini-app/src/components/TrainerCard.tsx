@@ -28,8 +28,10 @@ export function TrainerCard({
   onShare,
 }: TrainerCardProps) {
   const handleMessage = () => {
-    // Open chat with trainer's bot
-    if (botUsername) {
+    if (telegram) {
+      const handle = telegram.replace("@", "");
+      window.open(`https://t.me/${handle}`, "_blank");
+    } else if (botUsername) {
       window.open(`https://t.me/${botUsername}`, "_blank");
     }
   };
@@ -82,7 +84,7 @@ export function TrainerCard({
 
       {/* Action Buttons */}
       <div className="flex gap-2">
-        {botUsername && (
+        {(telegram || botUsername) && (
           <button
             onClick={handleMessage}
             className="flex-1 py-3 px-4 rounded-[28px] bg-brand text-white text-sm font-medium transition-opacity active:opacity-80"
