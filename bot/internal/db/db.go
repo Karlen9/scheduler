@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 
 	_ "modernc.org/sqlite"
+
+	"scheduler-bot/internal/crypto"
 )
 
 var DB *sql.DB
@@ -121,11 +123,15 @@ func migrate() error {
 		`ALTER TABLE trainers ADD COLUMN specialization TEXT`,
 		`ALTER TABLE trainers ADD COLUMN bio TEXT`,
 		`ALTER TABLE trainers ADD COLUMN photo_url TEXT`,
+		`ALTER TABLE trainers ADD COLUMN bot_token_hash TEXT`,
 	}
 
 	for _, migration := range alterMigrations {
 		DB.Exec(migration) // Ignore errors for duplicate columns
 	}
+
+	// Create unique index on bot_token_hash (separate from alters since it's not ALTER TABLE)
+	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_trainers_bot_token_hash ON trainers(bot_token_hash)`)
 
 	return nil
 }
@@ -133,6 +139,68 @@ func migrate() error {
 func Close() error {
 	if DB != nil {
 		return DB.Close()
+	}
+	return nil
+}
+
+// MigrateEncryptTokens encrypts any plain-text bot tokens and populates bot_token_hash.
+// Idempotent: skips rows that are already encrypted with a correct hash.
+func MigrateEncryptTokens() error {
+	rows, err := DB.Query(`SELECT id, bot_token, bot_token_hash FROM trainers`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type row struct {
+		id       string
+		token    string
+		hash     sql.NullString
+	}
+	var toMigrate []row
+	for rows.Next() {
+		var r row
+		if err := rows.Scan(&r.id, &r.token, &r.hash); err != nil {
+			return err
+		}
+		toMigrate = append(toMigrate, r)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	migrated := 0
+	for _, r := range toMigrate {
+		// Determine the plain token for hashing
+		plainToken, err := crypto.Decrypt(r.token)
+		if err != nil {
+			return err
+		}
+
+		expectedHash := crypto.HashToken(plainToken)
+
+		// Skip if already encrypted with correct hash
+		if crypto.IsEncrypted(r.token) && r.hash.Valid && r.hash.String == expectedHash {
+			continue
+		}
+
+		// Encrypt the token (no-op if encryption is disabled)
+		encrypted, err := crypto.Encrypt(plainToken)
+		if err != nil {
+			return err
+		}
+
+		if _, err := DB.Exec(
+			`UPDATE trainers SET bot_token = ?, bot_token_hash = ? WHERE id = ?`,
+			encrypted, expectedHash, r.id,
+		); err != nil {
+			return err
+		}
+		migrated++
+	}
+
+	if migrated > 0 {
+		log.Printf("Migrated %d trainer token(s) (encrypted + hashed)", migrated)
 	}
 	return nil
 }

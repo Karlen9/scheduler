@@ -4,9 +4,11 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/google/uuid"
 
+	"scheduler-bot/internal/crypto"
 	"scheduler-bot/internal/models"
 )
 
@@ -36,6 +38,13 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	t.Specialization = specialization.String
 	t.Bio = bio.String
 	t.PhotoURL = photoURL.String
+
+	// Decrypt bot token (passthrough for plain text)
+	t.BotToken, err = crypto.Decrypt(t.BotToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt bot token for trainer %s: %w", t.ID, err)
+	}
+
 	return &t, nil
 }
 
@@ -69,11 +78,12 @@ func GetTrainerByWebhookSecret(secret string) (*models.Trainer, error) {
 }
 
 func GetTrainerByBotToken(botToken string) (*models.Trainer, error) {
+	tokenHash := crypto.HashToken(botToken)
 	row := DB.QueryRow(`
 		SELECT `+trainerColumns+`
 		FROM trainers
-		WHERE bot_token = ?
-	`, botToken)
+		WHERE bot_token_hash = ?
+	`, tokenHash)
 	return scanTrainer(row)
 }
 
@@ -115,10 +125,16 @@ func CreateTrainer(telegramUserID int64, botToken, botUsername, name, timezone s
 	id := uuid.New().String()
 	webhookSecret := generateWebhookSecret()
 
-	_, err := DB.Exec(`
-		INSERT INTO trainers (id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, id, telegramUserID, botToken, botUsername, webhookSecret, name, timezone, cancelCutoffHrs)
+	encryptedToken, err := crypto.Encrypt(botToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt bot token: %w", err)
+	}
+	tokenHash := crypto.HashToken(botToken)
+
+	_, err = DB.Exec(`
+		INSERT INTO trainers (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs)
 	if err != nil {
 		return nil, err
 	}

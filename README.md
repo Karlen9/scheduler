@@ -136,11 +136,13 @@ WEB_APP_URL=https://your-vercel-url.vercel.app
 MASTER_BOT_TOKEN=your-master-bot-token
 MASTER_WEBHOOK_SECRET=your-fixed-secret-hex-string
 ADMIN_IDS=[your-telegram-id]
+ENCRYPTION_KEY=your-64-char-hex-string
 ```
 
-Generate `MASTER_WEBHOOK_SECRET` once and never change it:
+Generate secrets once and never change them:
 ```bash
-openssl rand -hex 32
+openssl rand -hex 32   # for MASTER_WEBHOOK_SECRET
+openssl rand -hex 32   # for ENCRYPTION_KEY
 ```
 
 ### Caddy config (`/etc/caddy/Caddyfile`)
@@ -217,6 +219,16 @@ mkdir -p /root/sport-app/bot-data/backups
 
 The bot auto-migrates on startup. New columns are added via `ALTER TABLE` statements in `bot/internal/db/db.go` that silently skip if the column already exists. No manual migration needed.
 
+### Token encryption at rest
+
+Bot tokens stored in the `trainers` table are encrypted with AES-256-GCM when `ENCRYPTION_KEY` is set. Lookups use a SHA-256 hash (`bot_token_hash` column) instead of the raw token.
+
+- **Without `ENCRYPTION_KEY`**: tokens stored in plain text (backwards compatible, warning logged)
+- **With `ENCRYPTION_KEY`**: existing plain-text tokens are automatically encrypted on startup
+- **Key removal after encryption**: the app will fail to decrypt tokens (intentional — set the key back or re-create trainers)
+
+Encrypted values in the DB are prefixed with `enc:` so the migration is idempotent and safe to run repeatedly.
+
 ---
 
 ## Troubleshooting
@@ -254,6 +266,7 @@ The `MASTER_WEBHOOK_SECRET` in `.env` must be set. Without it, a random secret i
 | `MASTER_BOT_TOKEN` | Yes | Master bot token from BotFather |
 | `MASTER_WEBHOOK_SECRET` | Yes | Fixed hex secret for webhook (generate once with `openssl rand -hex 32`) |
 | `ADMIN_IDS` | No | Telegram user IDs with admin access (e.g., `[123456789]`) |
+| `ENCRYPTION_KEY` | No | Hex-encoded 32-byte AES key for encrypting bot tokens at rest (generate with `openssl rand -hex 32`) |
 | `DATABASE_PATH` | Set in compose | Always `/data/scheduler.db` (set in docker-compose.yml) |
 | `PORT` | No | HTTP port (default: `8080`) |
 

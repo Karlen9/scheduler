@@ -35,6 +35,9 @@ type Config struct {
 	MasterWebhookSecret string // Fixed webhook secret for master bot
 	AdminIDs           []int64 // Telegram IDs with admin access
 
+	// Encryption
+	EncryptionKey string // Hex-encoded 32-byte AES key for encrypting tokens at rest
+
 	// Optional - for initial single-bot setup (legacy)
 	TelegramBotToken  string
 	TrainerTelegramID int64
@@ -56,6 +59,7 @@ func Load() *Config {
 		MasterBotToken:     os.Getenv("MASTER_BOT_TOKEN"),
 		MasterWebhookSecret: os.Getenv("MASTER_WEBHOOK_SECRET"),
 		AdminIDs:       parseAdminIDs(os.Getenv("ADMIN_IDS")),
+		EncryptionKey:  os.Getenv("ENCRYPTION_KEY"),
 
 		// Legacy single-bot setup
 		TelegramBotToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
@@ -89,6 +93,10 @@ func Load() *Config {
 
 	if cfg.MasterBotToken == "" {
 		log.Println("Warning: MASTER_BOT_TOKEN not set, trainer onboarding disabled")
+	}
+
+	if cfg.EncryptionKey == "" {
+		log.Println("Warning: ENCRYPTION_KEY not set, bot tokens will be stored in plain text")
 	}
 
 	return cfg

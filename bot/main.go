@@ -16,6 +16,7 @@ import (
 
 	"scheduler-bot/internal/api"
 	"scheduler-bot/internal/config"
+	"scheduler-bot/internal/crypto"
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
 	"scheduler-bot/internal/telegram"
@@ -87,11 +88,21 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
+	// Initialize encryption
+	if err := crypto.Init(cfg.EncryptionKey); err != nil {
+		log.Fatalf("Failed to initialize encryption: %v", err)
+	}
+
 	// Initialize database
 	if err := db.Init(cfg.DatabasePath); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
+
+	// Migrate existing plain-text tokens to encrypted form
+	if err := db.MigrateEncryptTokens(); err != nil {
+		log.Fatalf("Failed to migrate encrypted tokens: %v", err)
+	}
 
 	// Create bot manager
 	botManager = NewBotManager(cfg.WebAppURL, cfg.PublicBaseURL)
