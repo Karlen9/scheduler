@@ -48,14 +48,28 @@ func formatPrice(price int, currency string) string {
 	return fmt.Sprintf("%d %s", price, currency)
 }
 
-// MsgWelcome is the welcome message for /start
+// MsgWelcome is the welcome message for /start (clients)
 const MsgWelcome = "Добро пожаловать! Нажмите кнопку ниже, чтобы открыть приложение для записи."
 
+// MsgWelcomeTrainer is the welcome message for /start (trainer)
+const MsgWelcomeTrainer = `👋 С возвращением!
+
+🔧 Панель управления — настройки, расписание и записи клиентов.
+📅 Записаться — посмотреть как видят бота ваши клиенты.`
+
 // MsgHelp is the help message
-const MsgHelp = "Используйте /start чтобы открыть приложение для записи."
+const MsgHelp = `Используйте /start чтобы открыть приложение для записи.
+
+Команды:
+/start — Главное меню
+/admin — Панель управления (только для тренера)
+/help — Справка`
 
 // BtnOpenApp is the button text for opening the mini-app
-const BtnOpenApp = "📅 Открыть расписание"
+const BtnOpenApp = "📅 Записаться"
+
+// BtnOpenAdmin is the button text for opening admin panel
+const BtnOpenAdmin = "🔧 Панель управления"
 
 // BtnAccept is the accept button text
 const BtnAccept = "✅ Подтвердить"
@@ -126,6 +140,19 @@ func FormatBookingRejectedClient() string {
 	return `❌ К сожалению, ваша заявка отклонена
 
 Попробуйте выбрать другое время.`
+}
+
+// FormatBookingCancelledByTrainerClient creates a message for client when trainer cancels a booking
+func FormatBookingCancelledByTrainerClient(booking *models.Booking) string {
+	return fmt.Sprintf(`❌ Ваша запись отменена тренером
+
+📋 %s
+🕐 %s
+
+Вы можете записаться на другое время.`,
+		booking.SessionType.Name,
+		formatDateTime(booking.StartsAt),
+	)
 }
 
 // FormatBookingPendingClient creates a message for client after booking creation

@@ -16,6 +16,9 @@ import (
 // NotifyBookingFunc is a callback to notify trainer about new booking
 var NotifyBookingFunc func(booking *models.Booking) error
 
+// NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin panel
+var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
+
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
 	ID              string `json:"id"`

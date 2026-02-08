@@ -1,38 +1,33 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { NearestBookingCard } from "@/components/NearestBookingCard";
-import { ScheduleTabs } from "@/components/ScheduleTabs";
-import { DayTimeline } from "@/components/DayTimeline";
-import { WeekGrid } from "@/components/WeekGrid";
-import { MonthCalendar } from "@/components/MonthCalendar";
+import { ClipboardList } from "lucide-react";
+import { toast } from "sonner";
+import { PendingBookingCard } from "@/components/PendingBookingCard";
+import { UpcomingBookingCard } from "@/components/UpcomingBookingCard";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Booking, DayOff } from "@/lib/types";
+import { EmptyState } from "@/components/EmptyState";
+import { Booking } from "@/lib/types";
 import { api } from "@/lib/api";
 
-export default function AdminSchedulePage() {
-  const [activeTab, setActiveTab] = useState<"day" | "week">("day");
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
+export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [daysOff, setDaysOff] = useState<DayOff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<Booking | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const [bookingsData, daysOffData] = await Promise.all([
-        api.admin.getBookings(),
-        api.admin.getDaysOff(),
-      ]);
-      setBookings(bookingsData);
-      setDaysOff(daysOffData);
+      const data = await api.admin.getBookings();
+      setBookings(data);
     } catch (err) {
-      console.error("Failed to fetch data:", err);
+      console.error("Failed to fetch bookings:", err);
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
       setLoading(false);
@@ -43,21 +38,48 @@ export default function AdminSchedulePage() {
     fetchData();
   }, [fetchData]);
 
-  // Find nearest upcoming booking
   const now = new Date();
-  const upcomingBookings = bookings
-    .filter((b) => new Date(b.startsAt) > now && (b.status === "confirmed" || b.status === "pending"))
+
+  const pendingBookings = bookings
+    .filter((b) => b.status === "pending")
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-  const nearestBooking = upcomingBookings[0];
+
+  const upcomingBookings = bookings
+    .filter((b) => b.status === "confirmed" && new Date(b.startsAt) > now)
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+
+  const handleAccept = async (booking: Booking) => {
+    try {
+      await api.admin.updateBookingStatus(booking.id, "confirmed");
+      toast.success("Запись подтверждена");
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to accept booking:", err);
+      toast.error("Не удалось подтвердить запись");
+    }
+  };
+
+  const handleRejectClick = (booking: Booking) => {
+    setRejectTarget(booking);
+    setShowRejectDialog(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTarget) return;
+    try {
+      await api.admin.updateBookingStatus(rejectTarget.id, "rejected");
+      toast.success("Запись отклонена");
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to reject booking:", err);
+      toast.error("Не удалось отклонить запись");
+    }
+    setShowRejectDialog(false);
+    setRejectTarget(null);
+  };
 
   const handleBookingClick = (booking: Booking) => {
     setSelectedBooking(booking);
-  };
-
-  const handleReschedule = (booking: Booking) => {
-    // TODO: Implement reschedule flow
-    console.log("Reschedule booking:", booking.id);
-    setSelectedBooking(null);
   };
 
   const handleCancelClick = () => {
@@ -68,21 +90,15 @@ export default function AdminSchedulePage() {
     if (!selectedBooking) return;
     try {
       await api.admin.updateBookingStatus(selectedBooking.id, "cancelled");
+      toast.success("Запись отменена");
       await fetchData();
     } catch (err) {
       console.error("Failed to cancel booking:", err);
+      toast.error("Не удалось отменить запись");
     }
     setShowCancelDialog(false);
     setSelectedBooking(null);
   };
-
-  const handleDayClick = (date: Date) => {
-    setSelectedDate(date);
-    setActiveTab("day");
-  };
-
-  // Convert daysOff to Date array
-  const daysOffDates = daysOff.map((d) => new Date(d.date));
 
   if (loading) {
     return (
@@ -102,57 +118,80 @@ export default function AdminSchedulePage() {
     );
   }
 
+  const isEmpty = pendingBookings.length === 0 && upcomingBookings.length === 0;
+
   return (
     <div className="p-4">
-      {/* Nearest Booking */}
-      {nearestBooking && (
-        <NearestBookingCard
-          booking={nearestBooking}
-          onClick={() => handleBookingClick(nearestBooking)}
-        />
-      )}
-
-      {/* Schedule Header */}
-      <h2 className="text-base font-medium text-foreground mb-3">
-        Расписание
-      </h2>
-
-      {/* Tabs */}
-      <ScheduleTabs activeTab={activeTab} onChange={setActiveTab} />
-
-      {/* Calendar (Day view) */}
-      {activeTab === "day" && (
-        <div className="mb-4">
-          <MonthCalendar
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            bookingDates={bookings.map((b) => new Date(b.startsAt))}
-            daysOff={daysOffDates}
-          />
-        </div>
-      )}
-
-      {/* Timeline / Grid */}
-      {activeTab === "day" ? (
-        <DayTimeline
-          date={selectedDate}
-          bookings={bookings}
-          onBookingClick={handleBookingClick}
+      {isEmpty ? (
+        <EmptyState
+          icon={<ClipboardList className="w-16 h-16" />}
+          title="Нет записей"
+          description="Когда клиенты запишутся, их заявки появятся здесь"
         />
       ) : (
-        <WeekGrid
-          startDate={selectedDate}
-          bookings={bookings}
-          onDayClick={handleDayClick}
-        />
+        <>
+          {/* Pending bookings */}
+          {pendingBookings.length > 0 && (
+            <section className="mb-6">
+              <h2 className="text-base font-medium text-foreground mb-3">
+                Новые заявки
+                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-warning/20 text-warning">
+                  {pendingBookings.length}
+                </span>
+              </h2>
+              <div className="space-y-3">
+                {pendingBookings.map((booking) => (
+                  <PendingBookingCard
+                    key={booking.id}
+                    booking={booking}
+                    onAccept={handleAccept}
+                    onReject={handleRejectClick}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Upcoming confirmed bookings */}
+          {upcomingBookings.length > 0 && (
+            <section>
+              <h2 className="text-base font-medium text-foreground mb-3">
+                Ближайшие записи
+              </h2>
+              <div className="space-y-3">
+                {upcomingBookings.map((booking) => (
+                  <UpcomingBookingCard
+                    key={booking.id}
+                    booking={booking}
+                    onClick={handleBookingClick}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
+
+      {/* Reject Confirmation */}
+      <ConfirmDialog
+        isOpen={showRejectDialog}
+        title="Отклонить заявку?"
+        description={`Вы уверены, что хотите отклонить заявку клиента ${rejectTarget?.clientName}?`}
+        confirmText="Отклонить"
+        cancelText="Назад"
+        onConfirm={handleConfirmReject}
+        onClose={() => {
+          setShowRejectDialog(false);
+          setRejectTarget(null);
+        }}
+        destructive
+      />
 
       {/* Booking Detail Modal */}
       <BookingDetailModal
         booking={selectedBooking}
         isOpen={!!selectedBooking}
         onClose={() => setSelectedBooking(null)}
-        onReschedule={handleReschedule}
         onCancel={handleCancelClick}
       />
 

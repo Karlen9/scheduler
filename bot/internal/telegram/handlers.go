@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -52,7 +53,24 @@ func (h *Handler) handleStart(msg *Message) {
 		return
 	}
 
-	// Include trainer ID in WebApp URL
+	// Check if the user is the trainer (owner of this bot)
+	if trainer.TelegramUserID == msg.From.ID {
+		adminURL := h.WebAppURL + "/admin?trainer=" + trainer.ID
+		clientURL := h.WebAppURL + "?trainer=" + trainer.ID
+		keyboard := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: BtnOpenAdmin, WebApp: &WebAppInfo{URL: adminURL}}},
+				{{Text: BtnOpenApp, WebApp: &WebAppInfo{URL: clientURL}}},
+			},
+		}
+		_, err = h.Bot.SendMessage(msg.Chat.ID, MsgWelcomeTrainer, keyboard)
+		if err != nil {
+			log.Printf("Error sending trainer start message: %v", err)
+		}
+		return
+	}
+
+	// Regular client
 	webAppURL := h.WebAppURL + "?trainer=" + trainer.ID
 	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, MsgWelcome, webAppURL)
 	if err != nil {
@@ -229,6 +247,29 @@ func (h *Handler) notifyClient(booking *models.Booking, accepted bool) {
 	if err != nil {
 		log.Printf("Error notifying client: %v", err)
 	}
+}
+
+// NotifyClientStatusChange sends a notification to client when booking status changes via admin panel
+func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus string) error {
+	client, err := db.GetClientByID(booking.ClientID)
+	if err != nil || client == nil {
+		return fmt.Errorf("error getting client: %w", err)
+	}
+
+	var text string
+	switch models.BookingStatus(newStatus) {
+	case models.BookingStatusConfirmed:
+		text = FormatBookingConfirmedClient(booking)
+	case models.BookingStatusRejected:
+		text = FormatBookingRejectedClient()
+	case models.BookingStatusCancelled:
+		text = FormatBookingCancelledByTrainerClient(booking)
+	default:
+		return nil
+	}
+
+	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
+	return err
 }
 
 // NotifyTrainerNewBooking sends a notification to trainer about a new booking

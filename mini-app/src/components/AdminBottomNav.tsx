@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Calendar, Settings } from "lucide-react";
+import { ClipboardList, Settings } from "lucide-react";
 
 export function AdminBottomNav() {
   const pathname = usePathname();
@@ -24,7 +24,8 @@ export function AdminBottomNav() {
               : "text-muted-foreground"
           }`}
         >
-          <Calendar className="w-6 h-6" />
+          <ClipboardList className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Записи</span>
         </Link>
 
         <Link
@@ -36,6 +37,7 @@ export function AdminBottomNav() {
           }`}
         >
           <Settings className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Настройки</span>
         </Link>
       </div>
       <div className="h-[env(safe-area-inset-bottom)]" />

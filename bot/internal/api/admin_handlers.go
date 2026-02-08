@@ -476,6 +476,17 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		trainer.BotUsername,
 	)
 
+	// Notify client about status change
+	if NotifyStatusChangeFunc != nil {
+		// Refresh booking to get updated status + session type
+		updated, _ := db.GetBookingByID(bookingID)
+		if updated != nil {
+			if err := NotifyStatusChangeFunc(updated, req.Status); err != nil {
+				log.Printf("Error notifying client about status change: %v", err)
+			}
+		}
+	}
+
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)
 }
