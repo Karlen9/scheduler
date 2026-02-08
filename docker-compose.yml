@@ -1,11 +1,11 @@
 services:
   bot:
-    build:
-      context: ./bot
-    ports:
-      - "8080:8080"
+    image: rainingman/scheduler-bot:latest
+    network_mode: host
     volumes:
       - ./bot-data:/data
     env_file:
       - bot/.env
+    environment:
+      - DATABASE_PATH=/data/scheduler.db
     restart: unless-stopped

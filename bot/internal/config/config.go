@@ -27,12 +27,13 @@ func parseAdminIDs(s string) []int64 {
 
 type Config struct {
 	// Required
-	WebAppURL      string
-	DatabasePath   string
-	Port           string
-	PublicBaseURL  string
-	MasterBotToken string  // Master bot for trainer onboarding
-	AdminIDs       []int64 // Telegram IDs with admin access
+	WebAppURL          string
+	DatabasePath       string
+	Port               string
+	PublicBaseURL      string
+	MasterBotToken     string  // Master bot for trainer onboarding
+	MasterWebhookSecret string // Fixed webhook secret for master bot
+	AdminIDs           []int64 // Telegram IDs with admin access
 
 	// Optional - for initial single-bot setup (legacy)
 	TelegramBotToken  string
@@ -52,7 +53,8 @@ func Load() *Config {
 		DatabasePath:   os.Getenv("DATABASE_PATH"),
 		Port:           os.Getenv("PORT"),
 		PublicBaseURL:  os.Getenv("PUBLIC_BASE_URL"),
-		MasterBotToken: os.Getenv("MASTER_BOT_TOKEN"),
+		MasterBotToken:     os.Getenv("MASTER_BOT_TOKEN"),
+		MasterWebhookSecret: os.Getenv("MASTER_WEBHOOK_SECRET"),
 		AdminIDs:       parseAdminIDs(os.Getenv("ADMIN_IDS")),
 
 		// Legacy single-bot setup

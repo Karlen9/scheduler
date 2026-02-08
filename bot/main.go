@@ -157,10 +157,15 @@ func main() {
 
 		masterHandler = telegram.NewMasterHandler(masterBot, cfg.PublicBaseURL, cfg.WebAppURL, cfg.AdminIDs)
 
-		// Generate a random webhook secret for master bot
-		secretBytes := make([]byte, 32)
-		rand.Read(secretBytes)
-		masterWebhookSecret = hex.EncodeToString(secretBytes)
+		// Use fixed webhook secret from env, or generate a random one
+		if cfg.MasterWebhookSecret != "" {
+			masterWebhookSecret = cfg.MasterWebhookSecret
+		} else {
+			secretBytes := make([]byte, 32)
+			rand.Read(secretBytes)
+			masterWebhookSecret = hex.EncodeToString(secretBytes)
+			log.Println("Warning: MASTER_WEBHOOK_SECRET not set, using random secret (will change on restart)")
+		}
 
 		// Set webhook for master bot
 		masterWebhookURL := strings.TrimRight(cfg.PublicBaseURL, "/") + "/master/" + masterWebhookSecret + "/webhook"

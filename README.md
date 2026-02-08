@@ -1,81 +1,275 @@
-# Scheduler - Telegram Bot with Mini App
+# Scheduler - Telegram Mini App for Fitness Trainers
 
-A Telegram bot with a mini-app built using Go and Next.js.
+A multi-tenant scheduling platform where fitness trainers register their own Telegram bots via a master bot, and clients book sessions through a Telegram Mini App.
 
-## Project Structure
+## Architecture
 
 ```
 scheduler/
-├── bot/          # Go Telegram bot
-│   ├── main.go
-│   ├── go.mod
-│   └── go.sum
-├── mini-app/     # Next.js mini-app
-│   ├── src/
-│   │   └── app/
-│   │       ├── page.tsx
-│   │       ├── layout.tsx
-│   │       └── globals.css
-│   ├── package.json
-│   └── ...
-└── README.md
+├── bot/              # Go backend (Telegram webhooks + REST API)
+├── mini-app/         # Next.js 15 frontend (Telegram Mini App)
+├── db-viewer/        # Drizzle Studio for DB inspection
+├── docker-compose.yml
+└── bot-data/         # SQLite database (created on VPS, gitignored)
 ```
 
-## Setup Instructions
+### How it works
 
-### 1. Create a Telegram Bot
+1. Trainer opens master bot (`@sportappmasterbot`) → registers their own bot
+2. Client opens trainer's bot → `/start` → "Open Scheduler" button
+3. Mini-app loads → client picks date/time → booking created (status: pending)
+4. Trainer gets Telegram notification with Accept/Reject buttons
+5. Trainer responds → client notified
 
-1. Open Telegram and search for [@BotFather](https://t.me/BotFather)
-2. Send `/newbot` and follow the prompts
-3. Save the bot token you receive
+### Infrastructure
 
-### 2. Deploy the Mini App
+| Component | Where | URL |
+|-----------|-------|-----|
+| Bot (Go) | VPS (Docker) | `sport-app.rainingman.online` |
+| Mini-app (Next.js) | Vercel | deployed via `bunx vercel` |
+| SSL | Caddy (VPS) | auto-TLS, proxies to `:8080` |
+| DB | SQLite | `/root/bot-data/scheduler.db` on VPS |
+| Images | Docker Hub | `rainingman/scheduler-bot` |
 
-The mini-app needs to be deployed to a public HTTPS URL. Options:
-- Vercel (recommended for Next.js)
-- Netlify
-- Your own server with HTTPS
+---
 
-To deploy on Vercel:
+## Day-to-day Operations
+
+### Updating the Mini-app (Next.js)
+
 ```bash
+# 1. Make changes in mini-app/
 cd mini-app
-bunx vercel
+
+# 2. Test locally
+bun dev
+
+# 3. Deploy to Vercel
+bunx vercel --prod
+
+# That's it - no Docker needed for frontend changes
 ```
 
-### 3. Configure the Bot
+### Updating the Bot (Go backend)
 
-Set the environment variables:
 ```bash
-export TELEGRAM_BOT_TOKEN="your-bot-token-from-botfather"
-export WEB_APP_URL="https://your-deployed-mini-app-url.com"
+# 1. Make changes in bot/
+
+# 2. Test locally
+cd bot && go build ./...
+
+# 3. Build Docker image and push to Docker Hub (from project root)
+docker buildx build --platform linux/amd64 \
+  -t rainingman/scheduler-bot:latest \
+  -f bot/Dockerfile bot --push
+
+# 4. On VPS: pull and restart
+ssh root@your-vps
+cd /root/sport-app
+docker compose pull bot
+docker compose down && docker compose up -d
+
+# 5. Verify
+docker compose logs --tail 20 bot
 ```
 
-### 4. Run the Bot
+### Quick reference: VPS commands
 
 ```bash
-cd bot
-go run main.go
+# Check status
+docker compose ps
+docker compose logs --tail 50 bot
+
+# Restart bot
+docker compose restart bot
+
+# Full restart (if port issues)
+docker compose down
+sudo fuser -k 8080/tcp    # kill anything on port 8080
+docker compose up -d
+
+# Check what's on port 8080
+sudo ss -tlnp | grep 8080
 ```
+
+---
+
+## VPS Setup
+
+### Directory structure on VPS
+
+```
+/root/sport-app/
+├── docker-compose.yml
+├── bot/
+│   └── .env              # environment variables
+└── bot-data/
+    └── scheduler.db      # SQLite database (persistent)
+```
+
+### docker-compose.yml
+
+```yaml
+services:
+  bot:
+    image: rainingman/scheduler-bot:latest
+    network_mode: host
+    volumes:
+      - ./bot-data:/data
+    env_file:
+      - bot/.env
+    environment:
+      - DATABASE_PATH=/data/scheduler.db
+    restart: unless-stopped
+```
+
+Key points:
+- `network_mode: host` — container shares host network (avoids Docker DNS issues)
+- `DATABASE_PATH=/data/scheduler.db` — always set in compose, never relies on `.env`
+- `./bot-data:/data` — SQLite persists on host at `./bot-data/scheduler.db`
+
+### bot/.env
+
+```env
+PUBLIC_BASE_URL=https://sport-app.rainingman.online
+WEB_APP_URL=https://your-vercel-url.vercel.app
+MASTER_BOT_TOKEN=your-master-bot-token
+MASTER_WEBHOOK_SECRET=your-fixed-secret-hex-string
+ADMIN_IDS=[your-telegram-id]
+```
+
+Generate `MASTER_WEBHOOK_SECRET` once and never change it:
+```bash
+openssl rand -hex 32
+```
+
+### Caddy config (`/etc/caddy/Caddyfile`)
+
+```
+sport-app.rainingman.online {
+    reverse_proxy localhost:8080
+}
+```
+
+Caddy handles SSL automatically.
+
+---
+
+## Database
+
+### Viewing with Drizzle Studio
+
+Drizzle Studio lets you browse the database via a web UI.
+
+**Option 1: Locally with SSH tunnel**
+```bash
+# Terminal 1: SSH tunnel to copy DB
+scp root@your-vps:/root/sport-app/bot-data/scheduler.db ./bot-data/scheduler.db
+
+# Terminal 2: Open Drizzle Studio
+cd db-viewer
+bunx drizzle-kit studio
+```
+
+**Option 2: On VPS with port forward**
+```bash
+# SSH with port forwarding
+ssh -L 4983:localhost:4983 root@your-vps
+
+# On VPS
+cd /root/sport-app/db-viewer
+DB_PATH=/root/sport-app/bot-data/scheduler.db bunx drizzle-kit studio
+```
+
+### Direct SQLite queries
+
+```bash
+# On VPS, via Docker
+docker compose exec bot sh -c "sqlite3 /data/scheduler.db \"SELECT name, telegram_handle FROM trainers;\""
+
+# Or directly
+sqlite3 /root/sport-app/bot-data/scheduler.db "SELECT * FROM trainers;"
+```
+
+### Backups
+
+```bash
+# Manual backup from VPS
+scp root@your-vps:/root/sport-app/bot-data/scheduler.db ./backups/scheduler-$(date +%Y%m%d).db
+
+# On VPS: local backup
+cp /root/sport-app/bot-data/scheduler.db /root/sport-app/bot-data/scheduler-backup-$(date +%Y%m%d).db
+```
+
+Set up automatic daily backups with cron on VPS:
+```bash
+crontab -e
+# Add this line:
+0 3 * * * cp /root/sport-app/bot-data/scheduler.db /root/sport-app/bot-data/backups/scheduler-$(date +\%Y\%m\%d).db
+```
+
+Create the backups directory:
+```bash
+mkdir -p /root/sport-app/bot-data/backups
+```
+
+### Schema migrations
+
+The bot auto-migrates on startup. New columns are added via `ALTER TABLE` statements in `bot/internal/db/db.go` that silently skip if the column already exists. No manual migration needed.
+
+---
+
+## Troubleshooting
+
+### Bot not responding to messages
+1. Check webhook: `curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo" | python3 -m json.tool`
+2. Check logs: `docker compose logs --tail 30 bot`
+3. Verify bot is running: `docker compose ps`
+
+### "address already in use" on port 8080
+```bash
+docker compose down
+sudo fuser -k 8080/tcp
+docker compose up -d
+```
+
+### "network is unreachable" in logs
+Make sure `docker-compose.yml` uses `network_mode: host` instead of port mapping.
+
+### Webhook 401 Unauthorized
+The `MASTER_WEBHOOK_SECRET` in `.env` must be set. Without it, a random secret is generated on each restart, causing mismatches.
+
+### Database appears empty in Drizzle Studio
+- Make sure you're pointing to the correct file (`/root/sport-app/bot-data/scheduler.db`)
+- If the DB was recreated, re-register via the master bot (`/start`)
+
+---
+
+## Environment Variables Reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PUBLIC_BASE_URL` | Yes | VPS public URL (e.g., `https://sport-app.rainingman.online`) |
+| `WEB_APP_URL` | Yes | Vercel mini-app URL |
+| `MASTER_BOT_TOKEN` | Yes | Master bot token from BotFather |
+| `MASTER_WEBHOOK_SECRET` | Yes | Fixed hex secret for webhook (generate once with `openssl rand -hex 32`) |
+| `ADMIN_IDS` | No | Telegram user IDs with admin access (e.g., `[123456789]`) |
+| `DATABASE_PATH` | Set in compose | Always `/data/scheduler.db` (set in docker-compose.yml) |
+| `PORT` | No | HTTP port (default: `8080`) |
 
 ## Development
 
-### Mini App (Next.js)
+### Mini-app
 ```bash
 cd mini-app
-bun dev
+bun install
+bun dev           # http://localhost:3000
+bun build         # production build
 ```
 
-The mini-app will run on http://localhost:3000
-
-### Bot (Go)
+### Bot
 ```bash
 cd bot
-TELEGRAM_BOT_TOKEN=your-token WEB_APP_URL=https://your-url.com go run main.go
+go run .          # requires env vars
+go build ./...    # verify compilation
 ```
-
-## Usage
-
-1. Start a chat with your bot on Telegram
-2. Send `/start`
-3. Click "Open Scheduler" button
-4. In the mini-app, click "Current Time" to see the current date and time
