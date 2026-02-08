@@ -229,7 +229,7 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bookings, err := db.GetActiveBookingsByClientID(client.ID)
+	bookings, err := db.GetBookingsByClientID(client.ID)
 	if err != nil {
 		log.Printf("Error getting bookings: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

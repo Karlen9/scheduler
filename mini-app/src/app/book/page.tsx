@@ -19,6 +19,9 @@ function BookingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preSelectedDate = searchParams.get("date");
+  const rescheduleBookingId = searchParams.get("reschedule");
+  const preSelectedSessionType = searchParams.get("sessionType");
+  const isReschedule = !!rescheduleBookingId;
 
   const [step, setStep] = useState<"date" | "time">(
     preSelectedDate ? "time" : "date",
@@ -69,7 +72,9 @@ function BookingPageContent() {
           label: s.name,
         }));
         setSessionTypes(types);
-        if (types.length > 0) {
+        if (preSelectedSessionType && types.some((t: { id: string }) => t.id === preSelectedSessionType)) {
+          setSessionType(preSelectedSessionType);
+        } else if (types.length > 0) {
           setSessionType(types[0].id);
         }
       } catch (err) {
@@ -137,6 +142,9 @@ function BookingPageContent() {
     setIsSubmitting(true);
     setError(null);
     try {
+      if (rescheduleBookingId) {
+        await api.cancelBooking(rescheduleBookingId, "Перенос записи");
+      }
       const dateStr = formatDateISO(selectedDate);
       const name = getUserName();
       await api.createBooking(sessionType, dateStr, selectedTime, name);
@@ -180,7 +188,7 @@ function BookingPageContent() {
       className="min-h-screen bg-background flex flex-col"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
-      <TopBar title="Запись на тренировку" showBack />
+      <TopBar title={isReschedule ? "Перенос записи" : "Запись на тренировку"} showBack />
 
       <div className="flex-1 p-4 space-y-4 pb-24">
         {sessionTypes.length > 0 && (
@@ -271,7 +279,7 @@ function BookingPageContent() {
             onClick={handleConfirm}
             disabled={!canConfirm}
           >
-            {isSubmitting ? "Отправка..." : "Подтвердить запись"}
+            {isSubmitting ? "Отправка..." : isReschedule ? "Подтвердить перенос" : "Подтвердить запись"}
           </PrimaryButton>
         </div>
       )}
@@ -279,7 +287,7 @@ function BookingPageContent() {
       <SuccessModal
         isOpen={showSuccess}
         onClose={handleSuccessClose}
-        title="Запись отправлена"
+        title={isReschedule ? "Запись перенесена" : "Запись отправлена"}
         description={`Вы записаны на ${selectedDate ? formatDate(selectedDate) : ""} в ${selectedTime}. Ожидайте подтверждения.`}
       />
 

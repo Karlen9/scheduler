@@ -41,6 +41,7 @@ export default function SettingsPage() {
           <SettingsMenuItem
             icon={Bell}
             label="Уведомления"
+            value="Скоро"
             href="/admin/settings/notifications"
             iconColor="bg-[#a855f7]"
           />
