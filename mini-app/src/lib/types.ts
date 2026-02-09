@@ -45,6 +45,21 @@ export interface TimeSlot {
   available: boolean;
 }
 
+export interface ClientProfile {
+  id: string;
+  name: string;
+  phone?: string;
+}
+
+export interface ClientInfo {
+  id: string;
+  telegramUserId: number;
+  trainerId: string;
+  name: string;
+  phone?: string;
+  createdAt: string;
+}
+
 export interface DayOff {
   id: string;
   date: string; // ISO date string

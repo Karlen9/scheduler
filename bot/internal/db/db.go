@@ -128,6 +128,7 @@ func migrate() error {
 		`ALTER TABLE trainers ADD COLUMN gym_longitude REAL DEFAULT 0`,
 		`ALTER TABLE trainers ADD COLUMN gym_address TEXT`,
 		`ALTER TABLE bookings ADD COLUMN reminder_sent BOOLEAN DEFAULT 0`,
+		`ALTER TABLE clients ADD COLUMN phone TEXT`,
 	}
 
 	for _, migration := range alterMigrations {

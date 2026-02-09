@@ -4,14 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarX } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
 import { BookingCard } from "@/components/BookingCard";
 import { EmptyState } from "@/components/EmptyState";
-import { BottomSafeArea } from "@/components/BottomSafeArea";
 import { BookingCardSkeleton } from "@/components/LoadingSkeleton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api } from "@/lib/api";
-import { initTelegramApp } from "@/lib/telegram";
 import { Booking } from "@/lib/types";
 
 export default function BookingsPage() {
@@ -20,10 +17,6 @@ export default function BookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
-
-  useEffect(() => {
-    initTelegramApp();
-  }, []);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -67,26 +60,20 @@ export default function BookingsPage() {
 
   if (isLoading) {
     return (
-      <div
-        className="min-h-screen bg-background"
-        style={{ maxWidth: "430px", margin: "0 auto" }}
-      >
-        <TopBar title="Мои записи" showBack />
-        <div className="p-4 space-y-3">
-          <BookingCardSkeleton />
-          <BookingCardSkeleton />
-        </div>
+      <div className="p-4 space-y-3">
+        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+        <BookingCardSkeleton />
+        <BookingCardSkeleton />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        className="min-h-screen bg-background flex flex-col"
-        style={{ maxWidth: "430px", margin: "0 auto" }}
-      >
-        <TopBar title="Мои записи" showBack />
+      <div className="flex-1 flex flex-col">
+        <div className="p-4">
+          <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+        </div>
         <div className="flex-1 flex items-center justify-center">
           <EmptyState
             icon={<CalendarX className="w-16 h-16" />}
@@ -94,18 +81,16 @@ export default function BookingsPage() {
             description={error}
           />
         </div>
-        <BottomSafeArea />
       </div>
     );
   }
 
   if (bookings.length === 0) {
     return (
-      <div
-        className="min-h-screen bg-background flex flex-col"
-        style={{ maxWidth: "430px", margin: "0 auto" }}
-      >
-        <TopBar title="Мои записи" showBack />
+      <div className="flex-1 flex flex-col">
+        <div className="p-4">
+          <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+        </div>
         <div className="flex-1 flex items-center justify-center">
           <EmptyState
             icon={<CalendarX className="w-16 h-16" />}
@@ -113,19 +98,15 @@ export default function BookingsPage() {
             description="Выберите удобное время и запишитесь на тренировку"
           />
         </div>
-        <BottomSafeArea />
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-screen bg-background"
-      style={{ maxWidth: "430px", margin: "0 auto" }}
-    >
-      <TopBar title="Мои записи" showBack />
-
+    <div>
       <div className="p-4 space-y-4">
+        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+
         {activeBookings.length > 0 && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">
@@ -167,8 +148,6 @@ export default function BookingsPage() {
         confirmText="Отменить запись"
         destructive
       />
-
-      <BottomSafeArea />
     </div>
   );
 }

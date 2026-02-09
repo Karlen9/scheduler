@@ -48,6 +48,10 @@ func NewRouter() http.Handler {
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
 
+		// Client profile
+		r.Get("/profile", HandleGetClientProfile)
+		r.Put("/profile", HandleUpdateClientProfile)
+
 		// Admin routes (trainer only)
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(AdminAuthMiddleware)
@@ -76,6 +80,9 @@ func NewRouter() http.Handler {
 			r.Get("/days-off", HandleGetDaysOff)
 			r.Post("/days-off", HandleCreateDayOff)
 			r.Delete("/days-off/{id}", HandleDeleteDayOff)
+
+			// Clients
+			r.Get("/clients", HandleAdminGetClients)
 
 			// Profile management
 			r.Get("/profile", HandleGetProfile)

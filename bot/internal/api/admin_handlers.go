@@ -694,6 +694,29 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, resp)
 }
 
+// ========== Admin Clients ==========
+
+func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	clients, err := db.GetClientsByTrainerID(trainer.ID)
+	if err != nil {
+		log.Printf("Error getting clients: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if clients == nil {
+		clients = []models.Client{}
+	}
+
+	writeJSON(w, clients)
+}
+
 // ========== Super Admin ==========
 
 type TrainerListItem struct {

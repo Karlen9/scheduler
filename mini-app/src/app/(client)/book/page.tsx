@@ -10,7 +10,6 @@ import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SuccessModal } from "@/components/SuccessModal";
 import { EmptyState } from "@/components/EmptyState";
-import { BottomSafeArea } from "@/components/BottomSafeArea";
 import { api } from "@/lib/api";
 import { getUserName } from "@/lib/telegram";
 import { TimeSlot, SessionType } from "@/lib/types";
@@ -184,10 +183,7 @@ function BookingPageContent() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-background flex flex-col"
-      style={{ maxWidth: "430px", margin: "0 auto" }}
-    >
+    <div className="flex flex-col">
       <TopBar title={isReschedule ? "Перенос записи" : "Запись на тренировку"} showBack />
 
       <div className="flex-1 p-4 space-y-4 pb-24">
@@ -272,7 +268,7 @@ function BookingPageContent() {
 
       {step === "time" && !noSlotsAvailable && (
         <div
-          className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border"
+          className="fixed bottom-[88px] left-0 right-0 p-4 bg-background border-t border-border"
           style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
         >
           <PrimaryButton
@@ -290,8 +286,6 @@ function BookingPageContent() {
         title={isReschedule ? "Запись перенесена" : "Запись отправлена"}
         description={`Вы записаны на ${selectedDate ? formatDate(selectedDate) : ""} в ${selectedTime}. Ожидайте подтверждения.`}
       />
-
-      <BottomSafeArea />
     </div>
   );
 }

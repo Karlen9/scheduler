@@ -8,38 +8,51 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
+func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Client, error) {
 	var c models.Client
-	err := DB.QueryRow(`
-		SELECT id, telegram_user_id, trainer_id, name, created_at
-		FROM clients
-		WHERE telegram_user_id = ? AND trainer_id = ?
-	`, telegramUserID, trainerID).Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &c.CreatedAt)
-
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+	var phone sql.NullString
+	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &c.CreatedAt)
 	if err != nil {
 		return nil, err
+	}
+	if phone.Valid {
+		c.Phone = phone.String
 	}
 	return &c, nil
 }
 
-func GetClientByID(id string) (*models.Client, error) {
-	var c models.Client
-	err := DB.QueryRow(`
-		SELECT id, telegram_user_id, trainer_id, name, created_at
+func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
+	row := DB.QueryRow(`
+		SELECT id, telegram_user_id, trainer_id, name, phone, created_at
 		FROM clients
-		WHERE id = ?
-	`, id).Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &c.CreatedAt)
+		WHERE telegram_user_id = ? AND trainer_id = ?
+	`, telegramUserID, trainerID)
 
+	c, err := scanClient(row)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return c, nil
+}
+
+func GetClientByID(id string) (*models.Client, error) {
+	row := DB.QueryRow(`
+		SELECT id, telegram_user_id, trainer_id, name, phone, created_at
+		FROM clients
+		WHERE id = ?
+	`, id)
+
+	c, err := scanClient(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func CreateClient(telegramUserID int64, trainerID string, name string) (*models.Client, error) {
@@ -70,4 +83,32 @@ func GetOrCreateClient(telegramUserID int64, trainerID string, name string) (*mo
 func UpdateClientName(clientID string, name string) error {
 	_, err := DB.Exec(`UPDATE clients SET name = ? WHERE id = ?`, name, clientID)
 	return err
+}
+
+func UpdateClientProfile(clientID string, name string, phone string) error {
+	_, err := DB.Exec(`UPDATE clients SET name = ?, phone = ? WHERE id = ?`, name, phone, clientID)
+	return err
+}
+
+func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
+	rows, err := DB.Query(`
+		SELECT id, telegram_user_id, trainer_id, name, phone, created_at
+		FROM clients
+		WHERE trainer_id = ?
+		ORDER BY name ASC
+	`, trainerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clients []models.Client
+	for rows.Next() {
+		c, err := scanClient(rows)
+		if err != nil {
+			return nil, err
+		}
+		clients = append(clients, *c)
+	}
+	return clients, rows.Err()
 }

@@ -444,6 +444,79 @@ func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, result)
 }
 
+// ========== Client Profile ==========
+
+type ClientProfileResponse struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Phone string `json:"phone,omitempty"`
+}
+
+type UpdateClientProfileRequest struct {
+	Name  string `json:"name,omitempty"`
+	Phone string `json:"phone,omitempty"`
+}
+
+func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	resp := ClientProfileResponse{
+		ID:    client.ID,
+		Name:  client.Name,
+		Phone: client.Phone,
+	}
+
+	writeJSON(w, resp)
+}
+
+func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req UpdateClientProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	name := client.Name
+	if req.Name != "" {
+		name = req.Name
+	}
+
+	phone := client.Phone
+	if req.Phone != "" {
+		phone = req.Phone
+	}
+
+	if err := db.UpdateClientProfile(client.ID, name, phone); err != nil {
+		log.Printf("Error updating client profile: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	updated, err := db.GetClientByID(client.ID)
+	if err != nil || updated == nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := ClientProfileResponse{
+		ID:    updated.ID,
+		Name:  updated.Name,
+		Phone: updated.Phone,
+	}
+
+	writeJSON(w, resp)
+}
+
 func writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)

@@ -27,6 +27,7 @@ type Client struct {
 	TelegramUserID int64     `json:"telegramUserId"`
 	TrainerID      string    `json:"trainerId"`
 	Name           string    `json:"name"`
+	Phone          string    `json:"phone,omitempty"`
 	CreatedAt      time.Time `json:"createdAt"`
 }
 

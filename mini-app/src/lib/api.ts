@@ -1,4 +1,4 @@
-import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff } from "./types";
+import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo } from "./types";
 import { getInitData, getTrainerId } from "./telegram";
 
 // API base URL - set via environment variable or default to localhost
@@ -108,6 +108,19 @@ export const api = {
       booking.clientName,
       undefined,
     );
+  },
+
+  // ========== Client Profile ==========
+
+  async getProfile(): Promise<ClientProfile> {
+    return fetchAPI<ClientProfile>("/api/profile");
+  },
+
+  async updateProfile(data: { name?: string; phone?: string }): Promise<ClientProfile> {
+    return fetchAPI<ClientProfile>("/api/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
   },
 
   // ========== Admin API ==========
@@ -224,6 +237,11 @@ export const api = {
 
     async cancelBooking(bookingId: string, reason?: string): Promise<Booking> {
       return this.updateBookingStatus(bookingId, "cancelled");
+    },
+
+    // Clients
+    async getClients(): Promise<ClientInfo[]> {
+      return fetchAPI<ClientInfo[]>("/api/admin/clients");
     },
   },
 };
