@@ -168,6 +168,19 @@ func FormatBookingPendingClient(booking *models.Booking) string {
 	)
 }
 
+// FormatReminderClient creates a reminder message for client 1h before session
+func FormatReminderClient(booking *models.Booking) string {
+	return fmt.Sprintf(`🔔 Напоминание: через 1 час у вас тренировка!
+
+📋 %s
+🕐 %s
+
+Хорошей тренировки! 💪`,
+		booking.SessionType.Name,
+		formatDateTime(booking.StartsAt),
+	)
+}
+
 // Master bot messages for trainer onboarding
 
 // MasterMsgWelcome is sent when trainer starts onboarding

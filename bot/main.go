@@ -91,6 +91,12 @@ func (m *BotManager) GetHandler(webhookSecret string) *telegram.Handler {
 	return m.handlers[webhookSecret]
 }
 
+func (m *BotManager) GetBot(webhookSecret string) *telegram.Bot {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.bots[webhookSecret]
+}
+
 var botManager *BotManager
 
 func main() {
@@ -312,6 +318,11 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
+	// Start background reminder worker
+	reminderCtx, reminderCancel := context.WithCancel(context.Background())
+	defer reminderCancel()
+	go startReminderWorker(reminderCtx)
+
 	go func() {
 		log.Printf("Starting HTTP server on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -328,6 +339,65 @@ func main() {
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		log.Printf("HTTP server shutdown error: %v", err)
+	}
+}
+
+func startReminderWorker(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	log.Println("Reminder worker started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Reminder worker stopped")
+			return
+		case <-ticker.C:
+			sendReminders()
+		}
+	}
+}
+
+func sendReminders() {
+	bookings, err := db.GetBookingsNeedingReminder()
+	if err != nil {
+		log.Printf("Reminder: error fetching bookings: %v", err)
+		return
+	}
+
+	for _, booking := range bookings {
+		// Get client to find their Telegram user ID
+		client, err := db.GetClientByID(booking.ClientID)
+		if err != nil || client == nil {
+			log.Printf("Reminder: error getting client for booking %s: %v", booking.ID, err)
+			continue
+		}
+
+		// Get trainer to find the correct bot
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			log.Printf("Reminder: error getting trainer for booking %s: %v", booking.ID, err)
+			continue
+		}
+
+		bot := botManager.GetBot(trainer.WebhookSecret)
+		if bot == nil {
+			log.Printf("Reminder: no bot found for trainer %s", trainer.Name)
+			continue
+		}
+
+		text := telegram.FormatReminderClient(&booking)
+		if _, err := bot.SendMessage(client.TelegramUserID, text, nil); err != nil {
+			log.Printf("Reminder: error sending to client %s: %v", client.Name, err)
+			continue
+		}
+
+		if err := db.MarkReminderSent(booking.ID); err != nil {
+			log.Printf("Reminder: error marking sent for booking %s: %v", booking.ID, err)
+		}
+
+		log.Printf("Reminder sent for booking %s (client: %s)", booking.ID, client.Name)
 	}
 }
 

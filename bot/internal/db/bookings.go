@@ -208,6 +208,35 @@ func GetBookingsByTrainerID(trainerID string, status string) ([]models.Booking, 
 	return scanBookings(rows)
 }
 
+// GetBookingsNeedingReminder returns confirmed bookings starting within the next hour
+// that haven't had a reminder sent yet.
+func GetBookingsNeedingReminder() ([]models.Booking, error) {
+	now := time.Now().UTC()
+	oneHourLater := now.Add(time.Hour)
+
+	rows, err := DB.Query(`
+		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		FROM bookings
+		WHERE status = 'confirmed'
+		  AND reminder_sent = 0
+		  AND starts_at > ?
+		  AND starts_at <= ?
+		ORDER BY starts_at ASC
+	`, now, oneHourLater)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanBookings(rows)
+}
+
+func MarkReminderSent(bookingID string) error {
+	_, err := DB.Exec(`UPDATE bookings SET reminder_sent = 1 WHERE id = ?`, bookingID)
+	return err
+}
+
 func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	endOfDay := startOfDay.AddDate(0, 0, 1)
