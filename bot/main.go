@@ -56,6 +56,11 @@ func (m *BotManager) RegisterBot(trainer *models.Trainer) error {
 
 	handler := telegram.NewHandler(bot, m.webAppURL)
 
+	// Clear any stale webhook/pending updates before setting new one
+	if err := bot.DeleteWebhook(true); err != nil {
+		log.Printf("Warning: deleteWebhook for @%s: %v", bot.Username, err)
+	}
+
 	// Set webhook with retry
 	webhookURL := strings.TrimRight(m.baseURL, "/") + "/tg/" + trainer.WebhookSecret + "/webhook"
 	for attempt := 1; attempt <= 3; attempt++ {
@@ -197,6 +202,7 @@ func main() {
 		}
 
 		// Set webhook for master bot
+		masterBot.DeleteWebhook(true)
 		masterWebhookURL := strings.TrimRight(cfg.PublicBaseURL, "/") + "/master/" + masterWebhookSecret + "/webhook"
 		if err := masterBot.SetWebhook(masterWebhookURL, masterWebhookSecret); err != nil {
 			log.Printf("Failed to set master bot webhook: %v", err)

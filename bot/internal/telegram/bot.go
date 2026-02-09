@@ -162,6 +162,38 @@ func (b *Bot) GetUpdates(offset int) ([]Update, error) {
 	return result.Result, nil
 }
 
+// DeleteWebhook removes the current webhook and optionally drops pending updates
+func (b *Bot) DeleteWebhook(dropPending bool) error {
+	data := map[string]interface{}{
+		"drop_pending_updates": dropPending,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/deleteWebhook",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result SetWebhookResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+
+	if !result.OK {
+		return fmt.Errorf("deleteWebhook returned not OK: %s", result.Description)
+	}
+	return nil
+}
+
 // SetWebhook sets the webhook URL for the bot
 func (b *Bot) SetWebhook(url string, secretToken string) error {
 	req := SetWebhookRequest{

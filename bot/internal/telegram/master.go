@@ -277,6 +277,8 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	if err != nil {
 		log.Printf("Error creating bot for webhook: %v", err)
 	} else {
+		// Clear any stale state before setting webhook
+		trainerBot.DeleteWebhook(true)
 		webhookURL := strings.TrimRight(h.publicBaseURL, "/") + "/tg/" + trainer.WebhookSecret + "/webhook"
 		if err := trainerBot.SetWebhook(webhookURL, trainer.WebhookSecret); err != nil {
 			log.Printf("Error setting webhook: %v", err)
