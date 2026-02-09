@@ -48,6 +48,37 @@ func formatPrice(price int, currency string) string {
 	return fmt.Sprintf("%d %s", price, currency)
 }
 
+func formatDuration(minutes int) string {
+	if minutes <= 0 {
+		return ""
+	}
+	hours := float64(minutes) / 60.0
+	if hours == float64(int(hours)) {
+		return fmt.Sprintf("%d ч", int(hours))
+	}
+	return fmt.Sprintf("%.1g ч", hours)
+}
+
+func bookingDurationDisplay(booking *models.Booking) string {
+	if booking.DurationMinutes > 0 {
+		return formatDuration(booking.DurationMinutes)
+	}
+	if booking.SessionType != nil {
+		return booking.SessionType.Name
+	}
+	return "Тренировка"
+}
+
+func bookingServiceDisplay(booking *models.Booking) string {
+	if booking.DurationMinutes > 0 {
+		return fmt.Sprintf("Тренировка %s", formatDuration(booking.DurationMinutes))
+	}
+	if booking.SessionType != nil {
+		return booking.SessionType.Name
+	}
+	return "Тренировка"
+}
+
 // MsgWelcome is the welcome message for /start (clients)
 const MsgWelcome = "Добро пожаловать! Нажмите кнопку ниже, чтобы открыть приложение для записи."
 
@@ -82,13 +113,11 @@ func FormatNewBookingMessage(booking *models.Booking) string {
 	msg := fmt.Sprintf(`📅 Новая заявка на запись
 
 👤 Клиент: %s
-📋 Услуга: %s
-🕐 Время: %s
-💰 Стоимость: %s`,
+📋 %s
+🕐 Время: %s`,
 		booking.ClientName,
-		booking.SessionType.Name,
+		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
-		formatPrice(booking.SessionType.Price, booking.SessionType.Currency),
 	)
 
 	if booking.ClientMessage != "" {
@@ -103,10 +132,10 @@ func FormatBookingAcceptedTrainer(booking *models.Booking) string {
 	return fmt.Sprintf(`✅ Запись подтверждена
 
 👤 Клиент: %s
-📋 Услуга: %s
+📋 %s
 🕐 Время: %s`,
 		booking.ClientName,
-		booking.SessionType.Name,
+		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
 }
@@ -116,10 +145,10 @@ func FormatBookingRejectedTrainer(booking *models.Booking) string {
 	return fmt.Sprintf(`❌ Запись отклонена
 
 👤 Клиент: %s
-📋 Услуга: %s
+📋 %s
 🕐 Время: %s`,
 		booking.ClientName,
-		booking.SessionType.Name,
+		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
 }
@@ -130,7 +159,7 @@ func FormatBookingConfirmedClient(booking *models.Booking) string {
 
 📋 %s
 🕐 %s`,
-		booking.SessionType.Name,
+		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
 }
@@ -150,7 +179,7 @@ func FormatBookingCancelledByTrainerClient(booking *models.Booking) string {
 🕐 %s
 
 Вы можете записаться на другое время.`,
-		booking.SessionType.Name,
+		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
 }
@@ -163,7 +192,7 @@ func FormatBookingPendingClient(booking *models.Booking) string {
 🕐 %s
 
 Ожидайте подтверждения от тренера.`,
-		booking.SessionType.Name,
+		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
 }
@@ -176,7 +205,7 @@ func FormatReminderClient(booking *models.Booking) string {
 🕐 %s
 
 Хорошей тренировки! 💪`,
-		booking.SessionType.Name,
+		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
 }

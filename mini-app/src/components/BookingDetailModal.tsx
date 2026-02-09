@@ -87,7 +87,7 @@ export function BookingDetailModal({
           <div className="flex justify-between py-2 border-b border-border">
             <span className="text-muted-foreground">Услуга</span>
             <span className="text-foreground font-medium">
-              {booking.sessionType?.name || "Тренировка"}
+              Тренировка
             </span>
           </div>
           <div className="flex justify-between py-2 border-b border-border">
@@ -102,11 +102,11 @@ export function BookingDetailModal({
               {formatTime(startsAt)} – {formatTime(endsAt)}
             </span>
           </div>
-          {booking.sessionType?.durationMinutes && (
+          {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
             <div className="flex justify-between py-2 border-b border-border">
               <span className="text-muted-foreground">Длительность</span>
               <span className="text-foreground font-medium">
-                {booking.sessionType.durationMinutes} мин
+                {booking.durationMinutes || booking.sessionType?.durationMinutes} мин
               </span>
             </div>
           )}

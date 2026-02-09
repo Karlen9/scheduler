@@ -37,7 +37,7 @@ export function PendingBookingCard({ booking, onAccept, onReject }: PendingBooki
             {booking.clientName}
           </p>
           <p className="text-sm text-muted-foreground">
-            {booking.sessionType?.name || "Тренировка"}
+            Тренировка{booking.durationMinutes ? ` · ${booking.durationMinutes} мин` : booking.sessionType?.durationMinutes ? ` · ${booking.sessionType.durationMinutes} мин` : ""}
           </p>
           <p className="text-sm text-foreground mt-1">
             {formatDate(startsAt)}, {formatTime(startsAt)} – {formatTime(endsAt)}

@@ -20,12 +20,13 @@ func generateWebhookSecret() string {
 
 func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	var t models.Trainer
-	var telegramHandle, phone, specialization, bio, photoURL, gymAddress sql.NullString
+	var telegramHandle, phone, specialization, bio, photoURL, gymAddress, availableDurations sql.NullString
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
 		&telegramHandle, &phone, &specialization, &bio, &photoURL,
 		&t.GymLatitude, &t.GymLongitude, &gymAddress, // gymAddress scanned but unused
+		&availableDurations,
 		&t.IsActive, &t.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -39,6 +40,7 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	t.Specialization = specialization.String
 	t.Bio = bio.String
 	t.PhotoURL = photoURL.String
+	t.AvailableDurations = availableDurations.String
 
 	// Decrypt bot token (passthrough for plain text)
 	t.BotToken, err = crypto.Decrypt(t.BotToken)
@@ -49,7 +51,7 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	return &t, nil
 }
 
-const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, gym_latitude, gym_longitude, gym_address, is_active, created_at`
+const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, gym_latitude, gym_longitude, gym_address, available_durations, is_active, created_at`
 
 func GetTrainerByTelegramID(telegramUserID int64) (*models.Trainer, error) {
 	row := DB.QueryRow(`
@@ -166,6 +168,11 @@ func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoU
 		return nil, err
 	}
 	return GetTrainerByID(id)
+}
+
+func UpdateTrainerAvailableDurations(id, durations string) error {
+	_, err := DB.Exec(`UPDATE trainers SET available_durations = ? WHERE id = ?`, durations, id)
+	return err
 }
 
 func DeactivateTrainer(id string) error {

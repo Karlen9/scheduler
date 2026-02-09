@@ -52,9 +52,9 @@ export function BookingCard({ booking, onReschedule, onCancel }: BookingCardProp
           <div className="flex items-center gap-2">
             <Dumbbell className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-foreground">
-              {booking.sessionType?.name || "Тренировка"}
-              {booking.sessionType?.durationMinutes && (
-                <span className="text-muted-foreground"> · {booking.sessionType.durationMinutes} мин</span>
+              Тренировка
+              {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
+                <span className="text-muted-foreground"> · {booking.durationMinutes || booking.sessionType?.durationMinutes} мин</span>
               )}
             </span>
           </div>

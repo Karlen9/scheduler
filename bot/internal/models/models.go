@@ -3,32 +3,34 @@ package models
 import "time"
 
 type Trainer struct {
-	ID              string    `json:"id"`
-	TelegramUserID  int64     `json:"telegramUserId"`
-	BotToken        string    `json:"-"`
-	BotUsername     string    `json:"botUsername"`
-	WebhookSecret   string    `json:"-"`
-	Name            string    `json:"name"`
-	Timezone        string    `json:"timezone"`
-	CancelCutoffHrs int       `json:"cancelCutoffHours"`
-	TelegramHandle  string    `json:"telegramHandle"`
-	Phone           string    `json:"phone"`
-	Specialization  string    `json:"specialization"`
-	Bio             string    `json:"bio"`
-	PhotoURL        string    `json:"photoUrl"`
-	GymLatitude     float64   `json:"gymLatitude"`
-	GymLongitude    float64   `json:"gymLongitude"`
-	IsActive        bool      `json:"-"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID                 string    `json:"id"`
+	TelegramUserID     int64     `json:"telegramUserId"`
+	BotToken           string    `json:"-"`
+	BotUsername        string    `json:"botUsername"`
+	WebhookSecret      string    `json:"-"`
+	Name               string    `json:"name"`
+	Timezone           string    `json:"timezone"`
+	CancelCutoffHrs    int       `json:"cancelCutoffHours"`
+	TelegramHandle     string    `json:"telegramHandle"`
+	Phone              string    `json:"phone"`
+	Specialization     string    `json:"specialization"`
+	Bio                string    `json:"bio"`
+	PhotoURL           string    `json:"photoUrl"`
+	GymLatitude        float64   `json:"gymLatitude"`
+	GymLongitude       float64   `json:"gymLongitude"`
+	AvailableDurations string    `json:"availableDurations,omitempty"` // comma-separated minutes e.g. "60,90,120"
+	IsActive           bool      `json:"-"`
+	CreatedAt          time.Time `json:"createdAt"`
 }
 
 type Client struct {
-	ID             string    `json:"id"`
-	TelegramUserID int64     `json:"telegramUserId"`
-	TrainerID      string    `json:"trainerId"`
-	Name           string    `json:"name"`
-	Phone          string    `json:"phone,omitempty"`
-	CreatedAt      time.Time `json:"createdAt"`
+	ID                string    `json:"id"`
+	TelegramUserID    int64     `json:"telegramUserId"`
+	TrainerID         string    `json:"trainerId"`
+	Name              string    `json:"name"`
+	Phone             string    `json:"phone,omitempty"`
+	PreferredDuration int       `json:"preferredDuration,omitempty"`
+	CreatedAt         time.Time `json:"createdAt"`
 }
 
 type SessionType struct {
@@ -68,18 +70,19 @@ const (
 )
 
 type Booking struct {
-	ID            string        `json:"id"`
-	TrainerID     string        `json:"-"`
-	ClientID      string        `json:"-"`
-	SessionTypeID string        `json:"-"`
-	StartsAt      time.Time     `json:"startsAt"`
-	EndsAt        time.Time     `json:"endsAt"`
-	ClientName    string        `json:"clientName"`
-	ClientMessage string        `json:"clientMessage,omitempty"`
-	Status        BookingStatus `json:"status"`
-	CancelReason  string        `json:"cancelReason,omitempty"`
-	CancelledBy   CancelledBy   `json:"cancelledBy,omitempty"`
-	CreatedAt     time.Time     `json:"createdAt"`
+	ID              string        `json:"id"`
+	TrainerID       string        `json:"-"`
+	ClientID        string        `json:"-"`
+	SessionTypeID   string        `json:"-"`
+	StartsAt        time.Time     `json:"startsAt"`
+	EndsAt          time.Time     `json:"endsAt"`
+	ClientName      string        `json:"clientName"`
+	ClientMessage   string        `json:"clientMessage,omitempty"`
+	Status          BookingStatus `json:"status"`
+	CancelReason    string        `json:"cancelReason,omitempty"`
+	CancelledBy     CancelledBy   `json:"cancelledBy,omitempty"`
+	CreatedAt       time.Time     `json:"createdAt"`
+	DurationMinutes int           `json:"durationMinutes,omitempty"`
 
 	// Joined fields for API responses
 	SessionType *SessionType `json:"sessionType,omitempty"`
@@ -89,6 +92,7 @@ type Booking struct {
 // TimeSlot represents an available time slot for booking
 type TimeSlot struct {
 	Time      string `json:"time"`
+	EndTime   string `json:"endTime,omitempty"`
 	Available bool   `json:"available"`
 }
 

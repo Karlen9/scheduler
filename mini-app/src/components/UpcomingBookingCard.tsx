@@ -38,7 +38,7 @@ export function UpcomingBookingCard({ booking, onClick }: UpcomingBookingCardPro
             {booking.clientName}
           </p>
           <p className="text-sm text-muted-foreground">
-            {booking.sessionType?.name || "Тренировка"}
+            Тренировка{booking.durationMinutes ? ` · ${booking.durationMinutes} мин` : booking.sessionType?.durationMinutes ? ` · ${booking.sessionType.durationMinutes} мин` : ""}
           </p>
         </div>
         <div className="text-right shrink-0">

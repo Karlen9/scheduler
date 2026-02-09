@@ -44,6 +44,7 @@ func NewRouter() http.Handler {
 		r.Get("/working-hours", HandleGetWorkingHours)
 		r.Get("/availability", HandleGetAvailability)
 		r.Get("/days-off", HandleGetPublicDaysOff)
+		r.Get("/durations", HandleGetDurations)
 		r.Get("/bookings", HandleGetBookings)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
@@ -59,6 +60,10 @@ func NewRouter() http.Handler {
 			// Trainer settings
 			r.Get("/settings", HandleGetTrainerSettings)
 			r.Put("/settings", HandleUpdateTrainerSettings)
+
+			// Durations
+			r.Get("/durations", HandleAdminGetDurations)
+			r.Put("/durations", HandleAdminUpdateDurations)
 
 			// Session types management
 			r.Get("/services", HandleAdminGetServices)

@@ -30,7 +30,7 @@ export interface WorkingHours {
 
 export interface Booking {
   id: string;
-  sessionType: SessionType;
+  sessionType?: SessionType;
   startsAt: string; // ISO datetime
   endsAt: string;
   clientName: string;
@@ -38,10 +38,12 @@ export interface Booking {
   status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed";
   cancelReason?: string;
   cancelledBy?: "client" | "trainer";
+  durationMinutes?: number;
 }
 
 export interface TimeSlot {
   time: string; // "09:00"
+  endTime?: string; // "10:00"
   available: boolean;
 }
 
@@ -49,6 +51,7 @@ export interface ClientProfile {
   id: string;
   name: string;
   phone?: string;
+  preferredDuration?: number;
 }
 
 export interface ClientInfo {

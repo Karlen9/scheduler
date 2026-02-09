@@ -11,19 +11,23 @@ import (
 func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Client, error) {
 	var c models.Client
 	var phone sql.NullString
-	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &c.CreatedAt)
+	var preferredDuration sql.NullInt64
+	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &preferredDuration, &c.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	if phone.Valid {
 		c.Phone = phone.String
 	}
+	if preferredDuration.Valid {
+		c.PreferredDuration = int(preferredDuration.Int64)
+	}
 	return &c, nil
 }
 
 func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
 	row := DB.QueryRow(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, created_at
 		FROM clients
 		WHERE telegram_user_id = ? AND trainer_id = ?
 	`, telegramUserID, trainerID)
@@ -40,7 +44,7 @@ func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Clie
 
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, created_at
 		FROM clients
 		WHERE id = ?
 	`, id)
@@ -85,14 +89,14 @@ func UpdateClientName(clientID string, name string) error {
 	return err
 }
 
-func UpdateClientProfile(clientID string, name string, phone string) error {
-	_, err := DB.Exec(`UPDATE clients SET name = ?, phone = ? WHERE id = ?`, name, phone, clientID)
+func UpdateClientProfile(clientID string, name string, phone string, preferredDuration int) error {
+	_, err := DB.Exec(`UPDATE clients SET name = ?, phone = ?, preferred_duration = ? WHERE id = ?`, name, phone, preferredDuration, clientID)
 	return err
 }
 
 func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 	rows, err := DB.Query(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, created_at
 		FROM clients
 		WHERE trainer_id = ?
 		ORDER BY name ASC

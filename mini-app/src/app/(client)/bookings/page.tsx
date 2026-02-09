@@ -55,7 +55,8 @@ export default function BookingsPage() {
 
   const handleReschedule = (booking: Booking) => {
     const date = booking.startsAt.split("T")[0];
-    router.push(`/book?reschedule=${booking.id}&date=${date}&sessionType=${booking.sessionType?.type || "personal"}`);
+    const duration = booking.durationMinutes || booking.sessionType?.durationMinutes || 60;
+    router.push(`/book?reschedule=${booking.id}&date=${date}&duration=${duration}`);
   };
 
   if (isLoading) {

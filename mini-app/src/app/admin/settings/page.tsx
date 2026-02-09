@@ -1,6 +1,6 @@
 "use client";
 
-import { User, DollarSign, Clock, Bell, HelpCircle, CalendarOff } from "lucide-react";
+import { User, DollarSign, Clock, Timer, Bell, HelpCircle, CalendarOff } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { SettingsMenuItem, SettingsGroup } from "@/components/SettingsMenuItem";
 
@@ -22,6 +22,12 @@ export default function SettingsPage() {
             label="Услуги и цены"
             href="/admin/settings/services"
             iconColor="bg-success"
+          />
+          <SettingsMenuItem
+            icon={Timer}
+            label="Длительность"
+            href="/admin/settings/durations"
+            iconColor="bg-[#f97316]"
           />
           <SettingsMenuItem
             icon={Clock}

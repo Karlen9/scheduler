@@ -9,13 +9,13 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-func CreateBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string) (*models.Booking, error) {
+func CreateBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
 	id := uuid.New().String()
 
 	_, err := DB.Exec(`
-		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage)
+		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
 	if err != nil {
 		return nil, err
 	}
@@ -28,14 +28,15 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	var clientMessage sql.NullString
 	var cancelReason sql.NullString
 	var cancelledBy sql.NullString
+	var durationMinutes sql.NullInt64
 
 	err := DB.QueryRow(`
 		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
 		FROM bookings
 		WHERE id = ?
 	`, id).Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
-		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt)
+		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt, &durationMinutes)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -53,6 +54,9 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	if cancelledBy.Valid {
 		b.CancelledBy = models.CancelledBy(cancelledBy.String)
 	}
+	if durationMinutes.Valid {
+		b.DurationMinutes = int(durationMinutes.Int64)
+	}
 
 	// Load session type
 	st, err := GetSessionTypeByID(b.SessionTypeID)
@@ -67,7 +71,7 @@ func GetBookingByID(id string) (*models.Booking, error) {
 func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
 	rows, err := DB.Query(`
 		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
 		FROM bookings
 		WHERE client_id = ?
 		ORDER BY starts_at DESC
@@ -83,7 +87,7 @@ func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
 func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
 	rows, err := DB.Query(`
 		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
 		FROM bookings
 		WHERE client_id = ? AND status IN ('pending', 'confirmed')
 		ORDER BY starts_at ASC
@@ -99,7 +103,7 @@ func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
 func GetBookingsByTrainerIDAndDateRange(trainerID string, start, end time.Time) ([]models.Booking, error) {
 	rows, err := DB.Query(`
 		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
 		FROM bookings
 		WHERE trainer_id = ? AND starts_at >= ? AND starts_at < ? AND status IN ('pending', 'confirmed')
 		ORDER BY starts_at ASC
@@ -119,9 +123,10 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 		var clientMessage sql.NullString
 		var cancelReason sql.NullString
 		var cancelledBy sql.NullString
+		var durationMinutes sql.NullInt64
 
 		if err := rows.Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
-			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt); err != nil {
+			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt, &durationMinutes); err != nil {
 			return nil, err
 		}
 
@@ -133,6 +138,9 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 		}
 		if cancelledBy.Valid {
 			b.CancelledBy = models.CancelledBy(cancelledBy.String)
+		}
+		if durationMinutes.Valid {
+			b.DurationMinutes = int(durationMinutes.Int64)
 		}
 
 		// Load session type
@@ -216,7 +224,7 @@ func GetBookingsNeedingReminder() ([]models.Booking, error) {
 
 	rows, err := DB.Query(`
 		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
 		FROM bookings
 		WHERE status = 'confirmed'
 		  AND reminder_sent = 0

@@ -18,6 +18,115 @@ func parseDate(dateStr string) (time.Time, error) {
 	return time.Parse("2006-01-02", dateStr)
 }
 
+// ========== Durations ==========
+
+// HandleGetDurations returns available durations for the trainer (public endpoint)
+func HandleGetDurations(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	durations := parseDurations(trainer.AvailableDurations)
+	if len(durations) == 0 {
+		durations = []int{60} // default
+	}
+	writeJSON(w, durations)
+}
+
+// HandleAdminGetDurations returns trainer's configured durations
+func HandleAdminGetDurations(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	durations := parseDurations(trainer.AvailableDurations)
+	if len(durations) == 0 {
+		durations = []int{60}
+	}
+	writeJSON(w, durations)
+}
+
+type UpdateDurationsRequest struct {
+	Durations []int `json:"durations"`
+}
+
+// HandleAdminUpdateDurations saves the trainer's available durations
+func HandleAdminUpdateDurations(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Trainer not found", http.StatusNotFound)
+		return
+	}
+
+	var req UpdateDurationsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Durations) == 0 {
+		http.Error(w, "At least one duration is required", http.StatusBadRequest)
+		return
+	}
+
+	// Build comma-separated string
+	parts := make([]string, len(req.Durations))
+	for i, d := range req.Durations {
+		parts[i] = strconv.Itoa(d)
+	}
+	durStr := ""
+	for i, p := range parts {
+		if i > 0 {
+			durStr += ","
+		}
+		durStr += p
+	}
+
+	if err := db.UpdateTrainerAvailableDurations(trainer.ID, durStr); err != nil {
+		log.Printf("Error updating durations: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, req.Durations)
+}
+
+func parseDurations(s string) []int {
+	if s == "" {
+		return nil
+	}
+	var result []int
+	for _, part := range splitComma(s) {
+		if v, err := strconv.Atoi(part); err == nil && v > 0 {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func splitComma(s string) []string {
+	var parts []string
+	current := ""
+	for _, c := range s {
+		if c == ',' {
+			if current != "" {
+				parts = append(parts, current)
+			}
+			current = ""
+		} else {
+			current += string(c)
+		}
+	}
+	if current != "" {
+		parts = append(parts, current)
+	}
+	return parts
+}
+
 // ========== Trainer Settings ==========
 
 type UpdateTrainerRequest struct {

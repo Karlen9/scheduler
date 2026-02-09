@@ -56,11 +56,15 @@ export const api = {
 
   async getAvailableSlots(
     date: string,
-    sessionType: string,
+    duration: number,
   ): Promise<TimeSlot[]> {
     return fetchAPI<TimeSlot[]>(
-      `/api/availability?date=${date}&sessionType=${sessionType}`,
+      `/api/availability?date=${date}&duration=${duration}`,
     );
+  },
+
+  async getDurations(): Promise<number[]> {
+    return fetchAPI<number[]>("/api/durations");
   },
 
   async getBookings(): Promise<Booking[]> {
@@ -68,7 +72,7 @@ export const api = {
   },
 
   async createBooking(
-    sessionType: string,
+    duration: number,
     date: string,
     time: string,
     name: string,
@@ -77,7 +81,7 @@ export const api = {
     return fetchAPI<Booking>("/api/bookings", {
       method: "POST",
       body: JSON.stringify({
-        sessionType,
+        duration,
         date,
         time,
         name,
@@ -100,9 +104,10 @@ export const api = {
     reason: string,
   ): Promise<Booking> {
     // Reschedule is done by cancelling and creating a new booking
+    const duration = booking.durationMinutes || booking.sessionType?.durationMinutes || 60;
     await this.cancelBooking(booking.id, reason);
     return this.createBooking(
-      booking.sessionType.type,
+      duration,
       date,
       time,
       booking.clientName,
@@ -116,7 +121,7 @@ export const api = {
     return fetchAPI<ClientProfile>("/api/profile");
   },
 
-  async updateProfile(data: { name?: string; phone?: string }): Promise<ClientProfile> {
+  async updateProfile(data: { name?: string; phone?: string; preferredDuration?: number }): Promise<ClientProfile> {
     return fetchAPI<ClientProfile>("/api/profile", {
       method: "PUT",
       body: JSON.stringify(data),
@@ -237,6 +242,18 @@ export const api = {
 
     async cancelBooking(bookingId: string, reason?: string): Promise<Booking> {
       return this.updateBookingStatus(bookingId, "cancelled");
+    },
+
+    // Durations
+    async getDurations(): Promise<number[]> {
+      return fetchAPI<number[]>("/api/admin/durations");
+    },
+
+    async updateDurations(durations: number[]): Promise<number[]> {
+      return fetchAPI<number[]>("/api/admin/durations", {
+        method: "PUT",
+        body: JSON.stringify({ durations }),
+      });
     },
 
     // Clients

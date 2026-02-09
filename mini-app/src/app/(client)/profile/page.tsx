@@ -2,22 +2,30 @@
 
 import { useState, useEffect } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { DurationSelector } from "@/components/DurationSelector";
 import { api } from "@/lib/api";
 
 export default function ClientProfilePage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [preferredDuration, setPreferredDuration] = useState<number>(60);
+  const [durations, setDurations] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
-        const profile = await api.getProfile();
+        const [profile, availableDurations] = await Promise.all([
+          api.getProfile(),
+          api.getDurations().catch(() => [60]),
+        ]);
         setName(profile.name || "");
         setPhone(profile.phone || "");
+        setPreferredDuration(profile.preferredDuration || availableDurations[0] || 60);
+        setDurations(availableDurations);
       } catch (err) {
         console.error("Failed to fetch profile:", err);
         setError("Ошибка загрузки профиля");
@@ -25,7 +33,7 @@ export default function ClientProfilePage() {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchData();
   }, []);
 
   const handleSave = async () => {
@@ -33,7 +41,7 @@ export default function ClientProfilePage() {
     setError(null);
     setSuccess(false);
     try {
-      await api.updateProfile({ name, phone });
+      await api.updateProfile({ name, phone, preferredDuration });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
@@ -112,6 +120,19 @@ export default function ClientProfilePage() {
             className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
+
+        {durations.length > 1 && (
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">
+              Предпочитаемая длительность
+            </label>
+            <DurationSelector
+              durations={durations}
+              selected={preferredDuration}
+              onChange={setPreferredDuration}
+            />
+          </div>
+        )}
       </div>
 
       {/* Save Button */}

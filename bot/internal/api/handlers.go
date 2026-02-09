@@ -110,10 +110,34 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dateStr := r.URL.Query().Get("date")
+
+	// Support both duration (new) and sessionType (legacy)
+	durationParam := r.URL.Query().Get("duration")
 	sessionTypeParam := r.URL.Query().Get("sessionType")
 
-	if dateStr == "" || sessionTypeParam == "" {
-		http.Error(w, "date and sessionType are required", http.StatusBadRequest)
+	if dateStr == "" {
+		http.Error(w, "date is required", http.StatusBadRequest)
+		return
+	}
+
+	var duration int
+	if durationParam != "" {
+		var err error
+		duration, err = strconv.Atoi(durationParam)
+		if err != nil || duration <= 0 {
+			http.Error(w, "Invalid duration", http.StatusBadRequest)
+			return
+		}
+	} else if sessionTypeParam != "" {
+		// Legacy: look up duration from session type
+		sessionType, err := db.GetSessionTypeByType(trainer.ID, sessionTypeParam)
+		if err != nil || sessionType == nil {
+			http.Error(w, "Invalid session type", http.StatusBadRequest)
+			return
+		}
+		duration = sessionType.DurationMinutes
+	} else {
+		http.Error(w, "duration or sessionType is required", http.StatusBadRequest)
 		return
 	}
 
@@ -132,13 +156,6 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 	if isDayOff {
 		writeJSON(w, []models.TimeSlot{})
-		return
-	}
-
-	// Get session type by type name
-	sessionType, err := db.GetSessionTypeByType(trainer.ID, sessionTypeParam)
-	if err != nil || sessionType == nil {
-		http.Error(w, "Invalid session type. Use: personal, pair, consultation", http.StatusBadRequest)
 		return
 	}
 
@@ -175,7 +192,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate time slots
-	slots := generateTimeSlots(date, workingHour, sessionType.DurationMinutes, bookings)
+	slots := generateTimeSlots(date, workingHour, duration, bookings)
 	writeJSON(w, slots)
 }
 
@@ -193,6 +210,9 @@ func generateTimeSlots(date time.Time, wh *models.WorkingHours, duration int, bo
 		min := minutes % 60
 		timeStr := formatTime(hour, min)
 
+		endMin := minutes + duration
+		endTimeStr := formatTime(endMin/60, endMin%60)
+
 		slotStart := time.Date(date.Year(), date.Month(), date.Day(), hour, min, 0, 0, time.UTC)
 		slotEnd := slotStart.Add(time.Duration(duration) * time.Minute)
 
@@ -206,6 +226,7 @@ func generateTimeSlots(date time.Time, wh *models.WorkingHours, duration int, bo
 
 		slots = append(slots, models.TimeSlot{
 			Time:      timeStr,
+			EndTime:   endTimeStr,
 			Available: available,
 		})
 	}
@@ -249,7 +270,8 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 
 // CreateBookingRequest is the request body for creating a booking
 type CreateBookingRequest struct {
-	SessionType string `json:"sessionType"` // personal, pair, consultation
+	SessionType string `json:"sessionType,omitempty"` // legacy: personal, pair, consultation
+	Duration    int    `json:"duration,omitempty"`     // new: duration in minutes
 	Date        string `json:"date"`
 	Time        string `json:"time"`
 	Name        string `json:"name"`
@@ -270,8 +292,35 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.SessionType == "" || req.Date == "" || req.Time == "" || req.Name == "" {
-		http.Error(w, "sessionType, date, time, and name are required", http.StatusBadRequest)
+	if req.Date == "" || req.Time == "" || req.Name == "" {
+		http.Error(w, "date, time, and name are required", http.StatusBadRequest)
+		return
+	}
+
+	// Determine duration and session type ID
+	var durationMinutes int
+	var sessionTypeID string
+
+	if req.Duration > 0 {
+		durationMinutes = req.Duration
+		// Look up first active session type as FK placeholder
+		services, err := db.GetSessionTypesByTrainerID(trainer.ID)
+		if err != nil || len(services) == 0 {
+			http.Error(w, "No session types configured", http.StatusBadRequest)
+			return
+		}
+		sessionTypeID = services[0].ID
+	} else if req.SessionType != "" {
+		// Legacy path
+		sessionType, err := db.GetSessionTypeByType(trainer.ID, req.SessionType)
+		if err != nil || sessionType == nil {
+			http.Error(w, "Invalid session type", http.StatusBadRequest)
+			return
+		}
+		durationMinutes = sessionType.DurationMinutes
+		sessionTypeID = sessionType.ID
+	} else {
+		http.Error(w, "duration or sessionType is required", http.StatusBadRequest)
 		return
 	}
 
@@ -284,15 +333,7 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 
 	timeParts := parseTime(req.Time)
 	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
-
-	// Get session type by type name
-	sessionType, err := db.GetSessionTypeByType(trainer.ID, req.SessionType)
-	if err != nil || sessionType == nil {
-		http.Error(w, "Invalid session type. Use: personal, pair, consultation", http.StatusBadRequest)
-		return
-	}
-
-	endsAt := startsAt.Add(time.Duration(sessionType.DurationMinutes) * time.Minute)
+	endsAt := startsAt.Add(time.Duration(durationMinutes) * time.Minute)
 
 	// Check if client already has a booking on this date
 	hasBooking, err := db.ClientHasBookingOnDate(client.ID, date)
@@ -326,7 +367,7 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create booking
-	booking, err := db.CreateBooking(trainer.ID, client.ID, sessionType.ID, startsAt, endsAt, req.Name, req.Message)
+	booking, err := db.CreateBooking(trainer.ID, client.ID, sessionTypeID, startsAt, endsAt, req.Name, req.Message, durationMinutes)
 	if err != nil {
 		log.Printf("Error creating booking: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -334,10 +375,10 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log booking creation
-	log.Printf("📅 NEW BOOKING [%s] Client: %s | Session: %s | Time: %s %s | Trainer: %s (@%s)",
+	log.Printf("📅 NEW BOOKING [%s] Client: %s | Duration: %dmin | Time: %s %s | Trainer: %s (@%s)",
 		booking.ID[:8],
 		req.Name,
-		sessionType.Name,
+		durationMinutes,
 		req.Date,
 		req.Time,
 		trainer.Name,
@@ -447,14 +488,16 @@ func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
 // ========== Client Profile ==========
 
 type ClientProfileResponse struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Phone string `json:"phone,omitempty"`
+	ID                string `json:"id"`
+	Name              string `json:"name"`
+	Phone             string `json:"phone,omitempty"`
+	PreferredDuration int    `json:"preferredDuration,omitempty"`
 }
 
 type UpdateClientProfileRequest struct {
-	Name  string `json:"name,omitempty"`
-	Phone string `json:"phone,omitempty"`
+	Name              string `json:"name,omitempty"`
+	Phone             string `json:"phone,omitempty"`
+	PreferredDuration *int   `json:"preferredDuration,omitempty"`
 }
 
 func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
@@ -465,9 +508,10 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := ClientProfileResponse{
-		ID:    client.ID,
-		Name:  client.Name,
-		Phone: client.Phone,
+		ID:                client.ID,
+		Name:              client.Name,
+		Phone:             client.Phone,
+		PreferredDuration: client.PreferredDuration,
 	}
 
 	writeJSON(w, resp)
@@ -496,7 +540,12 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		phone = req.Phone
 	}
 
-	if err := db.UpdateClientProfile(client.ID, name, phone); err != nil {
+	preferredDuration := client.PreferredDuration
+	if req.PreferredDuration != nil {
+		preferredDuration = *req.PreferredDuration
+	}
+
+	if err := db.UpdateClientProfile(client.ID, name, phone, preferredDuration); err != nil {
 		log.Printf("Error updating client profile: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -509,9 +558,10 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := ClientProfileResponse{
-		ID:    updated.ID,
-		Name:  updated.Name,
-		Phone: updated.Phone,
+		ID:                updated.ID,
+		Name:              updated.Name,
+		Phone:             updated.Phone,
+		PreferredDuration: updated.PreferredDuration,
 	}
 
 	writeJSON(w, resp)

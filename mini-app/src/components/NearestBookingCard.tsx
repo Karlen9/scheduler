@@ -46,7 +46,7 @@ export function NearestBookingCard({ booking, onClick }: NearestBookingCardProps
               {booking.clientName}
             </p>
             <p className="text-sm text-muted-foreground">
-              {booking.sessionType?.name || "Тренировка"}
+              Тренировка{booking.durationMinutes ? ` · ${booking.durationMinutes} мин` : booking.sessionType?.durationMinutes ? ` · ${booking.sessionType.durationMinutes} мин` : ""}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {timeUntil}
