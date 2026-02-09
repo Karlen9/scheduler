@@ -60,10 +60,15 @@ export default function BookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-4">
         <h2 className="text-lg font-semibold px-1">Мои записи</h2>
-        <BookingCardSkeleton />
-        <BookingCardSkeleton />
+        <div className="animate-pulse">
+          <div className="h-4 bg-card rounded w-28 mb-3" />
+          <div className="space-y-3">
+            <BookingCardSkeleton />
+            <BookingCardSkeleton />
+          </div>
+        </div>
       </div>
     );
   }

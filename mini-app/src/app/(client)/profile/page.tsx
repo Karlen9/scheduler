@@ -46,8 +46,21 @@ export default function ClientProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-4 flex justify-center items-center min-h-[200px]">
-        <div className="text-muted-foreground">Загрузка...</div>
+      <div className="p-4 space-y-6 animate-pulse">
+        <div className="flex justify-center pt-2">
+          <div className="w-24 h-24 rounded-full bg-card" />
+        </div>
+        <div className="space-y-4">
+          <div>
+            <div className="h-4 bg-card rounded w-10 mb-2" />
+            <div className="h-12 bg-card rounded-lg" />
+          </div>
+          <div>
+            <div className="h-4 bg-card rounded w-16 mb-2" />
+            <div className="h-12 bg-card rounded-lg" />
+          </div>
+        </div>
+        <div className="h-12 bg-card rounded-lg" />
       </div>
     );
   }

@@ -24,15 +24,16 @@ export default function HomePage() {
     console.log("Sharing profile...");
   };
 
-  return (
-    <div className="px-4 pt-4 space-y-6">
-      {isLoading ? (
+  if (isLoading) {
+    return (
+      <div className="px-4 pt-4 space-y-6">
         <div className="bg-card rounded-xl p-4 animate-pulse">
           <div className="flex gap-4 mb-4">
             <div className="w-[127px] h-[127px] rounded-full bg-border" />
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-3 pt-2">
               <div className="h-6 bg-border rounded w-3/4" />
               <div className="h-4 bg-border rounded w-1/2" />
+              <div className="h-3 bg-border rounded w-full" />
               <div className="h-3 bg-border rounded w-2/3" />
             </div>
           </div>
@@ -43,7 +44,14 @@ export default function HomePage() {
             <div className="w-12 h-12 bg-border rounded-[28px]" />
           </div>
         </div>
-      ) : trainer ? (
+        <div className="bg-card rounded-xl h-[200px] animate-pulse" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pt-4 space-y-6">
+      {trainer ? (
         <TrainerCard
           name={trainer.name}
           specialization={trainer.specialization || ""}

@@ -77,8 +77,19 @@ export default function ProfilePage() {
     return (
       <div>
         <TopBar title="Профиль" showBack />
-        <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-muted-foreground">Загрузка...</div>
+        <div className="p-4 space-y-6 animate-pulse">
+          <div className="flex justify-center">
+            <div className="w-24 h-24 rounded-full bg-card" />
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i}>
+                <div className="h-4 bg-card rounded w-20 mb-2" />
+                <div className="h-12 bg-card rounded-lg" />
+              </div>
+            ))}
+          </div>
+          <div className="h-12 bg-card rounded-lg" />
         </div>
       </div>
     );
