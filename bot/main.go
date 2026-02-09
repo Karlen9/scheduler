@@ -172,7 +172,7 @@ func main() {
 	}
 
 	// Set up HTTP server
-	mux := http.NewServeMux()
+	apiRouter := api.NewRouter()
 
 	// Master bot webhook (for trainer onboarding)
 	var masterHandler *telegram.MasterHandler
@@ -203,10 +203,63 @@ func main() {
 		} else {
 			log.Printf("Master bot webhook set")
 		}
+	}
 
-		// Master bot webhook handler
-		mux.HandleFunc("/master/", func(w http.ResponseWriter, r *http.Request) {
-			parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	// Main handler: route by path prefix (avoids Go 1.22 ServeMux issues with chi)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		if strings.HasPrefix(path, "/tg/") {
+			// Trainer bot webhooks
+			log.Printf("Webhook request: %s %s", r.Method, path)
+
+			parts := strings.Split(strings.Trim(path, "/"), "/")
+			if len(parts) < 3 || parts[2] != "webhook" {
+				log.Printf("Webhook rejected: invalid path (parts=%d)", len(parts))
+				http.NotFound(w, r)
+				return
+			}
+			secret := parts[1]
+
+			if r.Method != http.MethodPost {
+				log.Printf("Webhook rejected: method %s", r.Method)
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			secretHeader := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
+			if secretHeader == "" || secretHeader != secret {
+				log.Printf("Webhook rejected: secret mismatch")
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			h := botManager.GetHandler(secret)
+			if h == nil {
+				log.Printf("Webhook rejected: no handler for secret %s...", secret[:8])
+				http.Error(w, "bot not found", http.StatusNotFound)
+				return
+			}
+
+			r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+			defer r.Body.Close()
+
+			var update telegram.Update
+			if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+				log.Printf("Webhook rejected: invalid json: %v", err)
+				http.Error(w, "invalid json", http.StatusBadRequest)
+				return
+			}
+
+			log.Printf("Webhook update received (message=%v, callback=%v)", update.Message != nil, update.CallbackQuery != nil)
+			w.WriteHeader(http.StatusOK)
+			go h.HandleUpdate(update)
+			return
+		}
+
+		if strings.HasPrefix(path, "/master/") && masterHandler != nil {
+			// Master bot webhook
+			parts := strings.Split(strings.Trim(path, "/"), "/")
 			if len(parts) < 3 || parts[2] != "webhook" {
 				http.NotFound(w, r)
 				return
@@ -240,62 +293,16 @@ func main() {
 
 			w.WriteHeader(http.StatusOK)
 			go masterHandler.HandleUpdate(update)
-		})
-	}
-
-	// Trainer bot webhooks - routes by secret
-	mux.HandleFunc("/tg/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Webhook request: %s %s", r.Method, r.URL.Path)
-
-		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-		if len(parts) < 3 || parts[2] != "webhook" {
-			log.Printf("Webhook rejected: invalid path (parts=%d)", len(parts))
-			http.NotFound(w, r)
-			return
-		}
-		secret := parts[1]
-
-		if r.Method != http.MethodPost {
-			log.Printf("Webhook rejected: method %s", r.Method)
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		secretHeader := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
-		if secretHeader == "" || secretHeader != secret {
-			log.Printf("Webhook rejected: secret mismatch (header=%q, url=%q)", secretHeader, secret)
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		handler := botManager.GetHandler(secret)
-		if handler == nil {
-			log.Printf("Webhook rejected: no handler for secret %s...", secret[:8])
-			http.Error(w, "bot not found", http.StatusNotFound)
-			return
-		}
-
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-		defer r.Body.Close()
-
-		var update telegram.Update
-		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-			log.Printf("Webhook rejected: invalid json: %v", err)
-			http.Error(w, "invalid json", http.StatusBadRequest)
-			return
-		}
-
-		log.Printf("Webhook update received for bot (message=%v, callback=%v)", update.Message != nil, update.CallbackQuery != nil)
-		w.WriteHeader(http.StatusOK)
-		go handler.HandleUpdate(update)
+		// Everything else goes to the API router
+		apiRouter.ServeHTTP(w, r)
 	})
-
-	// API routes
-	mux.Handle("/", api.NewRouter())
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
