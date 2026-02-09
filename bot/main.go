@@ -73,6 +73,10 @@ func (m *BotManager) RegisterBot(trainer *models.Trainer) error {
 	m.bots[trainer.WebhookSecret] = bot
 	m.handlers[trainer.WebhookSecret] = handler
 
+	// Log webhook info for debugging
+	url, pending, lastErr := bot.GetWebhookInfo()
+	log.Printf("  Webhook info for @%s: url=%s pending=%d lastError=%q", bot.Username, url, pending, lastErr)
+
 	return nil
 }
 
@@ -241,26 +245,32 @@ func main() {
 
 	// Trainer bot webhooks - routes by secret
 	mux.HandleFunc("/tg/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Webhook request: %s %s", r.Method, r.URL.Path)
+
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		if len(parts) < 3 || parts[2] != "webhook" {
+			log.Printf("Webhook rejected: invalid path (parts=%d)", len(parts))
 			http.NotFound(w, r)
 			return
 		}
 		secret := parts[1]
 
 		if r.Method != http.MethodPost {
+			log.Printf("Webhook rejected: method %s", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		secretHeader := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
 		if secretHeader == "" || secretHeader != secret {
+			log.Printf("Webhook rejected: secret mismatch (header=%q, url=%q)", secretHeader, secret)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		handler := botManager.GetHandler(secret)
 		if handler == nil {
+			log.Printf("Webhook rejected: no handler for secret %s...", secret[:8])
 			http.Error(w, "bot not found", http.StatusNotFound)
 			return
 		}
@@ -270,10 +280,12 @@ func main() {
 
 		var update telegram.Update
 		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			log.Printf("Webhook rejected: invalid json: %v", err)
 			http.Error(w, "invalid json", http.StatusBadRequest)
 			return
 		}
 
+		log.Printf("Webhook update received for bot (message=%v, callback=%v)", update.Message != nil, update.CallbackQuery != nil)
 		w.WriteHeader(http.StatusOK)
 		go handler.HandleUpdate(update)
 	})

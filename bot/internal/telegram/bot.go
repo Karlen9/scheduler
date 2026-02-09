@@ -203,6 +203,29 @@ func (b *Bot) SetWebhook(url string, secretToken string) error {
 	return nil
 }
 
+// GetWebhookInfo returns current webhook info for debugging
+func (b *Bot) GetWebhookInfo() (string, int, string) {
+	resp, err := http.Get(telegramAPI + b.Token + "/getWebhookInfo")
+	if err != nil {
+		return "", 0, err.Error()
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			URL                  string `json:"url"`
+			PendingUpdateCount   int    `json:"pending_update_count"`
+			LastErrorMessage     string `json:"last_error_message"`
+			LastErrorDate        int    `json:"last_error_date"`
+		} `json:"result"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", 0, err.Error()
+	}
+	return result.Result.URL, result.Result.PendingUpdateCount, result.Result.LastErrorMessage
+}
+
 // SendMessage sends a message
 func (b *Bot) SendMessage(chatID int64, text string, replyMarkup *InlineKeyboardMarkup) (*Message, error) {
 	req := SendMessageRequest{
