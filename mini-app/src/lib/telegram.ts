@@ -94,5 +94,10 @@ export function getInitData(): string {
 export function getTrainerId(): string | null {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
-  return params.get("trainer");
+  const fromURL = params.get("trainer");
+  if (fromURL) {
+    sessionStorage.setItem("trainerId", fromURL);
+    return fromURL;
+  }
+  return sessionStorage.getItem("trainerId");
 }
