@@ -193,7 +193,7 @@ func GetBookingsByTrainerID(trainerID string, status string) ([]models.Booking, 
 	if status != "" {
 		rows, err = DB.Query(`
 			SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-			       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+			       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
 			FROM bookings
 			WHERE trainer_id = ? AND status = ?
 			ORDER BY starts_at DESC
@@ -201,7 +201,7 @@ func GetBookingsByTrainerID(trainerID string, status string) ([]models.Booking, 
 	} else {
 		rows, err = DB.Query(`
 			SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-			       client_name, client_message, status, cancel_reason, cancelled_by, created_at
+			       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
 			FROM bookings
 			WHERE trainer_id = ?
 			ORDER BY starts_at DESC

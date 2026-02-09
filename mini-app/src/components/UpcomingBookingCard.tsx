@@ -13,11 +13,11 @@ function formatDate(date: Date): string {
     "июл", "авг", "сен", "окт", "ноя", "дек",
   ];
   const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
+  return `${days[date.getUTCDay()]}, ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
 export function UpcomingBookingCard({ booking, onClick }: UpcomingBookingCardProps) {

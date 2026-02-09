@@ -23,7 +23,7 @@ function getTimeUntil(date: Date): string {
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
 export function NearestBookingCard({ booking, onClick }: NearestBookingCardProps) {

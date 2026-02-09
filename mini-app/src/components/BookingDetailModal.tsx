@@ -17,11 +17,11 @@ function formatDate(date: Date): string {
     "июля", "августа", "сентября", "октября", "ноября", "декабря"
   ];
   const days = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
-  return `${date.getDate()} ${months[date.getMonth()]}, ${days[date.getDay()]}`;
+  return `${date.getUTCDate()} ${months[date.getUTCMonth()]}, ${days[date.getUTCDay()]}`;
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
 export function BookingDetailModal({
