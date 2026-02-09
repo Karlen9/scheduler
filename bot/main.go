@@ -160,6 +160,10 @@ func main() {
 		if err != nil || trainer == nil {
 			return err
 		}
+		if !trainer.NotifyNewBookings {
+			log.Printf("Skipping new booking notification for trainer %s (disabled)", trainer.Name)
+			return nil
+		}
 		handler := botManager.GetHandler(trainer.WebhookSecret)
 		if handler == nil {
 			log.Printf("No handler found for trainer %s", trainer.Name)
@@ -173,6 +177,15 @@ func main() {
 		trainer, err := db.GetTrainerByID(booking.TrainerID)
 		if err != nil || trainer == nil {
 			return err
+		}
+		// Check client notification preferences
+		client, err := db.GetClientByID(booking.ClientID)
+		if err != nil || client == nil {
+			return err
+		}
+		if !client.NotifyBookingStatus {
+			log.Printf("Skipping status change notification for client %s (disabled)", client.Name)
+			return nil
 		}
 		handler := botManager.GetHandler(trainer.WebhookSecret)
 		if handler == nil {
@@ -371,6 +384,14 @@ func sendReminders() {
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			log.Printf("Reminder: error getting client for booking %s: %v", booking.ID, err)
+			continue
+		}
+
+		// Check client notification preferences
+		if !client.NotifyReminders {
+			// Mark as sent so we don't check again
+			db.MarkReminderSent(booking.ID)
+			log.Printf("Reminder: skipping for client %s (reminders disabled)", client.Name)
 			continue
 		}
 

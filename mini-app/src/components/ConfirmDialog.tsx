@@ -11,6 +11,10 @@ interface ConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   destructive?: boolean;
+  showInput?: boolean;
+  inputPlaceholder?: string;
+  inputValue?: string;
+  onInputChange?: (value: string) => void;
 }
 
 export function ConfirmDialog({
@@ -22,6 +26,10 @@ export function ConfirmDialog({
   confirmText = "Подтвердить",
   cancelText = "Отмена",
   destructive = false,
+  showInput = false,
+  inputPlaceholder,
+  inputValue,
+  onInputChange,
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
 
@@ -37,9 +45,18 @@ export function ConfirmDialog({
           {title}
         </h3>
         {description && (
-          <p className="text-sm text-muted-foreground mb-6">
+          <p className="text-sm text-muted-foreground mb-4">
             {description}
           </p>
+        )}
+        {showInput && (
+          <input
+            type="text"
+            value={inputValue || ""}
+            onChange={(e) => onInputChange?.(e.target.value)}
+            placeholder={inputPlaceholder}
+            className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand mb-4 text-sm"
+          />
         )}
         <div className="flex gap-3">
           <button

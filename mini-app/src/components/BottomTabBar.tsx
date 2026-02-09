@@ -19,8 +19,8 @@ export function BottomTabBar({ tabs }: BottomTabBarProps) {
   const pathname = usePathname();
 
   const activeIndex = tabs.findIndex((tab) => {
-    if (tab.href === "/admin") {
-      return pathname === "/admin" || pathname === "/admin/";
+    if (tab.href === "/admin" || tab.href === "/") {
+      return pathname === tab.href || pathname === tab.href + "/";
     }
     return pathname === tab.href || pathname.startsWith(tab.href + "/");
   });

@@ -132,6 +132,11 @@ func migrate() error {
 		`ALTER TABLE trainers ADD COLUMN available_durations TEXT`,
 		`ALTER TABLE clients ADD COLUMN preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE bookings ADD COLUMN duration_minutes INTEGER DEFAULT 60`,
+		`ALTER TABLE clients ADD COLUMN notify_booking_status INTEGER DEFAULT 1`,
+		`ALTER TABLE clients ADD COLUMN notify_reminders INTEGER DEFAULT 1`,
+		`ALTER TABLE clients ADD COLUMN notify_days_off INTEGER DEFAULT 0`,
+		`ALTER TABLE trainers ADD COLUMN notify_new_bookings INTEGER DEFAULT 1`,
+		`ALTER TABLE trainers ADD COLUMN notify_cancellations INTEGER DEFAULT 1`,
 	}
 
 	for _, migration := range alterMigrations {

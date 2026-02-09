@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { TimePickerModal } from "@/components/TimePickerModal";
@@ -28,8 +29,6 @@ export default function SchedulePage() {
 
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const [pickerDay, setPickerDay] = useState<number | null>(null);
   const [pickerType, setPickerType] = useState<"start" | "end">("start");
@@ -37,7 +36,6 @@ export default function SchedulePage() {
 
   const fetchWorkingHours = useCallback(async () => {
     try {
-      setError(null);
       const hours = await api.admin.getWorkingHours();
 
       // Reset all days to disabled first
@@ -63,7 +61,7 @@ export default function SchedulePage() {
       setSchedule(newSchedule);
     } catch (err) {
       console.error("Failed to fetch working hours:", err);
-      setError("Ошибка загрузки расписания");
+      toast.error("Ошибка загрузки расписания");
     } finally {
       setLoading(false);
     }
@@ -101,8 +99,6 @@ export default function SchedulePage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setError(null);
-    setSuccess(false);
 
     try {
       const hours: WorkingHours[] = [];
@@ -117,11 +113,10 @@ export default function SchedulePage() {
       }
 
       await api.admin.updateWorkingHours(hours);
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 2000);
+      toast.success("Расписание сохранено");
     } catch (err) {
       console.error("Failed to save working hours:", err);
-      setError("Ошибка сохранения");
+      toast.error("Ошибка сохранения");
     } finally {
       setIsSaving(false);
     }
@@ -143,18 +138,6 @@ export default function SchedulePage() {
       <TopBar title="Расписание" showBack />
 
       <div className="p-4 space-y-6">
-        {/* Status Messages */}
-        {error && (
-          <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-900/20 text-green-400 p-3 rounded-lg text-sm text-center">
-            Расписание сохранено
-          </div>
-        )}
-
         {/* Working Hours per Day */}
         <div>
           <h3 className="text-sm text-muted-foreground mb-3">Рабочие дни</h3>

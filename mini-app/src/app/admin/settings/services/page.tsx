@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { ServiceCard } from "@/components/ServiceCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -21,7 +22,6 @@ export default function ServicesPage() {
   const [editingService, setEditingService] = useState<SessionType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ServiceFormData>({
     type: "personal",
     name: "",
@@ -31,12 +31,11 @@ export default function ServicesPage() {
 
   const fetchServices = useCallback(async () => {
     try {
-      setError(null);
       const data = await api.admin.getServices();
       setServices(data);
     } catch (err) {
       console.error("Failed to fetch services:", err);
-      setError("Ошибка загрузки услуг");
+      toast.error("Ошибка загрузки услуг");
     } finally {
       setLoading(false);
     }
@@ -67,7 +66,6 @@ export default function ServicesPage() {
     if (!formData.name || !formData.price || !formData.duration) return;
 
     setSaving(true);
-    setError(null);
 
     try {
       if (editingService) {
@@ -91,7 +89,7 @@ export default function ServicesPage() {
       setEditingService(null);
     } catch (err) {
       console.error("Failed to save service:", err);
-      setError(err instanceof Error ? err.message : "Ошибка сохранения");
+      toast.error(err instanceof Error ? err.message : "Ошибка сохранения");
     } finally {
       setSaving(false);
     }
@@ -118,12 +116,6 @@ export default function ServicesPage() {
         />
 
         <div className="p-4 space-y-4">
-          {error && (
-            <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
-              {error}
-            </div>
-          )}
-
           {!editingService && (
             <div>
               <label className="block text-sm text-muted-foreground mb-1">
@@ -149,6 +141,7 @@ export default function ServicesPage() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              maxLength={100}
               placeholder="Парная тренировка"
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
@@ -193,11 +186,9 @@ export default function ServicesPage() {
       <TopBar title="Услуги и цены" showBack />
 
       <div className="p-4 space-y-4">
-        {error && (
-          <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
-            {error}
-          </div>
-        )}
+        <p className="text-xs text-muted-foreground">
+          Длительность услуги определяет доступные варианты при записи
+        </p>
 
         {/* Add Button */}
         <button

@@ -52,6 +52,7 @@ func NewRouter() http.Handler {
 		// Client profile
 		r.Get("/profile", HandleGetClientProfile)
 		r.Put("/profile", HandleUpdateClientProfile)
+		r.Put("/profile/notifications", HandleUpdateClientNotificationPrefs)
 
 		// Admin routes (trainer only)
 		r.Route("/admin", func(r chi.Router) {
@@ -63,7 +64,6 @@ func NewRouter() http.Handler {
 
 			// Durations
 			r.Get("/durations", HandleAdminGetDurations)
-			r.Put("/durations", HandleAdminUpdateDurations)
 
 			// Session types management
 			r.Get("/services", HandleAdminGetServices)
@@ -92,6 +92,10 @@ func NewRouter() http.Handler {
 			// Profile management
 			r.Get("/profile", HandleGetProfile)
 			r.Put("/profile", HandleUpdateProfile)
+
+			// Notification preferences
+			r.Get("/notifications", HandleAdminGetNotificationPrefs)
+			r.Put("/notifications", HandleAdminUpdateNotificationPrefs)
 		})
 	})
 

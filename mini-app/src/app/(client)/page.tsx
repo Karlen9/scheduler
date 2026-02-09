@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { TrainerCard } from "@/components/TrainerCard";
 import { api } from "@/lib/api";
 import { Trainer } from "@/lib/types";
 
 export default function HomePage() {
+  const router = useRouter();
   const [trainer, setTrainer] = useState<Trainer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -17,11 +19,20 @@ export default function HomePage() {
   }, []);
 
   const handleServices = () => {
-    console.log("Opening services...");
+    router.push("/services");
   };
 
   const handleShare = () => {
-    console.log("Sharing profile...");
+    const url = `https://t.me/${trainer?.botUsername}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const webApp = window.Telegram?.WebApp as any;
+    if (webApp?.openTelegramLink) {
+      webApp.openTelegramLink(
+        `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(trainer?.name || "")}`
+      );
+    } else if (navigator.share) {
+      navigator.share({ title: trainer?.name, url });
+    }
   };
 
   if (isLoading) {

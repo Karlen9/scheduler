@@ -17,6 +17,7 @@ export default function BookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -44,9 +45,10 @@ export default function BookingsPage() {
   const handleCancel = async () => {
     if (!cancelTarget) return;
     try {
-      await api.cancelBooking(cancelTarget.id, "Отменено клиентом");
+      await api.cancelBooking(cancelTarget.id, cancelReason || "Отменено клиентом");
       toast.success("Запись отменена");
       setCancelTarget(null);
+      setCancelReason("");
       fetchBookings();
     } catch {
       toast.error("Не удалось отменить запись");
@@ -147,12 +149,16 @@ export default function BookingsPage() {
 
       <ConfirmDialog
         isOpen={!!cancelTarget}
-        onClose={() => setCancelTarget(null)}
+        onClose={() => { setCancelTarget(null); setCancelReason(""); }}
         onConfirm={handleCancel}
         title="Отменить запись?"
         description="Вы уверены, что хотите отменить эту запись? Это действие нельзя отменить."
         confirmText="Отменить запись"
         destructive
+        showInput
+        inputPlaceholder="Причина отмены (необязательно)"
+        inputValue={cancelReason}
+        onInputChange={setCancelReason}
       />
     </div>
   );

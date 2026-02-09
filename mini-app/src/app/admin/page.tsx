@@ -18,7 +18,9 @@ export default function AdminBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<Booking | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
@@ -223,8 +225,13 @@ export default function AdminBookingsPage() {
         onClose={() => {
           setShowRejectDialog(false);
           setRejectTarget(null);
+          setRejectReason("");
         }}
         destructive
+        showInput
+        inputPlaceholder="Причина отклонения (необязательно)"
+        inputValue={rejectReason}
+        onInputChange={setRejectReason}
       />
 
       {/* Booking Detail Modal */}
@@ -243,8 +250,12 @@ export default function AdminBookingsPage() {
         confirmText="Отменить запись"
         cancelText="Назад"
         onConfirm={handleConfirmCancel}
-        onClose={() => setShowCancelDialog(false)}
+        onClose={() => { setShowCancelDialog(false); setCancelReason(""); }}
         destructive
+        showInput
+        inputPlaceholder="Причина отмены (необязательно)"
+        inputValue={cancelReason}
+        onInputChange={setCancelReason}
       />
     </div>
   );

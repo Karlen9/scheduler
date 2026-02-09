@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { DurationSelector } from "@/components/DurationSelector";
 import { CalendarView } from "@/components/CalendarView";
@@ -39,7 +40,7 @@ function BookingPageContent() {
   const [noSlotsAvailable, setNoSlotsAvailable] = useState(false);
   const [nonWorkingDays, setNonWorkingDays] = useState<number[]>([]);
   const [daysOff, setDaysOff] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Fetch working hours, days off, durations, and profile on mount
@@ -94,7 +95,6 @@ function BookingPageContent() {
       if (!duration) return;
       setIsLoading(true);
       setSelectedTime(null);
-      setError(null);
       try {
         const dateStr = formatDateISO(date);
         const slots = await api.getAvailableSlots(dateStr, duration);
@@ -142,19 +142,18 @@ function BookingPageContent() {
     if (!selectedDate || !selectedTime || !selectedDuration) return;
 
     setIsSubmitting(true);
-    setError(null);
     try {
       if (rescheduleBookingId) {
         await api.cancelBooking(rescheduleBookingId, "Перенос записи");
       }
       const dateStr = formatDateISO(selectedDate);
       const name = getUserName();
-      await api.createBooking(selectedDuration, dateStr, selectedTime, name);
+      await api.createBooking(selectedDuration, dateStr, selectedTime, name, message || undefined);
       setShowSuccess(true);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Не удалось создать запись";
-      setError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -286,11 +285,22 @@ function BookingPageContent() {
           </div>
         )}
 
-        {error && (
-          <div className="p-3 bg-destructive/10 rounded-lg text-center">
-            <p className="text-sm text-destructive">{error}</p>
+        {step === "time" && selectedTime && !noSlotsAvailable && (
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">
+              Комментарий
+            </h3>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Пожелания или комментарий (необязательно)"
+              rows={2}
+              maxLength={500}
+              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand resize-none text-sm"
+            />
           </div>
         )}
+
         </>
         )}
       </div>

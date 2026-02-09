@@ -52,11 +52,11 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 			if err != nil {
 				log.Printf("Error getting trainer: %v", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 				return
 			}
 			if trainer == nil {
-				http.Error(w, "Trainer not found", http.StatusNotFound)
+				http.Error(w, "Тренер не найден", http.StatusNotFound)
 				return
 			}
 
@@ -71,7 +71,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			// Validate initData using the trainer's bot token
 			user, ok := validateInitData(initData, trainer.BotToken)
 			if !ok {
-				http.Error(w, "Invalid Telegram authentication", http.StatusUnauthorized)
+				http.Error(w, "Ошибка авторизации Telegram", http.StatusUnauthorized)
 				return
 			}
 
@@ -83,7 +83,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			client, err := db.GetOrCreateClient(user.ID, trainer.ID, name)
 			if err != nil {
 				log.Printf("Error getting/creating client: %v", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 				return
 			}
 
@@ -167,13 +167,13 @@ func AdminAuthMiddleware(next http.Handler) http.Handler {
 		trainer := GetTrainerFromContext(r)
 
 		if client == nil || trainer == nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
 			return
 		}
 
 		// Check if client's telegram ID matches trainer's telegram ID
 		if client.TelegramUserID != trainer.TelegramUserID {
-			http.Error(w, "Forbidden: admin access only", http.StatusForbidden)
+			http.Error(w, "Нет доступа", http.StatusForbidden)
 			return
 		}
 
@@ -199,7 +199,7 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 				trainer, err = db.GetFirstTrainer()
 				if err != nil || trainer == nil {
 					log.Printf("Error getting trainer: %v", err)
-					http.Error(w, "Trainer not configured", http.StatusInternalServerError)
+					http.Error(w, "Тренер не настроен", http.StatusInternalServerError)
 					return
 				}
 			}
@@ -221,7 +221,7 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 			client, err := db.GetOrCreateClient(userID, trainer.ID, "Dev User")
 			if err != nil {
 				log.Printf("Error creating dev client: %v", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 				return
 			}
 

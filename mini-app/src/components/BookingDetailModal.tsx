@@ -110,6 +110,18 @@ export function BookingDetailModal({
               </span>
             </div>
           )}
+          {booking.clientMessage && (
+            <div className="py-2 border-b border-border">
+              <span className="text-muted-foreground text-sm">Комментарий клиента</span>
+              <p className="text-foreground text-sm mt-1">{booking.clientMessage}</p>
+            </div>
+          )}
+          {booking.cancelReason && (
+            <div className="py-2 border-b border-border">
+              <span className="text-muted-foreground text-sm">Причина отмены</span>
+              <p className="text-foreground text-sm mt-1">{booking.cancelReason}</p>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

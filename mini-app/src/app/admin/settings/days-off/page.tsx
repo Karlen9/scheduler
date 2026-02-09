@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, X, Calendar } from "lucide-react";
+import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { MonthCalendar } from "@/components/MonthCalendar";
@@ -14,13 +15,13 @@ const formatDate = (date: Date): string => {
     "января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря"
   ];
-  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
+  return `${days[date.getUTCDay()]}, ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
 };
 
 const formatDateISO = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -28,19 +29,17 @@ export default function DaysOffPage() {
   const [daysOff, setDaysOff] = useState<DayOff[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [reason, setReason] = useState("");
 
   const fetchDaysOff = useCallback(async () => {
     try {
-      setError(null);
       const data = await api.admin.getDaysOff();
       setDaysOff(data);
     } catch (err) {
       console.error("Failed to fetch days off:", err);
-      setError("Ошибка загрузки выходных");
+      toast.error("Ошибка загрузки выходных");
     } finally {
       setLoading(false);
     }
@@ -58,7 +57,6 @@ export default function DaysOffPage() {
     if (exists) return;
 
     setSaving(true);
-    setError(null);
 
     try {
       await api.admin.createDayOff(dateStr, reason || undefined);
@@ -67,7 +65,7 @@ export default function DaysOffPage() {
       setReason("");
     } catch (err) {
       console.error("Failed to add day off:", err);
-      setError(err instanceof Error ? err.message : "Ошибка добавления");
+      toast.error(err instanceof Error ? err.message : "Ошибка добавления");
     } finally {
       setSaving(false);
     }
@@ -79,7 +77,7 @@ export default function DaysOffPage() {
       setDaysOff((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
       console.error("Failed to delete day off:", err);
-      setError("Ошибка удаления");
+      toast.error("Ошибка удаления");
     }
   };
 
@@ -108,12 +106,6 @@ export default function DaysOffPage() {
         <TopBar title="Выберите дату" showBack onBack={() => setShowCalendar(false)} />
 
         <div className="p-4 space-y-4">
-          {error && (
-            <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
-              {error}
-            </div>
-          )}
-
           <MonthCalendar
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
@@ -149,11 +141,6 @@ export default function DaysOffPage() {
       <TopBar title="Выходные дни" showBack />
 
       <div className="p-4 space-y-4">
-        {error && (
-          <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
-            {error}
-          </div>
-        )}
 
         {/* Add Button */}
         <button

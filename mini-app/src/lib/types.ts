@@ -52,6 +52,9 @@ export interface ClientProfile {
   name: string;
   phone?: string;
   preferredDuration?: number;
+  notifyBookingStatus?: boolean;
+  notifyReminders?: boolean;
+  notifyDaysOff?: boolean;
 }
 
 export interface ClientInfo {

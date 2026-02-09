@@ -128,6 +128,13 @@ export const api = {
     });
   },
 
+  async updateNotificationPrefs(prefs: { notifyBookingStatus?: boolean; notifyReminders?: boolean; notifyDaysOff?: boolean }): Promise<ClientProfile> {
+    return fetchAPI<ClientProfile>("/api/profile/notifications", {
+      method: "PUT",
+      body: JSON.stringify(prefs),
+    });
+  },
+
   // ========== Admin API ==========
 
   admin: {
@@ -249,16 +256,21 @@ export const api = {
       return fetchAPI<number[]>("/api/admin/durations");
     },
 
-    async updateDurations(durations: number[]): Promise<number[]> {
-      return fetchAPI<number[]>("/api/admin/durations", {
-        method: "PUT",
-        body: JSON.stringify({ durations }),
-      });
-    },
-
     // Clients
     async getClients(): Promise<ClientInfo[]> {
       return fetchAPI<ClientInfo[]>("/api/admin/clients");
+    },
+
+    // Notification Preferences
+    async getNotificationPrefs(): Promise<{ notifyNewBookings: boolean; notifyCancellations: boolean }> {
+      return fetchAPI("/api/admin/notifications");
+    },
+
+    async updateNotificationPrefs(prefs: { notifyNewBookings?: boolean; notifyCancellations?: boolean }): Promise<{ notifyNewBookings: boolean; notifyCancellations: boolean }> {
+      return fetchAPI("/api/admin/notifications", {
+        method: "PUT",
+        body: JSON.stringify(prefs),
+      });
     },
   },
 };

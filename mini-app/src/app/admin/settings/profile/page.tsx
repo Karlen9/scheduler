@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Camera } from "lucide-react";
+import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { api } from "@/lib/api";
@@ -15,8 +16,6 @@ export default function ProfilePage() {
   const [gymCoords, setGymCoords] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -32,7 +31,7 @@ export default function ProfilePage() {
         }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
-        setError("Ошибка загрузки профиля");
+        toast.error("Ошибка загрузки профиля");
       } finally {
         setLoading(false);
       }
@@ -42,8 +41,6 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setError(null);
-    setSuccess(false);
     try {
       let gymLatitude = 0;
       let gymLongitude = 0;
@@ -63,11 +60,10 @@ export default function ProfilePage() {
         gymLatitude,
         gymLongitude,
       });
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 2000);
+      toast.success("Профиль сохранен");
     } catch (err) {
       console.error("Failed to save profile:", err);
-      setError("Ошибка сохранения");
+      toast.error("Ошибка сохранения");
     } finally {
       setIsSaving(false);
     }
@@ -112,18 +108,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Status Messages */}
-        {error && (
-          <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm text-center">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-900/20 text-green-400 p-3 rounded-lg text-sm text-center">
-            Профиль сохранен
-          </div>
-        )}
-
         {/* Form */}
         <div className="space-y-4">
           <div>
@@ -134,6 +118,7 @@ export default function ProfilePage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              maxLength={50}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
@@ -146,6 +131,7 @@ export default function ProfilePage() {
               type="text"
               value={specialization}
               onChange={(e) => setSpecialization(e.target.value)}
+              maxLength={100}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
@@ -157,10 +143,12 @@ export default function ProfilePage() {
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
+              maxLength={500}
               rows={4}
               placeholder="Расскажите о своем опыте и подходе к тренировкам..."
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand resize-none"
             />
+            <p className="text-xs text-muted-foreground mt-1 text-right">{bio.length}/500</p>
           </div>
 
           <div>
@@ -171,6 +159,7 @@ export default function ProfilePage() {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              maxLength={20}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
@@ -183,6 +172,7 @@ export default function ProfilePage() {
               type="text"
               value={telegram}
               onChange={(e) => setTelegram(e.target.value)}
+              maxLength={50}
               placeholder="@username"
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
