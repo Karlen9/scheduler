@@ -12,9 +12,7 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [phone, setPhone] = useState("");
   const [telegram, setTelegram] = useState("");
-  const [gymAddress, setGymAddress] = useState("");
-  const [gymLatitude, setGymLatitude] = useState("");
-  const [gymLongitude, setGymLongitude] = useState("");
+  const [gymCoords, setGymCoords] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +27,9 @@ export default function ProfilePage() {
         setBio(profile.bio || "");
         setPhone(profile.phone || "");
         setTelegram(profile.telegramHandle || "");
-        setGymAddress(profile.gymAddress || "");
-        setGymLatitude(profile.gymLatitude ? String(profile.gymLatitude) : "");
-        setGymLongitude(profile.gymLongitude ? String(profile.gymLongitude) : "");
+        if (profile.gymLatitude && profile.gymLongitude) {
+          setGymCoords(`${profile.gymLatitude}, ${profile.gymLongitude}`);
+        }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
         setError("Ошибка загрузки профиля");
@@ -47,15 +45,23 @@ export default function ProfilePage() {
     setError(null);
     setSuccess(false);
     try {
+      let gymLatitude = 0;
+      let gymLongitude = 0;
+      if (gymCoords.trim()) {
+        const parts = gymCoords.split(",").map((s) => parseFloat(s.trim()));
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          gymLatitude = parts[0];
+          gymLongitude = parts[1];
+        }
+      }
       await api.admin.updateProfile({
         name,
         specialization,
         bio,
         phone,
         telegramHandle: telegram,
-        gymAddress,
-        gymLatitude: gymLatitude ? parseFloat(gymLatitude) : 0,
-        gymLongitude: gymLongitude ? parseFloat(gymLongitude) : 0,
+        gymLatitude,
+        gymLongitude,
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
@@ -173,36 +179,19 @@ export default function ProfilePage() {
 
           {/* Location */}
           <div className="pt-2">
-            <label className="block text-sm text-muted-foreground mb-3 font-medium">
-              Локация зала
+            <label className="block text-sm text-muted-foreground mb-1">
+              Координаты зала
             </label>
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={gymAddress}
-                onChange={(e) => setGymAddress(e.target.value)}
-                placeholder="Адрес зала"
-                className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
-              />
-              <div className="flex gap-3">
-                <input
-                  type="number"
-                  step="any"
-                  value={gymLatitude}
-                  onChange={(e) => setGymLatitude(e.target.value)}
-                  placeholder="Широта"
-                  className="flex-1 px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
-                />
-                <input
-                  type="number"
-                  step="any"
-                  value={gymLongitude}
-                  onChange={(e) => setGymLongitude(e.target.value)}
-                  placeholder="Долгота"
-                  className="flex-1 px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
-                />
-              </div>
-            </div>
+            <input
+              type="text"
+              value={gymCoords}
+              onChange={(e) => setGymCoords(e.target.value)}
+              placeholder="47.230380, 38.868990"
+              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Откройте Яндекс Карты, нажмите на точку на карте и скопируйте координаты
+            </p>
           </div>
         </div>
 

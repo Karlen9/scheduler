@@ -25,7 +25,7 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
 		&telegramHandle, &phone, &specialization, &bio, &photoURL,
-		&t.GymLatitude, &t.GymLongitude, &gymAddress,
+		&t.GymLatitude, &t.GymLongitude, &gymAddress, // gymAddress scanned but unused
 		&t.IsActive, &t.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -39,7 +39,6 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	t.Specialization = specialization.String
 	t.Bio = bio.String
 	t.PhotoURL = photoURL.String
-	t.GymAddress = gymAddress.String
 
 	// Decrypt bot token (passthrough for plain text)
 	t.BotToken, err = crypto.Decrypt(t.BotToken)
@@ -156,13 +155,13 @@ func UpdateTrainer(id, name, timezone string, cancelCutoffHrs int) (*models.Trai
 	return GetTrainerByID(id)
 }
 
-func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoURL string, gymLatitude, gymLongitude float64, gymAddress string) (*models.Trainer, error) {
+func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoURL string, gymLatitude, gymLongitude float64) (*models.Trainer, error) {
 	_, err := DB.Exec(`
 		UPDATE trainers
 		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?, photo_url = ?,
-		    gym_latitude = ?, gym_longitude = ?, gym_address = ?
+		    gym_latitude = ?, gym_longitude = ?
 		WHERE id = ?
-	`, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude, gymAddress, id)
+	`, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude, id)
 	if err != nil {
 		return nil, err
 	}

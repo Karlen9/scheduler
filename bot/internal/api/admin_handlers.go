@@ -594,7 +594,6 @@ type UpdateProfileRequest struct {
 	PhotoURL       string   `json:"photoUrl,omitempty"`
 	GymLatitude    *float64 `json:"gymLatitude,omitempty"`
 	GymLongitude   *float64 `json:"gymLongitude,omitempty"`
-	GymAddress     string   `json:"gymAddress,omitempty"`
 }
 
 func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
@@ -616,7 +615,6 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 		PhotoURL:        trainer.PhotoURL,
 		GymLatitude:     trainer.GymLatitude,
 		GymLongitude:    trainer.GymLongitude,
-		GymAddress:      trainer.GymAddress,
 	}
 
 	writeJSON(w, resp)
@@ -671,12 +669,8 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if req.GymLongitude != nil {
 		gymLongitude = *req.GymLongitude
 	}
-	gymAddress := trainer.GymAddress
-	if req.GymAddress != "" {
-		gymAddress = req.GymAddress
-	}
 
-	updated, err := db.UpdateTrainerProfile(trainer.ID, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude, gymAddress)
+	updated, err := db.UpdateTrainerProfile(trainer.ID, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude)
 	if err != nil {
 		log.Printf("Error updating profile: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -695,7 +689,6 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		PhotoURL:        updated.PhotoURL,
 		GymLatitude:     updated.GymLatitude,
 		GymLongitude:    updated.GymLongitude,
-		GymAddress:      updated.GymAddress,
 	}
 
 	writeJSON(w, resp)

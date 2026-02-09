@@ -18,7 +18,6 @@ type Trainer struct {
 	PhotoURL        string    `json:"photoUrl"`
 	GymLatitude     float64   `json:"gymLatitude"`
 	GymLongitude    float64   `json:"gymLongitude"`
-	GymAddress      string    `json:"gymAddress"`
 	IsActive        bool      `json:"-"`
 	CreatedAt       time.Time `json:"createdAt"`
 }

@@ -33,7 +33,6 @@ type TrainerResponse struct {
 	PhotoURL        string  `json:"photoUrl,omitempty"`
 	GymLatitude     float64 `json:"gymLatitude,omitempty"`
 	GymLongitude    float64 `json:"gymLongitude,omitempty"`
-	GymAddress      string  `json:"gymAddress,omitempty"`
 }
 
 func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +55,6 @@ func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 		PhotoURL:        trainer.PhotoURL,
 		GymLatitude:     trainer.GymLatitude,
 		GymLongitude:    trainer.GymLongitude,
-		GymAddress:      trainer.GymAddress,
 	}
 
 	writeJSON(w, resp)
