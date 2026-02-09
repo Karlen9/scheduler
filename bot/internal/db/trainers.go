@@ -20,11 +20,12 @@ func generateWebhookSecret() string {
 
 func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	var t models.Trainer
-	var telegramHandle, phone, specialization, bio, photoURL sql.NullString
+	var telegramHandle, phone, specialization, bio, photoURL, gymAddress sql.NullString
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
 		&telegramHandle, &phone, &specialization, &bio, &photoURL,
+		&t.GymLatitude, &t.GymLongitude, &gymAddress,
 		&t.IsActive, &t.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -38,6 +39,7 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	t.Specialization = specialization.String
 	t.Bio = bio.String
 	t.PhotoURL = photoURL.String
+	t.GymAddress = gymAddress.String
 
 	// Decrypt bot token (passthrough for plain text)
 	t.BotToken, err = crypto.Decrypt(t.BotToken)
@@ -48,7 +50,7 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	return &t, nil
 }
 
-const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, is_active, created_at`
+const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, gym_latitude, gym_longitude, gym_address, is_active, created_at`
 
 func GetTrainerByTelegramID(telegramUserID int64) (*models.Trainer, error) {
 	row := DB.QueryRow(`
@@ -154,12 +156,13 @@ func UpdateTrainer(id, name, timezone string, cancelCutoffHrs int) (*models.Trai
 	return GetTrainerByID(id)
 }
 
-func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoURL string) (*models.Trainer, error) {
+func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoURL string, gymLatitude, gymLongitude float64, gymAddress string) (*models.Trainer, error) {
 	_, err := DB.Exec(`
 		UPDATE trainers
-		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?, photo_url = ?
+		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?, photo_url = ?,
+		    gym_latitude = ?, gym_longitude = ?, gym_address = ?
 		WHERE id = ?
-	`, telegramHandle, phone, specialization, bio, photoURL, id)
+	`, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude, gymAddress, id)
 	if err != nil {
 		return nil, err
 	}

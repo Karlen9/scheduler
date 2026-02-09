@@ -12,6 +12,9 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [phone, setPhone] = useState("");
   const [telegram, setTelegram] = useState("");
+  const [gymAddress, setGymAddress] = useState("");
+  const [gymLatitude, setGymLatitude] = useState("");
+  const [gymLongitude, setGymLongitude] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +29,9 @@ export default function ProfilePage() {
         setBio(profile.bio || "");
         setPhone(profile.phone || "");
         setTelegram(profile.telegramHandle || "");
+        setGymAddress(profile.gymAddress || "");
+        setGymLatitude(profile.gymLatitude ? String(profile.gymLatitude) : "");
+        setGymLongitude(profile.gymLongitude ? String(profile.gymLongitude) : "");
       } catch (err) {
         console.error("Failed to fetch profile:", err);
         setError("Ошибка загрузки профиля");
@@ -47,6 +53,9 @@ export default function ProfilePage() {
         bio,
         phone,
         telegramHandle: telegram,
+        gymAddress,
+        gymLatitude: gymLatitude ? parseFloat(gymLatitude) : 0,
+        gymLongitude: gymLongitude ? parseFloat(gymLongitude) : 0,
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
@@ -160,6 +169,40 @@ export default function ProfilePage() {
               placeholder="@username"
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
+          </div>
+
+          {/* Location */}
+          <div className="pt-2">
+            <label className="block text-sm text-muted-foreground mb-3 font-medium">
+              Локация зала
+            </label>
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={gymAddress}
+                onChange={(e) => setGymAddress(e.target.value)}
+                placeholder="Адрес зала"
+                className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+              />
+              <div className="flex gap-3">
+                <input
+                  type="number"
+                  step="any"
+                  value={gymLatitude}
+                  onChange={(e) => setGymLatitude(e.target.value)}
+                  placeholder="Широта"
+                  className="flex-1 px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+                />
+                <input
+                  type="number"
+                  step="any"
+                  value={gymLongitude}
+                  onChange={(e) => setGymLongitude(e.target.value)}
+                  placeholder="Долгота"
+                  className="flex-1 px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

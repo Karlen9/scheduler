@@ -29,8 +29,11 @@ type TrainerResponse struct {
 	TelegramHandle  string `json:"telegramHandle,omitempty"`
 	Phone           string `json:"phone,omitempty"`
 	Specialization  string `json:"specialization,omitempty"`
-	Bio             string `json:"bio,omitempty"`
-	PhotoURL        string `json:"photoUrl,omitempty"`
+	Bio             string  `json:"bio,omitempty"`
+	PhotoURL        string  `json:"photoUrl,omitempty"`
+	GymLatitude     float64 `json:"gymLatitude,omitempty"`
+	GymLongitude    float64 `json:"gymLongitude,omitempty"`
+	GymAddress      string  `json:"gymAddress,omitempty"`
 }
 
 func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +54,9 @@ func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 		Specialization:  trainer.Specialization,
 		Bio:             trainer.Bio,
 		PhotoURL:        trainer.PhotoURL,
+		GymLatitude:     trainer.GymLatitude,
+		GymLongitude:    trainer.GymLongitude,
+		GymAddress:      trainer.GymAddress,
 	}
 
 	writeJSON(w, resp)

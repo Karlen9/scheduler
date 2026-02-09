@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 import { TrainerCard } from "@/components/TrainerCard";
 import { BottomSafeArea } from "@/components/BottomSafeArea";
 import { initTelegramApp } from "@/lib/telegram";
@@ -83,6 +83,30 @@ export default function HomePage() {
             Не удалось загрузить информацию о тренере
           </div>
         )}
+
+        {/* Yandex Map */}
+        {trainer?.gymLatitude && trainer?.gymLongitude ? (
+          <a
+            href={`https://yandex.ru/maps/?pt=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&l=map`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block bg-card rounded-xl overflow-hidden"
+          >
+            {trainer.gymAddress && (
+              <div className="px-4 py-3 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-foreground">{trainer.gymAddress}</span>
+              </div>
+            )}
+            <iframe
+              src={`https://yandex.ru/map-widget/v1/?ll=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&pt=${trainer.gymLongitude},${trainer.gymLatitude},pm2rdm`}
+              width="100%"
+              height="200"
+              style={{ border: "none", display: "block" }}
+              allowFullScreen
+            />
+          </a>
+        ) : null}
       </div> 
 
       {/* Fixed Bottom Button */}

@@ -267,7 +267,7 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 
 	// Save trainer's personal Telegram handle
 	if username != "" {
-		if _, err := db.UpdateTrainerProfile(trainer.ID, username, "", "", "", ""); err != nil {
+		if _, err := db.UpdateTrainerProfile(trainer.ID, username, "", "", "", "", 0, 0, ""); err != nil {
 			log.Printf("Error saving telegram handle: %v", err)
 		}
 	}

@@ -586,12 +586,15 @@ func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 // ========== Profile ==========
 
 type UpdateProfileRequest struct {
-	Name           string `json:"name,omitempty"`
-	TelegramHandle string `json:"telegramHandle,omitempty"`
-	Phone          string `json:"phone,omitempty"`
-	Specialization string `json:"specialization,omitempty"`
-	Bio            string `json:"bio,omitempty"`
-	PhotoURL       string `json:"photoUrl,omitempty"`
+	Name           string   `json:"name,omitempty"`
+	TelegramHandle string   `json:"telegramHandle,omitempty"`
+	Phone          string   `json:"phone,omitempty"`
+	Specialization string   `json:"specialization,omitempty"`
+	Bio            string   `json:"bio,omitempty"`
+	PhotoURL       string   `json:"photoUrl,omitempty"`
+	GymLatitude    *float64 `json:"gymLatitude,omitempty"`
+	GymLongitude   *float64 `json:"gymLongitude,omitempty"`
+	GymAddress     string   `json:"gymAddress,omitempty"`
 }
 
 func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
@@ -611,6 +614,9 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 		Specialization:  trainer.Specialization,
 		Bio:             trainer.Bio,
 		PhotoURL:        trainer.PhotoURL,
+		GymLatitude:     trainer.GymLatitude,
+		GymLongitude:    trainer.GymLongitude,
+		GymAddress:      trainer.GymAddress,
 	}
 
 	writeJSON(w, resp)
@@ -657,7 +663,20 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		photoURL = req.PhotoURL
 	}
 
-	updated, err := db.UpdateTrainerProfile(trainer.ID, telegramHandle, phone, specialization, bio, photoURL)
+	gymLatitude := trainer.GymLatitude
+	if req.GymLatitude != nil {
+		gymLatitude = *req.GymLatitude
+	}
+	gymLongitude := trainer.GymLongitude
+	if req.GymLongitude != nil {
+		gymLongitude = *req.GymLongitude
+	}
+	gymAddress := trainer.GymAddress
+	if req.GymAddress != "" {
+		gymAddress = req.GymAddress
+	}
+
+	updated, err := db.UpdateTrainerProfile(trainer.ID, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude, gymAddress)
 	if err != nil {
 		log.Printf("Error updating profile: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -674,6 +693,9 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		Specialization:  updated.Specialization,
 		Bio:             updated.Bio,
 		PhotoURL:        updated.PhotoURL,
+		GymLatitude:     updated.GymLatitude,
+		GymLongitude:    updated.GymLongitude,
+		GymAddress:      updated.GymAddress,
 	}
 
 	writeJSON(w, resp)

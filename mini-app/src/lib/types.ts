@@ -9,6 +9,9 @@ export interface Trainer {
   specialization?: string;
   bio?: string;
   photoUrl?: string;
+  gymLatitude?: number;
+  gymLongitude?: number;
+  gymAddress?: string;
 }
 
 export interface SessionType {

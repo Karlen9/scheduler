@@ -124,6 +124,9 @@ func migrate() error {
 		`ALTER TABLE trainers ADD COLUMN bio TEXT`,
 		`ALTER TABLE trainers ADD COLUMN photo_url TEXT`,
 		`ALTER TABLE trainers ADD COLUMN bot_token_hash TEXT`,
+		`ALTER TABLE trainers ADD COLUMN gym_latitude REAL DEFAULT 0`,
+		`ALTER TABLE trainers ADD COLUMN gym_longitude REAL DEFAULT 0`,
+		`ALTER TABLE trainers ADD COLUMN gym_address TEXT`,
 	}
 
 	for _, migration := range alterMigrations {
