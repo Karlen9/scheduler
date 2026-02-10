@@ -220,6 +220,64 @@ func FormatReminderClient(booking *models.Booking) string {
 	)
 }
 
+// ========== Waitlist Messages ==========
+
+// BtnWaitlistAccept is the accept button text for waitlist offers
+const BtnWaitlistAccept = "✅ Забронировать"
+
+// BtnWaitlistDecline is the decline button text for waitlist offers
+const BtnWaitlistDecline = "❌ Отказаться"
+
+// FormatWaitlistOfferClient creates a message for client when a slot becomes available
+func FormatWaitlistOfferClient(entry *models.WaitlistEntry) string {
+	return fmt.Sprintf(`🔔 Место освободилось!
+
+📋 Тренировка %s
+🕐 %s
+
+У вас есть 30 минут, чтобы подтвердить бронирование.`,
+		formatDuration(entry.DurationMinutes),
+		formatDateTime(entry.StartsAt),
+	)
+}
+
+// FormatWaitlistBookedClient creates a message for client when waitlist booking is confirmed
+func FormatWaitlistBookedClient(entry *models.WaitlistEntry) string {
+	return fmt.Sprintf(`✅ Место забронировано!
+
+📋 Тренировка %s
+🕐 %s
+
+Ожидайте подтверждения от тренера.`,
+		formatDuration(entry.DurationMinutes),
+		formatDateTime(entry.StartsAt),
+	)
+}
+
+// FormatWaitlistExpiredClient creates a message for client when their waitlist offer expires
+func FormatWaitlistExpiredClient(entry *models.WaitlistEntry) string {
+	return fmt.Sprintf(`⏰ Время предложения истекло
+
+📋 Тренировка %s
+🕐 %s
+
+Место было предложено следующему в очереди.`,
+		formatDuration(entry.DurationMinutes),
+		formatDateTime(entry.StartsAt),
+	)
+}
+
+// FormatWaitlistDeclinedClient creates the updated message after declining
+func FormatWaitlistDeclinedClient(entry *models.WaitlistEntry) string {
+	return fmt.Sprintf(`❌ Вы отказались от предложения
+
+📋 Тренировка %s
+🕐 %s`,
+		formatDuration(entry.DurationMinutes),
+		formatDateTime(entry.StartsAt),
+	)
+}
+
 // Master bot messages for trainer onboarding
 
 // MasterMsgWelcome is sent when trainer starts onboarding

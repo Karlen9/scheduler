@@ -193,6 +193,33 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 
 	// Generate time slots
 	slots := generateTimeSlots(date, workingHour, duration, bookings)
+
+	// Enrich with waitlist data
+	waitlistCounts, err := db.GetWaitlistCountForSlots(trainer.ID, startOfDay, endOfDay)
+	if err != nil {
+		log.Printf("Error getting waitlist counts: %v", err)
+	}
+
+	client := GetClientFromContext(r)
+	var clientWaitlist map[string]bool
+	if client != nil {
+		clientWaitlist, err = db.GetClientWaitlistForSlots(client.ID, trainer.ID, startOfDay, endOfDay)
+		if err != nil {
+			log.Printf("Error getting client waitlist: %v", err)
+		}
+	}
+
+	for i := range slots {
+		if !slots[i].Available {
+			if waitlistCounts != nil {
+				slots[i].WaitlistCount = waitlistCounts[slots[i].Time]
+			}
+			if clientWaitlist != nil {
+				slots[i].HasMyWaitlist = clientWaitlist[slots[i].Time]
+			}
+		}
+	}
+
 	writeJSON(w, slots)
 }
 
@@ -385,6 +412,9 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cancel any waitlist entries this client had for this slot
+	db.CancelWaitlistEntriesForSlot(client.ID, trainer.ID, startsAt, endsAt)
+
 	// Log booking creation
 	log.Printf("📅 NEW BOOKING [%s] Client: %s | Duration: %dmin | Time: %s %s | Trainer: %s (@%s)",
 		booking.ID[:8],
@@ -462,6 +492,9 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 		booking.ClientName,
 		req.Reason,
 	)
+
+	// Trigger waitlist processing for the freed slot
+	go ProcessWaitlistForCancelledBooking(booking.TrainerID, booking.StartsAt, booking.EndsAt)
 
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)

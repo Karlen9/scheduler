@@ -96,9 +96,38 @@ type Booking struct {
 
 // TimeSlot represents an available time slot for booking
 type TimeSlot struct {
-	Time      string `json:"time"`
-	EndTime   string `json:"endTime,omitempty"`
-	Available bool   `json:"available"`
+	Time          string `json:"time"`
+	EndTime       string `json:"endTime,omitempty"`
+	Available     bool   `json:"available"`
+	WaitlistCount int    `json:"waitlistCount,omitempty"`
+	HasMyWaitlist bool   `json:"hasMyWaitlist,omitempty"`
+}
+
+// WaitlistStatus represents the status of a waitlist entry
+type WaitlistStatus string
+
+const (
+	WaitlistStatusWaiting   WaitlistStatus = "waiting"
+	WaitlistStatusOffered   WaitlistStatus = "offered"
+	WaitlistStatusBooked    WaitlistStatus = "booked"
+	WaitlistStatusDeclined  WaitlistStatus = "declined"
+	WaitlistStatusExpired   WaitlistStatus = "expired"
+	WaitlistStatusCancelled WaitlistStatus = "cancelled"
+)
+
+// WaitlistEntry represents a client's position in a waitlist for a time slot
+type WaitlistEntry struct {
+	ID              string         `json:"id"`
+	TrainerID       string         `json:"-"`
+	ClientID        string         `json:"-"`
+	StartsAt        time.Time      `json:"startsAt"`
+	EndsAt          time.Time      `json:"endsAt"`
+	DurationMinutes int            `json:"durationMinutes"`
+	ClientName      string         `json:"clientName"`
+	Status          WaitlistStatus `json:"status"`
+	OfferedAt       *time.Time     `json:"offeredAt,omitempty"`
+	CreatedAt       time.Time      `json:"createdAt"`
+	Position        int            `json:"position,omitempty"`
 }
 
 // DayOff represents a day when trainer is not available

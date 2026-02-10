@@ -1,4 +1,4 @@
-import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo } from "./types";
+import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo, WaitlistEntry } from "./types";
 import { getInitData, getTrainerId } from "./telegram";
 
 // API base URL - set via environment variable or default to localhost
@@ -113,6 +113,31 @@ export const api = {
       booking.clientName,
       undefined,
     );
+  },
+
+  // ========== Waitlist ==========
+
+  async getWaitlist(): Promise<WaitlistEntry[]> {
+    return fetchAPI<WaitlistEntry[]>("/api/waitlist");
+  },
+
+  async joinWaitlist(duration: number, date: string, time: string): Promise<WaitlistEntry> {
+    return fetchAPI<WaitlistEntry>("/api/waitlist", {
+      method: "POST",
+      body: JSON.stringify({ duration, date, time }),
+    });
+  },
+
+  async leaveWaitlist(id: string): Promise<void> {
+    await fetchAPI<void>(`/api/waitlist/${id}`, { method: "DELETE" });
+  },
+
+  async acceptWaitlistOffer(id: string): Promise<Booking> {
+    return fetchAPI<Booking>(`/api/waitlist/${id}/accept`, { method: "POST" });
+  },
+
+  async declineWaitlistOffer(id: string): Promise<void> {
+    await fetchAPI<void>(`/api/waitlist/${id}/decline`, { method: "POST" });
   },
 
   // ========== Client Profile ==========

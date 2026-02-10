@@ -108,6 +108,24 @@ func migrate() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_days_off_trainer_id ON days_off(trainer_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_days_off_date ON days_off(date)`,
+		`CREATE TABLE IF NOT EXISTS waitlist (
+			id TEXT PRIMARY KEY,
+			trainer_id TEXT NOT NULL,
+			client_id TEXT NOT NULL,
+			starts_at DATETIME NOT NULL,
+			ends_at DATETIME NOT NULL,
+			duration_minutes INTEGER NOT NULL,
+			client_name TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'waiting'
+				CHECK(status IN ('waiting','offered','booked','declined','expired','cancelled')),
+			offered_at DATETIME,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (trainer_id) REFERENCES trainers(id),
+			FOREIGN KEY (client_id) REFERENCES clients(id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_waitlist_trainer_id ON waitlist(trainer_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_waitlist_client_id ON waitlist(client_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_waitlist_status ON waitlist(status)`,
 	}
 
 	for _, migration := range migrations {

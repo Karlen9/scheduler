@@ -195,6 +195,34 @@ func main() {
 		return handler.NotifyClientStatusChange(booking, newStatus)
 	}
 
+	// Set up waitlist offer notification callback
+	api.NotifyWaitlistOfferFunc = func(entry *models.WaitlistEntry) error {
+		trainer, err := db.GetTrainerByID(entry.TrainerID)
+		if err != nil || trainer == nil {
+			return err
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
+			return nil
+		}
+		return handler.NotifyClientWaitlistOffer(entry)
+	}
+
+	// Set up waitlist expired notification callback
+	api.NotifyWaitlistExpiredFunc = func(entry *models.WaitlistEntry) error {
+		trainer, err := db.GetTrainerByID(entry.TrainerID)
+		if err != nil || trainer == nil {
+			return err
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
+			return nil
+		}
+		return handler.NotifyClientWaitlistExpired(entry)
+	}
+
 	// Set up HTTP server
 	apiRouter := api.NewRouter()
 
@@ -336,6 +364,11 @@ func main() {
 	defer reminderCancel()
 	go startReminderWorker(reminderCtx)
 
+	// Start background waitlist expiry worker
+	waitlistCtx, waitlistCancel := context.WithCancel(context.Background())
+	defer waitlistCancel()
+	go startWaitlistExpiryWorker(waitlistCtx)
+
 	go func() {
 		log.Printf("Starting HTTP server on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -419,6 +452,50 @@ func sendReminders() {
 		}
 
 		log.Printf("Reminder sent for booking %s (client: %s)", booking.ID, client.Name)
+	}
+}
+
+func startWaitlistExpiryWorker(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	log.Println("Waitlist expiry worker started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Waitlist expiry worker stopped")
+			return
+		case <-ticker.C:
+			processExpiredWaitlistOffers()
+		}
+	}
+}
+
+func processExpiredWaitlistOffers() {
+	entries, err := db.GetExpiredOffers(30 * time.Minute)
+	if err != nil {
+		log.Printf("Waitlist expiry: error fetching expired offers: %v", err)
+		return
+	}
+
+	for _, entry := range entries {
+		if err := db.UpdateWaitlistStatus(entry.ID, models.WaitlistStatusExpired); err != nil {
+			log.Printf("Waitlist expiry: error updating entry %s: %v", entry.ID, err)
+			continue
+		}
+
+		log.Printf("📋 WAITLIST EXPIRED [%s] Client: %s", entry.ID[:8], entry.ClientName)
+
+		// Notify client about expired offer
+		if api.NotifyWaitlistExpiredFunc != nil {
+			if err := api.NotifyWaitlistExpiredFunc(&entry); err != nil {
+				log.Printf("Waitlist expiry: error notifying client: %v", err)
+			}
+		}
+
+		// Offer to next person in queue
+		api.ProcessNextWaitlistEntry(entry.TrainerID, entry.StartsAt, entry.EndsAt)
 	}
 }
 

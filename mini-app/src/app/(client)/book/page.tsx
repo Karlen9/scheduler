@@ -138,6 +138,28 @@ function BookingPageContent() {
     }
   };
 
+  const handleJoinWaitlist = async (time: string) => {
+    if (!selectedDate || !selectedDuration) return;
+
+    // Check if already in queue
+    const slot = timeSlots.find((s) => s.time === time);
+    if (slot?.hasMyWaitlist) {
+      toast.info("Вы уже в очереди на это время");
+      return;
+    }
+
+    try {
+      const dateStr = formatDateISO(selectedDate);
+      const entry = await api.joinWaitlist(selectedDuration, dateStr, time);
+      toast.success(`Вы в очереди! Позиция: ${entry.position || 1}`);
+      // Refresh slots to update hasMyWaitlist
+      fetchSlots(selectedDate, selectedDuration);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось встать в очередь";
+      toast.error(msg);
+    }
+  };
+
   const handleConfirm = async () => {
     if (!selectedDate || !selectedTime || !selectedDuration) return;
 
@@ -280,6 +302,7 @@ function BookingPageContent() {
                 slots={timeSlots}
                 selected={selectedTime}
                 onSelect={setSelectedTime}
+                onJoinWaitlist={handleJoinWaitlist}
               />
             )}
           </div>

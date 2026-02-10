@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
@@ -124,6 +125,10 @@ func (h *Handler) handleCallbackQuery(cq *CallbackQuery) {
 		h.handleAcceptBooking(cq, bookingID)
 	case "reject":
 		h.handleRejectBooking(cq, bookingID)
+	case "wl_accept":
+		h.handleWaitlistAccept(cq, bookingID) // bookingID is actually entryID
+	case "wl_decline":
+		h.handleWaitlistDecline(cq, bookingID) // bookingID is actually entryID
 	default:
 		h.Bot.AnswerCallbackQuery(cq.ID, "Неизвестное действие")
 	}
@@ -268,6 +273,183 @@ func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus st
 		return nil
 	}
 
+	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
+	return err
+}
+
+// ========== Waitlist Handlers ==========
+
+func (h *Handler) handleWaitlistAccept(cq *CallbackQuery, entryID string) {
+	entry, err := db.GetWaitlistByID(entryID)
+	if err != nil {
+		log.Printf("Error getting waitlist entry: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при получении записи")
+		return
+	}
+
+	if entry == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+
+	if entry.Status != models.WaitlistStatusOffered {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Предложение больше не актуально")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatWaitlistDeclinedClient(entry), nil)
+		}
+		return
+	}
+
+	// Check if slot is in the past
+	if entry.StartsAt.Before(time.Now().UTC()) {
+		db.UpdateWaitlistStatus(entryID, models.WaitlistStatusExpired)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Это время уже прошло")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatWaitlistExpiredClient(entry), nil)
+		}
+		return
+	}
+
+	// Check slot is still free
+	hasConflict, err := db.HasConflictingBooking(entry.TrainerID, entry.StartsAt, entry.EndsAt, "")
+	if err != nil || hasConflict {
+		db.UpdateWaitlistStatus(entryID, models.WaitlistStatusExpired)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Это время уже занято")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				"❌ К сожалению, это время уже было занято.", nil)
+		}
+		return
+	}
+
+	// Check client doesn't already have booking on this day
+	hasBooking, err := db.ClientHasBookingOnDate(entry.ClientID, entry.StartsAt)
+	if err != nil || hasBooking {
+		db.UpdateWaitlistStatus(entryID, models.WaitlistStatusDeclined)
+		h.Bot.AnswerCallbackQuery(cq.ID, "У вас уже есть запись на этот день")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				"❌ У вас уже есть запись на этот день.", nil)
+		}
+		return
+	}
+
+	// Find session type for FK
+	services, err := db.GetSessionTypesByTrainerID(entry.TrainerID)
+	if err != nil || len(services) == 0 {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка конфигурации")
+		return
+	}
+	sessionTypeID := services[0].ID
+	for _, s := range services {
+		if s.DurationMinutes == entry.DurationMinutes {
+			sessionTypeID = s.ID
+			break
+		}
+	}
+
+	// Create booking
+	booking, err := db.CreateBooking(entry.TrainerID, entry.ClientID, sessionTypeID,
+		entry.StartsAt, entry.EndsAt, entry.ClientName, "", entry.DurationMinutes)
+	if err != nil {
+		log.Printf("Error creating booking from waitlist: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при создании записи")
+		return
+	}
+
+	// Update waitlist status
+	db.UpdateWaitlistStatus(entryID, models.WaitlistStatusBooked)
+	db.CancelWaitlistEntriesForSlot(entry.ClientID, entry.TrainerID, entry.StartsAt, entry.EndsAt)
+
+	log.Printf("📋 WAITLIST ACCEPTED (TG) [%s] Client: %s → Booking [%s]",
+		entryID[:8], entry.ClientName, booking.ID[:8])
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Место забронировано!")
+
+	// Update message
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			FormatWaitlistBookedClient(entry), nil)
+	}
+
+	// Notify trainer about new booking
+	h.NotifyTrainerNewBooking(booking)
+}
+
+func (h *Handler) handleWaitlistDecline(cq *CallbackQuery, entryID string) {
+	entry, err := db.GetWaitlistByID(entryID)
+	if err != nil {
+		log.Printf("Error getting waitlist entry: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при получении записи")
+		return
+	}
+
+	if entry == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+
+	if entry.Status != models.WaitlistStatusOffered {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Предложение больше не актуально")
+		return
+	}
+
+	db.UpdateWaitlistStatus(entryID, models.WaitlistStatusDeclined)
+
+	log.Printf("📋 WAITLIST DECLINED (TG) [%s] Client: %s", entryID[:8], entry.ClientName)
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Вы отказались от предложения")
+
+	// Update message
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			FormatWaitlistDeclinedClient(entry), nil)
+	}
+
+	// Offer to next person in queue
+	go func() {
+		hasConflict, _ := db.HasConflictingBooking(entry.TrainerID, entry.StartsAt, entry.EndsAt, "")
+		if hasConflict {
+			return
+		}
+
+		entries, err := db.GetWaitlistForSlot(entry.TrainerID, entry.StartsAt, entry.EndsAt)
+		if err != nil || len(entries) == 0 {
+			return
+		}
+
+		next := entries[0]
+		if err := db.OfferWaitlistEntry(next.ID); err != nil {
+			log.Printf("Error offering waitlist entry: %v", err)
+			return
+		}
+
+		h.NotifyClientWaitlistOffer(&next)
+	}()
+}
+
+// NotifyClientWaitlistOffer sends a waitlist offer notification to a client
+func (h *Handler) NotifyClientWaitlistOffer(entry *models.WaitlistEntry) error {
+	client, err := db.GetClientByID(entry.ClientID)
+	if err != nil || client == nil {
+		return fmt.Errorf("error getting client: %v", err)
+	}
+
+	text := FormatWaitlistOfferClient(entry)
+	_, err = h.Bot.SendWaitlistOfferMessage(client.TelegramUserID, entry.ID, text)
+	return err
+}
+
+// NotifyClientWaitlistExpired sends an expiry notification to a client
+func (h *Handler) NotifyClientWaitlistExpired(entry *models.WaitlistEntry) error {
+	client, err := db.GetClientByID(entry.ClientID)
+	if err != nil || client == nil {
+		return fmt.Errorf("error getting client: %v", err)
+	}
+
+	text := FormatWaitlistExpiredClient(entry)
 	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
 	return err
 }

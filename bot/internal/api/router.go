@@ -49,6 +49,13 @@ func NewRouter() http.Handler {
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
 
+		// Waitlist
+		r.Post("/waitlist", HandleJoinWaitlist)
+		r.Get("/waitlist", HandleGetMyWaitlist)
+		r.Delete("/waitlist/{id}", HandleLeaveWaitlist)
+		r.Post("/waitlist/{id}/accept", HandleAcceptWaitlistOffer)
+		r.Post("/waitlist/{id}/decline", HandleDeclineWaitlistOffer)
+
 		// Client profile
 		r.Get("/profile", HandleGetClientProfile)
 		r.Put("/profile", HandleUpdateClientProfile)

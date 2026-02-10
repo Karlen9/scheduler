@@ -365,6 +365,20 @@ func (b *Bot) SendBookingApprovalMessage(trainerChatID int64, bookingID string, 
 	return b.SendMessage(trainerChatID, text, keyboard)
 }
 
+// SendWaitlistOfferMessage sends a waitlist offer with Accept/Decline buttons
+func (b *Bot) SendWaitlistOfferMessage(chatID int64, entryID string, text string) (*Message, error) {
+	keyboard := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: BtnWaitlistAccept, CallbackData: fmt.Sprintf("wl_accept:%s", entryID)},
+				{Text: BtnWaitlistDecline, CallbackData: fmt.Sprintf("wl_decline:%s", entryID)},
+			},
+		},
+	}
+
+	return b.SendMessage(chatID, text, keyboard)
+}
+
 // SendWebAppButton sends a message with web app button
 func (b *Bot) SendWebAppButton(chatID int64, text, webAppURL string) (*Message, error) {
 	keyboard := &InlineKeyboardMarkup{

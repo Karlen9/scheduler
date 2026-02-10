@@ -45,6 +45,20 @@ export interface TimeSlot {
   time: string; // "09:00"
   endTime?: string; // "10:00"
   available: boolean;
+  waitlistCount?: number;
+  hasMyWaitlist?: boolean;
+}
+
+export interface WaitlistEntry {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  durationMinutes: number;
+  clientName: string;
+  status: "waiting" | "offered" | "booked" | "declined" | "expired" | "cancelled";
+  offeredAt?: string;
+  createdAt: string;
+  position?: number;
 }
 
 export interface ClientProfile {

@@ -555,6 +555,11 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Trigger waitlist processing if booking was cancelled or rejected (slot freed)
+	if req.Status == "cancelled" || req.Status == "rejected" {
+		go ProcessWaitlistForCancelledBooking(booking.TrainerID, booking.StartsAt, booking.EndsAt)
+	}
+
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)
 }
