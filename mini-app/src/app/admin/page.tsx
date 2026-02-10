@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { PendingBookingCard } from "@/components/PendingBookingCard";
 import { UpcomingBookingCard } from "@/components/UpcomingBookingCard";
@@ -21,6 +21,7 @@ export default function AdminBookingsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [showPast, setShowPast] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -50,6 +51,10 @@ export default function AdminBookingsPage() {
     .filter((b) => b.status === "confirmed" && new Date(b.startsAt) > now)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
+  const pastBookings = bookings
+    .filter((b) => b.status === "completed" || b.status === "cancelled" || b.status === "rejected" || (b.status === "confirmed" && new Date(b.startsAt) <= now))
+    .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+
   const handleAccept = async (booking: Booking) => {
     try {
       await api.admin.updateBookingStatus(booking.id, "confirmed");
@@ -69,7 +74,7 @@ export default function AdminBookingsPage() {
   const handleConfirmReject = async () => {
     if (!rejectTarget) return;
     try {
-      await api.admin.updateBookingStatus(rejectTarget.id, "rejected");
+      await api.admin.updateBookingStatus(rejectTarget.id, "rejected", rejectReason || undefined);
       toast.success("Запись отклонена");
       await fetchData();
     } catch (err) {
@@ -91,7 +96,7 @@ export default function AdminBookingsPage() {
   const handleConfirmCancel = async () => {
     if (!selectedBooking) return;
     try {
-      await api.admin.updateBookingStatus(selectedBooking.id, "cancelled");
+      await api.admin.updateBookingStatus(selectedBooking.id, "cancelled", cancelReason || undefined);
       toast.success("Запись отменена");
       await fetchData();
     } catch (err) {
@@ -160,7 +165,7 @@ export default function AdminBookingsPage() {
     );
   }
 
-  const isEmpty = pendingBookings.length === 0 && upcomingBookings.length === 0;
+  const isEmpty = pendingBookings.length === 0 && upcomingBookings.length === 0 && pastBookings.length === 0;
 
   return (
     <div className="p-4">
@@ -196,7 +201,7 @@ export default function AdminBookingsPage() {
 
           {/* Upcoming confirmed bookings */}
           {upcomingBookings.length > 0 && (
-            <section>
+            <section className="mb-6">
               <h2 className="text-base font-medium text-foreground mb-3">
                 Ближайшие записи
               </h2>
@@ -209,6 +214,30 @@ export default function AdminBookingsPage() {
                   />
                 ))}
               </div>
+            </section>
+          )}
+
+          {/* Past bookings */}
+          {pastBookings.length > 0 && (
+            <section>
+              <button
+                onClick={() => setShowPast(!showPast)}
+                className="flex items-center gap-2 text-base font-medium text-muted-foreground mb-3"
+              >
+                <ChevronDown className={`w-4 h-4 transition-transform ${showPast ? "rotate-0" : "-rotate-90"}`} />
+                Прошедшие ({pastBookings.length})
+              </button>
+              {showPast && (
+                <div className="space-y-3">
+                  {pastBookings.map((booking) => (
+                    <UpcomingBookingCard
+                      key={booking.id}
+                      booking={booking}
+                      onClick={handleBookingClick}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </>

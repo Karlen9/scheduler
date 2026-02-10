@@ -240,15 +240,16 @@ export const api = {
     async updateBookingStatus(
       bookingId: string,
       status: string,
+      reason?: string,
     ): Promise<Booking> {
       return fetchAPI<Booking>(`/api/admin/bookings/${bookingId}/status`, {
         method: "PUT",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason }),
       });
     },
 
     async cancelBooking(bookingId: string, reason?: string): Promise<Booking> {
-      return this.updateBookingStatus(bookingId, "cancelled");
+      return this.updateBookingStatus(bookingId, "cancelled", reason);
     },
 
     // Durations

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { api } from "@/lib/api";
+import { getAvatarColor } from "@/lib/colors";
 
 export default function ProfilePage() {
   const [name, setName] = useState("");
@@ -99,7 +100,7 @@ export default function ProfilePage() {
         {/* Avatar */}
         <div className="flex justify-center">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-card flex items-center justify-center text-3xl text-muted-foreground">
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl ${name ? getAvatarColor(name) : "bg-card text-muted-foreground"}`}>
               {name.charAt(0) || "?"}
             </div>
             <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-brand flex items-center justify-center shadow-lg">

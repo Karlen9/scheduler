@@ -5,6 +5,7 @@ import { Users } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { api } from "@/lib/api";
 import { ClientInfo } from "@/lib/types";
+import { getAvatarColor } from "@/lib/colors";
 
 export default function AdminClientsPage() {
   const [clients, setClients] = useState<ClientInfo[]>([]);
@@ -60,7 +61,7 @@ export default function AdminClientsPage() {
           key={client.id}
           className="bg-card rounded-xl p-4 flex items-center gap-3"
         >
-          <div className="w-10 h-10 rounded-full bg-brand/20 flex items-center justify-center text-brand font-medium">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${getAvatarColor(client.name)}`}>
             {client.name.charAt(0)}
           </div>
           <div className="flex-1 min-w-0">

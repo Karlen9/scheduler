@@ -478,6 +478,7 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 
 type UpdateBookingStatusRequest struct {
 	Status string `json:"status"`
+	Reason string `json:"reason,omitempty"`
 }
 
 func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
@@ -519,7 +520,16 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	oldStatus := booking.Status
-	if err := db.UpdateBookingStatus(bookingID, models.BookingStatus(req.Status)); err != nil {
+	if (req.Status == "cancelled" || req.Status == "rejected") && req.Reason != "" {
+		if err := db.CancelBooking(bookingID, req.Reason, models.CancelledByTrainer); err != nil {
+			log.Printf("Error cancelling booking: %v", err)
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+			return
+		}
+		if req.Status == "rejected" {
+			db.UpdateBookingStatus(bookingID, models.BookingStatusRejected)
+		}
+	} else if err := db.UpdateBookingStatus(bookingID, models.BookingStatus(req.Status)); err != nil {
 		log.Printf("Error updating booking status: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return

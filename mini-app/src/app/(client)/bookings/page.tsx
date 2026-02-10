@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarX } from "lucide-react";
+import { CalendarX, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { BookingCard } from "@/components/BookingCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -18,6 +18,7 @@ export default function BookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [showPast, setShowPast] = useState(false);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -135,14 +136,20 @@ export default function BookingsPage() {
 
         {pastBookings.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">
-              Прошедшие записи
-            </h3>
-            <div className="space-y-3">
-              {pastBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
-            </div>
+            <button
+              onClick={() => setShowPast(!showPast)}
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform ${showPast ? "rotate-0" : "-rotate-90"}`} />
+              Прошедшие записи ({pastBookings.length})
+            </button>
+            {showPast && (
+              <div className="space-y-3">
+                {pastBookings.map((booking) => (
+                  <BookingCard key={booking.id} booking={booking} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

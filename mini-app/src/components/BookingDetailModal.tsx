@@ -2,6 +2,7 @@
 
 import { X, Phone, MessageCircle } from "lucide-react";
 import { Booking } from "@/lib/types";
+import { getAvatarColor } from "@/lib/colors";
 
 interface BookingDetailModalProps {
   booking: Booking | null;
@@ -69,7 +70,7 @@ export function BookingDetailModal({
 
         {/* Client info */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center text-2xl text-muted-foreground">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl ${getAvatarColor(booking.clientName)}`}>
             {booking.clientName.charAt(0)}
           </div>
           <div>

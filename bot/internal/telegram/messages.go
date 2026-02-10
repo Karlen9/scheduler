@@ -165,23 +165,33 @@ func FormatBookingConfirmedClient(booking *models.Booking) string {
 }
 
 // FormatBookingRejectedClient creates a message for client when booking is rejected
-func FormatBookingRejectedClient() string {
-	return `❌ К сожалению, ваша заявка отклонена
+func FormatBookingRejectedClient(booking *models.Booking) string {
+	msg := `❌ К сожалению, ваша заявка отклонена`
 
-Попробуйте выбрать другое время.`
+	if booking.CancelReason != "" {
+		msg += fmt.Sprintf("\n\n💬 Причина: %s", booking.CancelReason)
+	}
+
+	msg += "\n\nПопробуйте выбрать другое время."
+	return msg
 }
 
 // FormatBookingCancelledByTrainerClient creates a message for client when trainer cancels a booking
 func FormatBookingCancelledByTrainerClient(booking *models.Booking) string {
-	return fmt.Sprintf(`❌ Ваша запись отменена тренером
+	msg := fmt.Sprintf(`❌ Ваша запись отменена тренером
 
 📋 %s
-🕐 %s
-
-Вы можете записаться на другое время.`,
+🕐 %s`,
 		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
+
+	if booking.CancelReason != "" {
+		msg += fmt.Sprintf("\n\n💬 Причина: %s", booking.CancelReason)
+	}
+
+	msg += "\n\nВы можете записаться на другое время."
+	return msg
 }
 
 // FormatBookingPendingClient creates a message for client after booking creation

@@ -2,6 +2,7 @@
 
 import { Share2, Phone, MessageCircle } from "lucide-react";
 import Image from "next/image";
+import { getAvatarColor } from "@/lib/colors";
 
 interface TrainerCardProps {
   name: string;
@@ -43,7 +44,7 @@ export function TrainerCard({
           {photoUrl ? (
             <Image src={photoUrl} alt={name} fill className="object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-4xl text-muted-foreground">
+            <div className={`w-full h-full flex items-center justify-center text-4xl ${getAvatarColor(name)}`}>
               {name.charAt(0)}
             </div>
           )}

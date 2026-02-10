@@ -240,7 +240,7 @@ func (h *Handler) notifyClient(booking *models.Booking, accepted bool) {
 	if accepted {
 		text = FormatBookingConfirmedClient(booking)
 	} else {
-		text = FormatBookingRejectedClient()
+		text = FormatBookingRejectedClient(booking)
 	}
 
 	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
@@ -261,7 +261,7 @@ func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus st
 	case models.BookingStatusConfirmed:
 		text = FormatBookingConfirmedClient(booking)
 	case models.BookingStatusRejected:
-		text = FormatBookingRejectedClient()
+		text = FormatBookingRejectedClient(booking)
 	case models.BookingStatusCancelled:
 		text = FormatBookingCancelledByTrainerClient(booking)
 	default:
