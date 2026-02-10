@@ -365,6 +365,20 @@ func (b *Bot) SendBookingApprovalMessage(trainerChatID int64, bookingID string, 
 	return b.SendMessage(trainerChatID, text, keyboard)
 }
 
+// SendRecurringBatchApprovalMessage sends a recurring schedule approval request to trainer
+func (b *Bot) SendRecurringBatchApprovalMessage(chatID int64, scheduleID, text string) (*Message, error) {
+	keyboard := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: BtnAcceptAll, CallbackData: fmt.Sprintf("accept_schedule:%s", scheduleID)},
+				{Text: BtnRejectAll, CallbackData: fmt.Sprintf("reject_schedule:%s", scheduleID)},
+			},
+		},
+	}
+
+	return b.SendMessage(chatID, text, keyboard)
+}
+
 // SendWaitlistOfferMessage sends a waitlist offer with Accept/Decline buttons
 func (b *Bot) SendWaitlistOfferMessage(chatID int64, entryID string, text string) (*Message, error) {
 	keyboard := &InlineKeyboardMarkup{

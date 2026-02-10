@@ -103,7 +103,11 @@ func (m *BotManager) GetOrLoadHandler(webhookSecret string) *telegram.Handler {
 
 	// Slow path: look up trainer in DB and register on-the-fly
 	trainer, err := db.GetTrainerByWebhookSecret(webhookSecret)
-	if err != nil || trainer == nil {
+	if err != nil {
+		log.Printf("Lazy-load DB error for secret %s...: %v", webhookSecret[:8], err)
+		return nil
+	}
+	if trainer == nil {
 		return nil
 	}
 
@@ -243,7 +247,7 @@ func main() {
 	}
 
 	// Set up recurring batch notification callback
-	api.NotifyRecurringBatchFunc = func(trainerID, clientName, serviceName string, bookings []*models.Booking) error {
+	api.NotifyRecurringBatchFunc = func(trainerID, scheduleID, clientName, serviceName string, bookings []*models.Booking) error {
 		trainer, err := db.GetTrainerByID(trainerID)
 		if err != nil || trainer == nil {
 			return err
@@ -257,7 +261,7 @@ func main() {
 			log.Printf("No handler found for trainer %s", trainer.Name)
 			return nil
 		}
-		return handler.NotifyTrainerRecurringBatch(trainer.TelegramUserID, clientName, serviceName, bookings)
+		return handler.NotifyTrainerRecurringBatch(trainer.TelegramUserID, scheduleID, clientName, serviceName, bookings)
 	}
 
 	// Set up waitlist offer notification callback
@@ -393,6 +397,8 @@ func main() {
 
 		if strings.HasPrefix(path, "/master/") && masterHandler != nil {
 			// Master bot webhook
+			log.Printf("Master webhook request: %s %s", r.Method, path)
+
 			parts := strings.Split(strings.Trim(path, "/"), "/")
 			if len(parts) < 3 || parts[2] != "webhook" {
 				http.NotFound(w, r)
@@ -406,12 +412,14 @@ func main() {
 			}
 
 			if secret != masterWebhookSecret {
+				log.Printf("Master webhook rejected: secret mismatch")
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			secretHeader := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
 			if secretHeader != masterWebhookSecret {
+				log.Printf("Master webhook rejected: header mismatch")
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -421,10 +429,12 @@ func main() {
 
 			var update telegram.Update
 			if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+				log.Printf("Master webhook rejected: invalid json: %v", err)
 				http.Error(w, "invalid json", http.StatusBadRequest)
 				return
 			}
 
+			log.Printf("Master webhook update (message=%v, callback=%v)", update.Message != nil, update.CallbackQuery != nil)
 			w.WriteHeader(http.StatusOK)
 			go masterHandler.HandleUpdate(update)
 			return
@@ -711,7 +721,7 @@ func processRecurringSchedules() {
 
 		// Send one batch notification per schedule
 		if len(batchBookings) > 0 && api.NotifyRecurringBatchFunc != nil {
-			if err := api.NotifyRecurringBatchFunc(schedule.TrainerID, schedule.ClientName, serviceName, batchBookings); err != nil {
+			if err := api.NotifyRecurringBatchFunc(schedule.TrainerID, schedule.ID, schedule.ClientName, serviceName, batchBookings); err != nil {
 				log.Printf("Recurring: error sending batch notification: %v", err)
 			}
 		}

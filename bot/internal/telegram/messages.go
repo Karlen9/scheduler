@@ -134,6 +134,12 @@ const BtnAccept = "✅ Подтвердить"
 // BtnReject is the reject button text
 const BtnReject = "❌ Отклонить"
 
+// BtnAcceptAll is the accept all button text for recurring schedule batch
+const BtnAcceptAll = "✅ Подтвердить все"
+
+// BtnRejectAll is the reject all button text for recurring schedule batch
+const BtnRejectAll = "❌ Отклонить все"
+
 // FormatNewBookingMessage creates a message for trainer about new booking request
 func FormatNewBookingMessage(booking *models.Booking) string {
 	msg := fmt.Sprintf(`📅 Новая заявка на запись
@@ -253,6 +259,16 @@ func FormatRecurringBatchMessage(clientName string, serviceName string, bookings
 		msg += fmt.Sprintf("\n📅 %s", formatDateTime(b.StartsAt))
 	}
 	return msg
+}
+
+// FormatRecurringBatchConfirmed creates a message after trainer confirms all recurring bookings
+func FormatRecurringBatchConfirmed(clientName, serviceName string, count int) string {
+	return fmt.Sprintf("✅ Расписание подтверждено\n👤 %s\n📋 %s\n📅 %d записей подтверждено", clientName, serviceName, count)
+}
+
+// FormatRecurringBatchRejected creates a message after trainer rejects all recurring bookings
+func FormatRecurringBatchRejected(clientName, serviceName string, count int) string {
+	return fmt.Sprintf("❌ Расписание отклонено\n👤 %s\n📋 %s\n📅 %d записей отклонено", clientName, serviceName, count)
 }
 
 // ========== Trainer-Initiated Booking Messages ==========

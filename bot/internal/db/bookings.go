@@ -308,6 +308,24 @@ func CreateRecurringBooking(trainerID, clientID, sessionTypeID string, startsAt,
 	return GetBookingByID(id)
 }
 
+func ConfirmBookingsByRecurringScheduleID(scheduleID string) (int, error) {
+	result, err := DB.Exec(`UPDATE bookings SET status = 'confirmed' WHERE recurring_schedule_id = ? AND status = 'pending'`, scheduleID)
+	if err != nil {
+		return 0, err
+	}
+	n, err := result.RowsAffected()
+	return int(n), err
+}
+
+func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
+	result, err := DB.Exec(`UPDATE bookings SET status = 'rejected' WHERE recurring_schedule_id = ? AND status = 'pending'`, scheduleID)
+	if err != nil {
+		return 0, err
+	}
+	n, err := result.RowsAffected()
+	return int(n), err
+}
+
 func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	endOfDay := startOfDay.AddDate(0, 0, 1)

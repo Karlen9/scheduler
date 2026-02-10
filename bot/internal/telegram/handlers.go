@@ -127,6 +127,10 @@ func (h *Handler) handleCallbackQuery(cq *CallbackQuery) {
 		h.handleAcceptBooking(cq, bookingID)
 	case "reject":
 		h.handleRejectBooking(cq, bookingID)
+	case "accept_schedule":
+		h.handleAcceptSchedule(cq, bookingID) // bookingID is actually scheduleID
+	case "reject_schedule":
+		h.handleRejectSchedule(cq, bookingID) // bookingID is actually scheduleID
 	case "client_accept":
 		h.handleClientAcceptBooking(cq, bookingID)
 	case "client_decline":
@@ -257,6 +261,68 @@ func (h *Handler) notifyClient(booking *models.Booking, accepted bool) {
 	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
 	if err != nil {
 		log.Printf("Error notifying client: %v", err)
+	}
+}
+
+func (h *Handler) handleAcceptSchedule(cq *CallbackQuery, scheduleID string) {
+	schedule, err := db.GetRecurringScheduleByID(scheduleID)
+	if err != nil || schedule == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание не найдено")
+		return
+	}
+
+	count, err := db.ConfirmBookingsByRecurringScheduleID(scheduleID)
+	if err != nil {
+		log.Printf("Error confirming bookings for schedule %s: %v", scheduleID, err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при подтверждении")
+		return
+	}
+
+	if count == 0 {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Нет записей для подтверждения")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatRecurringBatchConfirmed(schedule.ClientName, formatDuration(schedule.DurationMinutes), 0), nil)
+		}
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, fmt.Sprintf("Подтверждено: %d", count))
+
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			FormatRecurringBatchConfirmed(schedule.ClientName, formatDuration(schedule.DurationMinutes), count), nil)
+	}
+}
+
+func (h *Handler) handleRejectSchedule(cq *CallbackQuery, scheduleID string) {
+	schedule, err := db.GetRecurringScheduleByID(scheduleID)
+	if err != nil || schedule == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание не найдено")
+		return
+	}
+
+	count, err := db.RejectBookingsByRecurringScheduleID(scheduleID)
+	if err != nil {
+		log.Printf("Error rejecting bookings for schedule %s: %v", scheduleID, err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при отклонении")
+		return
+	}
+
+	if count == 0 {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Нет записей для отклонения")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatRecurringBatchRejected(schedule.ClientName, formatDuration(schedule.DurationMinutes), 0), nil)
+		}
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, fmt.Sprintf("Отклонено: %d", count))
+
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			FormatRecurringBatchRejected(schedule.ClientName, formatDuration(schedule.DurationMinutes), count), nil)
 	}
 }
 
@@ -472,10 +538,10 @@ func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 	return err
 }
 
-// NotifyTrainerRecurringBatch sends a single summary message for recurring bookings
-func (h *Handler) NotifyTrainerRecurringBatch(trainerTelegramID int64, clientName, serviceName string, bookings []*models.Booking) error {
+// NotifyTrainerRecurringBatch sends a single summary message for recurring bookings with approve/reject buttons
+func (h *Handler) NotifyTrainerRecurringBatch(trainerTelegramID int64, scheduleID, clientName, serviceName string, bookings []*models.Booking) error {
 	text := FormatRecurringBatchMessage(clientName, serviceName, bookings)
-	_, err := h.Bot.SendMessage(trainerTelegramID, text, nil)
+	_, err := h.Bot.SendRecurringBatchApprovalMessage(trainerTelegramID, scheduleID, text)
 	return err
 }
 
