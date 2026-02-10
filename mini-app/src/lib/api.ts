@@ -1,8 +1,8 @@
 import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo, WaitlistEntry } from "./types";
 import { getInitData, getTrainerId } from "./telegram";
 
-// API base URL - set via environment variable or default to localhost
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+// API base URL - dev URL takes priority over prod URL, fallback to localhost
+const API_BASE_URL = process.env.NEXT_PUBLIC_DEV_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 async function fetchAPI<T>(
   endpoint: string,
