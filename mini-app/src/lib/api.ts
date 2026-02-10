@@ -34,6 +34,10 @@ async function fetchAPI<T>(
     throw new Error(errorText || `HTTP ${response.status}`);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json();
 }
 

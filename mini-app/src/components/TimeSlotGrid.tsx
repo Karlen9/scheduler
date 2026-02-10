@@ -19,6 +19,14 @@ export function TimeSlotGrid({ slots, selected, onSelect, onJoinWaitlist }: Time
 
   return (
     <div className="space-y-2">
+      {hasWaitlistableSlots && (
+        <div className="flex items-center gap-1.5 px-1 mb-1">
+          <Bell className="w-3 h-3 text-orange-400/60 shrink-0" />
+          <span className="text-xs text-muted-foreground">
+            Занятое время — нажмите, чтобы встать в очередь
+          </span>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2">
         {slots.map((slot) => {
           const isWaitlistable = !slot.available && onJoinWaitlist;
@@ -58,14 +66,6 @@ export function TimeSlotGrid({ slots, selected, onSelect, onJoinWaitlist }: Time
           );
         })}
       </div>
-      {hasWaitlistableSlots && (
-        <div className="flex items-center gap-1.5 px-1">
-          <Bell className="w-3 h-3 text-orange-400/60 shrink-0" />
-          <span className="text-xs text-muted-foreground">
-            Занятое время — нажмите, чтобы встать в очередь
-          </span>
-        </div>
-      )}
     </div>
   );
 }
