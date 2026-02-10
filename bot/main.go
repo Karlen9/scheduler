@@ -152,10 +152,12 @@ func main() {
 	botManager = NewBotManager(cfg.WebAppURL, cfg.PublicBaseURL)
 
 	// Set up callback for when new trainers are created via master bot
-	telegram.OnTrainerCreated = func(trainer *models.Trainer) {
+	telegram.OnTrainerCreated = func(trainer *models.Trainer) error {
 		if err := botManager.RegisterBot(trainer); err != nil {
 			log.Printf("Failed to register new bot: %v", err)
+			return err
 		}
+		return nil
 	}
 
 	// Legacy: seed initial data if single-bot env vars are set and no trainers exist
@@ -374,8 +376,8 @@ func main() {
 
 			h := botManager.GetOrLoadHandler(secret)
 			if h == nil {
-				log.Printf("Webhook rejected: no handler for secret %s...", secret[:8])
-				http.Error(w, "bot not found", http.StatusNotFound)
+				log.Printf("Webhook ignored: no handler for secret %s... (returning 200 to stop retries)", secret[:8])
+				w.WriteHeader(http.StatusOK)
 				return
 			}
 

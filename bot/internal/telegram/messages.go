@@ -445,9 +445,9 @@ const MasterMsgInvalidToken = `❌ Неверный токен. Убедитес
 const MasterMsgTokenAlreadyUsed = `❌ Этот бот уже зарегистрирован. Если это ваш бот, обратитесь в поддержку.`
 
 // MasterMsgTokenAccepted is sent when token is valid (with bot username)
-const MasterMsgTokenAccepted = `✅ Отлично! Бот @%s подключён.
+const MasterMsgTokenAccepted = `✅ Бот @%s найден.
 
-Теперь введите ваше имя (как вас будут видеть клиенты):`
+⚠️ Регистрация ещё не завершена! Чтобы бот заработал, введите ваше имя (как вас будут видеть клиенты):`
 
 // MasterMsgNameTooShort is sent when name is too short
 const MasterMsgNameTooShort = `❌ Имя слишком короткое. Введите ваше полное имя:`
@@ -471,3 +471,8 @@ const MasterMsgSuccess = `🎉 Поздравляем, %s!
 const MasterMsgAlreadyRegistered = `✅ У вас уже есть бот: @%s
 
 Откройте его и отправьте /start чтобы использовать.`
+
+// MasterMsgRegistrationFailed is sent when bot handler registration fails
+const MasterMsgRegistrationFailed = `⚠️ Бот @%s создан, но не удалось запустить обработку сообщений.
+
+Попробуйте отправить /start ещё раз — система попробует подключить бота повторно. Если не поможет — напишите в поддержку.`

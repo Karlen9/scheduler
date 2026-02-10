@@ -190,7 +190,15 @@ func (h *MasterHandler) handleStart(chatID, userID int64) {
 	}
 
 	if existing != nil && existing.IsActive {
-		// Already registered and active
+		// Already registered and active — re-register handler in case it was lost
+		log.Printf("Trainer @%s already exists, re-registering handler", existing.BotUsername)
+		if OnTrainerCreated != nil {
+			if err := OnTrainerCreated(existing); err != nil {
+				log.Printf("Error re-registering bot for @%s: %v", existing.BotUsername, err)
+				h.bot.SendMessage(chatID, fmt.Sprintf(MasterMsgRegistrationFailed, existing.BotUsername), nil)
+				return
+			}
+		}
 		msg := fmt.Sprintf(MasterMsgAlreadyRegistered, existing.BotUsername)
 		h.bot.SendMessage(chatID, msg, nil)
 		return
@@ -221,7 +229,23 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 		return
 	}
 	if existing != nil {
-		h.bot.SendMessage(chatID, MasterMsgTokenAlreadyUsed, nil)
+		if existing.TelegramUserID == userID {
+			// Same user's bot — re-register handler and confirm
+			log.Printf("Token for @%s already exists for same user, re-registering", existing.BotUsername)
+			if OnTrainerCreated != nil {
+				if err := OnTrainerCreated(existing); err != nil {
+					log.Printf("Error re-registering bot for @%s: %v", existing.BotUsername, err)
+					h.bot.SendMessage(chatID, fmt.Sprintf(MasterMsgRegistrationFailed, existing.BotUsername), nil)
+					h.setSession(userID, nil)
+					return
+				}
+			}
+			msg := fmt.Sprintf(MasterMsgAlreadyRegistered, existing.BotUsername)
+			h.bot.SendMessage(chatID, msg, nil)
+			h.setSession(userID, nil)
+		} else {
+			h.bot.SendMessage(chatID, MasterMsgTokenAlreadyUsed, nil)
+		}
 		return
 	}
 
@@ -272,23 +296,18 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		}
 	}
 
-	// Register webhook
-	trainerBot, err := NewBot(session.BotToken)
-	if err != nil {
-		log.Printf("Error creating bot for webhook: %v", err)
-	} else {
-		// Clear any stale state before setting webhook
-		trainerBot.DeleteWebhook(true)
-		webhookURL := strings.TrimRight(h.publicBaseURL, "/") + "/tg/" + trainer.WebhookSecret + "/webhook"
-		if err := trainerBot.SetWebhook(webhookURL, trainer.WebhookSecret); err != nil {
-			log.Printf("Error setting webhook: %v", err)
-		} else {
-			log.Printf("Webhook set for @%s", session.BotUsername)
-		}
-	}
-
 	// Seed default data
 	h.seedDefaults(trainer.ID)
+
+	// Register bot handler + webhook via main.go callback
+	if OnTrainerCreated != nil {
+		if err := OnTrainerCreated(trainer); err != nil {
+			log.Printf("Error registering bot for @%s: %v", session.BotUsername, err)
+			h.bot.SendMessage(chatID, fmt.Sprintf(MasterMsgRegistrationFailed, session.BotUsername), nil)
+			h.setSession(userID, nil)
+			return
+		}
+	}
 
 	// Clear session
 	h.setSession(userID, nil)
@@ -298,11 +317,6 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	h.bot.SendMessage(chatID, msg, nil)
 
 	log.Printf("New trainer registered: %s (@%s)", name, session.BotUsername)
-
-	// Notify about webhook registration for main.go to pick up
-	if OnTrainerCreated != nil {
-		OnTrainerCreated(trainer)
-	}
 }
 
 func (h *MasterHandler) seedDefaults(trainerID string) {
@@ -341,6 +355,6 @@ func (h *MasterHandler) seedDefaults(trainerID string) {
 	}
 }
 
-// OnTrainerCreated is called when a new trainer is created
-// Set by main.go to register the new bot dynamically
-var OnTrainerCreated func(trainer *models.Trainer)
+// OnTrainerCreated is called when a new trainer is created or re-registered.
+// Set by main.go to register the new bot dynamically. Returns error if registration fails.
+var OnTrainerCreated func(trainer *models.Trainer) error
