@@ -56,6 +56,11 @@ func NewRouter() http.Handler {
 		r.Post("/waitlist/{id}/accept", HandleAcceptWaitlistOffer)
 		r.Post("/waitlist/{id}/decline", HandleDeclineWaitlistOffer)
 
+		// Recurring schedules (client)
+		r.Get("/recurring", HandleGetRecurringSchedules)
+		r.Post("/recurring", HandleCreateRecurringSchedule)
+		r.Delete("/recurring/{id}", HandleCancelRecurringSchedule)
+
 		// Client profile
 		r.Get("/profile", HandleGetClientProfile)
 		r.Put("/profile", HandleUpdateClientProfile)
@@ -86,6 +91,7 @@ func NewRouter() http.Handler {
 
 			// Bookings management
 			r.Get("/bookings", HandleAdminGetBookings)
+			r.Post("/bookings", HandleAdminCreateBooking)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
 
 			// Days off management
@@ -99,6 +105,11 @@ func NewRouter() http.Handler {
 			// Profile management
 			r.Get("/profile", HandleGetProfile)
 			r.Put("/profile", HandleUpdateProfile)
+
+			// Recurring schedules (admin)
+			r.Get("/recurring", HandleAdminGetRecurringSchedules)
+			r.Post("/recurring", HandleAdminCreateRecurringSchedule)
+			r.Put("/recurring/{id}/status", HandleAdminUpdateRecurringStatus)
 
 			// Notification preferences
 			r.Get("/notifications", HandleAdminGetNotificationPrefs)

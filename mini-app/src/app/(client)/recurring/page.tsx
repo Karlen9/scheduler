@@ -1,0 +1,246 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Repeat } from "lucide-react";
+import { toast } from "sonner";
+import { TopBar } from "@/components/TopBar";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { DurationSelector } from "@/components/DurationSelector";
+import { EmptyState } from "@/components/EmptyState";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { RecurringScheduleCard } from "@/components/RecurringScheduleCard";
+import { RecurringSchedule } from "@/lib/types";
+import { api } from "@/lib/api";
+
+const DAYS = [
+  { label: "Пн", value: 1 },
+  { label: "Вт", value: 2 },
+  { label: "Ср", value: 3 },
+  { label: "Чт", value: 4 },
+  { label: "Пт", value: 5 },
+  { label: "Сб", value: 6 },
+  { label: "Вс", value: 0 },
+];
+
+export default function ClientRecurringPage() {
+  const [schedules, setSchedules] = useState<RecurringSchedule[]>([]);
+  const [durations, setDurations] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form state
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [time, setTime] = useState("10:00");
+  const [selectedDuration, setSelectedDuration] = useState<number>(60);
+
+  // Cancel dialog
+  const [cancelTarget, setCancelTarget] = useState<RecurringSchedule | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [schedulesData, durationsData] = await Promise.all([
+        api.getRecurringSchedules(),
+        api.getDurations().catch(() => [60]),
+      ]);
+      setSchedules(schedulesData);
+      setDurations(durationsData);
+      if (durationsData.length > 0 && !durationsData.includes(selectedDuration)) {
+        setSelectedDuration(durationsData[0]);
+      }
+    } catch {
+      toast.error("Не удалось загрузить расписания");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedDuration]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleCreate = async () => {
+    if (selectedDay === null) {
+      toast.error("Выберите день недели");
+      return;
+    }
+    if (!time) {
+      toast.error("Укажите время");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await api.createRecurringSchedule({
+        dayOfWeek: selectedDay,
+        time,
+        durationMinutes: selectedDuration,
+      });
+      toast.success("Расписание добавлено");
+      setSelectedDay(null);
+      setTime("10:00");
+      fetchData();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Ошибка создания расписания";
+      toast.error(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelTarget) return;
+    try {
+      await api.cancelRecurringSchedule(cancelTarget.id);
+      toast.success("Расписание отменено");
+      setCancelTarget(null);
+      fetchData();
+    } catch {
+      toast.error("Не удалось отменить расписание");
+    }
+  };
+
+  const activeSchedules = schedules.filter((s) => s.status !== "cancelled");
+  const cancelledSchedules = schedules.filter((s) => s.status === "cancelled");
+
+  if (isLoading) {
+    return (
+      <div>
+        <TopBar title="Регулярные тренировки" showBack />
+        <div className="p-4 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
+              <div className="h-4 bg-border rounded w-1/3 mb-3" />
+              <div className="h-4 bg-border rounded w-1/2 mb-2" />
+              <div className="h-4 bg-border rounded w-2/5" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <TopBar title="Регулярные тренировки" showBack />
+
+      <div className="p-4 space-y-6">
+        {/* Add Form */}
+        <div className="bg-card rounded-xl p-4 space-y-4">
+          <h3 className="text-sm font-medium text-foreground">
+            Добавить расписание
+          </h3>
+
+          {/* Day Selector */}
+          <div>
+            <label className="block text-sm text-muted-foreground mb-2">
+              День недели
+            </label>
+            <div className="flex gap-2">
+              {DAYS.map((day) => (
+                <button
+                  key={day.value}
+                  onClick={() => setSelectedDay(day.value)}
+                  className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                    selectedDay === day.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-foreground"
+                  }`}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time Input */}
+          <div>
+            <label className="block text-sm text-muted-foreground mb-2">
+              Время
+            </label>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-background text-foreground outline-none focus:ring-2 focus:ring-brand"
+            />
+          </div>
+
+          {/* Duration Selector */}
+          {durations.length > 0 && (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">
+                Длительность
+              </label>
+              <DurationSelector
+                durations={durations}
+                selected={selectedDuration}
+                onChange={setSelectedDuration}
+              />
+            </div>
+          )}
+
+          <PrimaryButton
+            onClick={handleCreate}
+            disabled={isSaving || selectedDay === null}
+          >
+            {isSaving ? "Сохранение..." : "Добавить расписание"}
+          </PrimaryButton>
+        </div>
+
+        {/* Schedules List */}
+        {activeSchedules.length === 0 && cancelledSchedules.length === 0 ? (
+          <EmptyState
+            icon={<Repeat className="w-16 h-16" />}
+            title="Нет регулярных тренировок"
+            description="Добавьте расписание, чтобы автоматически бронировать тренировки каждую неделю"
+          />
+        ) : (
+          <>
+            {activeSchedules.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Активные расписания
+                </h3>
+                <div className="space-y-3">
+                  {activeSchedules.map((schedule) => (
+                    <RecurringScheduleCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      onCancel={setCancelTarget}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {cancelledSchedules.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Отмененные ({cancelledSchedules.length})
+                </h3>
+                <div className="space-y-3">
+                  {cancelledSchedules.map((schedule) => (
+                    <RecurringScheduleCard
+                      key={schedule.id}
+                      schedule={schedule}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <ConfirmDialog
+        isOpen={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleCancel}
+        title="Отменить расписание?"
+        description="Регулярные тренировки по этому расписанию больше не будут создаваться автоматически."
+        confirmText="Отменить"
+        destructive
+      />
+    </div>
+  );
+}

@@ -564,6 +564,108 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
+// ========== Trainer-Initiated Bookings ==========
+
+// NotifyTrainerBookingFunc is a callback to notify client about trainer-created booking
+var NotifyTrainerBookingFunc func(booking *models.Booking) error
+
+type AdminCreateBookingRequest struct {
+	ClientID string `json:"clientId"`
+	Duration int    `json:"duration"`
+	Date     string `json:"date"`
+	Time     string `json:"time"`
+	Message  string `json:"message,omitempty"`
+}
+
+func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		return
+	}
+
+	var req AdminCreateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	if req.ClientID == "" || req.Duration <= 0 || req.Date == "" || req.Time == "" {
+		http.Error(w, "Заполните все обязательные поля", http.StatusBadRequest)
+		return
+	}
+
+	// Verify client belongs to this trainer
+	client, err := db.GetClientByID(req.ClientID)
+	if err != nil {
+		log.Printf("Error getting client: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if client == nil || client.TrainerID != trainer.ID {
+		http.Error(w, "Клиент не найден", http.StatusNotFound)
+		return
+	}
+
+	// Parse date and time
+	date, err := parseDate(req.Date)
+	if err != nil {
+		http.Error(w, "Неверный формат даты", http.StatusBadRequest)
+		return
+	}
+
+	timeParts := parseTime(req.Time)
+	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+	endsAt := startsAt.Add(time.Duration(req.Duration) * time.Minute)
+
+	// Check for conflicts
+	hasConflict, err := db.HasConflictingBooking(trainer.ID, startsAt, endsAt, "")
+	if err != nil {
+		log.Printf("Error checking conflicts: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if hasConflict {
+		http.Error(w, "Это время уже занято", http.StatusConflict)
+		return
+	}
+
+	// Find session type by duration (same pattern as waitlist)
+	services, err := db.GetSessionTypesByTrainerID(trainer.ID)
+	if err != nil || len(services) == 0 {
+		http.Error(w, "Нет настроенных услуг", http.StatusBadRequest)
+		return
+	}
+	sessionTypeID := services[0].ID
+	for _, s := range services {
+		if s.DurationMinutes == req.Duration {
+			sessionTypeID = s.ID
+			break
+		}
+	}
+
+	// Create booking with created_by = "trainer"
+	booking, err := db.CreateBookingByTrainer(trainer.ID, client.ID, sessionTypeID, startsAt, endsAt, client.Name, req.Message, req.Duration)
+	if err != nil {
+		log.Printf("Error creating booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("📅 TRAINER BOOKING [%s] Trainer: %s booked client: %s | Duration: %dmin | Time: %s %s",
+		booking.ID[:8], trainer.Name, client.Name, req.Duration, req.Date, req.Time)
+
+	// Notify client about trainer-created booking
+	if NotifyTrainerBookingFunc != nil {
+		if err := NotifyTrainerBookingFunc(booking); err != nil {
+			log.Printf("Error notifying client about trainer booking: %v", err)
+		}
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	writeJSON(w, booking)
+}
+
 // ========== Days Off ==========
 
 type CreateDayOffRequest struct {

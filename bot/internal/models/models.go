@@ -76,23 +76,48 @@ const (
 )
 
 type Booking struct {
-	ID              string        `json:"id"`
-	TrainerID       string        `json:"-"`
-	ClientID        string        `json:"-"`
-	SessionTypeID   string        `json:"-"`
-	StartsAt        time.Time     `json:"startsAt"`
-	EndsAt          time.Time     `json:"endsAt"`
-	ClientName      string        `json:"clientName"`
-	ClientMessage   string        `json:"clientMessage,omitempty"`
-	Status          BookingStatus `json:"status"`
-	CancelReason    string        `json:"cancelReason,omitempty"`
-	CancelledBy     CancelledBy   `json:"cancelledBy,omitempty"`
-	CreatedAt       time.Time     `json:"createdAt"`
-	DurationMinutes int           `json:"durationMinutes,omitempty"`
+	ID                   string        `json:"id"`
+	TrainerID            string        `json:"-"`
+	ClientID             string        `json:"-"`
+	SessionTypeID        string        `json:"-"`
+	StartsAt             time.Time     `json:"startsAt"`
+	EndsAt               time.Time     `json:"endsAt"`
+	ClientName           string        `json:"clientName"`
+	ClientMessage        string        `json:"clientMessage,omitempty"`
+	Status               BookingStatus `json:"status"`
+	CancelReason         string        `json:"cancelReason,omitempty"`
+	CancelledBy          CancelledBy   `json:"cancelledBy,omitempty"`
+	CreatedAt            time.Time     `json:"createdAt"`
+	DurationMinutes      int           `json:"durationMinutes,omitempty"`
+	CreatedBy            string        `json:"createdBy,omitempty"`
+	RecurringScheduleID  string        `json:"recurringScheduleId,omitempty"`
 
 	// Joined fields for API responses
 	SessionType *SessionType `json:"sessionType,omitempty"`
 	Client      *Client      `json:"-"`
+}
+
+// RecurringScheduleStatus represents the status of a recurring schedule
+type RecurringScheduleStatus string
+
+const (
+	RecurringScheduleStatusActive    RecurringScheduleStatus = "active"
+	RecurringScheduleStatusPaused    RecurringScheduleStatus = "paused"
+	RecurringScheduleStatusCancelled RecurringScheduleStatus = "cancelled"
+)
+
+// RecurringSchedule represents a recurring weekly booking schedule
+type RecurringSchedule struct {
+	ID              string                  `json:"id"`
+	TrainerID       string                  `json:"-"`
+	ClientID        string                  `json:"-"`
+	ClientName      string                  `json:"clientName"`
+	DayOfWeek       int                     `json:"dayOfWeek"`
+	Time            string                  `json:"time"`
+	DurationMinutes int                     `json:"durationMinutes"`
+	Status          RecurringScheduleStatus `json:"status"`
+	CreatedBy       string                  `json:"createdBy"`
+	CreatedAt       time.Time               `json:"createdAt"`
 }
 
 // TimeSlot represents an available time slot for booking

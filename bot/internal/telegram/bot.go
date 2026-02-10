@@ -379,6 +379,20 @@ func (b *Bot) SendWaitlistOfferMessage(chatID int64, entryID string, text string
 	return b.SendMessage(chatID, text, keyboard)
 }
 
+// SendClientBookingConfirmMessage sends a trainer-created booking confirmation request to client
+func (b *Bot) SendClientBookingConfirmMessage(chatID int64, bookingID string, text string) (*Message, error) {
+	keyboard := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: BtnClientAccept, CallbackData: fmt.Sprintf("client_accept:%s", bookingID)},
+				{Text: BtnClientDecline, CallbackData: fmt.Sprintf("client_decline:%s", bookingID)},
+			},
+		},
+	}
+
+	return b.SendMessage(chatID, text, keyboard)
+}
+
 // SendWebAppButton sends a message with web app button
 func (b *Bot) SendWebAppButton(chatID int64, text, webAppURL string) (*Message, error) {
 	keyboard := &InlineKeyboardMarkup{

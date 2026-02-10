@@ -39,6 +39,8 @@ export interface Booking {
   cancelReason?: string;
   cancelledBy?: "client" | "trainer";
   durationMinutes?: number;
+  createdBy?: "client" | "trainer";
+  recurringScheduleId?: string;
 }
 
 export interface TimeSlot {
@@ -85,5 +87,16 @@ export interface DayOff {
   id: string;
   date: string; // ISO date string
   reason?: string;
+  createdAt: string;
+}
+
+export interface RecurringSchedule {
+  id: string;
+  clientName: string;
+  dayOfWeek: number;
+  time: string;
+  durationMinutes: number;
+  status: "active" | "paused" | "cancelled";
+  createdBy: "client" | "trainer";
   createdAt: string;
 }

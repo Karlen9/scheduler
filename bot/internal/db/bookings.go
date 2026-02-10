@@ -23,20 +23,28 @@ func CreateBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt t
 	return GetBookingByID(id)
 }
 
+// bookingColumns is the standard column list for booking queries.
+// Must match scanBookingRow field order exactly.
+const bookingColumns = `id, trainer_id, client_id, session_type_id, starts_at, ends_at,
+	client_name, client_message, status, cancel_reason, cancelled_by, created_at,
+	duration_minutes, created_by, recurring_schedule_id`
+
 func GetBookingByID(id string) (*models.Booking, error) {
 	var b models.Booking
 	var clientMessage sql.NullString
 	var cancelReason sql.NullString
 	var cancelledBy sql.NullString
 	var durationMinutes sql.NullInt64
+	var createdBy sql.NullString
+	var recurringScheduleID sql.NullString
 
 	err := DB.QueryRow(`
-		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
+		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE id = ?
 	`, id).Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
-		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt, &durationMinutes)
+		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
+		&durationMinutes, &createdBy, &recurringScheduleID)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -57,6 +65,12 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	if durationMinutes.Valid {
 		b.DurationMinutes = int(durationMinutes.Int64)
 	}
+	if createdBy.Valid {
+		b.CreatedBy = createdBy.String
+	}
+	if recurringScheduleID.Valid {
+		b.RecurringScheduleID = recurringScheduleID.String
+	}
 
 	// Load session type
 	st, err := GetSessionTypeByID(b.SessionTypeID)
@@ -70,8 +84,7 @@ func GetBookingByID(id string) (*models.Booking, error) {
 
 func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
 	rows, err := DB.Query(`
-		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
+		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE client_id = ?
 		ORDER BY starts_at DESC
@@ -86,8 +99,7 @@ func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
 
 func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
 	rows, err := DB.Query(`
-		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
+		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE client_id = ? AND status IN ('pending', 'confirmed')
 		ORDER BY starts_at ASC
@@ -102,8 +114,7 @@ func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
 
 func GetBookingsByTrainerIDAndDateRange(trainerID string, start, end time.Time) ([]models.Booking, error) {
 	rows, err := DB.Query(`
-		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
+		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE trainer_id = ? AND starts_at >= ? AND starts_at < ? AND status IN ('pending', 'confirmed')
 		ORDER BY starts_at ASC
@@ -124,9 +135,12 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 		var cancelReason sql.NullString
 		var cancelledBy sql.NullString
 		var durationMinutes sql.NullInt64
+		var createdBy sql.NullString
+		var recurringScheduleID sql.NullString
 
 		if err := rows.Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
-			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt, &durationMinutes); err != nil {
+			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
+			&durationMinutes, &createdBy, &recurringScheduleID); err != nil {
 			return nil, err
 		}
 
@@ -141,6 +155,12 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 		}
 		if durationMinutes.Valid {
 			b.DurationMinutes = int(durationMinutes.Int64)
+		}
+		if createdBy.Valid {
+			b.CreatedBy = createdBy.String
+		}
+		if recurringScheduleID.Valid {
+			b.RecurringScheduleID = recurringScheduleID.String
 		}
 
 		// Load session type
@@ -192,16 +212,14 @@ func GetBookingsByTrainerID(trainerID string, status string) ([]models.Booking, 
 
 	if status != "" {
 		rows, err = DB.Query(`
-			SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-			       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
+			SELECT `+bookingColumns+`
 			FROM bookings
 			WHERE trainer_id = ? AND status = ?
 			ORDER BY starts_at DESC
 		`, trainerID, status)
 	} else {
 		rows, err = DB.Query(`
-			SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-			       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
+			SELECT `+bookingColumns+`
 			FROM bookings
 			WHERE trainer_id = ?
 			ORDER BY starts_at DESC
@@ -223,8 +241,7 @@ func GetBookingsNeedingReminder() ([]models.Booking, error) {
 	oneHourLater := now.Add(time.Hour)
 
 	rows, err := DB.Query(`
-		SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at,
-		       client_name, client_message, status, cancel_reason, cancelled_by, created_at, duration_minutes
+		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE status = 'confirmed'
 		  AND reminder_sent = 0
@@ -257,6 +274,52 @@ func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
 		  AND starts_at >= ?
 		  AND starts_at < ?
 	`, clientID, startOfDay, endOfDay).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func CreateBookingByTrainer(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
+	id := uuid.New().String()
+
+	_, err := DB.Exec(`
+		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, created_by)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'trainer')
+	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetBookingByID(id)
+}
+
+func CreateRecurringBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID string) (*models.Booking, error) {
+	id := uuid.New().String()
+
+	_, err := DB.Exec(`
+		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, '', 'pending', ?, ?)
+	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, durationMinutes, recurringScheduleID)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetBookingByID(id)
+}
+
+func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) {
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+	endOfDay := startOfDay.AddDate(0, 0, 1)
+
+	var count int
+	err := DB.QueryRow(`
+		SELECT COUNT(*) FROM bookings
+		WHERE recurring_schedule_id = ?
+		  AND starts_at >= ?
+		  AND starts_at < ?
+		  AND status IN ('pending', 'confirmed')
+	`, scheduleID, startOfDay, endOfDay).Scan(&count)
 	if err != nil {
 		return false, err
 	}

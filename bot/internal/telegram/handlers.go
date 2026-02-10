@@ -127,6 +127,10 @@ func (h *Handler) handleCallbackQuery(cq *CallbackQuery) {
 		h.handleAcceptBooking(cq, bookingID)
 	case "reject":
 		h.handleRejectBooking(cq, bookingID)
+	case "client_accept":
+		h.handleClientAcceptBooking(cq, bookingID)
+	case "client_decline":
+		h.handleClientDeclineBooking(cq, bookingID)
 	case "wl_accept":
 		h.handleWaitlistAccept(cq, bookingID) // bookingID is actually entryID
 	case "wl_decline":
@@ -466,4 +470,124 @@ func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 	text := FormatNewBookingMessage(booking)
 	_, err = h.Bot.SendBookingApprovalMessage(trainer.TelegramUserID, booking.ID, text)
 	return err
+}
+
+// ========== Trainer-Initiated Booking Handlers ==========
+
+// NotifyClientTrainerBooking sends a trainer-created booking confirmation request to client
+func (h *Handler) NotifyClientTrainerBooking(booking *models.Booking) error {
+	client, err := db.GetClientByID(booking.ClientID)
+	if err != nil || client == nil {
+		return fmt.Errorf("error getting client: %v", err)
+	}
+
+	text := FormatTrainerCreatedBookingClient(booking)
+	_, err = h.Bot.SendClientBookingConfirmMessage(client.TelegramUserID, booking.ID, text)
+	return err
+}
+
+func (h *Handler) handleClientAcceptBooking(cq *CallbackQuery, bookingID string) {
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при получении записи")
+		return
+	}
+
+	if booking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+
+	if booking.Status != models.BookingStatusPending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись уже обработана")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatBookingConfirmedClient(booking), nil)
+		}
+		return
+	}
+
+	// Confirm the booking
+	if err := db.UpdateBookingStatus(bookingID, models.BookingStatusConfirmed); err != nil {
+		log.Printf("Error updating booking status: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при обновлении статуса")
+		return
+	}
+
+	booking, _ = db.GetBookingByID(bookingID)
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Запись подтверждена!")
+
+	// Update client's message
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			FormatBookingConfirmedClient(booking), nil)
+	}
+
+	// Notify trainer that client accepted
+	h.notifyTrainerClientResponse(booking, true)
+}
+
+func (h *Handler) handleClientDeclineBooking(cq *CallbackQuery, bookingID string) {
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при получении записи")
+		return
+	}
+
+	if booking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+
+	if booking.Status != models.BookingStatusPending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись уже обработана")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatBookingRejectedClient(booking), nil)
+		}
+		return
+	}
+
+	// Cancel the booking
+	if err := db.CancelBooking(bookingID, "", models.CancelledByClient); err != nil {
+		log.Printf("Error cancelling booking: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при обновлении статуса")
+		return
+	}
+
+	booking, _ = db.GetBookingByID(bookingID)
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Запись отклонена")
+
+	// Update client's message
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			"❌ Вы отклонили запись от тренера.", nil)
+	}
+
+	// Notify trainer that client declined
+	h.notifyTrainerClientResponse(booking, false)
+}
+
+func (h *Handler) notifyTrainerClientResponse(booking *models.Booking, accepted bool) {
+	trainer, err := db.GetTrainerByID(booking.TrainerID)
+	if err != nil || trainer == nil {
+		log.Printf("Error getting trainer: %v", err)
+		return
+	}
+
+	var text string
+	if accepted {
+		text = FormatClientAcceptedBookingTrainer(booking)
+	} else {
+		text = FormatClientDeclinedBookingTrainer(booking)
+	}
+
+	_, err = h.Bot.SendMessage(trainer.TelegramUserID, text, nil)
+	if err != nil {
+		log.Printf("Error notifying trainer: %v", err)
+	}
 }

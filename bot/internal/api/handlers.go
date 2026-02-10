@@ -270,6 +270,11 @@ func parseTime(t string) []int {
 	return parts
 }
 
+// ParseTime is the exported version of parseTime for use by other packages (e.g. recurring worker)
+func ParseTime(t string) []int {
+	return parseTime(t)
+}
+
 func formatTime(hour, min int) string {
 	return strconv.Itoa(hour/10) + strconv.Itoa(hour%10) + ":" + strconv.Itoa(min/10) + strconv.Itoa(min%10)
 }

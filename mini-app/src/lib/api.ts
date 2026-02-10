@@ -1,4 +1,4 @@
-import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo, WaitlistEntry } from "./types";
+import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo, WaitlistEntry, RecurringSchedule } from "./types";
 import { getInitData, getTrainerId } from "./telegram";
 
 // API base URL - dev URL takes priority over prod URL, fallback to localhost
@@ -164,6 +164,23 @@ export const api = {
     });
   },
 
+  // ========== Recurring Schedules (Client) ==========
+
+  async getRecurringSchedules(): Promise<RecurringSchedule[]> {
+    return fetchAPI<RecurringSchedule[]>("/api/recurring");
+  },
+
+  async createRecurringSchedule(data: { dayOfWeek: number; time: string; durationMinutes: number }): Promise<RecurringSchedule> {
+    return fetchAPI<RecurringSchedule>("/api/recurring", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async cancelRecurringSchedule(id: string): Promise<void> {
+    await fetchAPI<void>(`/api/recurring/${id}`, { method: "DELETE" });
+  },
+
   // ========== Admin API ==========
 
   admin: {
@@ -289,6 +306,33 @@ export const api = {
     // Clients
     async getClients(): Promise<ClientInfo[]> {
       return fetchAPI<ClientInfo[]>("/api/admin/clients");
+    },
+
+    // Trainer-initiated bookings
+    async createBooking(data: { clientId: string; duration: number; date: string; time: string; message?: string }): Promise<Booking> {
+      return fetchAPI<Booking>("/api/admin/bookings", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Recurring schedules (admin)
+    async getRecurringSchedules(): Promise<RecurringSchedule[]> {
+      return fetchAPI<RecurringSchedule[]>("/api/admin/recurring");
+    },
+
+    async createRecurringSchedule(data: { clientId: string; dayOfWeek: number; time: string; durationMinutes: number }): Promise<RecurringSchedule> {
+      return fetchAPI<RecurringSchedule>("/api/admin/recurring", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    async updateRecurringStatus(id: string, status: string): Promise<RecurringSchedule> {
+      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
     },
 
     // Notification Preferences

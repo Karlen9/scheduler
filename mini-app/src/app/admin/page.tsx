@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ClipboardList, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ClipboardList, ChevronDown, UserPlus, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { PendingBookingCard } from "@/components/PendingBookingCard";
 import { UpcomingBookingCard } from "@/components/UpcomingBookingCard";
@@ -12,6 +13,7 @@ import { Booking } from "@/lib/types";
 import { api } from "@/lib/api";
 
 export default function AdminBookingsPage() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +171,24 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="p-4">
+      {/* Quick actions */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => router.push("/admin/book")}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-medium"
+        >
+          <UserPlus className="w-4 h-4" />
+          Записать клиента
+        </button>
+        <button
+          onClick={() => router.push("/admin/recurring")}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-card text-foreground rounded-xl text-sm font-medium"
+        >
+          <Repeat className="w-4 h-4" />
+          Расписание
+        </button>
+      </div>
+
       {isEmpty ? (
         <EmptyState
           icon={<ClipboardList className="w-16 h-16" />}

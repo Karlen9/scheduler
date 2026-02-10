@@ -126,6 +126,22 @@ func migrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_waitlist_trainer_id ON waitlist(trainer_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_waitlist_client_id ON waitlist(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_waitlist_status ON waitlist(status)`,
+		`CREATE TABLE IF NOT EXISTS recurring_schedules (
+			id TEXT PRIMARY KEY,
+			trainer_id TEXT NOT NULL REFERENCES trainers(id),
+			client_id TEXT NOT NULL REFERENCES clients(id),
+			client_name TEXT NOT NULL,
+			day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
+			time TEXT NOT NULL,
+			duration_minutes INTEGER NOT NULL,
+			status TEXT NOT NULL DEFAULT 'active'
+				CHECK(status IN ('active','paused','cancelled')),
+			created_by TEXT NOT NULL CHECK(created_by IN ('client','trainer')),
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_trainer_id ON recurring_schedules(trainer_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_client_id ON recurring_schedules(client_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_status ON recurring_schedules(status)`,
 	}
 
 	for _, migration := range migrations {
@@ -156,6 +172,8 @@ func migrate() error {
 		`ALTER TABLE trainers ADD COLUMN notify_new_bookings INTEGER DEFAULT 1`,
 		`ALTER TABLE trainers ADD COLUMN notify_cancellations INTEGER DEFAULT 1`,
 		`ALTER TABLE clients ADD COLUMN notify_waitlist INTEGER DEFAULT 1`,
+		`ALTER TABLE bookings ADD COLUMN created_by TEXT`,
+		`ALTER TABLE bookings ADD COLUMN recurring_schedule_id TEXT`,
 	}
 
 	for _, migration := range alterMigrations {

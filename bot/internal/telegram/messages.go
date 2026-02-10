@@ -243,6 +243,58 @@ func FormatReminderClient(booking *models.Booking) string {
 	)
 }
 
+// ========== Trainer-Initiated Booking Messages ==========
+
+// BtnClientAccept is the accept button text for client (trainer-created booking)
+const BtnClientAccept = "✅ Подтвердить"
+
+// BtnClientDecline is the decline button text for client (trainer-created booking)
+const BtnClientDecline = "❌ Отклонить"
+
+// FormatTrainerCreatedBookingClient creates a message for client when trainer books them
+func FormatTrainerCreatedBookingClient(booking *models.Booking) string {
+	msg := fmt.Sprintf(`📅 Тренер записал вас на тренировку
+
+📋 %s
+🕐 %s`,
+		bookingServiceDisplay(booking),
+		formatDateTime(booking.StartsAt),
+	)
+
+	if booking.ClientMessage != "" {
+		msg += fmt.Sprintf("\n💬 Сообщение: %s", booking.ClientMessage)
+	}
+
+	msg += "\n\nПодтвердите или отклоните запись."
+	return msg
+}
+
+// FormatClientAcceptedBookingTrainer creates a message for trainer when client accepts
+func FormatClientAcceptedBookingTrainer(booking *models.Booking) string {
+	return fmt.Sprintf(`✅ Клиент подтвердил запись
+
+👤 Клиент: %s
+📋 %s
+🕐 %s`,
+		booking.ClientName,
+		bookingServiceDisplay(booking),
+		formatDateTime(booking.StartsAt),
+	)
+}
+
+// FormatClientDeclinedBookingTrainer creates a message for trainer when client declines
+func FormatClientDeclinedBookingTrainer(booking *models.Booking) string {
+	return fmt.Sprintf(`❌ Клиент отклонил запись
+
+👤 Клиент: %s
+📋 %s
+🕐 %s`,
+		booking.ClientName,
+		bookingServiceDisplay(booking),
+		formatDateTime(booking.StartsAt),
+	)
+}
+
 // ========== Waitlist Messages ==========
 
 // BtnWaitlistAccept is the accept button text for waitlist offers

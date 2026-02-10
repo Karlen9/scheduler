@@ -197,6 +197,28 @@ func main() {
 		return handler.NotifyClientStatusChange(booking, newStatus)
 	}
 
+	// Set up notification callback for trainer-initiated bookings (notify client)
+	api.NotifyTrainerBookingFunc = func(booking *models.Booking) error {
+		client, err := db.GetClientByID(booking.ClientID)
+		if err != nil || client == nil {
+			return err
+		}
+		if !client.NotifyBookingStatus {
+			log.Printf("Skipping trainer booking notification for client %s (disabled)", client.Name)
+			return nil
+		}
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			return err
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
+			return nil
+		}
+		return handler.NotifyClientTrainerBooking(booking)
+	}
+
 	// Set up waitlist offer notification callback
 	api.NotifyWaitlistOfferFunc = func(entry *models.WaitlistEntry) error {
 		trainer, err := db.GetTrainerByID(entry.TrainerID)
@@ -387,6 +409,11 @@ func main() {
 	defer waitlistCancel()
 	go startWaitlistExpiryWorker(waitlistCtx)
 
+	// Start background recurring schedule worker
+	recurringCtx, recurringCancel := context.WithCancel(context.Background())
+	defer recurringCancel()
+	go startRecurringWorker(recurringCtx)
+
 	go func() {
 		log.Printf("Starting HTTP server on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -514,6 +541,138 @@ func processExpiredWaitlistOffers() {
 
 		// Offer to next person in queue
 		api.ProcessNextWaitlistEntry(entry.TrainerID, entry.StartsAt, entry.EndsAt)
+	}
+}
+
+func startRecurringWorker(ctx context.Context) {
+	// Run once on startup after a short delay
+	time.Sleep(10 * time.Second)
+	processRecurringSchedules()
+
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	log.Println("Recurring schedule worker started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Recurring schedule worker stopped")
+			return
+		case <-ticker.C:
+			processRecurringSchedules()
+		}
+	}
+}
+
+func processRecurringSchedules() {
+	schedules, err := db.GetActiveRecurringSchedules()
+	if err != nil {
+		log.Printf("Recurring: error fetching schedules: %v", err)
+		return
+	}
+
+	if len(schedules) == 0 {
+		return
+	}
+
+	now := time.Now().UTC()
+	tomorrow := now.AddDate(0, 0, 1)
+	tomorrow = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, time.UTC)
+	horizon := now.AddDate(0, 3, 0) // 3 months ahead
+
+	created := 0
+	for _, schedule := range schedules {
+		// Get trainer's working hours and days off
+		workingHours, err := db.GetWorkingHoursByTrainerID(schedule.TrainerID)
+		if err != nil {
+			log.Printf("Recurring: error getting working hours for schedule %s: %v", schedule.ID[:8], err)
+			continue
+		}
+
+		// Find services for FK
+		services, err := db.GetSessionTypesByTrainerID(schedule.TrainerID)
+		if err != nil || len(services) == 0 {
+			log.Printf("Recurring: no services for schedule %s", schedule.ID[:8])
+			continue
+		}
+		sessionTypeID := services[0].ID
+		for _, s := range services {
+			if s.DurationMinutes == schedule.DurationMinutes {
+				sessionTypeID = s.ID
+				break
+			}
+		}
+
+		// Parse schedule time
+		timeParts := api.ParseTime(schedule.Time)
+
+		// Iterate from tomorrow to horizon
+		for d := tomorrow; d.Before(horizon); d = d.AddDate(0, 0, 1) {
+			// Check if this is the right day of week
+			if int(d.Weekday()) != schedule.DayOfWeek {
+				continue
+			}
+
+			// Check if booking already exists for this schedule+date
+			exists, err := db.BookingExistsForRecurring(schedule.ID, d)
+			if err != nil {
+				log.Printf("Recurring: error checking existing booking: %v", err)
+				continue
+			}
+			if exists {
+				continue
+			}
+
+			// Check if this date is a day off
+			isDayOff, _ := db.IsDayOff(schedule.TrainerID, d)
+			if isDayOff {
+				continue
+			}
+
+			// Check working hours for this day
+			var hasWorkingHours bool
+			for _, wh := range workingHours {
+				if wh.DayOfWeek == int(d.Weekday()) {
+					hasWorkingHours = true
+					break
+				}
+			}
+			if !hasWorkingHours {
+				continue
+			}
+
+			startsAt := time.Date(d.Year(), d.Month(), d.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+			endsAt := startsAt.Add(time.Duration(schedule.DurationMinutes) * time.Minute)
+
+			// Check for conflicting bookings
+			hasConflict, _ := db.HasConflictingBooking(schedule.TrainerID, startsAt, endsAt, "")
+			if hasConflict {
+				continue
+			}
+
+			// Create booking
+			booking, err := db.CreateRecurringBooking(schedule.TrainerID, schedule.ClientID, sessionTypeID,
+				startsAt, endsAt, schedule.ClientName, schedule.DurationMinutes, schedule.ID)
+			if err != nil {
+				log.Printf("Recurring: error creating booking: %v", err)
+				continue
+			}
+
+			created++
+
+			// Notify trainer about new booking
+			if api.NotifyBookingFunc != nil {
+				if err := api.NotifyBookingFunc(booking); err != nil {
+					log.Printf("Recurring: error notifying trainer: %v", err)
+				}
+				time.Sleep(100 * time.Millisecond) // avoid Telegram rate limits
+			}
+		}
+	}
+
+	if created > 0 {
+		log.Printf("Recurring: created %d booking(s) from %d active schedule(s)", created, len(schedules))
 	}
 }
 
