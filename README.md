@@ -101,10 +101,12 @@ sudo ss -tlnp | grep 8080
 ```
 /root/sport-app/
 ├── docker-compose.yml
-├── bot/
-│   └── .env              # environment variables
-└── bot-data/
-    └── scheduler.db      # SQLite database (persistent)
+├── .env                  # production env
+├── .env.dev              # dev env
+├── bot-data/
+│   └── scheduler.db      # production database
+└── bot-data-dev/
+    └── scheduler.db      # dev database
 ```
 
 ### docker-compose.yml
@@ -117,18 +119,31 @@ services:
     volumes:
       - ./bot-data:/data
     env_file:
-      - bot/.env
+      - .env
     environment:
       - DATABASE_PATH=/data/scheduler.db
+    restart: unless-stopped
+
+  bot-dev:
+    image: rainingman/scheduler-bot:dev
+    network_mode: host
+    volumes:
+      - ./bot-data-dev:/data
+    env_file:
+      - .env.dev
+    environment:
+      - DATABASE_PATH=/data/scheduler.db
+      - PORT=8081
     restart: unless-stopped
 ```
 
 Key points:
 - `network_mode: host` — container shares host network (avoids Docker DNS issues)
 - `DATABASE_PATH=/data/scheduler.db` — always set in compose, never relies on `.env`
-- `./bot-data:/data` — SQLite persists on host at `./bot-data/scheduler.db`
+- Production and dev have completely separate databases and env files
+- Production on port 8080, dev on port 8081
 
-### bot/.env
+### .env (production)
 
 ```env
 PUBLIC_BASE_URL=https://sport-app.rainingman.online
@@ -137,6 +152,17 @@ MASTER_BOT_TOKEN=your-master-bot-token
 MASTER_WEBHOOK_SECRET=your-fixed-secret-hex-string
 ADMIN_IDS=[your-telegram-id]
 ENCRYPTION_KEY=your-64-char-hex-string
+```
+
+### .env.dev
+
+```env
+TELEGRAM_BOT_TOKEN=your-dev-bot-token
+TRAINER_TELEGRAM_ID=your-telegram-id
+TRAINER_NAME=Your Name
+PUBLIC_BASE_URL=https://dev-sport-app.rainingman.online
+WEB_APP_URL=https://your-vercel-preview-url
+WEBHOOK_SECRET=dev-secret-123
 ```
 
 Generate secrets once and never change them:
@@ -150,6 +176,10 @@ openssl rand -hex 32   # for ENCRYPTION_KEY
 ```
 sport-app.rainingman.online {
     reverse_proxy localhost:8080
+}
+
+dev-sport-app.rainingman.online {
+    reverse_proxy localhost:8081
 }
 ```
 
@@ -272,7 +302,45 @@ The `MASTER_WEBHOOK_SECRET` in `.env` must be set. Without it, a random secret i
 
 ## Development
 
-### Mini-app
+### Branches
+- `main` — production, deploy with `:latest` Docker tag
+- `dev` — development, deploy with `:dev` Docker tag
+
+### Workflow
+
+```bash
+# Work on dev branch
+git checkout dev
+
+# Make changes, verify builds
+cd bot && go build ./...
+cd ../mini-app && bun run build
+
+# Build and push dev Docker image
+cd ../bot
+docker build --platform linux/amd64 -t rainingman/scheduler-bot:dev .
+docker push rainingman/scheduler-bot:dev
+
+# Deploy dev on server
+ssh root@your-vps "cd /root/sport-app && docker pull rainingman/scheduler-bot:dev && docker compose up -d bot-dev"
+
+# Frontend: push to dev branch, Vercel auto-deploys preview
+
+# When tested — promote to production
+git checkout main && git merge dev && git push
+docker build --platform linux/amd64 -t rainingman/scheduler-bot:latest bot/
+docker push rainingman/scheduler-bot:latest
+```
+
+### Versioning
+
+Update `bot/version.go` before each production release:
+- Bump `Version` (semver)
+- Update `Changelog` with what's new (shown to users on /start)
+
+### Local development
+
+#### Mini-app
 ```bash
 cd mini-app
 bun install
@@ -280,7 +348,7 @@ bun dev           # http://localhost:3000
 bun build         # production build
 ```
 
-### Bot
+#### Bot
 ```bash
 cd bot
 go run .          # requires env vars

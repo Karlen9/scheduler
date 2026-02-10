@@ -14,6 +14,8 @@ import (
 type Handler struct {
 	Bot       *Bot
 	WebAppURL string
+	Version   string
+	Changelog string
 }
 
 // NewHandler creates a new Handler
@@ -64,7 +66,7 @@ func (h *Handler) handleStart(msg *Message) {
 				{{Text: BtnOpenApp, WebApp: &WebAppInfo{URL: clientURL}}},
 			},
 		}
-		_, err = h.Bot.SendMessage(msg.Chat.ID, MsgWelcomeTrainer, keyboard)
+		_, err = h.Bot.SendMessage(msg.Chat.ID, FormatWelcomeTrainer(h.Version, h.Changelog), keyboard)
 		if err != nil {
 			log.Printf("Error sending trainer start message: %v", err)
 		}
@@ -73,7 +75,7 @@ func (h *Handler) handleStart(msg *Message) {
 
 	// Regular client
 	webAppURL := h.WebAppURL + "?trainer=" + trainer.ID
-	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, MsgWelcome, webAppURL)
+	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, FormatWelcome(h.Version, h.Changelog), webAppURL)
 	if err != nil {
 		log.Printf("Error sending start message: %v", err)
 	}

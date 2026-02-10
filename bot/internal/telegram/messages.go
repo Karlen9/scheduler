@@ -79,14 +79,37 @@ func bookingServiceDisplay(booking *models.Booking) string {
 	return "Тренировка"
 }
 
-// MsgWelcome is the welcome message for /start (clients)
+// MsgWelcome is the welcome message for /start (clients).
+// Use FormatWelcome() to include version info.
 const MsgWelcome = "Добро пожаловать! Нажмите кнопку ниже, чтобы открыть приложение для записи."
 
-// MsgWelcomeTrainer is the welcome message for /start (trainer)
-const MsgWelcomeTrainer = `👋 С возвращением!
+// FormatWelcome creates a welcome message with version and changelog
+func FormatWelcome(version, changelog string) string {
+	if version == "" {
+		return MsgWelcome
+	}
+	msg := MsgWelcome + fmt.Sprintf("\n\n📌 Версия %s", version)
+	if changelog != "" {
+		msg += "\n🆕 Что нового:\n" + changelog
+	}
+	return msg
+}
+
+// FormatWelcomeTrainer creates a trainer welcome message with version and changelog
+func FormatWelcomeTrainer(version, changelog string) string {
+	msg := `👋 С возвращением!
 
 🔧 Панель управления — настройки, расписание и записи клиентов.
 📅 Записаться — посмотреть как видят бота ваши клиенты.`
+
+	if version != "" {
+		msg += fmt.Sprintf("\n\n📌 Версия %s", version)
+		if changelog != "" {
+			msg += "\n🆕 Что нового:\n" + changelog
+		}
+	}
+	return msg
+}
 
 // MsgHelp is the help message
 const MsgHelp = `Используйте /start чтобы открыть приложение для записи.

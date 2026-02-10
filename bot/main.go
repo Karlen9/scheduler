@@ -55,6 +55,8 @@ func (m *BotManager) RegisterBot(trainer *models.Trainer) error {
 	}
 
 	handler := telegram.NewHandler(bot, m.webAppURL)
+	handler.Version = Version
+	handler.Changelog = Changelog
 
 	// Clear any stale webhook/pending updates before setting new one
 	if err := bot.DeleteWebhook(true); err != nil {
