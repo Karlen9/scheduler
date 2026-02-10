@@ -1,0 +1,24 @@
+[
+  {
+    "id": "redeploy",
+    "execute-command": "/scripts/redeploy.sh",
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "39ff79dfff62e71312b3690764c4088ebb8bf1670d7870416ed32fd6e3b835a6",
+        "parameter": { "source": "url", "name": "token" }
+      }
+    }
+  },
+  {
+    "id": "redeploy-dev",
+    "execute-command": "/scripts/redeploy-dev.sh",
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "dev-a7c3e9f1b4d2086e5f39c1d7a8b204e6f3c9a1d5e7b8024f6a3c1d9e5b7084a",
+        "parameter": { "source": "url", "name": "token" }
+      }
+    }
+  }
+]

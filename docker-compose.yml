@@ -9,3 +9,15 @@ services:
     environment:
       - DATABASE_PATH=/data/scheduler.db
     restart: unless-stopped
+
+  bot-dev:
+    image: rainingman/scheduler-bot:dev
+    network_mode: host
+    volumes:
+      - ./bot-data-dev:/data
+    env_file:
+      - bot/.env.dev
+    environment:
+      - DATABASE_PATH=/data/scheduler.db
+      - PORT=8081
+    restart: unless-stopped
