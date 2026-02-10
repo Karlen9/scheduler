@@ -155,6 +155,7 @@ func migrate() error {
 		`ALTER TABLE clients ADD COLUMN notify_days_off INTEGER DEFAULT 0`,
 		`ALTER TABLE trainers ADD COLUMN notify_new_bookings INTEGER DEFAULT 1`,
 		`ALTER TABLE trainers ADD COLUMN notify_cancellations INTEGER DEFAULT 1`,
+		`ALTER TABLE clients ADD COLUMN notify_waitlist INTEGER DEFAULT 1`,
 	}
 
 	for _, migration := range alterMigrations {

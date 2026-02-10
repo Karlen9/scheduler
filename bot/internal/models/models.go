@@ -35,6 +35,7 @@ type Client struct {
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`
 	NotifyDaysOff       bool      `json:"notifyDaysOff"`
+	NotifyWaitlist      bool      `json:"notifyWaitlist"`
 	CreatedAt           time.Time `json:"createdAt"`
 }
 

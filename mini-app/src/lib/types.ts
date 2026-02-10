@@ -69,6 +69,7 @@ export interface ClientProfile {
   notifyBookingStatus?: boolean;
   notifyReminders?: boolean;
   notifyDaysOff?: boolean;
+  notifyWaitlist?: boolean;
 }
 
 export interface ClientInfo {

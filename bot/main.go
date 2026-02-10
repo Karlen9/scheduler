@@ -201,6 +201,14 @@ func main() {
 		if err != nil || trainer == nil {
 			return err
 		}
+		client, err := db.GetClientByID(entry.ClientID)
+		if err != nil || client == nil {
+			return err
+		}
+		if !client.NotifyWaitlist {
+			log.Printf("Skipping waitlist offer notification for client %s (disabled)", client.Name)
+			return nil
+		}
 		handler := botManager.GetHandler(trainer.WebhookSecret)
 		if handler == nil {
 			log.Printf("No handler found for trainer %s", trainer.Name)
@@ -214,6 +222,14 @@ func main() {
 		trainer, err := db.GetTrainerByID(entry.TrainerID)
 		if err != nil || trainer == nil {
 			return err
+		}
+		client, err := db.GetClientByID(entry.ClientID)
+		if err != nil || client == nil {
+			return err
+		}
+		if !client.NotifyWaitlist {
+			log.Printf("Skipping waitlist expired notification for client %s (disabled)", client.Name)
+			return nil
 		}
 		handler := botManager.GetHandler(trainer.WebhookSecret)
 		if handler == nil {

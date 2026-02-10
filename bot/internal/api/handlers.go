@@ -539,6 +539,7 @@ type ClientProfileResponse struct {
 	NotifyBookingStatus bool   `json:"notifyBookingStatus"`
 	NotifyReminders     bool   `json:"notifyReminders"`
 	NotifyDaysOff       bool   `json:"notifyDaysOff"`
+	NotifyWaitlist      bool   `json:"notifyWaitlist"`
 }
 
 type UpdateClientProfileRequest struct {
@@ -562,6 +563,7 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyBookingStatus: client.NotifyBookingStatus,
 		NotifyReminders:     client.NotifyReminders,
 		NotifyDaysOff:       client.NotifyDaysOff,
+		NotifyWaitlist:      client.NotifyWaitlist,
 	}
 
 	writeJSON(w, resp)
@@ -620,6 +622,7 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
+		NotifyWaitlist:      updated.NotifyWaitlist,
 	}
 
 	writeJSON(w, resp)
@@ -631,6 +634,7 @@ type UpdateClientNotificationPrefsRequest struct {
 	NotifyBookingStatus *bool `json:"notifyBookingStatus"`
 	NotifyReminders     *bool `json:"notifyReminders"`
 	NotifyDaysOff       *bool `json:"notifyDaysOff"`
+	NotifyWaitlist      *bool `json:"notifyWaitlist"`
 }
 
 func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request) {
@@ -658,8 +662,12 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 	if req.NotifyDaysOff != nil {
 		notifyDaysOff = *req.NotifyDaysOff
 	}
+	notifyWaitlist := client.NotifyWaitlist
+	if req.NotifyWaitlist != nil {
+		notifyWaitlist = *req.NotifyWaitlist
+	}
 
-	if err := db.UpdateClientNotificationPrefs(client.ID, notifyBookingStatus, notifyReminders, notifyDaysOff); err != nil {
+	if err := db.UpdateClientNotificationPrefs(client.ID, notifyBookingStatus, notifyReminders, notifyDaysOff, notifyWaitlist); err != nil {
 		log.Printf("Error updating notification prefs: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
@@ -679,6 +687,7 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
+		NotifyWaitlist:      updated.NotifyWaitlist,
 	}
 	writeJSON(w, resp)
 }

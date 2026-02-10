@@ -17,6 +17,7 @@ export default function ClientProfilePage() {
   const [notifyBookingStatus, setNotifyBookingStatus] = useState(true);
   const [notifyReminders, setNotifyReminders] = useState(true);
   const [notifyDaysOff, setNotifyDaysOff] = useState(false);
+  const [notifyWaitlist, setNotifyWaitlist] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +33,7 @@ export default function ClientProfilePage() {
         setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
         setNotifyReminders(profile.notifyReminders ?? true);
         setNotifyDaysOff(profile.notifyDaysOff ?? false);
+        setNotifyWaitlist(profile.notifyWaitlist ?? true);
       } catch (err) {
         console.error("Failed to fetch profile:", err);
         toast.error("Ошибка загрузки профиля");
@@ -56,13 +58,14 @@ export default function ClientProfilePage() {
   };
 
   const handleToggleNotification = async (
-    key: "notifyBookingStatus" | "notifyReminders" | "notifyDaysOff",
+    key: "notifyBookingStatus" | "notifyReminders" | "notifyDaysOff" | "notifyWaitlist",
     value: boolean,
   ) => {
     const setters = {
       notifyBookingStatus: setNotifyBookingStatus,
       notifyReminders: setNotifyReminders,
       notifyDaysOff: setNotifyDaysOff,
+      notifyWaitlist: setNotifyWaitlist,
     };
     setters[key](value);
     try {
@@ -159,6 +162,7 @@ export default function ClientProfilePage() {
             { key: "notifyBookingStatus" as const, label: "Статус записи", desc: "Подтверждение и отмена записей", value: notifyBookingStatus },
             { key: "notifyReminders" as const, label: "Напоминания", desc: "За час до тренировки", value: notifyReminders },
             { key: "notifyDaysOff" as const, label: "Выходные тренера", desc: "Новые выходные дни", value: notifyDaysOff },
+            { key: "notifyWaitlist" as const, label: "Лист ожидания", desc: "Свободные места из очереди", value: notifyWaitlist },
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between px-4 py-3">
               <div>

@@ -12,9 +12,9 @@ func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Clien
 	var c models.Client
 	var phone sql.NullString
 	var preferredDuration sql.NullInt64
-	var notifyBookingStatus, notifyReminders, notifyDaysOff sql.NullInt64
+	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyWaitlist sql.NullInt64
 	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &preferredDuration,
-		&notifyBookingStatus, &notifyReminders, &notifyDaysOff, &c.CreatedAt)
+		&notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyWaitlist, &c.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -27,12 +27,13 @@ func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Clien
 	c.NotifyBookingStatus = !notifyBookingStatus.Valid || notifyBookingStatus.Int64 == 1
 	c.NotifyReminders = !notifyReminders.Valid || notifyReminders.Int64 == 1
 	c.NotifyDaysOff = notifyDaysOff.Valid && notifyDaysOff.Int64 == 1
+	c.NotifyWaitlist = !notifyWaitlist.Valid || notifyWaitlist.Int64 == 1
 	return &c, nil
 }
 
 func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
 	row := DB.QueryRow(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE telegram_user_id = ? AND trainer_id = ?
 	`, telegramUserID, trainerID)
@@ -49,7 +50,7 @@ func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Clie
 
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE id = ?
 	`, id)
@@ -99,9 +100,9 @@ func UpdateClientProfile(clientID string, name string, phone string, preferredDu
 	return err
 }
 
-func UpdateClientNotificationPrefs(clientID string, notifyBookingStatus, notifyReminders, notifyDaysOff bool) error {
-	_, err := DB.Exec(`UPDATE clients SET notify_booking_status = ?, notify_reminders = ?, notify_days_off = ? WHERE id = ?`,
-		boolToInt(notifyBookingStatus), boolToInt(notifyReminders), boolToInt(notifyDaysOff), clientID)
+func UpdateClientNotificationPrefs(clientID string, notifyBookingStatus, notifyReminders, notifyDaysOff, notifyWaitlist bool) error {
+	_, err := DB.Exec(`UPDATE clients SET notify_booking_status = ?, notify_reminders = ?, notify_days_off = ?, notify_waitlist = ? WHERE id = ?`,
+		boolToInt(notifyBookingStatus), boolToInt(notifyReminders), boolToInt(notifyDaysOff), boolToInt(notifyWaitlist), clientID)
 	return err
 }
 
@@ -114,7 +115,7 @@ func boolToInt(b bool) int {
 
 func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 	rows, err := DB.Query(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE trainer_id = ?
 		ORDER BY name ASC
