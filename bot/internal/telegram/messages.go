@@ -60,21 +60,24 @@ func formatDuration(minutes int) string {
 }
 
 func bookingDurationDisplay(booking *models.Booking) string {
-	if booking.DurationMinutes > 0 {
-		return formatDuration(booking.DurationMinutes)
-	}
 	if booking.SessionType != nil {
 		return booking.SessionType.Name
+	}
+	if booking.DurationMinutes > 0 {
+		return formatDuration(booking.DurationMinutes)
 	}
 	return "Тренировка"
 }
 
 func bookingServiceDisplay(booking *models.Booking) string {
+	if booking.SessionType != nil {
+		if booking.DurationMinutes > 0 {
+			return fmt.Sprintf("%s (%s)", booking.SessionType.Name, formatDuration(booking.DurationMinutes))
+		}
+		return booking.SessionType.Name
+	}
 	if booking.DurationMinutes > 0 {
 		return fmt.Sprintf("Тренировка %s", formatDuration(booking.DurationMinutes))
-	}
-	if booking.SessionType != nil {
-		return booking.SessionType.Name
 	}
 	return "Тренировка"
 }
@@ -241,6 +244,15 @@ func FormatReminderClient(booking *models.Booking) string {
 		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
+}
+
+// FormatRecurringBatchMessage creates a summary message for recurring bookings created in batch
+func FormatRecurringBatchMessage(clientName string, serviceName string, bookings []*models.Booking) string {
+	msg := fmt.Sprintf("🔄 Новые записи по расписанию\n👤 %s\n📋 %s\n", clientName, serviceName)
+	for _, b := range bookings {
+		msg += fmt.Sprintf("\n📅 %s", formatDateTime(b.StartsAt))
+	}
+	return msg
 }
 
 // ========== Trainer-Initiated Booking Messages ==========

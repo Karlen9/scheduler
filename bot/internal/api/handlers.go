@@ -19,6 +19,9 @@ var NotifyBookingFunc func(booking *models.Booking) error
 // NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin panel
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 
+// NotifyRecurringBatchFunc is a callback to send a batch summary for recurring bookings
+var NotifyRecurringBatchFunc func(trainerID, clientName, serviceName string, bookings []*models.Booking) error
+
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
 	ID              string `json:"id"`

@@ -93,6 +93,29 @@ func (m *BotManager) GetHandler(webhookSecret string) *telegram.Handler {
 	return m.handlers[webhookSecret]
 }
 
+// GetOrLoadHandler returns the handler for the given webhook secret,
+// lazy-loading from DB if not found in memory (e.g. after failed registration).
+func (m *BotManager) GetOrLoadHandler(webhookSecret string) *telegram.Handler {
+	// Fast path: already registered
+	if h := m.GetHandler(webhookSecret); h != nil {
+		return h
+	}
+
+	// Slow path: look up trainer in DB and register on-the-fly
+	trainer, err := db.GetTrainerByWebhookSecret(webhookSecret)
+	if err != nil || trainer == nil {
+		return nil
+	}
+
+	log.Printf("Lazy-loading bot for trainer %s (webhook handler was missing)", trainer.Name)
+	if err := m.RegisterBot(trainer); err != nil {
+		log.Printf("Failed to lazy-load bot for trainer %s: %v", trainer.Name, err)
+		return nil
+	}
+
+	return m.GetHandler(webhookSecret)
+}
+
 func (m *BotManager) GetBot(webhookSecret string) *telegram.Bot {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -219,6 +242,24 @@ func main() {
 		return handler.NotifyClientTrainerBooking(booking)
 	}
 
+	// Set up recurring batch notification callback
+	api.NotifyRecurringBatchFunc = func(trainerID, clientName, serviceName string, bookings []*models.Booking) error {
+		trainer, err := db.GetTrainerByID(trainerID)
+		if err != nil || trainer == nil {
+			return err
+		}
+		if !trainer.NotifyNewBookings {
+			log.Printf("Skipping recurring batch notification for trainer %s (disabled)", trainer.Name)
+			return nil
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
+			return nil
+		}
+		return handler.NotifyTrainerRecurringBatch(trainer.TelegramUserID, clientName, serviceName, bookings)
+	}
+
 	// Set up waitlist offer notification callback
 	api.NotifyWaitlistOfferFunc = func(entry *models.WaitlistEntry) error {
 		trainer, err := db.GetTrainerByID(entry.TrainerID)
@@ -327,7 +368,7 @@ func main() {
 				return
 			}
 
-			h := botManager.GetHandler(secret)
+			h := botManager.GetOrLoadHandler(secret)
 			if h == nil {
 				log.Printf("Webhook rejected: no handler for secret %s...", secret[:8])
 				http.Error(w, "bot not found", http.StatusNotFound)
@@ -597,15 +638,20 @@ func processRecurringSchedules() {
 			continue
 		}
 		sessionTypeID := services[0].ID
+		serviceName := services[0].Name
 		for _, s := range services {
 			if s.DurationMinutes == schedule.DurationMinutes {
 				sessionTypeID = s.ID
+				serviceName = s.Name
 				break
 			}
 		}
 
 		// Parse schedule time
 		timeParts := api.ParseTime(schedule.Time)
+
+		// Collect bookings created for this schedule
+		var batchBookings []*models.Booking
 
 		// Iterate from tomorrow to horizon
 		for d := tomorrow; d.Before(horizon); d = d.AddDate(0, 0, 1) {
@@ -660,13 +706,13 @@ func processRecurringSchedules() {
 			}
 
 			created++
+			batchBookings = append(batchBookings, booking)
+		}
 
-			// Notify trainer about new booking
-			if api.NotifyBookingFunc != nil {
-				if err := api.NotifyBookingFunc(booking); err != nil {
-					log.Printf("Recurring: error notifying trainer: %v", err)
-				}
-				time.Sleep(100 * time.Millisecond) // avoid Telegram rate limits
+		// Send one batch notification per schedule
+		if len(batchBookings) > 0 && api.NotifyRecurringBatchFunc != nil {
+			if err := api.NotifyRecurringBatchFunc(schedule.TrainerID, schedule.ClientName, serviceName, batchBookings); err != nil {
+				log.Printf("Recurring: error sending batch notification: %v", err)
 			}
 		}
 	}

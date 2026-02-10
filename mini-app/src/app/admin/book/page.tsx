@@ -5,17 +5,18 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
-import { DurationSelector, formatDuration } from "@/components/DurationSelector";
+import { ServiceSelector } from "@/components/ServiceSelector";
 import { CalendarView } from "@/components/CalendarView";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SuccessModal } from "@/components/SuccessModal";
 import { EmptyState } from "@/components/EmptyState";
+import { formatDuration } from "@/components/DurationSelector";
 import { api } from "@/lib/api";
-import { ClientInfo, TimeSlot } from "@/lib/types";
+import { ClientInfo, SessionType, TimeSlot } from "@/lib/types";
 import { getAvatarColor } from "@/lib/colors";
 
-type Step = "client" | "duration" | "date" | "time";
+type Step = "client" | "service" | "date" | "time";
 
 export default function AdminBookPage() {
   const router = useRouter();
@@ -27,9 +28,9 @@ export default function AdminBookPage() {
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Duration
-  const [durations, setDurations] = useState<number[]>([]);
-  const [selectedDuration, setSelectedDuration] = useState<number>(0);
+  // Service
+  const [services, setServices] = useState<SessionType[]>([]);
+  const [selectedService, setSelectedService] = useState<SessionType | null>(null);
 
   // Date & time
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -50,20 +51,16 @@ export default function AdminBookPage() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [clientsData, durationsData, workingHours, daysOffData] =
+        const [clientsData, servicesData, workingHours, daysOffData] =
           await Promise.all([
             api.admin.getClients(),
-            api.admin.getDurations(),
+            api.admin.getServices(),
             api.getWorkingHours(),
             api.getDaysOff(),
           ]);
 
         setClients(clientsData);
-        setDurations(durationsData);
-
-        if (durationsData.length > 0) {
-          setSelectedDuration(durationsData[0]);
-        }
+        setServices(servicesData);
 
         const workingDaySet = new Set(workingHours.map((wh) => wh.dayOfWeek));
         const nonWorking: number[] = [];
@@ -125,33 +122,33 @@ export default function AdminBookPage() {
     [],
   );
 
-  // Re-fetch slots when duration changes and a date is already selected
+  // Re-fetch slots when service changes and a date is already selected
   useEffect(() => {
-    if (selectedDate && selectedDuration && step === "time") {
-      fetchSlots(selectedDate, selectedDuration);
+    if (selectedDate && selectedService && step === "time") {
+      fetchSlots(selectedDate, selectedService.durationMinutes);
     }
-  }, [selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedService]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectClient = (client: ClientInfo) => {
     setSelectedClient(client);
-    setStep("duration");
+    setStep("service");
   };
 
-  const handleDurationNext = () => {
-    if (selectedDuration) {
+  const handleServiceNext = () => {
+    if (selectedService) {
       setStep("date");
     }
   };
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    if (selectedDuration) {
-      fetchSlots(date, selectedDuration);
+    if (selectedService) {
+      fetchSlots(date, selectedService.durationMinutes);
     }
   };
 
   const handleConfirm = async () => {
-    if (!selectedClient || !selectedDate || !selectedTime || !selectedDuration)
+    if (!selectedClient || !selectedDate || !selectedTime || !selectedService)
       return;
 
     setIsSubmitting(true);
@@ -159,7 +156,7 @@ export default function AdminBookPage() {
       const dateStr = formatDateISO(selectedDate);
       await api.admin.createBooking({
         clientId: selectedClient.id,
-        duration: selectedDuration,
+        duration: selectedService.durationMinutes,
         date: dateStr,
         time: selectedTime,
         message: message || undefined,
@@ -184,9 +181,9 @@ export default function AdminBookPage() {
       setStep("date");
       setSelectedTime(null);
     } else if (step === "date") {
-      setStep("duration");
+      setStep("service");
       setSelectedDate(null);
-    } else if (step === "duration") {
+    } else if (step === "service") {
       setStep("client");
       setSelectedClient(null);
     } else {
@@ -212,14 +209,14 @@ export default function AdminBookPage() {
     return `${date.getDate()} ${months[date.getMonth()]}`;
   };
 
-  const canConfirm = selectedClient && selectedDate && selectedTime && !isSubmitting;
+  const canConfirm = selectedClient && selectedDate && selectedTime && selectedService && !isSubmitting;
 
   const stepTitle = () => {
     switch (step) {
       case "client":
         return "Выберите клиента";
-      case "duration":
-        return "Выберите длительность";
+      case "service":
+        return "Выберите услугу";
       case "date":
         return "Выберите дату";
       case "time":
@@ -264,14 +261,14 @@ export default function AdminBookPage() {
                   {selectedClient.name}
                 </button>
               )}
-              {selectedClient && selectedDuration > 0 && step !== "client" && step !== "duration" && (
+              {selectedClient && selectedService && step !== "client" && step !== "service" && (
                 <>
                   <span>&rarr;</span>
                   <button
-                    onClick={() => { setStep("duration"); setSelectedDate(null); setSelectedTime(null); }}
+                    onClick={() => { setStep("service"); setSelectedDate(null); setSelectedTime(null); }}
                     className="text-primary underline underline-offset-2"
                   >
-                    {formatDuration(selectedDuration)}
+                    {selectedService.name}
                   </button>
                 </>
               )}
@@ -301,7 +298,7 @@ export default function AdminBookPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Поиск по имени или телефону"
-                    className="w-full pl-10 pr-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand text-sm"
+                    className="w-full pl-10 pr-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand text-base"
                   />
                 </div>
                 {filteredClients.length === 0 ? (
@@ -348,16 +345,16 @@ export default function AdminBookPage() {
               </div>
             )}
 
-            {/* Step: Select Duration */}
-            {step === "duration" && (
+            {/* Step: Select Service */}
+            {step === "service" && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-2">
                   {stepTitle()}
                 </h3>
-                <DurationSelector
-                  durations={durations}
-                  selected={selectedDuration}
-                  onChange={setSelectedDuration}
+                <ServiceSelector
+                  services={services}
+                  selectedId={selectedService?.id ?? ""}
+                  onChange={setSelectedService}
                 />
               </div>
             )}
@@ -441,7 +438,7 @@ export default function AdminBookPage() {
                   placeholder="Комментарий к записи (необязательно)"
                   rows={2}
                   maxLength={500}
-                  className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand resize-none text-sm"
+                  className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand resize-none text-base"
                 />
               </div>
             )}
@@ -449,15 +446,15 @@ export default function AdminBookPage() {
         )}
       </div>
 
-      {/* Duration step: Next button */}
-      {step === "duration" && (
+      {/* Service step: Next button */}
+      {step === "service" && (
         <div
           className="fixed bottom-[88px] left-0 right-0 p-4 bg-background border-t border-border"
           style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
         >
           <PrimaryButton
-            onClick={handleDurationNext}
-            disabled={!selectedDuration}
+            onClick={handleServiceNext}
+            disabled={!selectedService}
           >
             Далее
           </PrimaryButton>
@@ -483,7 +480,7 @@ export default function AdminBookPage() {
         isOpen={showSuccess}
         onClose={handleSuccessClose}
         title="Запись создана"
-        description={`${selectedClient?.name} записан(а) на ${selectedDate ? formatDate(selectedDate) : ""} в ${selectedTime}${selectedDuration ? ` (${formatDuration(selectedDuration)})` : ""}.`}
+        description={`${selectedClient?.name} записан(а) на ${selectedDate ? formatDate(selectedDate) : ""} в ${selectedTime}${selectedService ? ` — ${selectedService.name}` : ""}.`}
       />
     </div>
   );

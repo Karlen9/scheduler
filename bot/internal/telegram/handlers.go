@@ -472,6 +472,13 @@ func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 	return err
 }
 
+// NotifyTrainerRecurringBatch sends a single summary message for recurring bookings
+func (h *Handler) NotifyTrainerRecurringBatch(trainerTelegramID int64, clientName, serviceName string, bookings []*models.Booking) error {
+	text := FormatRecurringBatchMessage(clientName, serviceName, bookings)
+	_, err := h.Bot.SendMessage(trainerTelegramID, text, nil)
+	return err
+}
+
 // ========== Trainer-Initiated Booking Handlers ==========
 
 // NotifyClientTrainerBooking sends a trainer-created booking confirmation request to client

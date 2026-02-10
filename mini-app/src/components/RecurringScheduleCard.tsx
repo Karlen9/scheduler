@@ -2,10 +2,11 @@
 
 import { Clock, Repeat, User, Pause, Play, X } from "lucide-react";
 import { formatDuration } from "@/components/DurationSelector";
-import { RecurringSchedule } from "@/lib/types";
+import { RecurringSchedule, SessionType } from "@/lib/types";
 
 interface RecurringScheduleCardProps {
   schedule: RecurringSchedule;
+  services?: SessionType[];
   onCancel?: (schedule: RecurringSchedule) => void;
   onPause?: (schedule: RecurringSchedule) => void;
   onResume?: (schedule: RecurringSchedule) => void;
@@ -27,8 +28,17 @@ const statusConfig: Record<string, { label: string; color: string; border: strin
   cancelled: { label: "Отменено", color: "bg-gray-700/30 text-gray-400", border: "border-gray-500" },
 };
 
+function getServiceName(durationMinutes: number, services?: SessionType[]): string {
+  if (services && services.length > 0) {
+    const match = services.find((s) => s.durationMinutes === durationMinutes);
+    if (match) return match.name;
+  }
+  return formatDuration(durationMinutes);
+}
+
 export function RecurringScheduleCard({
   schedule,
+  services,
   onCancel,
   onPause,
   onResume,
@@ -62,7 +72,7 @@ export function RecurringScheduleCard({
             <Clock className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-foreground">
               {schedule.time}
-              <span className="text-muted-foreground"> · {formatDuration(schedule.durationMinutes)}</span>
+              <span className="text-muted-foreground"> · {getServiceName(schedule.durationMinutes, services)}</span>
             </span>
           </div>
         </div>
