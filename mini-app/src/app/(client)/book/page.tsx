@@ -13,7 +13,7 @@ import { SuccessModal } from "@/components/SuccessModal";
 import { EmptyState } from "@/components/EmptyState";
 import { api } from "@/lib/api";
 import { getUserName } from "@/lib/telegram";
-import { TimeSlot } from "@/lib/types";
+import { TimeSlot, WaitlistEntry } from "@/lib/types";
 import { formatDuration } from "@/components/DurationSelector";
 
 function BookingPageContent() {
@@ -42,6 +42,7 @@ function BookingPageContent() {
   const [daysOff, setDaysOff] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
 
   // Fetch working hours, days off, durations, and profile on mount
   useEffect(() => {
@@ -97,8 +98,12 @@ function BookingPageContent() {
       setSelectedTime(null);
       try {
         const dateStr = formatDateISO(date);
-        const slots = await api.getAvailableSlots(dateStr, duration);
+        const [slots, wlEntries] = await Promise.all([
+          api.getAvailableSlots(dateStr, duration),
+          api.getWaitlist().catch(() => [] as WaitlistEntry[]),
+        ]);
         setTimeSlots(slots);
+        setWaitlistEntries(wlEntries);
 
         const hasAvailableSlots = slots.some((slot) => slot.available);
         setNoSlotsAvailable(!hasAvailableSlots);
@@ -141,10 +146,32 @@ function BookingPageContent() {
   const handleJoinWaitlist = async (time: string) => {
     if (!selectedDate || !selectedDuration) return;
 
-    // Check if already in queue
     const slot = timeSlots.find((s) => s.time === time);
+
+    // Toggle: if already in queue, leave it
     if (slot?.hasMyWaitlist) {
-      toast.info("Вы уже в очереди на это время");
+      const dateStr = formatDateISO(selectedDate);
+      // Find matching waitlist entry by comparing time
+      const matchingEntry = waitlistEntries.find((e) => {
+        const entryTime = new Date(e.startsAt).toLocaleTimeString("ru-RU", {
+          hour: "2-digit", minute: "2-digit", timeZone: "UTC",
+        });
+        const entryDate = e.startsAt.split("T")[0];
+        return entryTime === time && entryDate === dateStr;
+      });
+
+      if (!matchingEntry) {
+        toast.error("Не удалось найти запись в очереди");
+        return;
+      }
+
+      try {
+        await api.leaveWaitlist(matchingEntry.id);
+        toast.success("Вы покинули очередь");
+        fetchSlots(selectedDate, selectedDuration);
+      } catch {
+        toast.error("Не удалось покинуть очередь");
+      }
       return;
     }
 
@@ -152,7 +179,6 @@ function BookingPageContent() {
       const dateStr = formatDateISO(selectedDate);
       const entry = await api.joinWaitlist(selectedDuration, dateStr, time);
       toast.success(`Вы в очереди! Позиция: ${entry.position || 1}`);
-      // Refresh slots to update hasMyWaitlist
       fetchSlots(selectedDate, selectedDuration);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Не удалось встать в очередь";
