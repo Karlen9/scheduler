@@ -189,21 +189,23 @@ export default function ProfilePage() {
               value={gymCoords}
               onChange={(e) => setGymCoords(e.target.value)}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
               placeholder="47.230380, 38.868990"
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
               Откройте Яндекс Карты, нажмите на точку на карте и скопируйте координаты
 =======
+=======
+>>>>>>> Stashed changes
               placeholder="55.753207, 37.618493"
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
               Откройте Яндекс Карты, нажмите на здание на карте (не на организацию) и скопируйте координаты
->>>>>>> Stashed changes
             </p>
           </div>
-        </div>
+        </div> 
 
         {/* Save Button */}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>
