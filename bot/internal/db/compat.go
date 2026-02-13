@@ -25,11 +25,8 @@ func Q(query string) string {
 	return result.String()
 }
 
-// BoolVal returns a driver-appropriate boolean value for SQL.
-func BoolVal(b bool) interface{} {
-	if isPostgres {
-		return b
-	}
+// BoolVal returns an integer boolean value for SQL (INTEGER columns).
+func BoolVal(b bool) int {
 	if b {
 		return 1
 	}
