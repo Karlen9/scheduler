@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Repeat, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ServiceSelector } from "@/components/ServiceSelector";
 import { EmptyState } from "@/components/EmptyState";
@@ -207,26 +206,21 @@ export default function ClientRecurringPage() {
 
   if (isLoading) {
     return (
-      <div>
-        <TopBar title="Регулярные тренировки" showBack />
-        <div className="p-4 space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
-              <div className="h-4 bg-border rounded w-1/3 mb-3" />
-              <div className="h-4 bg-border rounded w-1/2 mb-2" />
-              <div className="h-4 bg-border rounded w-2/5" />
-            </div>
-          ))}
-        </div>
+      <div className="p-4 space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
+            <div className="h-4 bg-border rounded w-1/3 mb-3" />
+            <div className="h-4 bg-border rounded w-1/2 mb-2" />
+            <div className="h-4 bg-border rounded w-2/5" />
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div>
-      <TopBar title="Регулярные тренировки" showBack />
-
-      <div className="p-4 space-y-6">
+    <>
+    <div className="p-4 space-y-6">
         {/* Add Form */}
         <div className="bg-card rounded-xl p-4 space-y-4">
           <h3 className="text-sm font-medium text-foreground">
@@ -452,6 +446,6 @@ export default function ClientRecurringPage() {
         confirmText="Отменить"
         destructive
       />
-    </div>
+    </>
   );
 }

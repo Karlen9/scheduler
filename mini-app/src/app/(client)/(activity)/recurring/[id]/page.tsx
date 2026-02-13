@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Calendar, Clock, Dumbbell, Repeat, X, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDuration } from "@/components/DurationSelector";
 import { api } from "@/lib/api";
@@ -134,36 +133,30 @@ export default function RecurringScheduleDetailPage() {
   // --- Loading skeleton ---
   if (isLoading) {
     return (
-      <div>
-        <TopBar title="Расписание" showBack />
-        <div className="p-4 space-y-4">
-          <div className="bg-card rounded-xl p-4 animate-pulse">
-            <div className="h-5 bg-border rounded w-2/5 mb-4" />
-            <div className="h-4 bg-border rounded w-1/2 mb-3" />
+      <div className="p-4 space-y-4">
+        <div className="bg-card rounded-xl p-4 animate-pulse">
+          <div className="h-5 bg-border rounded w-2/5 mb-4" />
+          <div className="h-4 bg-border rounded w-1/2 mb-3" />
+          <div className="h-4 bg-border rounded w-1/3 mb-3" />
+          <div className="h-4 bg-border rounded w-2/5" />
+        </div>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
             <div className="h-4 bg-border rounded w-1/3 mb-3" />
+            <div className="h-4 bg-border rounded w-1/2 mb-2" />
             <div className="h-4 bg-border rounded w-2/5" />
           </div>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
-              <div className="h-4 bg-border rounded w-1/3 mb-3" />
-              <div className="h-4 bg-border rounded w-1/2 mb-2" />
-              <div className="h-4 bg-border rounded w-2/5" />
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     );
   }
 
   if (!schedule) {
     return (
-      <div>
-        <TopBar title="Расписание" showBack />
-        <div className="p-4">
-          <p className="text-sm text-muted-foreground text-center mt-8">
-            Расписание не найдено
-          </p>
-        </div>
+      <div className="p-4">
+        <p className="text-sm text-muted-foreground text-center mt-8">
+          Расписание не найдено
+        </p>
       </div>
     );
   }
@@ -178,9 +171,7 @@ export default function RecurringScheduleDetailPage() {
   );
 
   return (
-    <div>
-      <TopBar title="Расписание" showBack />
-
+    <>
       <div className="p-4 space-y-4">
         {/* Schedule info card */}
         <div className={`bg-card rounded-xl p-4 border-l-4 ${scheduleStatus.border}`}>
@@ -320,6 +311,6 @@ export default function RecurringScheduleDetailPage() {
         confirmText={isCancelling ? "Отправка..." : "Запросить отмену"}
         destructive
       />
-    </div>
+    </>
   );
 }

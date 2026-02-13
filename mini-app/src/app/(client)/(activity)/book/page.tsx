@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
 import { DurationSelector } from "@/components/DurationSelector";
 import { CalendarView } from "@/components/CalendarView";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
@@ -148,8 +147,6 @@ function BookingPageContent() {
 
   return (
     <div className="flex flex-col">
-      <TopBar title="Запись на тренировку" showBack />
-
       <div className="flex-1 p-4 space-y-4 pb-24">
         {isInitialLoading ? (
           <div className="space-y-4 animate-pulse">
@@ -262,23 +259,17 @@ function BookingPageContent() {
             />
           </div>
         )}
-        </>
-        )}
-      </div>
-
-      {step === "time" && !noSlotsAvailable && (
-        <div
-          className="fixed bottom-[88px] left-0 right-0 p-4 bg-background border-t border-border"
-          style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
-        >
+        {step === "time" && !noSlotsAvailable && (
           <PrimaryButton
             onClick={handleConfirm}
             disabled={!canConfirm}
           >
             {isSubmitting ? "Отправка..." : "Подтвердить запись"}
           </PrimaryButton>
-        </div>
-      )}
+        )}
+        </>
+        )}
+      </div>
 
       <SuccessModal
         isOpen={showSuccess}

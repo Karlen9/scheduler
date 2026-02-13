@@ -1,15 +1,24 @@
 "use client";
 
-import { User, DollarSign, Clock, Bell, HelpCircle, CalendarOff } from "lucide-react";
+import { Users, User, DollarSign, Clock, Bell, HelpCircle, CalendarOff } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { SettingsMenuItem, SettingsGroup } from "@/components/SettingsMenuItem";
 
 export default function SettingsPage() {
   return (
     <div>
-      <TopBar title="Настройки" />
+      <TopBar title="Профиль" />
 
       <div className="p-4">
+        <SettingsGroup title="Управление">
+          <SettingsMenuItem
+            icon={Users}
+            label="Клиенты"
+            href="/admin/clients"
+            iconColor="bg-[#a855f7]"
+          />
+        </SettingsGroup>
+
         <SettingsGroup title="Основные">
           <SettingsMenuItem
             icon={User}

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { CalendarX, ChevronDown, Repeat } from "lucide-react";
+import { CalendarX, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { BookingCard } from "@/components/BookingCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -12,7 +11,6 @@ import { api } from "@/lib/api";
 import { Booking } from "@/lib/types";
 
 export default function BookingsPage() {
-  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,16 +126,7 @@ export default function BookingsPage() {
   return (
     <div>
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-lg font-semibold">Мои записи</h2>
-          <button
-            onClick={() => router.push("/recurring")}
-            className="flex items-center gap-1.5 text-sm text-primary"
-          >
-            <Repeat className="w-4 h-4" />
-            Расписание
-          </button>
-        </div>
+        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
 
         {activeBookings.length > 0 && (
           <div>
