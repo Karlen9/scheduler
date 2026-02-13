@@ -1,6 +1,7 @@
 "use client";
 
 import { Users } from "lucide-react";
+import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { EmptyState } from "@/components/EmptyState";
 import { ClientInfo } from "@/lib/types";
 import { getAvatarColor } from "@/lib/colors";
@@ -11,7 +12,9 @@ export default function AdminClientsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 space-y-3">
+      <div>
+        <ActivityBackButton href="/admin" />
+        <div className="p-4 space-y-3">
         <h2 className="text-lg font-semibold">Клиенты</h2>
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="bg-card rounded-xl p-4 animate-pulse flex items-center gap-3">
@@ -22,6 +25,7 @@ export default function AdminClientsPage() {
             </div>
           </div>
         ))}
+        </div>
       </div>
     );
   }
@@ -29,6 +33,7 @@ export default function AdminClientsPage() {
   if (clients.length === 0) {
     return (
       <div className="flex-1 flex flex-col">
+        <ActivityBackButton href="/admin" />
         <div className="p-4">
           <h2 className="text-lg font-semibold">Клиенты</h2>
         </div>
@@ -44,7 +49,9 @@ export default function AdminClientsPage() {
   }
 
   return (
-    <div className="p-4 space-y-3">
+    <div>
+      <ActivityBackButton href="/admin" />
+      <div className="p-4 space-y-3">
       <h2 className="text-lg font-semibold">Клиенты</h2>
       {clients.map((client) => (
         <div
@@ -64,6 +71,7 @@ export default function AdminClientsPage() {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
