@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
@@ -135,10 +134,18 @@ func (h *Handler) handleCallbackQuery(cq *CallbackQuery) {
 		h.handleClientAcceptBooking(cq, bookingID)
 	case "client_decline":
 		h.handleClientDeclineBooking(cq, bookingID)
-	case "wl_accept":
-		h.handleWaitlistAccept(cq, bookingID) // bookingID is actually entryID
-	case "wl_decline":
-		h.handleWaitlistDecline(cq, bookingID) // bookingID is actually entryID
+	case "client_accept_schedule":
+		h.handleClientAcceptSchedule(cq, bookingID) // bookingID is actually scheduleID
+	case "client_decline_schedule":
+		h.handleClientDeclineSchedule(cq, bookingID) // bookingID is actually scheduleID
+	case "cancel_approve":
+		h.handleCancelApprove(cq, bookingID)
+	case "cancel_decline":
+		h.handleCancelDecline(cq, bookingID)
+	case "move_approve":
+		h.handleMoveApprove(cq, bookingID) // bookingID is actually newBookingID
+	case "move_decline":
+		h.handleMoveDecline(cq, bookingID) // bookingID is actually newBookingID
 	default:
 		h.Bot.AnswerCallbackQuery(cq.ID, "Неизвестное действие")
 	}
@@ -271,28 +278,31 @@ func (h *Handler) handleAcceptSchedule(cq *CallbackQuery, scheduleID string) {
 		return
 	}
 
-	count, err := db.ConfirmBookingsByRecurringScheduleID(scheduleID)
-	if err != nil {
-		log.Printf("Error confirming bookings for schedule %s: %v", scheduleID, err)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при подтверждении")
-		return
-	}
-
-	if count == 0 {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Нет записей для подтверждения")
+	if schedule.Status != models.RecurringScheduleStatusPending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание уже обработано")
 		if cq.Message != nil {
 			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-				FormatRecurringBatchConfirmed(schedule.ClientName, formatDuration(schedule.DurationMinutes), 0), nil)
+				FormatRecurringScheduleApproved(schedule, 0), nil)
 		}
 		return
 	}
 
-	h.Bot.AnswerCallbackQuery(cq.ID, fmt.Sprintf("Подтверждено: %d", count))
+	count, err := db.ApproveAndGenerateBookings(scheduleID)
+	if err != nil {
+		log.Printf("Error approving schedule %s: %v", scheduleID, err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при подтверждении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, fmt.Sprintf("Подтверждено: %d записей", count))
 
 	if cq.Message != nil {
 		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-			FormatRecurringBatchConfirmed(schedule.ClientName, formatDuration(schedule.DurationMinutes), count), nil)
+			FormatRecurringScheduleApproved(schedule, count), nil)
 	}
+
+	// Notify client about approval
+	h.notifyRecurringScheduleResult(schedule, true, count)
 }
 
 func (h *Handler) handleRejectSchedule(cq *CallbackQuery, scheduleID string) {
@@ -302,27 +312,138 @@ func (h *Handler) handleRejectSchedule(cq *CallbackQuery, scheduleID string) {
 		return
 	}
 
-	count, err := db.RejectBookingsByRecurringScheduleID(scheduleID)
-	if err != nil {
-		log.Printf("Error rejecting bookings for schedule %s: %v", scheduleID, err)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при отклонении")
-		return
-	}
-
-	if count == 0 {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Нет записей для отклонения")
+	if schedule.Status != models.RecurringScheduleStatusPending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание уже обработано")
 		if cq.Message != nil {
 			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-				FormatRecurringBatchRejected(schedule.ClientName, formatDuration(schedule.DurationMinutes), 0), nil)
+				FormatRecurringScheduleDeclined(schedule), nil)
 		}
 		return
 	}
 
-	h.Bot.AnswerCallbackQuery(cq.ID, fmt.Sprintf("Отклонено: %d", count))
+	if err := db.UpdateRecurringScheduleStatus(scheduleID, models.RecurringScheduleStatusDeclined); err != nil {
+		log.Printf("Error declining schedule %s: %v", scheduleID, err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при отклонении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Расписание отклонено")
 
 	if cq.Message != nil {
 		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-			FormatRecurringBatchRejected(schedule.ClientName, formatDuration(schedule.DurationMinutes), count), nil)
+			FormatRecurringScheduleDeclined(schedule), nil)
+	}
+
+	// Notify client about decline
+	h.notifyRecurringScheduleResult(schedule, false, 0)
+}
+
+// handleClientAcceptSchedule handles client accepting a trainer-created recurring schedule
+func (h *Handler) handleClientAcceptSchedule(cq *CallbackQuery, scheduleID string) {
+	schedule, err := db.GetRecurringScheduleByID(scheduleID)
+	if err != nil || schedule == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание не найдено")
+		return
+	}
+
+	if schedule.Status != models.RecurringScheduleStatusPending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание уже обработано")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatRecurringScheduleApprovedClient(schedule, 0), nil)
+		}
+		return
+	}
+
+	count, err := db.ApproveAndGenerateBookings(scheduleID)
+	if err != nil {
+		log.Printf("Error approving schedule %s: %v", scheduleID, err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при подтверждении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, fmt.Sprintf("Подтверждено: %d записей", count))
+
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			FormatRecurringScheduleApprovedClient(schedule, count), nil)
+	}
+
+	// Notify trainer that client accepted
+	h.notifyRecurringScheduleResultToTrainer(schedule, true, count)
+}
+
+// handleClientDeclineSchedule handles client declining a trainer-created recurring schedule
+func (h *Handler) handleClientDeclineSchedule(cq *CallbackQuery, scheduleID string) {
+	schedule, err := db.GetRecurringScheduleByID(scheduleID)
+	if err != nil || schedule == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание не найдено")
+		return
+	}
+
+	if schedule.Status != models.RecurringScheduleStatusPending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Расписание уже обработано")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				FormatRecurringScheduleDeclinedClient(schedule), nil)
+		}
+		return
+	}
+
+	if err := db.UpdateRecurringScheduleStatus(scheduleID, models.RecurringScheduleStatusDeclined); err != nil {
+		log.Printf("Error declining schedule %s: %v", scheduleID, err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при отклонении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Расписание отклонено")
+
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+			FormatRecurringScheduleDeclinedClient(schedule), nil)
+	}
+
+	// Notify trainer that client declined
+	h.notifyRecurringScheduleResultToTrainer(schedule, false, 0)
+}
+
+// notifyRecurringScheduleResult notifies the client about approval/decline by trainer
+func (h *Handler) notifyRecurringScheduleResult(schedule *models.RecurringSchedule, approved bool, count int) {
+	client, err := db.GetClientByID(schedule.ClientID)
+	if err != nil || client == nil {
+		log.Printf("Error getting client for schedule notification: %v", err)
+		return
+	}
+
+	var text string
+	if approved {
+		text = FormatRecurringScheduleApprovedClient(schedule, count)
+	} else {
+		text = FormatRecurringScheduleDeclinedClient(schedule)
+	}
+
+	if _, err := h.Bot.SendMessage(client.TelegramUserID, text, nil); err != nil {
+		log.Printf("Error notifying client about schedule: %v", err)
+	}
+}
+
+// notifyRecurringScheduleResultToTrainer notifies the trainer about client accept/decline
+func (h *Handler) notifyRecurringScheduleResultToTrainer(schedule *models.RecurringSchedule, accepted bool, count int) {
+	trainer, err := db.GetTrainerByID(schedule.TrainerID)
+	if err != nil || trainer == nil {
+		log.Printf("Error getting trainer for schedule notification: %v", err)
+		return
+	}
+
+	var text string
+	if accepted {
+		text = FormatRecurringScheduleApproved(schedule, count)
+	} else {
+		text = FormatRecurringScheduleDeclined(schedule)
+	}
+
+	if _, err := h.Bot.SendMessage(trainer.TelegramUserID, text, nil); err != nil {
+		log.Printf("Error notifying trainer about schedule: %v", err)
 	}
 }
 
@@ -349,183 +470,6 @@ func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus st
 	return err
 }
 
-// ========== Waitlist Handlers ==========
-
-func (h *Handler) handleWaitlistAccept(cq *CallbackQuery, entryID string) {
-	entry, err := db.GetWaitlistByID(entryID)
-	if err != nil {
-		log.Printf("Error getting waitlist entry: %v", err)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при получении записи")
-		return
-	}
-
-	if entry == nil {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
-		return
-	}
-
-	if entry.Status != models.WaitlistStatusOffered {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Предложение больше не актуально")
-		if cq.Message != nil {
-			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-				FormatWaitlistDeclinedClient(entry), nil)
-		}
-		return
-	}
-
-	// Check if slot is in the past
-	if entry.StartsAt.Before(time.Now().UTC()) {
-		db.UpdateWaitlistStatus(entryID, models.WaitlistStatusExpired)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Это время уже прошло")
-		if cq.Message != nil {
-			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-				FormatWaitlistExpiredClient(entry), nil)
-		}
-		return
-	}
-
-	// Check slot is still free
-	hasConflict, err := db.HasConflictingBooking(entry.TrainerID, entry.StartsAt, entry.EndsAt, "")
-	if err != nil || hasConflict {
-		db.UpdateWaitlistStatus(entryID, models.WaitlistStatusExpired)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Это время уже занято")
-		if cq.Message != nil {
-			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-				"❌ К сожалению, это время уже было занято.", nil)
-		}
-		return
-	}
-
-	// Check client doesn't already have booking on this day
-	hasBooking, err := db.ClientHasBookingOnDate(entry.ClientID, entry.StartsAt)
-	if err != nil || hasBooking {
-		db.UpdateWaitlistStatus(entryID, models.WaitlistStatusDeclined)
-		h.Bot.AnswerCallbackQuery(cq.ID, "У вас уже есть запись на этот день")
-		if cq.Message != nil {
-			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-				"❌ У вас уже есть запись на этот день.", nil)
-		}
-		return
-	}
-
-	// Find session type for FK
-	services, err := db.GetSessionTypesByTrainerID(entry.TrainerID)
-	if err != nil || len(services) == 0 {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка конфигурации")
-		return
-	}
-	sessionTypeID := services[0].ID
-	for _, s := range services {
-		if s.DurationMinutes == entry.DurationMinutes {
-			sessionTypeID = s.ID
-			break
-		}
-	}
-
-	// Create booking
-	booking, err := db.CreateBooking(entry.TrainerID, entry.ClientID, sessionTypeID,
-		entry.StartsAt, entry.EndsAt, entry.ClientName, "", entry.DurationMinutes)
-	if err != nil {
-		log.Printf("Error creating booking from waitlist: %v", err)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при создании записи")
-		return
-	}
-
-	// Update waitlist status
-	db.UpdateWaitlistStatus(entryID, models.WaitlistStatusBooked)
-	db.CancelWaitlistEntriesForSlot(entry.ClientID, entry.TrainerID, entry.StartsAt, entry.EndsAt)
-
-	log.Printf("📋 WAITLIST ACCEPTED (TG) [%s] Client: %s → Booking [%s]",
-		entryID[:8], entry.ClientName, booking.ID[:8])
-
-	h.Bot.AnswerCallbackQuery(cq.ID, "Место забронировано!")
-
-	// Update message
-	if cq.Message != nil {
-		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-			FormatWaitlistBookedClient(entry), nil)
-	}
-
-	// Notify trainer about new booking
-	h.NotifyTrainerNewBooking(booking)
-}
-
-func (h *Handler) handleWaitlistDecline(cq *CallbackQuery, entryID string) {
-	entry, err := db.GetWaitlistByID(entryID)
-	if err != nil {
-		log.Printf("Error getting waitlist entry: %v", err)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при получении записи")
-		return
-	}
-
-	if entry == nil {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
-		return
-	}
-
-	if entry.Status != models.WaitlistStatusOffered {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Предложение больше не актуально")
-		return
-	}
-
-	db.UpdateWaitlistStatus(entryID, models.WaitlistStatusDeclined)
-
-	log.Printf("📋 WAITLIST DECLINED (TG) [%s] Client: %s", entryID[:8], entry.ClientName)
-
-	h.Bot.AnswerCallbackQuery(cq.ID, "Вы отказались от предложения")
-
-	// Update message
-	if cq.Message != nil {
-		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
-			FormatWaitlistDeclinedClient(entry), nil)
-	}
-
-	// Offer to next person in queue
-	go func() {
-		hasConflict, _ := db.HasConflictingBooking(entry.TrainerID, entry.StartsAt, entry.EndsAt, "")
-		if hasConflict {
-			return
-		}
-
-		entries, err := db.GetWaitlistForSlot(entry.TrainerID, entry.StartsAt, entry.EndsAt)
-		if err != nil || len(entries) == 0 {
-			return
-		}
-
-		next := entries[0]
-		if err := db.OfferWaitlistEntry(next.ID); err != nil {
-			log.Printf("Error offering waitlist entry: %v", err)
-			return
-		}
-
-		h.NotifyClientWaitlistOffer(&next)
-	}()
-}
-
-// NotifyClientWaitlistOffer sends a waitlist offer notification to a client
-func (h *Handler) NotifyClientWaitlistOffer(entry *models.WaitlistEntry) error {
-	client, err := db.GetClientByID(entry.ClientID)
-	if err != nil || client == nil {
-		return fmt.Errorf("error getting client: %v", err)
-	}
-
-	text := FormatWaitlistOfferClient(entry)
-	_, err = h.Bot.SendWaitlistOfferMessage(client.TelegramUserID, entry.ID, text)
-	return err
-}
-
-// NotifyClientWaitlistExpired sends an expiry notification to a client
-func (h *Handler) NotifyClientWaitlistExpired(entry *models.WaitlistEntry) error {
-	client, err := db.GetClientByID(entry.ClientID)
-	if err != nil || client == nil {
-		return fmt.Errorf("error getting client: %v", err)
-	}
-
-	text := FormatWaitlistExpiredClient(entry)
-	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
-	return err
-}
-
 // NotifyTrainerNewBooking sends a notification to trainer about a new booking
 func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 	trainer, err := db.GetTrainerByID(booking.TrainerID)
@@ -538,10 +482,25 @@ func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 	return err
 }
 
-// NotifyTrainerRecurringBatch sends a single summary message for recurring bookings with approve/reject buttons
-func (h *Handler) NotifyTrainerRecurringBatch(trainerTelegramID int64, scheduleID, clientName, serviceName string, bookings []*models.Booking) error {
-	text := FormatRecurringBatchMessage(clientName, serviceName, bookings)
-	_, err := h.Bot.SendRecurringBatchApprovalMessage(trainerTelegramID, scheduleID, text)
+// NotifyTrainerRecurringSchedule sends a recurring schedule approval request to trainer
+func (h *Handler) NotifyTrainerRecurringSchedule(schedule *models.RecurringSchedule, previewCount int) error {
+	trainer, err := db.GetTrainerByID(schedule.TrainerID)
+	if err != nil || trainer == nil {
+		return fmt.Errorf("error getting trainer: %v", err)
+	}
+	text := FormatRecurringScheduleRequest(schedule, previewCount)
+	_, err = h.Bot.SendRecurringScheduleApprovalMessage(trainer.TelegramUserID, schedule.ID, text)
+	return err
+}
+
+// NotifyClientRecurringSchedule sends a recurring schedule confirmation request to client
+func (h *Handler) NotifyClientRecurringSchedule(schedule *models.RecurringSchedule, previewCount int) error {
+	client, err := db.GetClientByID(schedule.ClientID)
+	if err != nil || client == nil {
+		return fmt.Errorf("error getting client: %v", err)
+	}
+	text := FormatRecurringScheduleRequestForClient(schedule, previewCount)
+	_, err = h.Bot.SendRecurringScheduleClientApprovalMessage(client.TelegramUserID, schedule.ID, text)
 	return err
 }
 
@@ -643,6 +602,229 @@ func (h *Handler) handleClientDeclineBooking(cq *CallbackQuery, bookingID string
 
 	// Notify trainer that client declined
 	h.notifyTrainerClientResponse(booking, false)
+}
+
+// ========== Cancel/Move Approval Handlers ==========
+
+func (h *Handler) handleCancelApprove(cq *CallbackQuery, bookingID string) {
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil || booking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+	if booking.Status != models.BookingStatusCancelRequested {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запрос уже обработан")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelApproved(booking), nil)
+		}
+		return
+	}
+
+	if err := db.ApproveCancelBooking(bookingID); err != nil {
+		log.Printf("Error approving cancel: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при подтверждении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Отмена подтверждена")
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelApproved(booking), nil)
+	}
+
+	// Notify the other side
+	h.notifyCancelResult(booking, true)
+}
+
+func (h *Handler) handleCancelDecline(cq *CallbackQuery, bookingID string) {
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil || booking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+	if booking.Status != models.BookingStatusCancelRequested {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запрос уже обработан")
+		if cq.Message != nil {
+			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelDeclined(booking), nil)
+		}
+		return
+	}
+
+	if err := db.DeclineCancelBooking(bookingID); err != nil {
+		log.Printf("Error declining cancel: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при отклонении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Отмена отклонена")
+	if cq.Message != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelDeclined(booking), nil)
+	}
+
+	// Notify the other side
+	h.notifyCancelResult(booking, false)
+}
+
+func (h *Handler) handleMoveApprove(cq *CallbackQuery, newBookingID string) {
+	newBooking, err := db.GetBookingByID(newBookingID)
+	if err != nil || newBooking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+	if newBooking.Status != models.BookingStatusReschedulePending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запрос уже обработан")
+		return
+	}
+
+	oldBooking, _ := db.GetBookingByID(newBooking.ReplacesBookingID)
+
+	if err := db.ApproveRescheduleBooking(newBookingID); err != nil {
+		log.Printf("Error approving move: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при подтверждении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Перенос подтверждён")
+	if cq.Message != nil && oldBooking != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatMoveApproved(newBooking, oldBooking), nil)
+	}
+
+	// Notify the other side
+	h.notifyMoveResult(newBooking, oldBooking, true)
+}
+
+func (h *Handler) handleMoveDecline(cq *CallbackQuery, newBookingID string) {
+	newBooking, err := db.GetBookingByID(newBookingID)
+	if err != nil || newBooking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+	if newBooking.Status != models.BookingStatusReschedulePending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запрос уже обработан")
+		return
+	}
+
+	oldBooking, _ := db.GetBookingByID(newBooking.ReplacesBookingID)
+
+	if err := db.DeclineRescheduleBooking(newBookingID); err != nil {
+		log.Printf("Error declining move: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при отклонении")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, "Перенос отклонён")
+	if cq.Message != nil && oldBooking != nil {
+		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatMoveDeclined(oldBooking), nil)
+	}
+
+	// Notify the other side
+	h.notifyMoveResult(newBooking, oldBooking, false)
+}
+
+func (h *Handler) notifyCancelResult(booking *models.Booking, approved bool) {
+	// Determine who requested: if cancelled_by=client, notify client; if trainer, notify trainer
+	// The approver is the other side, so we notify the requester about the result
+	if booking.CancelledBy == models.CancelledByClient {
+		// Client requested, trainer decided — notify client
+		client, err := db.GetClientByID(booking.ClientID)
+		if err != nil || client == nil {
+			return
+		}
+		var text string
+		if approved {
+			text = fmt.Sprintf("✅ Ваш запрос на отмену подтверждён\n\n📋 %s\n🕐 %s", bookingServiceDisplay(booking), formatDateTime(booking.StartsAt))
+		} else {
+			text = fmt.Sprintf("↩️ Ваш запрос на отмену отклонён\n\n📋 %s\n🕐 %s\n\nТренировка остаётся в расписании.", bookingServiceDisplay(booking), formatDateTime(booking.StartsAt))
+		}
+		h.Bot.SendMessage(client.TelegramUserID, text, nil)
+	} else {
+		// Trainer requested, client decided — notify trainer
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			return
+		}
+		var text string
+		if approved {
+			text = FormatCancelApproved(booking)
+		} else {
+			text = FormatCancelDeclined(booking)
+		}
+		h.Bot.SendMessage(trainer.TelegramUserID, text, nil)
+	}
+}
+
+func (h *Handler) notifyMoveResult(newBooking, oldBooking *models.Booking, approved bool) {
+	if oldBooking == nil {
+		return
+	}
+	// Determine who to notify based on who sees the Telegram buttons
+	// For simplicity: notify client and trainer about the result
+	client, _ := db.GetClientByID(oldBooking.ClientID)
+	trainer, _ := db.GetTrainerByID(oldBooking.TrainerID)
+
+	if client != nil {
+		var text string
+		if approved {
+			text = fmt.Sprintf("✅ Перенос подтверждён\n\n📋 %s\n🕐 Было: %s\n🕐 Новое: %s",
+				bookingServiceDisplay(oldBooking), formatDateTime(oldBooking.StartsAt), formatDateTime(newBooking.StartsAt))
+		} else {
+			text = fmt.Sprintf("↩️ Перенос отклонён\n\n📋 %s\n🕐 %s\n\nТренировка остаётся в расписании.",
+				bookingServiceDisplay(oldBooking), formatDateTime(oldBooking.StartsAt))
+		}
+		h.Bot.SendMessage(client.TelegramUserID, text, nil)
+	}
+	if trainer != nil {
+		var text string
+		if approved {
+			text = FormatMoveApproved(newBooking, oldBooking)
+		} else {
+			text = FormatMoveDeclined(oldBooking)
+		}
+		h.Bot.SendMessage(trainer.TelegramUserID, text, nil)
+	}
+}
+
+// NotifyCancelRequest sends a cancel request notification with approval buttons
+func (h *Handler) NotifyCancelRequest(booking *models.Booking, requestedBy string) error {
+	if requestedBy == "client" {
+		// Notify trainer
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			return fmt.Errorf("trainer not found")
+		}
+		text := FormatCancelRequestForTrainer(booking)
+		_, err = h.Bot.SendCancelApprovalMessage(trainer.TelegramUserID, booking.ID, text)
+		return err
+	}
+	// Notify client
+	client, err := db.GetClientByID(booking.ClientID)
+	if err != nil || client == nil {
+		return fmt.Errorf("client not found")
+	}
+	text := FormatCancelRequestForClient(booking)
+	_, err = h.Bot.SendCancelApprovalMessage(client.TelegramUserID, booking.ID, text)
+	return err
+}
+
+// NotifyMoveRequest sends a move request notification with approval buttons
+func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requestedBy string) error {
+	if requestedBy == "client" {
+		// Notify trainer
+		trainer, err := db.GetTrainerByID(oldBooking.TrainerID)
+		if err != nil || trainer == nil {
+			return fmt.Errorf("trainer not found")
+		}
+		text := FormatMoveRequestForTrainer(newBooking, oldBooking)
+		_, err = h.Bot.SendMoveApprovalMessage(trainer.TelegramUserID, newBooking.ID, text)
+		return err
+	}
+	// Notify client
+	client, err := db.GetClientByID(oldBooking.ClientID)
+	if err != nil || client == nil {
+		return fmt.Errorf("client not found")
+	}
+	text := FormatMoveRequestForClient(newBooking, oldBooking)
+	_, err = h.Bot.SendMoveApprovalMessage(client.TelegramUserID, newBooking.ID, text)
+	return err
 }
 
 func (h *Handler) notifyTrainerClientResponse(booking *models.Booking, accepted bool) {

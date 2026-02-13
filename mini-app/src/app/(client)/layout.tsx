@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { Home, CalendarPlus, ClipboardList, User } from "lucide-react";
+import { Home, Repeat, ClipboardList, User } from "lucide-react";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { initTelegramApp } from "@/lib/telegram";
 
 const clientTabs = [
   { key: "home", label: "Главная", icon: Home, href: "/" },
-  { key: "book", label: "Запись", icon: CalendarPlus, href: "/book" },
+  { key: "recurring", label: "Расписание", icon: Repeat, href: "/recurring" },
   { key: "bookings", label: "Записи", icon: ClipboardList, href: "/bookings" },
   { key: "profile", label: "Профиль", icon: User, href: "/profile" },
 ];

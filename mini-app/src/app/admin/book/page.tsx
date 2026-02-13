@@ -420,7 +420,6 @@ export default function AdminBookPage() {
                     slots={timeSlots}
                     selected={selectedTime}
                     onSelect={setSelectedTime}
-                    onJoinWaitlist={() => {}}
                   />
                 )}
               </div>

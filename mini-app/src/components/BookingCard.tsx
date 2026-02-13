@@ -5,7 +5,6 @@ import { Booking } from "@/lib/types";
 
 interface BookingCardProps {
   booking: Booking;
-  onReschedule?: (booking: Booking) => void;
   onCancel?: (booking: Booking) => void;
 }
 
@@ -15,6 +14,8 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   rejected: { label: "Отклонено", color: "bg-red-900/30 text-red-400" },
   cancelled: { label: "Отменено", color: "bg-gray-700/30 text-gray-400" },
   completed: { label: "Завершено", color: "bg-blue-900/30 text-blue-400" },
+  cancel_requested: { label: "Отмена запрошена", color: "bg-orange-900/30 text-orange-400" },
+  reschedule_pending: { label: "Перенос", color: "bg-purple-900/30 text-purple-400" },
 };
 
 function formatDate(date: Date): string {
@@ -29,7 +30,7 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
-export function BookingCard({ booking, onReschedule, onCancel }: BookingCardProps) {
+export function BookingCard({ booking, onCancel }: BookingCardProps) {
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
   const status = statusLabels[booking.status] || statusLabels.pending;
@@ -66,20 +67,12 @@ export function BookingCard({ booking, onReschedule, onCancel }: BookingCardProp
 
       {isActive && (
         <div className="pt-3 border-t border-border">
-          <div className="flex gap-2">
-            <button
-              onClick={() => onReschedule?.(booking)}
-              className="flex-1 py-2 px-4 rounded-lg bg-background text-foreground text-sm font-medium transition-opacity active:opacity-70"
-            >
-              Перенести
-            </button>
-            <button
-              onClick={() => onCancel?.(booking)}
-              className="flex-1 py-2 px-4 rounded-lg bg-background text-destructive text-sm font-medium transition-opacity active:opacity-70"
-            >
-              Отменить
-            </button>
-          </div>
+          <button
+            onClick={() => onCancel?.(booking)}
+            className="w-full py-2 px-4 rounded-lg bg-background text-destructive text-sm font-medium transition-opacity active:opacity-70"
+          >
+            Отменить
+          </button>
         </div>
       )}
     </div>

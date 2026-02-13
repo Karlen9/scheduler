@@ -126,10 +126,11 @@ func migrateSQLite() error {
 			ends_at DATETIME NOT NULL,
 			client_name TEXT NOT NULL,
 			client_message TEXT,
-			status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed')),
+			status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending')),
 			cancel_reason TEXT,
 			cancelled_by TEXT CHECK(cancelled_by IN ('client','trainer') OR cancelled_by IS NULL),
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			replaces_booking_id TEXT
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_trainer_id ON bookings(trainer_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
@@ -171,10 +172,14 @@ func migrateSQLite() error {
 			day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
 			time TEXT NOT NULL,
 			duration_minutes INTEGER NOT NULL,
-			status TEXT NOT NULL DEFAULT 'active'
-				CHECK(status IN ('active','paused','cancelled')),
+			status TEXT NOT NULL DEFAULT 'pending'
+				CHECK(status IN ('pending','active','declined','cancelled')),
 			created_by TEXT NOT NULL CHECK(created_by IN ('client','trainer')),
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			session_type_id TEXT,
+			days_of_week TEXT,
+			start_date TEXT,
+			end_date TEXT
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_trainer_id ON recurring_schedules(trainer_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_client_id ON recurring_schedules(client_id)`,
@@ -211,6 +216,11 @@ func migrateSQLite() error {
 		`ALTER TABLE clients ADD COLUMN notify_waitlist INTEGER DEFAULT 1`,
 		`ALTER TABLE bookings ADD COLUMN created_by TEXT`,
 		`ALTER TABLE bookings ADD COLUMN recurring_schedule_id TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN session_type_id TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN days_of_week TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN start_date TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN end_date TEXT`,
+		`ALTER TABLE bookings ADD COLUMN replaces_booking_id TEXT`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -219,6 +229,69 @@ func migrateSQLite() error {
 
 	// Create unique index on bot_token_hash (separate from alters since it's not ALTER TABLE)
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_trainers_bot_token_hash ON trainers(bot_token_hash)`)
+
+	// Recreate recurring_schedules to update CHECK constraint for existing databases
+	// (new databases already have the correct CHECK from CREATE TABLE above)
+	DB.Exec(`CREATE TABLE IF NOT EXISTS recurring_schedules_new (
+		id TEXT PRIMARY KEY,
+		trainer_id TEXT NOT NULL REFERENCES trainers(id),
+		client_id TEXT NOT NULL REFERENCES clients(id),
+		client_name TEXT NOT NULL,
+		day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
+		time TEXT NOT NULL,
+		duration_minutes INTEGER NOT NULL,
+		status TEXT NOT NULL DEFAULT 'pending'
+			CHECK(status IN ('pending','active','declined','cancelled')),
+		created_by TEXT NOT NULL CHECK(created_by IN ('client','trainer')),
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		session_type_id TEXT,
+		days_of_week TEXT,
+		start_date TEXT,
+		end_date TEXT
+	)`)
+	// Check if the new table was actually created (it won't exist if recurring_schedules already has the right schema)
+	var newTableExists int
+	DB.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='recurring_schedules_new'`).Scan(&newTableExists)
+	if newTableExists > 0 {
+		DB.Exec(`INSERT OR IGNORE INTO recurring_schedules_new SELECT id, trainer_id, client_id, client_name, day_of_week, time, duration_minutes, CASE WHEN status = 'paused' THEN 'active' ELSE status END, created_by, created_at, session_type_id, days_of_week, start_date, end_date FROM recurring_schedules`)
+		DB.Exec(`DROP TABLE recurring_schedules`)
+		DB.Exec(`ALTER TABLE recurring_schedules_new RENAME TO recurring_schedules`)
+		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_recurring_trainer_id ON recurring_schedules(trainer_id)`)
+		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_recurring_client_id ON recurring_schedules(client_id)`)
+		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_recurring_status ON recurring_schedules(status)`)
+	}
+
+	// Update bookings CHECK constraint for new statuses (cancel_requested, reschedule_pending)
+	DB.Exec(`CREATE TABLE IF NOT EXISTS bookings_new (
+		id TEXT PRIMARY KEY,
+		trainer_id TEXT NOT NULL REFERENCES trainers(id),
+		client_id TEXT NOT NULL REFERENCES clients(id),
+		session_type_id TEXT NOT NULL REFERENCES session_types(id),
+		starts_at DATETIME NOT NULL,
+		ends_at DATETIME NOT NULL,
+		client_name TEXT NOT NULL,
+		client_message TEXT,
+		status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending')),
+		cancel_reason TEXT,
+		cancelled_by TEXT CHECK(cancelled_by IN ('client','trainer') OR cancelled_by IS NULL),
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		reminder_sent BOOLEAN DEFAULT 0,
+		duration_minutes INTEGER DEFAULT 60,
+		created_by TEXT,
+		recurring_schedule_id TEXT,
+		replaces_booking_id TEXT
+	)`)
+	var bookingsNewExists int
+	DB.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='bookings_new'`).Scan(&bookingsNewExists)
+	if bookingsNewExists > 0 {
+		DB.Exec(`INSERT OR IGNORE INTO bookings_new SELECT id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, cancel_reason, cancelled_by, created_at, reminder_sent, duration_minutes, created_by, recurring_schedule_id, replaces_booking_id FROM bookings`)
+		DB.Exec(`DROP TABLE bookings`)
+		DB.Exec(`ALTER TABLE bookings_new RENAME TO bookings`)
+		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_bookings_trainer_id ON bookings(trainer_id)`)
+		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`)
+		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`)
+		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`)
+	}
 
 	return nil
 }
@@ -291,14 +364,15 @@ func migratePostgres() error {
 			ends_at TIMESTAMPTZ NOT NULL,
 			client_name TEXT NOT NULL,
 			client_message TEXT,
-			status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed')),
+			status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending')),
 			cancel_reason TEXT,
 			cancelled_by TEXT CHECK(cancelled_by IN ('client','trainer') OR cancelled_by IS NULL),
 			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 			reminder_sent INTEGER DEFAULT 0,
 			duration_minutes INTEGER DEFAULT 60,
 			created_by TEXT,
-			recurring_schedule_id TEXT
+			recurring_schedule_id TEXT,
+			replaces_booking_id TEXT
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_trainer_id ON bookings(trainer_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
@@ -338,10 +412,14 @@ func migratePostgres() error {
 			day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
 			"time" TEXT NOT NULL,
 			duration_minutes INTEGER NOT NULL,
-			status TEXT NOT NULL DEFAULT 'active'
-				CHECK(status IN ('active','paused','cancelled')),
+			status TEXT NOT NULL DEFAULT 'pending'
+				CHECK(status IN ('pending','active','declined','cancelled')),
 			created_by TEXT NOT NULL CHECK(created_by IN ('client','trainer')),
-			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			session_type_id TEXT,
+			days_of_week TEXT,
+			start_date TEXT,
+			end_date TEXT
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_trainer_id ON recurring_schedules(trainer_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_client_id ON recurring_schedules(client_id)`,
@@ -378,6 +456,11 @@ func migratePostgres() error {
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS notify_waitlist INTEGER DEFAULT 1`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_by TEXT`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS recurring_schedule_id TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS session_type_id TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS days_of_week TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS start_date TEXT`,
+		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS end_date TEXT`,
+		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS replaces_booking_id TEXT`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -388,6 +471,15 @@ func migratePostgres() error {
 
 	// Create unique index on bot_token_hash
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_trainers_bot_token_hash ON trainers(bot_token_hash)`)
+
+	// Update CHECK constraint on recurring_schedules status for existing Postgres databases
+	DB.Exec(`ALTER TABLE recurring_schedules DROP CONSTRAINT IF EXISTS recurring_schedules_status_check`)
+	DB.Exec(`ALTER TABLE recurring_schedules ADD CONSTRAINT recurring_schedules_status_check CHECK(status IN ('pending','active','declined','cancelled'))`)
+	DB.Exec(`UPDATE recurring_schedules SET status = 'active' WHERE status = 'paused'`)
+
+	// Update CHECK constraint on bookings status for new statuses
+	DB.Exec(`ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check`)
+	DB.Exec(`ALTER TABLE bookings ADD CONSTRAINT bookings_status_check CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending'))`)
 
 	return nil
 }

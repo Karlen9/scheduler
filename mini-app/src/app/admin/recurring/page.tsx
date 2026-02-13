@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Repeat } from "lucide-react";
+import { Repeat, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -21,6 +21,30 @@ const DAYS = [
   { label: "Сб", value: 6 },
   { label: "Вс", value: 0 },
 ];
+
+const PERIODS = [
+  { label: "1 неделя", value: "1week" },
+  { label: "1 месяц", value: "1month" },
+  { label: "3 месяца", value: "3months" },
+];
+
+const DAY_NAMES_FULL: Record<number, string> = {
+  0: "Вс",
+  1: "Пн",
+  2: "Вт",
+  3: "Ср",
+  4: "Чт",
+  5: "Пт",
+  6: "Сб",
+};
+
+const MONTH_NAMES = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+function formatPreviewDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const dayName = DAY_NAMES_FULL[d.getDay()] || "?";
+  return `${dayName}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+}
 
 function generateTimeSlots(workingHours: WorkingHours[], days: number[], durationMinutes: number): string[] {
   if (days.length === 0 || durationMinutes <= 0) return [];
@@ -63,11 +87,16 @@ export default function AdminRecurringPage() {
 
   // Form state
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedService, setSelectedService] = useState<SessionType | null>(null);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<SessionType | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
 
-  // Cancel / status dialog
+  // Preview state
+  const [previewDates, setPreviewDates] = useState<string[] | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+
+  // Cancel dialog
   const [cancelTarget, setCancelTarget] = useState<RecurringSchedule | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -105,44 +134,55 @@ export default function AdminRecurringPage() {
     }
   }, [timeSlots, selectedTime]);
 
+  // Reset preview when form changes
+  useEffect(() => {
+    setPreviewDates(null);
+  }, [selectedClientId, selectedService, selectedDays, selectedTime, selectedPeriod]);
+
   const toggleDay = (day: number) => {
     setSelectedDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
   };
 
-  const handleCreate = async () => {
-    if (!selectedClientId) {
-      toast.error("Выберите клиента");
-      return;
-    }
-    if (selectedDays.length === 0) {
-      toast.error("Выберите день недели");
-      return;
-    }
-    if (!selectedTime) {
-      toast.error("Выберите время");
-      return;
-    }
-    if (!selectedService) {
-      toast.error("Выберите услугу");
-      return;
-    }
+  const formReady = selectedClientId && selectedService && selectedDays.length > 0 && selectedTime && selectedPeriod;
 
+  const handlePreview = async () => {
+    if (!formReady) return;
+    setIsPreviewing(true);
+    try {
+      const result = await api.admin.previewRecurringSchedule({
+        sessionTypeId: selectedService.id,
+        daysOfWeek: selectedDays,
+        time: selectedTime,
+        period: selectedPeriod,
+      });
+      setPreviewDates(result.dates);
+    } catch {
+      toast.error("Не удалось загрузить предпросмотр");
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!formReady || !previewDates) return;
     setIsSaving(true);
     try {
-      for (const day of selectedDays) {
-        await api.admin.createRecurringSchedule({
-          clientId: selectedClientId,
-          dayOfWeek: day,
-          time: selectedTime,
-          durationMinutes: selectedService.durationMinutes,
-        });
-      }
-      toast.success(selectedDays.length > 1 ? "Расписания добавлены" : "Расписание добавлено");
+      await api.admin.createRecurringSchedule({
+        clientId: selectedClientId,
+        sessionTypeId: selectedService.id,
+        daysOfWeek: selectedDays,
+        time: selectedTime,
+        period: selectedPeriod,
+      });
+      toast.success("Расписание создано");
       setSelectedClientId("");
+      setSelectedService(null);
       setSelectedDays([]);
       setSelectedTime(null);
+      setSelectedPeriod("");
+      setPreviewDates(null);
       fetchData();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка создания расписания";
@@ -152,10 +192,30 @@ export default function AdminRecurringPage() {
     }
   };
 
+  const handleApprove = async (schedule: RecurringSchedule) => {
+    try {
+      await api.admin.approveRecurringSchedule(schedule.id);
+      toast.success("Расписание подтверждено");
+      fetchData();
+    } catch {
+      toast.error("Не удалось подтвердить расписание");
+    }
+  };
+
+  const handleDecline = async (schedule: RecurringSchedule) => {
+    try {
+      await api.admin.declineRecurringSchedule(schedule.id);
+      toast.success("Расписание отклонено");
+      fetchData();
+    } catch {
+      toast.error("Не удалось отклонить расписание");
+    }
+  };
+
   const handleCancel = async () => {
     if (!cancelTarget) return;
     try {
-      await api.admin.updateRecurringStatus(cancelTarget.id, "cancelled");
+      await api.admin.cancelRecurringSchedule(cancelTarget.id);
       toast.success("Расписание отменено");
       setCancelTarget(null);
       fetchData();
@@ -164,36 +224,9 @@ export default function AdminRecurringPage() {
     }
   };
 
-  const handlePause = async (schedule: RecurringSchedule) => {
-    try {
-      await api.admin.updateRecurringStatus(schedule.id, "paused");
-      toast.success("Расписание приостановлено");
-      fetchData();
-    } catch {
-      toast.error("Не удалось приостановить расписание");
-    }
-  };
-
-  const handleResume = async (schedule: RecurringSchedule) => {
-    try {
-      await api.admin.updateRecurringStatus(schedule.id, "active");
-      toast.success("Расписание возобновлено");
-      fetchData();
-    } catch {
-      toast.error("Не удалось возобновить расписание");
-    }
-  };
-
-  // Group schedules by client name
-  const groupedSchedules = schedules
-    .filter((s) => s.status !== "cancelled")
-    .reduce<Record<string, RecurringSchedule[]>>((acc, schedule) => {
-      const name = schedule.clientName || "Без имени";
-      if (!acc[name]) acc[name] = [];
-      acc[name].push(schedule);
-      return acc;
-    }, {});
-
+  const pendingSchedules = schedules.filter((s) => s.status === "pending");
+  const activeSchedules = schedules.filter((s) => s.status === "active");
+  const declinedSchedules = schedules.filter((s) => s.status === "declined");
   const cancelledSchedules = schedules.filter((s) => s.status === "cancelled");
   const hasSchedules = schedules.length > 0;
 
@@ -310,9 +343,61 @@ export default function AdminRecurringPage() {
             </div>
           )}
 
+          {/* Period Selector */}
+          {selectedService && selectedDays.length > 0 && selectedTime && (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">
+                Период
+              </label>
+              <div className="flex gap-2">
+                {PERIODS.map((period) => (
+                  <button
+                    key={period.value}
+                    onClick={() => setSelectedPeriod(period.value)}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPeriod === period.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-foreground"
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preview Button */}
+          {formReady && !previewDates && (
+            <button
+              onClick={handlePreview}
+              disabled={isPreviewing}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-background text-foreground font-medium text-sm transition-opacity active:opacity-70 disabled:opacity-40"
+            >
+              <Eye className="w-4 h-4" />
+              {isPreviewing ? "Загрузка..." : "Предпросмотр"}
+            </button>
+          )}
+
+          {/* Preview Dates */}
+          {previewDates && (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">
+                Будет создано тренировок: {previewDates.length}
+              </label>
+              <div className="max-h-40 overflow-y-auto rounded-lg bg-background p-3 space-y-1">
+                {previewDates.map((date) => (
+                  <div key={date} className="text-sm text-foreground">
+                    {formatPreviewDate(date)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <PrimaryButton
             onClick={handleCreate}
-            disabled={isSaving || !selectedClientId || selectedDays.length === 0 || !selectedTime || !selectedService}
+            disabled={isSaving || !formReady || !previewDates}
           >
             {isSaving ? "Сохранение..." : "Добавить расписание"}
           </PrimaryButton>
@@ -323,29 +408,66 @@ export default function AdminRecurringPage() {
           <EmptyState
             icon={<Repeat className="w-16 h-16" />}
             title="Нет регулярных записей"
-            description="Добавьте расписание для автоматического создания тренировок каждую неделю"
+            description="Добавьте расписание для автоматического создания тренировок"
           />
         ) : (
           <>
-            {Object.entries(groupedSchedules).map(([clientName, clientSchedules]) => (
-              <div key={clientName}>
+            {pendingSchedules.length > 0 && (
+              <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  {clientName}
+                  Ожидают подтверждения
                 </h3>
                 <div className="space-y-3">
-                  {clientSchedules.map((schedule) => (
+                  {pendingSchedules.map((schedule) => (
                     <RecurringScheduleCard
                       key={schedule.id}
                       schedule={schedule}
                       services={services}
                       onCancel={setCancelTarget}
-                      onPause={handlePause}
-                      onResume={handleResume}
+                      onApprove={schedule.createdBy === "client" ? handleApprove : undefined}
+                      onDecline={schedule.createdBy === "client" ? handleDecline : undefined}
+                      detailPath="/admin/recurring"
                     />
                   ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {activeSchedules.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Активные расписания
+                </h3>
+                <div className="space-y-3">
+                  {activeSchedules.map((schedule) => (
+                    <RecurringScheduleCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      services={services}
+                      onCancel={setCancelTarget}
+                      detailPath="/admin/recurring"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {declinedSchedules.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Отклоненные
+                </h3>
+                <div className="space-y-3">
+                  {declinedSchedules.map((schedule) => (
+                    <RecurringScheduleCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      services={services}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {cancelledSchedules.length > 0 && (
               <div>

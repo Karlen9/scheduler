@@ -35,7 +35,7 @@ type Client struct {
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`
 	NotifyDaysOff       bool      `json:"notifyDaysOff"`
-	NotifyWaitlist      bool      `json:"notifyWaitlist"`
+	NotifyWaitlist      bool      `json:"-"` // kept for DB compat, not exposed in API
 	CreatedAt           time.Time `json:"createdAt"`
 }
 
@@ -61,11 +61,13 @@ type WorkingHours struct {
 type BookingStatus string
 
 const (
-	BookingStatusPending   BookingStatus = "pending"
-	BookingStatusConfirmed BookingStatus = "confirmed"
-	BookingStatusRejected  BookingStatus = "rejected"
-	BookingStatusCancelled BookingStatus = "cancelled"
-	BookingStatusCompleted BookingStatus = "completed"
+	BookingStatusPending            BookingStatus = "pending"
+	BookingStatusConfirmed          BookingStatus = "confirmed"
+	BookingStatusRejected           BookingStatus = "rejected"
+	BookingStatusCancelled          BookingStatus = "cancelled"
+	BookingStatusCompleted          BookingStatus = "completed"
+	BookingStatusCancelRequested    BookingStatus = "cancel_requested"
+	BookingStatusReschedulePending  BookingStatus = "reschedule_pending"
 )
 
 type CancelledBy string
@@ -91,6 +93,7 @@ type Booking struct {
 	DurationMinutes      int           `json:"durationMinutes,omitempty"`
 	CreatedBy            string        `json:"createdBy,omitempty"`
 	RecurringScheduleID  string        `json:"recurringScheduleId,omitempty"`
+	ReplacesBookingID    string        `json:"replacesBookingId,omitempty"`
 
 	// Joined fields for API responses
 	SessionType *SessionType `json:"sessionType,omitempty"`
@@ -101,8 +104,9 @@ type Booking struct {
 type RecurringScheduleStatus string
 
 const (
+	RecurringScheduleStatusPending   RecurringScheduleStatus = "pending"
 	RecurringScheduleStatusActive    RecurringScheduleStatus = "active"
-	RecurringScheduleStatusPaused    RecurringScheduleStatus = "paused"
+	RecurringScheduleStatusDeclined  RecurringScheduleStatus = "declined"
 	RecurringScheduleStatusCancelled RecurringScheduleStatus = "cancelled"
 )
 
@@ -118,42 +122,21 @@ type RecurringSchedule struct {
 	Status          RecurringScheduleStatus `json:"status"`
 	CreatedBy       string                  `json:"createdBy"`
 	CreatedAt       time.Time               `json:"createdAt"`
+	// Phase 2 fields
+	SessionTypeID string       `json:"sessionTypeId,omitempty"`
+	DaysOfWeek    string       `json:"daysOfWeek,omitempty"`
+	StartDate     string       `json:"startDate,omitempty"`
+	EndDate       string       `json:"endDate,omitempty"`
+	// Joined fields
+	SessionType *SessionType `json:"sessionType,omitempty"`
+	Bookings    []Booking    `json:"bookings,omitempty"`
 }
 
 // TimeSlot represents an available time slot for booking
 type TimeSlot struct {
-	Time          string `json:"time"`
-	EndTime       string `json:"endTime,omitempty"`
-	Available     bool   `json:"available"`
-	WaitlistCount int    `json:"waitlistCount,omitempty"`
-	HasMyWaitlist bool   `json:"hasMyWaitlist,omitempty"`
-}
-
-// WaitlistStatus represents the status of a waitlist entry
-type WaitlistStatus string
-
-const (
-	WaitlistStatusWaiting   WaitlistStatus = "waiting"
-	WaitlistStatusOffered   WaitlistStatus = "offered"
-	WaitlistStatusBooked    WaitlistStatus = "booked"
-	WaitlistStatusDeclined  WaitlistStatus = "declined"
-	WaitlistStatusExpired   WaitlistStatus = "expired"
-	WaitlistStatusCancelled WaitlistStatus = "cancelled"
-)
-
-// WaitlistEntry represents a client's position in a waitlist for a time slot
-type WaitlistEntry struct {
-	ID              string         `json:"id"`
-	TrainerID       string         `json:"-"`
-	ClientID        string         `json:"-"`
-	StartsAt        time.Time      `json:"startsAt"`
-	EndsAt          time.Time      `json:"endsAt"`
-	DurationMinutes int            `json:"durationMinutes"`
-	ClientName      string         `json:"clientName"`
-	Status          WaitlistStatus `json:"status"`
-	OfferedAt       *time.Time     `json:"offeredAt,omitempty"`
-	CreatedAt       time.Time      `json:"createdAt"`
-	Position        int            `json:"position,omitempty"`
+	Time      string `json:"time"`
+	EndTime   string `json:"endTime,omitempty"`
+	Available bool   `json:"available"`
 }
 
 // DayOff represents a day when trainer is not available

@@ -35,32 +35,19 @@ export interface Booking {
   endsAt: string;
   clientName: string;
   clientMessage?: string;
-  status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed";
+  status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed" | "cancel_requested" | "reschedule_pending";
   cancelReason?: string;
   cancelledBy?: "client" | "trainer";
   durationMinutes?: number;
   createdBy?: "client" | "trainer";
   recurringScheduleId?: string;
+  replacesBookingId?: string;
 }
 
 export interface TimeSlot {
   time: string; // "09:00"
   endTime?: string; // "10:00"
   available: boolean;
-  waitlistCount?: number;
-  hasMyWaitlist?: boolean;
-}
-
-export interface WaitlistEntry {
-  id: string;
-  startsAt: string;
-  endsAt: string;
-  durationMinutes: number;
-  clientName: string;
-  status: "waiting" | "offered" | "booked" | "declined" | "expired" | "cancelled";
-  offeredAt?: string;
-  createdAt: string;
-  position?: number;
 }
 
 export interface ClientProfile {
@@ -71,7 +58,6 @@ export interface ClientProfile {
   notifyBookingStatus?: boolean;
   notifyReminders?: boolean;
   notifyDaysOff?: boolean;
-  notifyWaitlist?: boolean;
 }
 
 export interface ClientInfo {
@@ -93,10 +79,22 @@ export interface DayOff {
 export interface RecurringSchedule {
   id: string;
   clientName: string;
-  dayOfWeek: number;
+  dayOfWeek: number;           // kept for backward compat
   time: string;
   durationMinutes: number;
-  status: "active" | "paused" | "cancelled";
+  status: "pending" | "active" | "declined" | "cancelled";
   createdBy: "client" | "trainer";
   createdAt: string;
+  // Phase 2 fields
+  sessionTypeId?: string;
+  sessionType?: SessionType;
+  daysOfWeek?: string;          // comma-separated: "1,3,5"
+  startDate?: string;           // "2026-02-17"
+  endDate?: string;             // "2026-05-17"
+  bookings?: Booking[];
+}
+
+export interface RecurringPreviewResponse {
+  dates: string[];
+  count: number;
 }

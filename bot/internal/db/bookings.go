@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func CreateBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt t
 // Must match scanBookingRow field order exactly.
 const bookingColumns = `id, trainer_id, client_id, session_type_id, starts_at, ends_at,
 	client_name, client_message, status, cancel_reason, cancelled_by, created_at,
-	duration_minutes, created_by, recurring_schedule_id`
+	duration_minutes, created_by, recurring_schedule_id, replaces_booking_id`
 
 func GetBookingByID(id string) (*models.Booking, error) {
 	var b models.Booking
@@ -37,6 +38,7 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	var durationMinutes sql.NullInt64
 	var createdBy sql.NullString
 	var recurringScheduleID sql.NullString
+	var replacesBookingID sql.NullString
 
 	err := DB.QueryRow(Q(`
 		SELECT `+bookingColumns+`
@@ -44,7 +46,7 @@ func GetBookingByID(id string) (*models.Booking, error) {
 		WHERE id = ?
 	`), id).Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
-		&durationMinutes, &createdBy, &recurringScheduleID)
+		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -70,6 +72,9 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	}
 	if recurringScheduleID.Valid {
 		b.RecurringScheduleID = recurringScheduleID.String
+	}
+	if replacesBookingID.Valid {
+		b.ReplacesBookingID = replacesBookingID.String
 	}
 
 	// Load session type
@@ -137,10 +142,11 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 		var durationMinutes sql.NullInt64
 		var createdBy sql.NullString
 		var recurringScheduleID sql.NullString
+		var replacesBookingID sql.NullString
 
 		if err := rows.Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
-			&durationMinutes, &createdBy, &recurringScheduleID); err != nil {
+			&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID); err != nil {
 			return nil, err
 		}
 
@@ -161,6 +167,9 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 		}
 		if recurringScheduleID.Valid {
 			b.RecurringScheduleID = recurringScheduleID.String
+		}
+		if replacesBookingID.Valid {
+			b.ReplacesBookingID = replacesBookingID.String
 		}
 
 		// Load session type
@@ -324,6 +333,65 @@ func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 	}
 	n, err := result.RowsAffected()
 	return int(n), err
+}
+
+// RequestCancelBooking sets booking status to cancel_requested
+func RequestCancelBooking(bookingID string, requestedBy models.CancelledBy) error {
+	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'cancel_requested', cancelled_by = ? WHERE id = ?`), requestedBy, bookingID)
+	return err
+}
+
+// ApproveCancelBooking cancels the booking (approving a cancel request)
+func ApproveCancelBooking(bookingID string) error {
+	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status = 'cancel_requested'`), bookingID)
+	return err
+}
+
+// DeclineCancelBooking reverts a cancel request back to confirmed
+func DeclineCancelBooking(bookingID string) error {
+	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'confirmed', cancelled_by = NULL WHERE id = ? AND status = 'cancel_requested'`), bookingID)
+	return err
+}
+
+// CreateRescheduleBooking creates a new booking that replaces an existing one (status = reschedule_pending)
+func CreateRescheduleBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID, replacesBookingID string) (*models.Booking, error) {
+	id := uuid.New().String()
+
+	_, err := DB.Exec(Q(`
+		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id, replaces_booking_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, '', 'reschedule_pending', ?, ?, ?)
+	`), id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, durationMinutes, recurringScheduleID, replacesBookingID)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetBookingByID(id)
+}
+
+// ApproveRescheduleBooking confirms the new booking and cancels the old one
+func ApproveRescheduleBooking(newBookingID string) error {
+	newBooking, err := GetBookingByID(newBookingID)
+	if err != nil || newBooking == nil {
+		return fmt.Errorf("reschedule booking not found")
+	}
+	if newBooking.Status != models.BookingStatusReschedulePending {
+		return fmt.Errorf("booking is not pending reschedule")
+	}
+
+	// Cancel the old booking
+	if newBooking.ReplacesBookingID != "" {
+		DB.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancel_reason = 'Перенесена' WHERE id = ?`), newBooking.ReplacesBookingID)
+	}
+
+	// Confirm the new booking
+	_, err = DB.Exec(Q(`UPDATE bookings SET status = 'confirmed' WHERE id = ?`), newBookingID)
+	return err
+}
+
+// DeclineRescheduleBooking rejects the reschedule by deleting the new pending booking
+func DeclineRescheduleBooking(newBookingID string) error {
+	_, err := DB.Exec(Q(`DELETE FROM bookings WHERE id = ? AND status = 'reschedule_pending'`), newBookingID)
+	return err
 }
 
 func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) {

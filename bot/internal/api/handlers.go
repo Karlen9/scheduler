@@ -13,14 +13,9 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-// NotifyBookingFunc is a callback to notify trainer about new booking
-var NotifyBookingFunc func(booking *models.Booking) error
-
 // NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin panel
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 
-// NotifyRecurringBatchFunc is a callback to send a batch summary for recurring bookings
-var NotifyRecurringBatchFunc func(trainerID, scheduleID, clientName, serviceName string, bookings []*models.Booking) error
 
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
@@ -197,32 +192,6 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	// Generate time slots
 	slots := generateTimeSlots(date, workingHour, duration, bookings)
 
-	// Enrich with waitlist data
-	waitlistCounts, err := db.GetWaitlistCountForSlots(trainer.ID, startOfDay, endOfDay)
-	if err != nil {
-		log.Printf("Error getting waitlist counts: %v", err)
-	}
-
-	client := GetClientFromContext(r)
-	var clientWaitlist map[string]bool
-	if client != nil {
-		clientWaitlist, err = db.GetClientWaitlistForSlots(client.ID, trainer.ID, startOfDay, endOfDay)
-		if err != nil {
-			log.Printf("Error getting client waitlist: %v", err)
-		}
-	}
-
-	for i := range slots {
-		if !slots[i].Available {
-			if waitlistCounts != nil {
-				slots[i].WaitlistCount = waitlistCounts[slots[i].Time]
-			}
-			if clientWaitlist != nil {
-				slots[i].HasMyWaitlist = clientWaitlist[slots[i].Time]
-			}
-		}
-	}
-
 	writeJSON(w, slots)
 }
 
@@ -303,148 +272,6 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, bookings)
 }
 
-// CreateBookingRequest is the request body for creating a booking
-type CreateBookingRequest struct {
-	SessionType string `json:"sessionType,omitempty"` // legacy: personal, pair, consultation
-	Duration    int    `json:"duration,omitempty"`     // new: duration in minutes
-	Date        string `json:"date"`
-	Time        string `json:"time"`
-	Name        string `json:"name"`
-	Message     string `json:"message,omitempty"`
-}
-
-func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
-	client := GetClientFromContext(r)
-	trainer := GetTrainerFromContext(r)
-	if client == nil || trainer == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
-		return
-	}
-
-	var req CreateBookingRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
-		return
-	}
-
-	if req.Date == "" || req.Time == "" || req.Name == "" {
-		http.Error(w, "Укажите дату, время и имя", http.StatusBadRequest)
-		return
-	}
-
-	// Determine duration and session type ID
-	var durationMinutes int
-	var sessionTypeID string
-
-	if req.Duration > 0 {
-		durationMinutes = req.Duration
-		// Find session type matching the requested duration
-		services, err := db.GetSessionTypesByTrainerID(trainer.ID)
-		if err != nil || len(services) == 0 {
-			http.Error(w, "Нет настроенных услуг", http.StatusBadRequest)
-			return
-		}
-		var matchedService *models.SessionType
-		for _, s := range services {
-			if s.DurationMinutes == req.Duration {
-				matchedService = &s
-				break
-			}
-		}
-		if matchedService != nil {
-			sessionTypeID = matchedService.ID
-		} else {
-			sessionTypeID = services[0].ID
-		}
-	} else if req.SessionType != "" {
-		// Legacy path
-		sessionType, err := db.GetSessionTypeByType(trainer.ID, req.SessionType)
-		if err != nil || sessionType == nil {
-			http.Error(w, "Неверный тип услуги", http.StatusBadRequest)
-			return
-		}
-		durationMinutes = sessionType.DurationMinutes
-		sessionTypeID = sessionType.ID
-	} else {
-		http.Error(w, "Укажите длительность", http.StatusBadRequest)
-		return
-	}
-
-	// Parse date and time
-	date, err := time.Parse("2006-01-02", req.Date)
-	if err != nil {
-		http.Error(w, "Неверный формат даты", http.StatusBadRequest)
-		return
-	}
-
-	timeParts := parseTime(req.Time)
-	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
-	endsAt := startsAt.Add(time.Duration(durationMinutes) * time.Minute)
-
-	// Check if client already has a booking on this date
-	hasBooking, err := db.ClientHasBookingOnDate(client.ID, date)
-	if err != nil {
-		log.Printf("Error checking client bookings: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
-		return
-	}
-	if hasBooking {
-		http.Error(w, "У вас уже есть запись на этот день", http.StatusConflict)
-		return
-	}
-
-	// Check for conflicts
-	hasConflict, err := db.HasConflictingBooking(trainer.ID, startsAt, endsAt, "")
-	if err != nil {
-		log.Printf("Error checking conflicts: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
-		return
-	}
-	if hasConflict {
-		http.Error(w, "Это время уже занято", http.StatusConflict)
-		return
-	}
-
-	// Update client name if provided
-	if req.Name != client.Name {
-		if err := db.UpdateClientName(client.ID, req.Name); err != nil {
-			log.Printf("Error updating client name: %v", err)
-		}
-	}
-
-	// Create booking
-	booking, err := db.CreateBooking(trainer.ID, client.ID, sessionTypeID, startsAt, endsAt, req.Name, req.Message, durationMinutes)
-	if err != nil {
-		log.Printf("Error creating booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
-		return
-	}
-
-	// Cancel any waitlist entries this client had for this slot
-	db.CancelWaitlistEntriesForSlot(client.ID, trainer.ID, startsAt, endsAt)
-
-	// Log booking creation
-	log.Printf("📅 NEW BOOKING [%s] Client: %s | Duration: %dmin | Time: %s %s | Trainer: %s (@%s)",
-		booking.ID[:8],
-		req.Name,
-		durationMinutes,
-		req.Date,
-		req.Time,
-		trainer.Name,
-		trainer.BotUsername,
-	)
-
-	// Notify trainer
-	if NotifyBookingFunc != nil {
-		if err := NotifyBookingFunc(booking); err != nil {
-			log.Printf("Error notifying trainer: %v", err)
-		}
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	writeJSON(w, booking)
-}
-
 // CancelBookingRequest is the request body for cancelling a booking
 type CancelBookingRequest struct {
 	Reason string `json:"reason,omitempty"`
@@ -501,9 +328,6 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 		req.Reason,
 	)
 
-	// Trigger waitlist processing for the freed slot
-	go ProcessWaitlistForCancelledBooking(booking.TrainerID, booking.StartsAt, booking.EndsAt)
-
 	booking, _ = db.GetBookingByID(bookingID)
 	writeJSON(w, booking)
 }
@@ -547,7 +371,6 @@ type ClientProfileResponse struct {
 	NotifyBookingStatus bool   `json:"notifyBookingStatus"`
 	NotifyReminders     bool   `json:"notifyReminders"`
 	NotifyDaysOff       bool   `json:"notifyDaysOff"`
-	NotifyWaitlist      bool   `json:"notifyWaitlist"`
 }
 
 type UpdateClientProfileRequest struct {
@@ -571,7 +394,6 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyBookingStatus: client.NotifyBookingStatus,
 		NotifyReminders:     client.NotifyReminders,
 		NotifyDaysOff:       client.NotifyDaysOff,
-		NotifyWaitlist:      client.NotifyWaitlist,
 	}
 
 	writeJSON(w, resp)
@@ -630,7 +452,6 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
-		NotifyWaitlist:      updated.NotifyWaitlist,
 	}
 
 	writeJSON(w, resp)
@@ -642,7 +463,6 @@ type UpdateClientNotificationPrefsRequest struct {
 	NotifyBookingStatus *bool `json:"notifyBookingStatus"`
 	NotifyReminders     *bool `json:"notifyReminders"`
 	NotifyDaysOff       *bool `json:"notifyDaysOff"`
-	NotifyWaitlist      *bool `json:"notifyWaitlist"`
 }
 
 func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request) {
@@ -670,12 +490,8 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 	if req.NotifyDaysOff != nil {
 		notifyDaysOff = *req.NotifyDaysOff
 	}
-	notifyWaitlist := client.NotifyWaitlist
-	if req.NotifyWaitlist != nil {
-		notifyWaitlist = *req.NotifyWaitlist
-	}
 
-	if err := db.UpdateClientNotificationPrefs(client.ID, notifyBookingStatus, notifyReminders, notifyDaysOff, notifyWaitlist); err != nil {
+	if err := db.UpdateClientNotificationPrefs(client.ID, notifyBookingStatus, notifyReminders, notifyDaysOff, client.NotifyWaitlist); err != nil {
 		log.Printf("Error updating notification prefs: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
@@ -695,7 +511,6 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
-		NotifyWaitlist:      updated.NotifyWaitlist,
 	}
 	writeJSON(w, resp)
 }
