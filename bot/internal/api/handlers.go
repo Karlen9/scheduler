@@ -16,6 +16,9 @@ import (
 // NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin panel
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 
+// NotifyBookingFunc is a callback to notify trainer about a new client-created booking
+var NotifyBookingFunc func(booking *models.Booking) error
+
 
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
@@ -329,6 +332,116 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 	)
 
 	booking, _ = db.GetBookingByID(bookingID)
+	writeJSON(w, booking)
+}
+
+// ========== Client Create Booking ==========
+
+type CreateBookingRequest struct {
+	Duration int    `json:"duration"`
+	Date     string `json:"date"`
+	Time     string `json:"time"`
+	Name     string `json:"name,omitempty"`
+	Message  string `json:"message,omitempty"`
+}
+
+func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		return
+	}
+
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		return
+	}
+
+	var req CreateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	if req.Duration <= 0 || req.Date == "" || req.Time == "" {
+		http.Error(w, "Заполните все обязательные поля", http.StatusBadRequest)
+		return
+	}
+
+	// Parse date and time
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		http.Error(w, "Неверный формат даты", http.StatusBadRequest)
+		return
+	}
+
+	// Check one booking per client per day
+	hasBooking, err := db.ClientHasBookingOnDate(client.ID, date)
+	if err != nil {
+		log.Printf("Error checking existing bookings: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if hasBooking {
+		http.Error(w, "У вас уже есть запись на этот день", http.StatusConflict)
+		return
+	}
+
+	timeParts := parseTime(req.Time)
+	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+	endsAt := startsAt.Add(time.Duration(req.Duration) * time.Minute)
+
+	// Check for conflicts
+	hasConflict, err := db.HasConflictingBooking(trainer.ID, startsAt, endsAt, "")
+	if err != nil {
+		log.Printf("Error checking conflicts: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if hasConflict {
+		http.Error(w, "Это время уже занято", http.StatusConflict)
+		return
+	}
+
+	// Find session type by duration
+	services, err := db.GetSessionTypesByTrainerID(trainer.ID)
+	if err != nil || len(services) == 0 {
+		http.Error(w, "Нет настроенных услуг", http.StatusBadRequest)
+		return
+	}
+	sessionTypeID := services[0].ID
+	for _, s := range services {
+		if s.DurationMinutes == req.Duration {
+			sessionTypeID = s.ID
+			break
+		}
+	}
+
+	// Use client name from request or from DB
+	clientName := req.Name
+	if clientName == "" {
+		clientName = client.Name
+	}
+
+	booking, err := db.CreateBooking(trainer.ID, client.ID, sessionTypeID, startsAt, endsAt, clientName, req.Message, req.Duration)
+	if err != nil {
+		log.Printf("Error creating booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("📅 BOOKING CREATED [%s] Client: %s | Duration: %dmin | Time: %s %s",
+		booking.ID[:8], clientName, req.Duration, req.Date, req.Time)
+
+	// Notify trainer
+	if NotifyBookingFunc != nil {
+		if err := NotifyBookingFunc(booking); err != nil {
+			log.Printf("Error notifying trainer about booking: %v", err)
+		}
+	}
+
+	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, booking)
 }
 

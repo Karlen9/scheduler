@@ -37,7 +37,7 @@ export default function BookingsPage() {
   }, [fetchData]);
 
   const activeBookings = bookings.filter(
-    (b) => b.status === "pending" || b.status === "confirmed",
+    (b) => b.status === "pending" || b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending",
   );
   const pastBookings = bookings.filter(
     (b) => b.status === "completed" || b.status === "cancelled" || b.status === "rejected",

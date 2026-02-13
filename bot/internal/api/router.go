@@ -46,6 +46,7 @@ func NewRouter() http.Handler {
 		r.Get("/days-off", HandleGetPublicDaysOff)
 		r.Get("/durations", HandleGetDurations)
 		r.Get("/bookings", HandleGetBookings)
+		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
 
 		// Client profile

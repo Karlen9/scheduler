@@ -75,6 +75,13 @@ export const api = {
     return fetchAPI<Booking[]>("/api/bookings");
   },
 
+  async createBooking(duration: number, date: string, time: string, name: string, message?: string): Promise<Booking> {
+    return fetchAPI<Booking>("/api/bookings", {
+      method: "POST",
+      body: JSON.stringify({ duration, date, time, name, message }),
+    });
+  },
+
   async cancelBooking(bookingId: string, reason?: string): Promise<Booking> {
     return fetchAPI<Booking>(`/api/bookings/${bookingId}`, {
       method: "DELETE",

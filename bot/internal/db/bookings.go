@@ -308,7 +308,7 @@ func CreateRecurringBooking(trainerID, clientID, sessionTypeID string, startsAt,
 
 	_, err := DB.Exec(Q(`
 		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, '', 'pending', ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, '', 'confirmed', ?, ?)
 	`), id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, durationMinutes, recurringScheduleID)
 	if err != nil {
 		return nil, err

@@ -189,6 +189,24 @@ func main() {
 
 	log.Printf("Loaded %d trainer bot(s)", len(trainers))
 
+	// Set up notification callback for client-created bookings (notify trainer)
+	api.NotifyBookingFunc = func(booking *models.Booking) error {
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			return err
+		}
+		if !trainer.NotifyNewBookings {
+			log.Printf("Skipping new booking notification for trainer %s (disabled)", trainer.Name)
+			return nil
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
+			return nil
+		}
+		return handler.NotifyTrainerNewBooking(booking)
+	}
+
 	// Set up notification callback for admin status changes - finds correct bot by trainer
 	api.NotifyStatusChangeFunc = func(booking *models.Booking, newStatus string) error {
 		trainer, err := db.GetTrainerByID(booking.TrainerID)

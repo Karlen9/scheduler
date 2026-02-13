@@ -50,7 +50,7 @@ export default function AdminBookingsPage() {
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
   const upcomingBookings = bookings
-    .filter((b) => b.status === "confirmed" && new Date(b.startsAt) > now)
+    .filter((b) => (b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending") && new Date(b.startsAt) > now)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
   const pastBookings = bookings
