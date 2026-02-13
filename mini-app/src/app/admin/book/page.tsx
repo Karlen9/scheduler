@@ -437,7 +437,7 @@ export default function AdminBookPage() {
       {step === "time" && !noSlotsAvailable && (
         <div
           className="fixed bottom-[88px] left-0 right-0 p-4 bg-background border-t border-border"
-          style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
+          style={{ width: "430px", margin: "0 auto" }}
         >
           <PrimaryButton
             onClick={handleConfirm}
