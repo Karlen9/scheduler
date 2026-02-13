@@ -29,6 +29,7 @@ type Config struct {
 	// Required
 	WebAppURL          string
 	DatabasePath       string
+	DatabaseURL        string // postgres:// connection string; if set, uses Postgres instead of SQLite
 	Port               string
 	PublicBaseURL      string
 	MasterBotToken     string  // Master bot for trainer onboarding
@@ -54,6 +55,7 @@ func Load() *Config {
 	cfg := &Config{
 		WebAppURL:      os.Getenv("WEB_APP_URL"),
 		DatabasePath:   os.Getenv("DATABASE_PATH"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		Port:           os.Getenv("PORT"),
 		PublicBaseURL:  os.Getenv("PUBLIC_BASE_URL"),
 		MasterBotToken:     os.Getenv("MASTER_BOT_TOKEN"),

@@ -4,27 +4,22 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { api } from "@/lib/api";
+import { useAdminNotifications } from "@/hooks/queries";
+import { invalidateAdminNotifications } from "@/hooks/mutations";
 
 export default function AdminNotificationsPage() {
+  const { data: prefs, isLoading } = useAdminNotifications();
   const [notifyNewBookings, setNotifyNewBookings] = useState(true);
   const [notifyCancellations, setNotifyCancellations] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    const fetchPrefs = async () => {
-      try {
-        const prefs = await api.admin.getNotificationPrefs();
-        setNotifyNewBookings(prefs.notifyNewBookings);
-        setNotifyCancellations(prefs.notifyCancellations);
-      } catch (err) {
-        console.error("Failed to fetch notification prefs:", err);
-        toast.error("Ошибка загрузки настроек");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPrefs();
-  }, []);
+    if (isLoading || initialized || !prefs) return;
+
+    setNotifyNewBookings(prefs.notifyNewBookings);
+    setNotifyCancellations(prefs.notifyCancellations);
+    setInitialized(true);
+  }, [prefs, isLoading, initialized]);
 
   const handleToggle = async (
     key: "notifyNewBookings" | "notifyCancellations",
@@ -37,13 +32,14 @@ export default function AdminNotificationsPage() {
     setters[key](value);
     try {
       await api.admin.updateNotificationPrefs({ [key]: value });
+      invalidateAdminNotifications();
     } catch {
       setters[key](!value);
       toast.error("Ошибка сохранения настроек");
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div>
         <TopBar title="Уведомления" showBack />

@@ -1,4 +1,4 @@
-import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo, WaitlistEntry, RecurringSchedule } from "./types";
+import { Trainer, SessionType, Booking, TimeSlot, WorkingHours, DayOff, ClientProfile, ClientInfo, RecurringSchedule, RecurringPreviewResponse } from "./types";
 import { getInitData, getTrainerId } from "./telegram";
 
 // API base URL - dev URL takes priority over prod URL, fallback to localhost
@@ -75,22 +75,10 @@ export const api = {
     return fetchAPI<Booking[]>("/api/bookings");
   },
 
-  async createBooking(
-    duration: number,
-    date: string,
-    time: string,
-    name: string,
-    message?: string,
-  ): Promise<Booking> {
+  async createBooking(duration: number, date: string, time: string, name: string, message?: string): Promise<Booking> {
     return fetchAPI<Booking>("/api/bookings", {
       method: "POST",
-      body: JSON.stringify({
-        duration,
-        date,
-        time,
-        name,
-        message,
-      }),
+      body: JSON.stringify({ duration, date, time, name, message }),
     });
   },
 
@@ -101,47 +89,16 @@ export const api = {
     });
   },
 
-  async rescheduleBooking(
-    booking: Booking,
-    date: string,
-    time: string,
-    reason: string,
-  ): Promise<Booking> {
-    // Reschedule is done by cancelling and creating a new booking
-    const duration = booking.durationMinutes || booking.sessionType?.durationMinutes || 60;
-    await this.cancelBooking(booking.id, reason);
-    return this.createBooking(
-      duration,
-      date,
-      time,
-      booking.clientName,
-      undefined,
-    );
-  },
-
-  // ========== Waitlist ==========
-
-  async getWaitlist(): Promise<WaitlistEntry[]> {
-    return fetchAPI<WaitlistEntry[]>("/api/waitlist");
-  },
-
-  async joinWaitlist(duration: number, date: string, time: string): Promise<WaitlistEntry> {
-    return fetchAPI<WaitlistEntry>("/api/waitlist", {
-      method: "POST",
-      body: JSON.stringify({ duration, date, time }),
+  async confirmBooking(bookingId: string): Promise<Booking> {
+    return fetchAPI<Booking>(`/api/bookings/${bookingId}/confirm`, {
+      method: "PUT",
     });
   },
 
-  async leaveWaitlist(id: string): Promise<void> {
-    await fetchAPI<void>(`/api/waitlist/${id}`, { method: "DELETE" });
-  },
-
-  async acceptWaitlistOffer(id: string): Promise<Booking> {
-    return fetchAPI<Booking>(`/api/waitlist/${id}/accept`, { method: "POST" });
-  },
-
-  async declineWaitlistOffer(id: string): Promise<void> {
-    await fetchAPI<void>(`/api/waitlist/${id}/decline`, { method: "POST" });
+  async declineBooking(bookingId: string): Promise<Booking> {
+    return fetchAPI<Booking>(`/api/bookings/${bookingId}/decline`, {
+      method: "PUT",
+    });
   },
 
   // ========== Client Profile ==========
@@ -170,8 +127,29 @@ export const api = {
     return fetchAPI<RecurringSchedule[]>("/api/recurring");
   },
 
-  async createRecurringSchedule(data: { dayOfWeek: number; time: string; durationMinutes: number }): Promise<RecurringSchedule> {
+  async getRecurringScheduleDetail(id: string): Promise<RecurringSchedule> {
+    return fetchAPI<RecurringSchedule>(`/api/recurring/${id}`);
+  },
+
+  async createRecurringSchedule(data: {
+    sessionTypeId: string;
+    daysOfWeek: number[];
+    time: string;
+    period: string;
+  }): Promise<RecurringSchedule> {
     return fetchAPI<RecurringSchedule>("/api/recurring", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async previewRecurringSchedule(data: {
+    sessionTypeId: string;
+    daysOfWeek: number[];
+    time: string;
+    period: string;
+  }): Promise<RecurringPreviewResponse> {
+    return fetchAPI<RecurringPreviewResponse>("/api/recurring/preview", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -179,6 +157,21 @@ export const api = {
 
   async cancelRecurringSchedule(id: string): Promise<void> {
     await fetchAPI<void>(`/api/recurring/${id}`, { method: "DELETE" });
+  },
+
+  // ========== Recurring Individual Booking Management ==========
+
+  async requestCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
+    return fetchAPI<Booking>(`/api/recurring/${scheduleId}/bookings/${bookingId}/cancel-request`, {
+      method: "PUT",
+    });
+  },
+
+  async requestMoveBooking(scheduleId: string, bookingId: string, data: { date: string; time: string }): Promise<Booking> {
+    return fetchAPI<Booking>(`/api/recurring/${scheduleId}/bookings/${bookingId}/move`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   },
 
   // ========== Admin API ==========
@@ -321,17 +314,87 @@ export const api = {
       return fetchAPI<RecurringSchedule[]>("/api/admin/recurring");
     },
 
-    async createRecurringSchedule(data: { clientId: string; dayOfWeek: number; time: string; durationMinutes: number }): Promise<RecurringSchedule> {
+    async getRecurringScheduleDetail(id: string): Promise<RecurringSchedule> {
+      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}`);
+    },
+
+    async createRecurringSchedule(data: {
+      clientId: string;
+      sessionTypeId: string;
+      daysOfWeek: number[];
+      time: string;
+      period: string;
+    }): Promise<RecurringSchedule> {
       return fetchAPI<RecurringSchedule>("/api/admin/recurring", {
         method: "POST",
         body: JSON.stringify(data),
       });
     },
 
-    async updateRecurringStatus(id: string, status: string): Promise<RecurringSchedule> {
-      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}/status`, {
+    async previewRecurringSchedule(data: {
+      clientId?: string;
+      sessionTypeId: string;
+      daysOfWeek: number[];
+      time: string;
+      period: string;
+    }): Promise<RecurringPreviewResponse> {
+      return fetchAPI<RecurringPreviewResponse>("/api/admin/recurring/preview", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    async approveRecurringSchedule(id: string): Promise<RecurringSchedule> {
+      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}/approve`, {
         method: "PUT",
-        body: JSON.stringify({ status }),
+      });
+    },
+
+    async declineRecurringSchedule(id: string): Promise<RecurringSchedule> {
+      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}/decline`, {
+        method: "PUT",
+      });
+    },
+
+    async cancelRecurringSchedule(id: string): Promise<void> {
+      await fetchAPI<void>(`/api/admin/recurring/${id}`, { method: "DELETE" });
+    },
+
+    // Recurring individual booking management (admin)
+    async requestCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
+      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/cancel-request`, {
+        method: "PUT",
+      });
+    },
+
+    async requestMoveBooking(scheduleId: string, bookingId: string, data: { date: string; time: string }): Promise<Booking> {
+      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/move`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+
+    async approveCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
+      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/approve-cancel`, {
+        method: "PUT",
+      });
+    },
+
+    async declineCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
+      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/decline-cancel`, {
+        method: "PUT",
+      });
+    },
+
+    async approveMoveBooking(scheduleId: string, bookingId: string): Promise<Booking> {
+      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/approve-move`, {
+        method: "PUT",
+      });
+    },
+
+    async declineMoveBooking(scheduleId: string, bookingId: string): Promise<void> {
+      await fetchAPI<void>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/decline-move`, {
+        method: "PUT",
       });
     },
 

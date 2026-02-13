@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SWRProvider } from "@/hooks/swr";
 import { ToastProvider } from "@/components/ToastProvider";
 import "./globals.css";
 
@@ -18,7 +19,9 @@ export default function RootLayout({
         <script src="https://telegram.org/js/telegram-web-app.js" />
       </head>
       <body>
-        {children}
+        <SWRProvider>
+          {children}
+        </SWRProvider>
         <ToastProvider />
       </body>
     </html>

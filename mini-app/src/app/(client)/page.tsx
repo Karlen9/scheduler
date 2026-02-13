@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TrainerCard } from "@/components/TrainerCard";
-import { api } from "@/lib/api";
-import { Trainer } from "@/lib/types";
+import { useTrainer } from "@/hooks/queries";
 
 export default function HomePage() {
   const router = useRouter();
-  const [trainer, setTrainer] = useState<Trainer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    api.getTrainer()
-      .then(setTrainer)
-      .catch((err) => console.error("Failed to load trainer:", err))
-      .finally(() => setIsLoading(false));
-  }, []);
+  const { data: trainer, isLoading } = useTrainer();
 
   const handleServices = () => {
     router.push("/services");

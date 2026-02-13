@@ -13,11 +13,26 @@ services:
   bot-dev:
     image: rainingman/scheduler-bot:dev
     network_mode: host
-    volumes:
-      - ./bot-data-dev:/data
     env_file:
       - bot/.env.dev
     environment:
-      - DATABASE_PATH=/data/scheduler.db
+      - DATABASE_URL=postgres://scheduler:${DB_PASSWORD:-scheduler}@localhost:5432/scheduler?sslmode=disable
       - PORT=8081
+    depends_on:
+      - db
     restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: scheduler
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-scheduler}
+    ports:
+      - "127.0.0.1:5432:5432"
+
+volumes:
+  pgdata:

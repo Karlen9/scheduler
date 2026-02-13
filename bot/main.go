@@ -137,8 +137,12 @@ func main() {
 		log.Fatalf("Failed to initialize encryption: %v", err)
 	}
 
-	// Initialize database
-	if err := db.Init(cfg.DatabasePath); err != nil {
+	// Initialize database (Postgres if DATABASE_URL is set, otherwise SQLite)
+	dbTarget := cfg.DatabasePath
+	if cfg.DatabaseURL != "" {
+		dbTarget = cfg.DatabaseURL
+	}
+	if err := db.Init(dbTarget); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
@@ -185,7 +189,7 @@ func main() {
 
 	log.Printf("Loaded %d trainer bot(s)", len(trainers))
 
-	// Set up notification callback for API - finds correct bot by trainer
+	// Set up notification callback for client-created bookings (notify trainer)
 	api.NotifyBookingFunc = func(booking *models.Booking) error {
 		trainer, err := db.GetTrainerByID(booking.TrainerID)
 		if err != nil || trainer == nil {
@@ -226,6 +230,23 @@ func main() {
 		return handler.NotifyClientStatusChange(booking, newStatus)
 	}
 
+	// Set up callback to edit trainer's Telegram message when admin panel changes booking status
+	api.UpdateTrainerMessageFunc = func(booking *models.Booking) error {
+		chatID, messageID, err := db.GetBookingNotificationInfo(booking.ID)
+		if err != nil || messageID == 0 {
+			return nil // No message to edit
+		}
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			return nil
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			return nil
+		}
+		return handler.UpdateBookingNotificationMessage(chatID, messageID, booking)
+	}
+
 	// Set up notification callback for trainer-initiated bookings (notify client)
 	api.NotifyTrainerBookingFunc = func(booking *models.Booking) error {
 		client, err := db.GetClientByID(booking.ClientID)
@@ -248,66 +269,77 @@ func main() {
 		return handler.NotifyClientTrainerBooking(booking)
 	}
 
-	// Set up recurring batch notification callback
-	api.NotifyRecurringBatchFunc = func(trainerID, scheduleID, clientName, serviceName string, bookings []*models.Booking) error {
-		trainer, err := db.GetTrainerByID(trainerID)
+	// Set up notification callback for client confirm/decline of trainer-created bookings
+	api.NotifyClientBookingResponseFunc = func(booking *models.Booking, accepted bool) error {
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
 		if err != nil || trainer == nil {
 			return err
-		}
-		if !trainer.NotifyNewBookings {
-			log.Printf("Skipping recurring batch notification for trainer %s (disabled)", trainer.Name)
-			return nil
 		}
 		handler := botManager.GetHandler(trainer.WebhookSecret)
 		if handler == nil {
 			log.Printf("No handler found for trainer %s", trainer.Name)
 			return nil
 		}
-		return handler.NotifyTrainerRecurringBatch(trainer.TelegramUserID, scheduleID, clientName, serviceName, bookings)
+		return handler.NotifyTrainerClientBookingResponse(booking, accepted)
 	}
 
-	// Set up waitlist offer notification callback
-	api.NotifyWaitlistOfferFunc = func(entry *models.WaitlistEntry) error {
-		trainer, err := db.GetTrainerByID(entry.TrainerID)
+	// Set up recurring schedule notification callback
+	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error {
+		trainer, err := db.GetTrainerByID(schedule.TrainerID)
 		if err != nil || trainer == nil {
 			return err
 		}
-		client, err := db.GetClientByID(entry.ClientID)
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
+			return nil
+		}
+		if schedule.CreatedBy == "client" {
+			// Notify trainer about client-created schedule
+			if !trainer.NotifyNewBookings {
+				log.Printf("Skipping recurring schedule notification for trainer %s (disabled)", trainer.Name)
+				return nil
+			}
+			return handler.NotifyTrainerRecurringSchedule(schedule, previewCount)
+		}
+		// Notify client about trainer-created schedule
+		client, err := db.GetClientByID(schedule.ClientID)
 		if err != nil || client == nil {
 			return err
 		}
-		if !client.NotifyWaitlist {
-			log.Printf("Skipping waitlist offer notification for client %s (disabled)", client.Name)
+		if !client.NotifyBookingStatus {
+			log.Printf("Skipping recurring schedule notification for client %s (disabled)", client.Name)
 			return nil
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
-		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
-			return nil
-		}
-		return handler.NotifyClientWaitlistOffer(entry)
+		return handler.NotifyClientRecurringSchedule(schedule, previewCount)
 	}
 
-	// Set up waitlist expired notification callback
-	api.NotifyWaitlistExpiredFunc = func(entry *models.WaitlistEntry) error {
-		trainer, err := db.GetTrainerByID(entry.TrainerID)
+	// Set up cancel request notification callback
+	api.NotifyCancelRequestFunc = func(booking *models.Booking, requestedBy string) error {
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
 		if err != nil || trainer == nil {
 			return err
 		}
-		client, err := db.GetClientByID(entry.ClientID)
-		if err != nil || client == nil {
-			return err
-		}
-		if !client.NotifyWaitlist {
-			log.Printf("Skipping waitlist expired notification for client %s (disabled)", client.Name)
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
 			return nil
+		}
+		return handler.NotifyCancelRequest(booking, requestedBy)
+	}
+
+	// Set up move request notification callback
+	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error {
+		trainer, err := db.GetTrainerByID(oldBooking.TrainerID)
+		if err != nil || trainer == nil {
+			return err
 		}
 		handler := botManager.GetHandler(trainer.WebhookSecret)
 		if handler == nil {
 			log.Printf("No handler found for trainer %s", trainer.Name)
 			return nil
 		}
-		return handler.NotifyClientWaitlistExpired(entry)
+		return handler.NotifyMoveRequest(newBooking, oldBooking, requestedBy)
 	}
 
 	// Set up HTTP server
@@ -457,16 +489,6 @@ func main() {
 	defer reminderCancel()
 	go startReminderWorker(reminderCtx)
 
-	// Start background waitlist expiry worker
-	waitlistCtx, waitlistCancel := context.WithCancel(context.Background())
-	defer waitlistCancel()
-	go startWaitlistExpiryWorker(waitlistCtx)
-
-	// Start background recurring schedule worker
-	recurringCtx, recurringCancel := context.WithCancel(context.Background())
-	defer recurringCancel()
-	go startRecurringWorker(recurringCtx)
-
 	go func() {
 		log.Printf("Starting HTTP server on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -550,187 +572,6 @@ func sendReminders() {
 		}
 
 		log.Printf("Reminder sent for booking %s (client: %s)", booking.ID, client.Name)
-	}
-}
-
-func startWaitlistExpiryWorker(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-
-	log.Println("Waitlist expiry worker started")
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("Waitlist expiry worker stopped")
-			return
-		case <-ticker.C:
-			processExpiredWaitlistOffers()
-		}
-	}
-}
-
-func processExpiredWaitlistOffers() {
-	entries, err := db.GetExpiredOffers(30 * time.Minute)
-	if err != nil {
-		log.Printf("Waitlist expiry: error fetching expired offers: %v", err)
-		return
-	}
-
-	for _, entry := range entries {
-		if err := db.UpdateWaitlistStatus(entry.ID, models.WaitlistStatusExpired); err != nil {
-			log.Printf("Waitlist expiry: error updating entry %s: %v", entry.ID, err)
-			continue
-		}
-
-		log.Printf("📋 WAITLIST EXPIRED [%s] Client: %s", entry.ID[:8], entry.ClientName)
-
-		// Notify client about expired offer
-		if api.NotifyWaitlistExpiredFunc != nil {
-			if err := api.NotifyWaitlistExpiredFunc(&entry); err != nil {
-				log.Printf("Waitlist expiry: error notifying client: %v", err)
-			}
-		}
-
-		// Offer to next person in queue
-		api.ProcessNextWaitlistEntry(entry.TrainerID, entry.StartsAt, entry.EndsAt)
-	}
-}
-
-func startRecurringWorker(ctx context.Context) {
-	// Run once on startup after a short delay
-	time.Sleep(10 * time.Second)
-	processRecurringSchedules()
-
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
-
-	log.Println("Recurring schedule worker started")
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("Recurring schedule worker stopped")
-			return
-		case <-ticker.C:
-			processRecurringSchedules()
-		}
-	}
-}
-
-func processRecurringSchedules() {
-	schedules, err := db.GetActiveRecurringSchedules()
-	if err != nil {
-		log.Printf("Recurring: error fetching schedules: %v", err)
-		return
-	}
-
-	if len(schedules) == 0 {
-		return
-	}
-
-	now := time.Now().UTC()
-	tomorrow := now.AddDate(0, 0, 1)
-	tomorrow = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, time.UTC)
-	horizon := now.AddDate(0, 3, 0) // 3 months ahead
-
-	created := 0
-	for _, schedule := range schedules {
-		// Get trainer's working hours and days off
-		workingHours, err := db.GetWorkingHoursByTrainerID(schedule.TrainerID)
-		if err != nil {
-			log.Printf("Recurring: error getting working hours for schedule %s: %v", schedule.ID[:8], err)
-			continue
-		}
-
-		// Find services for FK
-		services, err := db.GetSessionTypesByTrainerID(schedule.TrainerID)
-		if err != nil || len(services) == 0 {
-			log.Printf("Recurring: no services for schedule %s", schedule.ID[:8])
-			continue
-		}
-		sessionTypeID := services[0].ID
-		serviceName := services[0].Name
-		for _, s := range services {
-			if s.DurationMinutes == schedule.DurationMinutes {
-				sessionTypeID = s.ID
-				serviceName = s.Name
-				break
-			}
-		}
-
-		// Parse schedule time
-		timeParts := api.ParseTime(schedule.Time)
-
-		// Collect bookings created for this schedule
-		var batchBookings []*models.Booking
-
-		// Iterate from tomorrow to horizon
-		for d := tomorrow; d.Before(horizon); d = d.AddDate(0, 0, 1) {
-			// Check if this is the right day of week
-			if int(d.Weekday()) != schedule.DayOfWeek {
-				continue
-			}
-
-			// Check if booking already exists for this schedule+date
-			exists, err := db.BookingExistsForRecurring(schedule.ID, d)
-			if err != nil {
-				log.Printf("Recurring: error checking existing booking: %v", err)
-				continue
-			}
-			if exists {
-				continue
-			}
-
-			// Check if this date is a day off
-			isDayOff, _ := db.IsDayOff(schedule.TrainerID, d)
-			if isDayOff {
-				continue
-			}
-
-			// Check working hours for this day
-			var hasWorkingHours bool
-			for _, wh := range workingHours {
-				if wh.DayOfWeek == int(d.Weekday()) {
-					hasWorkingHours = true
-					break
-				}
-			}
-			if !hasWorkingHours {
-				continue
-			}
-
-			startsAt := time.Date(d.Year(), d.Month(), d.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
-			endsAt := startsAt.Add(time.Duration(schedule.DurationMinutes) * time.Minute)
-
-			// Check for conflicting bookings
-			hasConflict, _ := db.HasConflictingBooking(schedule.TrainerID, startsAt, endsAt, "")
-			if hasConflict {
-				continue
-			}
-
-			// Create booking
-			booking, err := db.CreateRecurringBooking(schedule.TrainerID, schedule.ClientID, sessionTypeID,
-				startsAt, endsAt, schedule.ClientName, schedule.DurationMinutes, schedule.ID)
-			if err != nil {
-				log.Printf("Recurring: error creating booking: %v", err)
-				continue
-			}
-
-			created++
-			batchBookings = append(batchBookings, booking)
-		}
-
-		// Send one batch notification per schedule
-		if len(batchBookings) > 0 && api.NotifyRecurringBatchFunc != nil {
-			if err := api.NotifyRecurringBatchFunc(schedule.TrainerID, schedule.ID, schedule.ClientName, serviceName, batchBookings); err != nil {
-				log.Printf("Recurring: error sending batch notification: %v", err)
-			}
-		}
-	}
-
-	if created > 0 {
-		log.Printf("Recurring: created %d booking(s) from %d active schedule(s)", created, len(schedules))
 	}
 }
 

@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "lucide-react": "^0.469.0",
+    "next": "15.5.12",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.5.12",
-    "lucide-react": "^0.469.0",
-    "sonner": "^1.7.0"
+    "sonner": "^1.7.0",
+    "swr": "^2.4.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

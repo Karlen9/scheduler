@@ -32,11 +32,11 @@ func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Clien
 }
 
 func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
-	row := DB.QueryRow(`
+	row := DB.QueryRow(Q(`
 		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE telegram_user_id = ? AND trainer_id = ?
-	`, telegramUserID, trainerID)
+	`), telegramUserID, trainerID)
 
 	c, err := scanClient(row)
 	if err == sql.ErrNoRows {
@@ -49,11 +49,11 @@ func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Clie
 }
 
 func GetClientByID(id string) (*models.Client, error) {
-	row := DB.QueryRow(`
+	row := DB.QueryRow(Q(`
 		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE id = ?
-	`, id)
+	`), id)
 
 	c, err := scanClient(row)
 	if err == sql.ErrNoRows {
@@ -68,10 +68,10 @@ func GetClientByID(id string) (*models.Client, error) {
 func CreateClient(telegramUserID int64, trainerID string, name string) (*models.Client, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		INSERT INTO clients (id, telegram_user_id, trainer_id, name)
 		VALUES (?, ?, ?, ?)
-	`, id, telegramUserID, trainerID, name)
+	`), id, telegramUserID, trainerID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -91,17 +91,17 @@ func GetOrCreateClient(telegramUserID int64, trainerID string, name string) (*mo
 }
 
 func UpdateClientName(clientID string, name string) error {
-	_, err := DB.Exec(`UPDATE clients SET name = ? WHERE id = ?`, name, clientID)
+	_, err := DB.Exec(Q(`UPDATE clients SET name = ? WHERE id = ?`), name, clientID)
 	return err
 }
 
 func UpdateClientProfile(clientID string, name string, phone string, preferredDuration int) error {
-	_, err := DB.Exec(`UPDATE clients SET name = ?, phone = ?, preferred_duration = ? WHERE id = ?`, name, phone, preferredDuration, clientID)
+	_, err := DB.Exec(Q(`UPDATE clients SET name = ?, phone = ?, preferred_duration = ? WHERE id = ?`), name, phone, preferredDuration, clientID)
 	return err
 }
 
 func UpdateClientNotificationPrefs(clientID string, notifyBookingStatus, notifyReminders, notifyDaysOff, notifyWaitlist bool) error {
-	_, err := DB.Exec(`UPDATE clients SET notify_booking_status = ?, notify_reminders = ?, notify_days_off = ?, notify_waitlist = ? WHERE id = ?`,
+	_, err := DB.Exec(Q(`UPDATE clients SET notify_booking_status = ?, notify_reminders = ?, notify_days_off = ?, notify_waitlist = ? WHERE id = ?`),
 		boolToInt(notifyBookingStatus), boolToInt(notifyReminders), boolToInt(notifyDaysOff), boolToInt(notifyWaitlist), clientID)
 	return err
 }
@@ -114,12 +114,12 @@ func boolToInt(b bool) int {
 }
 
 func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE trainer_id = ?
 		ORDER BY name ASC
-	`, trainerID)
+	`), trainerID)
 	if err != nil {
 		return nil, err
 	}

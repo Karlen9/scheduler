@@ -48,23 +48,24 @@ func NewRouter() http.Handler {
 		r.Get("/bookings", HandleGetBookings)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
-
-		// Waitlist
-		r.Post("/waitlist", HandleJoinWaitlist)
-		r.Get("/waitlist", HandleGetMyWaitlist)
-		r.Delete("/waitlist/{id}", HandleLeaveWaitlist)
-		r.Post("/waitlist/{id}/accept", HandleAcceptWaitlistOffer)
-		r.Post("/waitlist/{id}/decline", HandleDeclineWaitlistOffer)
-
-		// Recurring schedules (client)
-		r.Get("/recurring", HandleGetRecurringSchedules)
-		r.Post("/recurring", HandleCreateRecurringSchedule)
-		r.Delete("/recurring/{id}", HandleCancelRecurringSchedule)
+		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
+		r.Put("/bookings/{id}/decline", HandleClientDeclineBooking)
 
 		// Client profile
 		r.Get("/profile", HandleGetClientProfile)
 		r.Put("/profile", HandleUpdateClientProfile)
 		r.Put("/profile/notifications", HandleUpdateClientNotificationPrefs)
+
+		// Client recurring schedules
+		r.Get("/recurring", HandleGetRecurringSchedules)
+		r.Post("/recurring", HandleCreateRecurringSchedule)
+		r.Post("/recurring/preview", HandlePreviewRecurringSchedule)
+		r.Get("/recurring/{id}", HandleGetRecurringScheduleDetail)
+		r.Delete("/recurring/{id}", HandleCancelRecurringSchedule)
+
+		// Client recurring individual booking management
+		r.Put("/recurring/{scheduleId}/bookings/{bookingId}/cancel-request", HandleClientCancelRequest)
+		r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleClientMoveRequest)
 
 		// Admin routes (trainer only)
 		r.Route("/admin", func(r chi.Router) {
@@ -109,7 +110,19 @@ func NewRouter() http.Handler {
 			// Recurring schedules (admin)
 			r.Get("/recurring", HandleAdminGetRecurringSchedules)
 			r.Post("/recurring", HandleAdminCreateRecurringSchedule)
-			r.Put("/recurring/{id}/status", HandleAdminUpdateRecurringStatus)
+			r.Post("/recurring/preview", HandleAdminPreviewRecurringSchedule)
+			r.Get("/recurring/{id}", HandleAdminGetRecurringScheduleDetail)
+			r.Put("/recurring/{id}/approve", HandleAdminApproveRecurringSchedule)
+			r.Put("/recurring/{id}/decline", HandleAdminDeclineRecurringSchedule)
+			r.Delete("/recurring/{id}", HandleAdminCancelRecurringSchedule)
+
+			// Admin recurring individual booking management
+			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/cancel-request", HandleAdminBookingCancelRequest)
+			r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleAdminBookingMoveRequest)
+			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-cancel", HandleAdminApproveCancelBooking)
+			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-cancel", HandleAdminDeclineCancelBooking)
+			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-move", HandleAdminApproveMoveBooking)
+			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
 
 			// Notification preferences
 			r.Get("/notifications", HandleAdminGetNotificationPrefs)
