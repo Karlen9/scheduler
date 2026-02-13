@@ -221,6 +221,8 @@ func migrateSQLite() error {
 		`ALTER TABLE recurring_schedules ADD COLUMN start_date TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN end_date TEXT`,
 		`ALTER TABLE bookings ADD COLUMN replaces_booking_id TEXT`,
+		`ALTER TABLE bookings ADD COLUMN telegram_notification_chat_id INTEGER`,
+		`ALTER TABLE bookings ADD COLUMN telegram_notification_msg_id INTEGER`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -461,6 +463,8 @@ func migratePostgres() error {
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS start_date TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS end_date TEXT`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS replaces_booking_id TEXT`,
+		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS telegram_notification_chat_id BIGINT`,
+		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS telegram_notification_msg_id INTEGER`,
 	}
 
 	for _, migration := range alterMigrations {

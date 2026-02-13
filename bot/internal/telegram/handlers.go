@@ -478,8 +478,36 @@ func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 	}
 
 	text := FormatNewBookingMessage(booking)
-	_, err = h.Bot.SendBookingApprovalMessage(trainer.TelegramUserID, booking.ID, text)
-	return err
+	msg, err := h.Bot.SendBookingApprovalMessage(trainer.TelegramUserID, booking.ID, text)
+	if err != nil {
+		return err
+	}
+
+	// Save message info so admin panel can edit it later
+	if msg != nil {
+		db.SaveBookingNotificationInfo(booking.ID, trainer.TelegramUserID, msg.MessageID)
+	}
+	return nil
+}
+
+// UpdateBookingNotificationMessage edits the trainer's original booking notification
+// to reflect the new status (removes inline buttons)
+func (h *Handler) UpdateBookingNotificationMessage(chatID int64, messageID int, booking *models.Booking) error {
+	var text string
+	switch booking.Status {
+	case models.BookingStatusConfirmed:
+		text = FormatBookingAcceptedTrainer(booking)
+	case models.BookingStatusRejected:
+		text = FormatBookingRejectedTrainer(booking)
+	case models.BookingStatusCancelled:
+		text = fmt.Sprintf("❌ Запись отменена\n\n👤 Клиент: %s\n📋 %s\n🕐 Время: %s",
+			booking.ClientName,
+			bookingServiceDisplay(booking),
+			formatDateTime(booking.StartsAt))
+	default:
+		text = FormatNewBookingMessage(booking)
+	}
+	return h.Bot.EditMessageText(chatID, messageID, text, nil)
 }
 
 // NotifyTrainerRecurringSchedule sends a recurring schedule approval request to trainer

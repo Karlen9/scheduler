@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, ChevronDown, UserPlus, Repeat } from "lucide-react";
 import { toast } from "sonner";
@@ -25,15 +25,21 @@ export default function AdminBookingsPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [showPast, setShowPast] = useState(false);
 
+  const initialLoadDone = React.useRef(false);
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
+      if (!initialLoadDone.current) {
+        setLoading(true);
+      }
       setError(null);
       const data = await api.admin.getBookings();
       setBookings(data);
+      initialLoadDone.current = true;
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      if (!initialLoadDone.current) {
+        setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      }
     } finally {
       setLoading(false);
     }
@@ -41,6 +47,12 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     fetchData();
+
+    // Poll every 15 seconds to detect status changes from bot chat
+    const interval = setInterval(() => {
+      fetchData();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   const now = new Date();

@@ -394,6 +394,30 @@ func DeclineRescheduleBooking(newBookingID string) error {
 	return err
 }
 
+// SaveBookingNotificationInfo stores the Telegram message ID for the trainer notification
+func SaveBookingNotificationInfo(bookingID string, chatID int64, messageID int) error {
+	_, err := DB.Exec(Q(`UPDATE bookings SET telegram_notification_chat_id = ?, telegram_notification_msg_id = ? WHERE id = ?`),
+		chatID, messageID, bookingID)
+	return err
+}
+
+// GetBookingNotificationInfo returns the stored Telegram notification message info
+func GetBookingNotificationInfo(bookingID string) (chatID int64, messageID int, err error) {
+	var chatIDNull, msgIDNull sql.NullInt64
+	err = DB.QueryRow(Q(`SELECT telegram_notification_chat_id, telegram_notification_msg_id FROM bookings WHERE id = ?`),
+		bookingID).Scan(&chatIDNull, &msgIDNull)
+	if err != nil {
+		return 0, 0, err
+	}
+	if chatIDNull.Valid {
+		chatID = chatIDNull.Int64
+	}
+	if msgIDNull.Valid {
+		messageID = int(msgIDNull.Int64)
+	}
+	return chatID, messageID, nil
+}
+
 func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	endOfDay := startOfDay.AddDate(0, 0, 1)

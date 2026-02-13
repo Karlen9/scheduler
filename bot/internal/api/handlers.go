@@ -19,6 +19,10 @@ var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 // NotifyBookingFunc is a callback to notify trainer about a new client-created booking
 var NotifyBookingFunc func(booking *models.Booking) error
 
+// UpdateTrainerMessageFunc is a callback to edit the trainer's Telegram notification message
+// when a booking status changes via the admin panel
+var UpdateTrainerMessageFunc func(booking *models.Booking) error
+
 
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {

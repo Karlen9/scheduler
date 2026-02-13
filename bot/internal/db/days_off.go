@@ -9,6 +9,33 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+// parseDateString parses a date string that may come as "2006-01-02" (SQLite)
+// or "2006-01-02T15:04:05Z" / "2006-01-02 15:04:05+00:00" (Postgres).
+func parseDateString(s string) time.Time {
+	// Try date-only first
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t
+	}
+	// Try RFC3339 (Postgres TIMESTAMPTZ)
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t
+	}
+	// Try Postgres format without T separator
+	if t, err := time.Parse("2006-01-02 15:04:05-07:00", s); err == nil {
+		return t
+	}
+	if t, err := time.Parse("2006-01-02 15:04:05-07", s); err == nil {
+		return t
+	}
+	// Fallback: truncate to 10 chars and try date-only
+	if len(s) >= 10 {
+		if t, err := time.Parse("2006-01-02", s[:10]); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
 func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
 	rows, err := DB.Query(Q(
 		`SELECT id, trainer_id, date, reason, created_at
@@ -29,7 +56,7 @@ func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
 		if err != nil {
 			return nil, err
 		}
-		d.Date, _ = time.Parse("2006-01-02", dateStr)
+		d.Date = parseDateString(dateStr)
 		d.Reason = reason.String
 		daysOff = append(daysOff, d)
 	}
@@ -54,7 +81,7 @@ func GetDayOff(trainerID string, date time.Time) (*models.DayOff, error) {
 	if err != nil {
 		return nil, err
 	}
-	d.Date, _ = time.Parse("2006-01-02", dateResult)
+	d.Date = parseDateString(dateResult)
 	d.Reason = reason.String
 	return &d, nil
 }

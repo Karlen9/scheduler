@@ -230,6 +230,23 @@ func main() {
 		return handler.NotifyClientStatusChange(booking, newStatus)
 	}
 
+	// Set up callback to edit trainer's Telegram message when admin panel changes booking status
+	api.UpdateTrainerMessageFunc = func(booking *models.Booking) error {
+		chatID, messageID, err := db.GetBookingNotificationInfo(booking.ID)
+		if err != nil || messageID == 0 {
+			return nil // No message to edit
+		}
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			return nil
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			return nil
+		}
+		return handler.UpdateBookingNotificationMessage(chatID, messageID, booking)
+	}
+
 	// Set up notification callback for trainer-initiated bookings (notify client)
 	api.NotifyTrainerBookingFunc = func(booking *models.Booking) error {
 		client, err := db.GetClientByID(booking.ClientID)

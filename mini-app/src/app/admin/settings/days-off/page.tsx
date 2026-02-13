@@ -15,14 +15,20 @@ const formatDate = (date: Date): string => {
     "января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря"
   ];
-  return `${days[date.getUTCDay()]}, ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
+  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
 };
 
 const formatDateISO = (date: Date): string => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+};
+
+/** Parse "YYYY-MM-DD" as local midnight (avoids UTC timezone shift) */
+const parseLocalDate = (dateStr: string): Date => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
 };
 
 export default function DaysOffPage() {
@@ -86,8 +92,8 @@ export default function DaysOffPage() {
     return daysOff.some((d) => d.date.startsWith(dateStr));
   };
 
-  // Convert ISO dates to Date objects for display
-  const daysOffDates = daysOff.map((d) => new Date(d.date));
+  // Convert ISO dates to local Date objects for calendar display
+  const daysOffDates = daysOff.map((d) => parseLocalDate(d.date));
 
   if (loading) {
     return (
@@ -169,7 +175,7 @@ export default function DaysOffPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-foreground">
-                    {formatDate(new Date(dayOff.date))}
+                    {formatDate(parseLocalDate(dayOff.date))}
                   </p>
                   {dayOff.reason && (
                     <p className="text-sm text-muted-foreground">

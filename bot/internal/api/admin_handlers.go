@@ -544,18 +544,23 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		trainer.BotUsername,
 	)
 
+	// Refresh booking to get updated status + session type
+	booking, _ = db.GetBookingByID(bookingID)
+
 	// Notify client about status change
-	if NotifyStatusChangeFunc != nil {
-		// Refresh booking to get updated status + session type
-		updated, _ := db.GetBookingByID(bookingID)
-		if updated != nil {
-			if err := NotifyStatusChangeFunc(updated, req.Status); err != nil {
-				log.Printf("Error notifying client about status change: %v", err)
-			}
+	if NotifyStatusChangeFunc != nil && booking != nil {
+		if err := NotifyStatusChangeFunc(booking, req.Status); err != nil {
+			log.Printf("Error notifying client about status change: %v", err)
 		}
 	}
 
-	booking, _ = db.GetBookingByID(bookingID)
+	// Update trainer's Telegram notification message (remove buttons)
+	if UpdateTrainerMessageFunc != nil && booking != nil {
+		if err := UpdateTrainerMessageFunc(booking); err != nil {
+			log.Printf("Error updating trainer message: %v", err)
+		}
+	}
+
 	writeJSON(w, booking)
 }
 

@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Trainer struct {
 	ID                  string    `json:"id"`
@@ -143,7 +146,22 @@ type TimeSlot struct {
 type DayOff struct {
 	ID        string    `json:"id"`
 	TrainerID string    `json:"-"`
-	Date      time.Time `json:"date"`
+	Date      time.Time `json:"-"`
 	Reason    string    `json:"reason,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+// MarshalJSON serializes DayOff with date as "YYYY-MM-DD" string (not RFC3339 timestamp)
+func (d DayOff) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ID        string    `json:"id"`
+		Date      string    `json:"date"`
+		Reason    string    `json:"reason,omitempty"`
+		CreatedAt time.Time `json:"createdAt"`
+	}{
+		ID:        d.ID,
+		Date:      d.Date.Format("2006-01-02"),
+		Reason:    d.Reason,
+		CreatedAt: d.CreatedAt,
+	})
 }
