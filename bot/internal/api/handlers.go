@@ -23,6 +23,10 @@ var NotifyBookingFunc func(booking *models.Booking) error
 // when a booking status changes via the admin panel
 var UpdateTrainerMessageFunc func(booking *models.Booking) error
 
+// NotifyClientBookingResponseFunc is a callback to notify the trainer when a client
+// confirms or declines a trainer-created booking via the REST API
+var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
+
 
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
@@ -630,6 +634,106 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 		NotifyDaysOff:       updated.NotifyDaysOff,
 	}
 	writeJSON(w, resp)
+}
+
+// HandleClientConfirmBooking lets a client confirm a trainer-created booking
+func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	if bookingID == "" {
+		http.Error(w, "Неверный ID записи", http.StatusBadRequest)
+		return
+	}
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil {
+		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		return
+	}
+	if booking.ClientID != client.ID {
+		http.Error(w, "Нет доступа", http.StatusForbidden)
+		return
+	}
+	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "trainer" {
+		http.Error(w, "Запись не может быть подтверждена", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.UpdateBookingStatus(bookingID, models.BookingStatusConfirmed); err != nil {
+		log.Printf("Error confirming booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	booking, _ = db.GetBookingByID(bookingID)
+
+	if NotifyClientBookingResponseFunc != nil {
+		if err := NotifyClientBookingResponseFunc(booking, true); err != nil {
+			log.Printf("Error notifying trainer about client confirm: %v", err)
+		}
+	}
+
+	writeJSON(w, booking)
+}
+
+// HandleClientDeclineBooking lets a client decline a trainer-created booking
+func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	if bookingID == "" {
+		http.Error(w, "Неверный ID записи", http.StatusBadRequest)
+		return
+	}
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil {
+		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		return
+	}
+	if booking.ClientID != client.ID {
+		http.Error(w, "Нет доступа", http.StatusForbidden)
+		return
+	}
+	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "trainer" {
+		http.Error(w, "Запись не может быть отклонена", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.CancelBooking(bookingID, "", models.CancelledByClient); err != nil {
+		log.Printf("Error declining booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	booking, _ = db.GetBookingByID(bookingID)
+
+	if NotifyClientBookingResponseFunc != nil {
+		if err := NotifyClientBookingResponseFunc(booking, false); err != nil {
+			log.Printf("Error notifying trainer about client decline: %v", err)
+		}
+	}
+
+	writeJSON(w, booking)
 }
 
 func writeJSON(w http.ResponseWriter, data interface{}) {

@@ -56,6 +56,26 @@ export default function BookingsPage() {
     }
   };
 
+  const handleConfirm = async (booking: Booking) => {
+    try {
+      await api.confirmBooking(booking.id);
+      toast.success("Запись подтверждена");
+      fetchData();
+    } catch {
+      toast.error("Не удалось подтвердить запись");
+    }
+  };
+
+  const handleDecline = async (booking: Booking) => {
+    try {
+      await api.declineBooking(booking.id);
+      toast.success("Запись отклонена");
+      fetchData();
+    } catch {
+      toast.error("Не удалось отклонить запись");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 space-y-4">
@@ -130,6 +150,8 @@ export default function BookingsPage() {
                   key={booking.id}
                   booking={booking}
                   onCancel={setCancelTarget}
+                  onConfirm={booking.status === "pending" && booking.createdBy === "trainer" ? handleConfirm : undefined}
+                  onDecline={booking.status === "pending" && booking.createdBy === "trainer" ? handleDecline : undefined}
                 />
               ))}
             </div>

@@ -89,6 +89,18 @@ export const api = {
     });
   },
 
+  async confirmBooking(bookingId: string): Promise<Booking> {
+    return fetchAPI<Booking>(`/api/bookings/${bookingId}/confirm`, {
+      method: "PUT",
+    });
+  },
+
+  async declineBooking(bookingId: string): Promise<Booking> {
+    return fetchAPI<Booking>(`/api/bookings/${bookingId}/decline`, {
+      method: "PUT",
+    });
+  },
+
   // ========== Client Profile ==========
 
   async getProfile(): Promise<ClientProfile> {

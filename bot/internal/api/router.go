@@ -48,6 +48,8 @@ func NewRouter() http.Handler {
 		r.Get("/bookings", HandleGetBookings)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
+		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
+		r.Put("/bookings/{id}/decline", HandleClientDeclineBooking)
 
 		// Client profile
 		r.Get("/profile", HandleGetClientProfile)

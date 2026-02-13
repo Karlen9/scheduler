@@ -6,6 +6,8 @@ import { Booking } from "@/lib/types";
 interface BookingCardProps {
   booking: Booking;
   onCancel?: (booking: Booking) => void;
+  onConfirm?: (booking: Booking) => void;
+  onDecline?: (booking: Booking) => void;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -30,11 +32,12 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
-export function BookingCard({ booking, onCancel }: BookingCardProps) {
+export function BookingCard({ booking, onCancel, onConfirm, onDecline }: BookingCardProps) {
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
   const status = statusLabels[booking.status] || statusLabels.pending;
   const isActive = booking.status === "pending" || booking.status === "confirmed";
+  const isTrainerPending = booking.status === "pending" && booking.createdBy === "trainer";
 
   return (
     <div className="bg-card rounded-xl p-4">
@@ -65,7 +68,23 @@ export function BookingCard({ booking, onCancel }: BookingCardProps) {
         </span>
       </div>
 
-      {isActive && (
+      {isTrainerPending && onConfirm && onDecline ? (
+        <div className="pt-3 border-t border-border space-y-2">
+          <p className="text-xs text-muted-foreground mb-2">Тренер записал вас на тренировку</p>
+          <button
+            onClick={() => onConfirm(booking)}
+            className="w-full py-2 px-4 rounded-lg bg-green-600 text-white text-sm font-medium transition-opacity active:opacity-70"
+          >
+            Подтвердить
+          </button>
+          <button
+            onClick={() => onDecline(booking)}
+            className="w-full py-2 px-4 rounded-lg bg-background text-destructive text-sm font-medium transition-opacity active:opacity-70"
+          >
+            Отклонить
+          </button>
+        </div>
+      ) : isActive && (
         <div className="pt-3 border-t border-border">
           <button
             onClick={() => onCancel?.(booking)}

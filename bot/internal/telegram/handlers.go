@@ -855,6 +855,13 @@ func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requ
 	return err
 }
 
+// NotifyTrainerClientBookingResponse is the public API for notifying the trainer
+// when a client confirms or declines a trainer-created booking via the REST API.
+func (h *Handler) NotifyTrainerClientBookingResponse(booking *models.Booking, accepted bool) error {
+	h.notifyTrainerClientResponse(booking, accepted)
+	return nil
+}
+
 func (h *Handler) notifyTrainerClientResponse(booking *models.Booking, accepted bool) {
 	trainer, err := db.GetTrainerByID(booking.TrainerID)
 	if err != nil || trainer == nil {

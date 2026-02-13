@@ -269,6 +269,20 @@ func main() {
 		return handler.NotifyClientTrainerBooking(booking)
 	}
 
+	// Set up notification callback for client confirm/decline of trainer-created bookings
+	api.NotifyClientBookingResponseFunc = func(booking *models.Booking, accepted bool) error {
+		trainer, err := db.GetTrainerByID(booking.TrainerID)
+		if err != nil || trainer == nil {
+			return err
+		}
+		handler := botManager.GetHandler(trainer.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for trainer %s", trainer.Name)
+			return nil
+		}
+		return handler.NotifyTrainerClientBookingResponse(booking, accepted)
+	}
+
 	// Set up recurring schedule notification callback
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error {
 		trainer, err := db.GetTrainerByID(schedule.TrainerID)
