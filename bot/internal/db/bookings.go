@@ -294,7 +294,7 @@ func CreateBookingByTrainer(trainerID, clientID, sessionTypeID string, startsAt,
 
 	_, err := DB.Exec(Q(`
 		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'trainer')
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, 'trainer')
 	`), id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
 	if err != nil {
 		return nil, err
