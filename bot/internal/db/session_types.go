@@ -137,7 +137,7 @@ func UpdateSessionType(id, name string, durationMinutes, price int, currency str
 		UPDATE session_types
 		SET name = ?, duration_minutes = ?, price = ?, currency = ?, is_active = ?
 		WHERE id = ?
-	`), name, durationMinutes, price, currency, isActive, id)
+	`), name, durationMinutes, price, currency, BoolVal(isActive), id)
 	if err != nil {
 		return nil, err
 	}

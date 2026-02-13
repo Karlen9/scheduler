@@ -36,12 +36,12 @@ export default function BookingsPage() {
     fetchData();
   }, [fetchData]);
 
-  const activeBookings = bookings.filter(
-    (b) => b.status === "pending" || b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending",
-  );
-  const pastBookings = bookings.filter(
-    (b) => b.status === "completed" || b.status === "cancelled" || b.status === "rejected",
-  );
+  const activeBookings = bookings
+    .filter((b) => b.status === "pending" || b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending")
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  const pastBookings = bookings
+    .filter((b) => b.status === "completed" || b.status === "cancelled" || b.status === "rejected")
+    .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
 
   const handleCancel = async () => {
     if (!cancelTarget) return;

@@ -162,15 +162,31 @@ export default function ServicesPage() {
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Длительность в минутах
+              Длительность
             </label>
-            <input
-              type="number"
-              value={formData.duration}
-              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-              placeholder="60"
-              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
-            />
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "30 мин", value: "30" },
+                { label: "1 час", value: "60" },
+                { label: "1.5 часа", value: "90" },
+                { label: "2 часа", value: "120" },
+                { label: "2.5 часа", value: "150" },
+                { label: "3 часа", value: "180" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, duration: opt.value })}
+                  className={`py-3 rounded-lg text-sm font-medium transition-colors ${
+                    formData.duration === opt.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <PrimaryButton onClick={handleSave} disabled={saving}>
