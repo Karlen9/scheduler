@@ -44,7 +44,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div
       className="min-h-screen bg-background"
-      style={{ width: "430px", margin: "0 auto" }}
+      style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       <div className="pb-24">{children}</div>
       <BottomTabBar tabs={adminTabs} subTabs={adminSubTabs} />

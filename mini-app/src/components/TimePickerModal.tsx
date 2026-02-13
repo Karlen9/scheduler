@@ -31,7 +31,7 @@ export function TimePickerModal({
       {/* Modal */}
       <div
         className="relative w-full bg-background rounded-t-2xl p-4 max-h-[80vh] overflow-auto"
-        style={{ width: "430px" }}
+        style={{ maxWidth: "430px" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

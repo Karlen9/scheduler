@@ -51,7 +51,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
     : -1;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 px-4 pb-4" style={{ width: "430px", margin: "0 auto" }}>
+    <div className="fixed bottom-0 left-0 right-0 px-4 pb-4" style={{ maxWidth: "430px", margin: "0 auto" }}>
       <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-2 py-2">
         {showSubTabs ? (
           <>

@@ -58,7 +58,7 @@ export function BookingDetailModal({
       {/* Modal */}
       <div
         className="relative w-full bg-background rounded-t-2xl p-4 animate-slide-up"
-        style={{ width: "430px" }}
+        style={{ maxWidth: "430px" }}
       >
         {/* Close button */}
         <button
