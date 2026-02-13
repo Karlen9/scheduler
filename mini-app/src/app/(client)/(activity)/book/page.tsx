@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
 import { DurationSelector } from "@/components/DurationSelector";
+import { CalendarSkeleton } from "@/components/LoadingSkeleton";
 import { CalendarView } from "@/components/CalendarView";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -13,79 +13,53 @@ import { SuccessModal } from "@/components/SuccessModal";
 import { EmptyState } from "@/components/EmptyState";
 import { api } from "@/lib/api";
 import { getUserName } from "@/lib/telegram";
-import { TimeSlot, WaitlistEntry } from "@/lib/types";
+import { TimeSlot } from "@/lib/types";
 import { formatDuration } from "@/components/DurationSelector";
+import { useWorkingHours, useDaysOff, useDurations, useProfile } from "@/hooks/queries";
+import { invalidateBookings } from "@/hooks/mutations";
 
 function BookingPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const preSelectedDate = searchParams.get("date");
-  const rescheduleBookingId = searchParams.get("reschedule");
-  const preSelectedDuration = searchParams.get("duration");
-  const isReschedule = !!rescheduleBookingId;
 
-  const [step, setStep] = useState<"date" | "time">(
-    preSelectedDate ? "time" : "date",
-  );
-  const [durations, setDurations] = useState<number[]>([]);
+  const { data: workingHoursData, isLoading: whLoading } = useWorkingHours();
+  const { data: daysOffData, isLoading: doLoading } = useDaysOff();
+  const { data: availableDurations, isLoading: durLoading } = useDurations();
+  const { data: profile, isLoading: profLoading } = useProfile();
+  const isInitialLoading = whLoading || doLoading || durLoading || profLoading;
+
+  const [step, setStep] = useState<"date" | "time">("date");
   const [selectedDuration, setSelectedDuration] = useState<number>(0);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(
-    preSelectedDate ? new Date(preSelectedDate) : null,
-  );
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [noSlotsAvailable, setNoSlotsAvailable] = useState(false);
-  const [nonWorkingDays, setNonWorkingDays] = useState<number[]>([]);
-  const [daysOff, setDaysOff] = useState<string[]>([]);
   const [message, setMessage] = useState("");
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
 
-  // Fetch working hours, days off, durations, and profile on mount
+  const nonWorkingDays = (() => {
+    const workingDaySet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
+    const result: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      if (!workingDaySet.has(i)) result.push(i);
+    }
+    return result;
+  })();
+
+  const daysOff = daysOffData.map((d) => d.date);
+
+  // Set initial duration from profile/durations once loaded
   useEffect(() => {
-    async function loadScheduleData() {
-      try {
-        const [workingHours, daysOffData, availableDurations, profile] = await Promise.all([
-          api.getWorkingHours(),
-          api.getDaysOff(),
-          api.getDurations(),
-          api.getProfile().catch(() => null),
-        ]);
-
-        // Compute non-working days
-        const workingDaySet = new Set(workingHours.map((wh) => wh.dayOfWeek));
-        const nonWorking: number[] = [];
-        for (let i = 0; i < 7; i++) {
-          if (!workingDaySet.has(i)) {
-            nonWorking.push(i);
-          }
-        }
-        setNonWorkingDays(nonWorking);
-        setDaysOff(daysOffData.map((d) => d.date));
-        setDurations(availableDurations);
-
-        // Determine default duration
-        const preselected = preSelectedDuration ? parseInt(preSelectedDuration) : 0;
-        const preferred = profile?.preferredDuration || 0;
-
-        if (preselected && availableDurations.includes(preselected)) {
-          setSelectedDuration(preselected);
-        } else if (preferred && availableDurations.includes(preferred)) {
-          setSelectedDuration(preferred);
-        } else if (availableDurations.length > 0) {
-          setSelectedDuration(availableDurations[0]);
-        }
-      } catch (err) {
-        console.error("Failed to load schedule data:", err);
-      } finally {
-        setIsInitialLoading(false);
+    if (availableDurations.length > 0 && selectedDuration === 0) {
+      const preferred = profile?.preferredDuration || 0;
+      if (preferred && availableDurations.includes(preferred)) {
+        setSelectedDuration(preferred);
+      } else {
+        setSelectedDuration(availableDurations[0]);
       }
     }
-    loadScheduleData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [availableDurations, profile, selectedDuration]);
 
   const formatDateISO = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -98,12 +72,8 @@ function BookingPageContent() {
       setSelectedTime(null);
       try {
         const dateStr = formatDateISO(date);
-        const [slots, wlEntries] = await Promise.all([
-          api.getAvailableSlots(dateStr, duration),
-          api.getWaitlist().catch(() => [] as WaitlistEntry[]),
-        ]);
+        const slots = await api.getAvailableSlots(dateStr, duration);
         setTimeSlots(slots);
-        setWaitlistEntries(wlEntries);
 
         const hasAvailableSlots = slots.some((slot) => slot.available);
         setNoSlotsAvailable(!hasAvailableSlots);
@@ -122,19 +92,11 @@ function BookingPageContent() {
     [],
   );
 
-  // Re-fetch slots when duration changes and a date is already selected
   useEffect(() => {
     if (selectedDate && selectedDuration) {
       fetchSlots(selectedDate, selectedDuration);
     }
   }, [selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Load slots for pre-selected date
-  useEffect(() => {
-    if (preSelectedDate && selectedDate && selectedDuration) {
-      fetchSlots(selectedDate, selectedDuration);
-    }
-  }, [preSelectedDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -143,65 +105,19 @@ function BookingPageContent() {
     }
   };
 
-  const handleJoinWaitlist = async (time: string) => {
-    if (!selectedDate || !selectedDuration) return;
-
-    const slot = timeSlots.find((s) => s.time === time);
-
-    // Toggle: if already in queue, leave it
-    if (slot?.hasMyWaitlist) {
-      const dateStr = formatDateISO(selectedDate);
-      // Find matching waitlist entry by comparing time
-      const matchingEntry = waitlistEntries.find((e) => {
-        const entryTime = new Date(e.startsAt).toLocaleTimeString("ru-RU", {
-          hour: "2-digit", minute: "2-digit", timeZone: "UTC",
-        });
-        const entryDate = e.startsAt.split("T")[0];
-        return entryTime === time && entryDate === dateStr;
-      });
-
-      if (!matchingEntry) {
-        toast.error("Не удалось найти запись в очереди");
-        return;
-      }
-
-      try {
-        await api.leaveWaitlist(matchingEntry.id);
-        toast.success("Вы покинули очередь");
-        fetchSlots(selectedDate, selectedDuration);
-      } catch {
-        toast.error("Не удалось покинуть очередь");
-      }
-      return;
-    }
-
-    try {
-      const dateStr = formatDateISO(selectedDate);
-      const entry = await api.joinWaitlist(selectedDuration, dateStr, time);
-      toast.success(`Вы в очереди! Позиция: ${entry.position || 1}`);
-      fetchSlots(selectedDate, selectedDuration);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Не удалось встать в очередь";
-      toast.error(msg);
-    }
-  };
-
   const handleConfirm = async () => {
     if (!selectedDate || !selectedTime || !selectedDuration) return;
 
     setIsSubmitting(true);
     try {
-      if (rescheduleBookingId) {
-        await api.cancelBooking(rescheduleBookingId, "Перенос записи");
-      }
       const dateStr = formatDateISO(selectedDate);
       const name = getUserName();
       await api.createBooking(selectedDuration, dateStr, selectedTime, name, message || undefined);
+      invalidateBookings();
       setShowSuccess(true);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Не удалось создать запись";
-      toast.error(message);
+      const msg = err instanceof Error ? err.message : "Не удалось создать запись";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -216,29 +132,18 @@ function BookingPageContent() {
 
   const formatDate = (date: Date) => {
     const months = [
-      "января",
-      "февраля",
-      "марта",
-      "апреля",
-      "мая",
-      "июня",
-      "июля",
-      "августа",
-      "сентября",
-      "октября",
-      "ноября",
-      "декабря",
+      "января", "февраля", "марта", "апреля", "мая", "июня",
+      "июля", "августа", "сентября", "октября", "ноября", "декабря",
     ];
     return `${date.getDate()} ${months[date.getMonth()]}`;
   };
 
   return (
     <div className="flex flex-col">
-      <TopBar title={isReschedule ? "Перенос записи" : "Запись на тренировку"} showBack />
-
       <div className="flex-1 p-4 space-y-4 pb-24">
         {isInitialLoading ? (
           <div className="space-y-4 animate-pulse">
+            {/* Duration selector */}
             <div>
               <div className="h-4 bg-card rounded w-28 mb-2" />
               <div className="flex gap-2">
@@ -247,27 +152,21 @@ function BookingPageContent() {
                 <div className="flex-1 h-10 bg-card rounded-lg" />
               </div>
             </div>
+            {/* Calendar */}
             <div>
               <div className="h-4 bg-card rounded w-24 mb-2" />
-              <div className="bg-card rounded-xl p-4">
-                <div className="h-8 bg-border rounded w-40 mx-auto mb-4" />
-                <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: 35 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-border rounded-lg" />
-                  ))}
-                </div>
-              </div>
+              <CalendarSkeleton />
             </div>
           </div>
         ) : (
         <>
-        {durations.length > 1 && (
+        {availableDurations.length > 1 && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">
               Длительность
             </h3>
             <DurationSelector
-              durations={durations}
+              durations={availableDurations}
               selected={selectedDuration}
               onChange={setSelectedDuration}
             />
@@ -328,7 +227,6 @@ function BookingPageContent() {
                 slots={timeSlots}
                 selected={selectedTime}
                 onSelect={setSelectedTime}
-                onJoinWaitlist={handleJoinWaitlist}
               />
             )}
           </div>
@@ -349,29 +247,22 @@ function BookingPageContent() {
             />
           </div>
         )}
-
-        </>
-        )}
-      </div>
-
-      {step === "time" && !noSlotsAvailable && (
-        <div
-          className="fixed bottom-[88px] left-0 right-0 p-4 bg-background border-t border-border"
-          style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
-        >
+        {step === "time" && !noSlotsAvailable && (
           <PrimaryButton
             onClick={handleConfirm}
             disabled={!canConfirm}
           >
-            {isSubmitting ? "Отправка..." : isReschedule ? "Подтвердить перенос" : "Подтвердить запись"}
+            {isSubmitting ? "Отправка..." : "Подтвердить запись"}
           </PrimaryButton>
-        </div>
-      )}
+        )}
+        </>
+        )}
+      </div>
 
       <SuccessModal
         isOpen={showSuccess}
         onClose={handleSuccessClose}
-        title={isReschedule ? "Запись перенесена" : "Запись отправлена"}
+        title="Запись отправлена"
         description={`Вы записаны на ${selectedDate ? formatDate(selectedDate) : ""} в ${selectedTime}${selectedDuration ? ` (${formatDuration(selectedDuration)})` : ""}. Ожидайте подтверждения.`}
       />
     </div>

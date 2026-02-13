@@ -1,53 +1,29 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { CalendarX, ChevronDown, Repeat } from "lucide-react";
+import { useState } from "react";
+import { CalendarX, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { BookingCard } from "@/components/BookingCard";
-import { WaitlistCard } from "@/components/WaitlistCard";
 import { EmptyState } from "@/components/EmptyState";
 import { BookingCardSkeleton } from "@/components/LoadingSkeleton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api } from "@/lib/api";
-import { Booking, WaitlistEntry } from "@/lib/types";
+import { Booking } from "@/lib/types";
+import { useBookings } from "@/hooks/queries";
+import { invalidateBookings } from "@/hooks/mutations";
 
 export default function BookingsPage() {
-  const router = useRouter();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: bookings, isLoading, error } = useBookings();
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [showPast, setShowPast] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setError(null);
-      const [bookingsData, waitlistData] = await Promise.all([
-        api.getBookings(),
-        api.getWaitlist(),
-      ]);
-      setBookings(bookingsData);
-      setWaitlist(waitlistData);
-    } catch {
-      setError("Не удалось загрузить записи");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const activeBookings = bookings.filter(
-    (b) => b.status === "pending" || b.status === "confirmed",
-  );
-  const pastBookings = bookings.filter(
-    (b) => b.status === "completed" || b.status === "cancelled" || b.status === "rejected",
-  );
+  const activeBookings = bookings
+    .filter((b) => b.status === "pending" || b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending")
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  const pastBookings = bookings
+    .filter((b) => b.status === "completed" || b.status === "cancelled" || b.status === "rejected")
+    .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
 
   const handleCancel = async () => {
     if (!cancelTarget) return;
@@ -56,47 +32,29 @@ export default function BookingsPage() {
       toast.success("Запись отменена");
       setCancelTarget(null);
       setCancelReason("");
-      fetchData();
+      invalidateBookings();
     } catch {
       toast.error("Не удалось отменить запись");
     }
   };
 
-  const handleReschedule = (booking: Booking) => {
-    const date = booking.startsAt.split("T")[0];
-    const duration = booking.durationMinutes || booking.sessionType?.durationMinutes || 60;
-    router.push(`/book?reschedule=${booking.id}&date=${date}&duration=${duration}`);
-  };
-
-  const handleWaitlistAccept = async (entry: WaitlistEntry) => {
+  const handleConfirm = async (booking: Booking) => {
     try {
-      await api.acceptWaitlistOffer(entry.id);
-      toast.success("Место забронировано!");
-      fetchData();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Не удалось забронировать";
-      toast.error(msg);
-      fetchData();
+      await api.confirmBooking(booking.id);
+      toast.success("Запись подтверждена");
+      invalidateBookings();
+    } catch {
+      toast.error("Не удалось подтвердить запись");
     }
   };
 
-  const handleWaitlistDecline = async (entry: WaitlistEntry) => {
+  const handleDecline = async (booking: Booking) => {
     try {
-      await api.declineWaitlistOffer(entry.id);
-      toast.success("Вы отказались от предложения");
-      fetchData();
+      await api.declineBooking(booking.id);
+      toast.success("Запись отклонена");
+      invalidateBookings();
     } catch {
-      toast.error("Ошибка");
-    }
-  };
-
-  const handleWaitlistLeave = async (entry: WaitlistEntry) => {
-    try {
-      await api.leaveWaitlist(entry.id);
-      toast.success("Вы покинули очередь");
-      fetchData();
-    } catch {
-      toast.error("Не удалось покинуть очередь");
+      toast.error("Не удалось отклонить запись");
     }
   };
 
@@ -104,8 +62,8 @@ export default function BookingsPage() {
     return (
       <div className="p-4 space-y-4">
         <h2 className="text-lg font-semibold px-1">Мои записи</h2>
-        <div className="animate-pulse">
-          <div className="h-4 bg-card rounded w-28 mb-3" />
+        <div>
+          <div className="h-4 bg-card rounded w-28 mb-3 animate-pulse" />
           <div className="space-y-3">
             <BookingCardSkeleton />
             <BookingCardSkeleton />
@@ -125,14 +83,14 @@ export default function BookingsPage() {
           <EmptyState
             icon={<CalendarX className="w-16 h-16" />}
             title="Ошибка загрузки"
-            description={error}
+            description="Не удалось загрузить записи"
           />
         </div>
       </div>
     );
   }
 
-  if (bookings.length === 0 && waitlist.length === 0) {
+  if (bookings.length === 0) {
     return (
       <div className="flex-1 flex flex-col">
         <div className="p-4">
@@ -152,16 +110,7 @@ export default function BookingsPage() {
   return (
     <div>
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-lg font-semibold">Мои записи</h2>
-          <button
-            onClick={() => router.push("/recurring")}
-            className="flex items-center gap-1.5 text-sm text-primary"
-          >
-            <Repeat className="w-4 h-4" />
-            Расписание
-          </button>
-        </div>
+        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
 
         {activeBookings.length > 0 && (
           <div>
@@ -173,27 +122,9 @@ export default function BookingsPage() {
                 <BookingCard
                   key={booking.id}
                   booking={booking}
-                  onReschedule={handleReschedule}
                   onCancel={setCancelTarget}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {waitlist.length > 0 && (
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">
-              Лист ожидания
-            </h3>
-            <div className="space-y-3">
-              {waitlist.map((entry) => (
-                <WaitlistCard
-                  key={entry.id}
-                  entry={entry}
-                  onAccept={handleWaitlistAccept}
-                  onDecline={handleWaitlistDecline}
-                  onLeave={handleWaitlistLeave}
+                  onConfirm={booking.status === "pending" && booking.createdBy === "trainer" ? handleConfirm : undefined}
+                  onDecline={booking.status === "pending" && booking.createdBy === "trainer" ? handleDecline : undefined}
                 />
               ))}
             </div>

@@ -9,13 +9,39 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+// parseDateString parses a date string that may come as "2006-01-02" (SQLite)
+// or "2006-01-02T15:04:05Z" / "2006-01-02 15:04:05+00:00" (Postgres).
+func parseDateString(s string) time.Time {
+	// Try date-only first
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t
+	}
+	// Try RFC3339 (Postgres TIMESTAMPTZ)
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t
+	}
+	// Try Postgres format without T separator
+	if t, err := time.Parse("2006-01-02 15:04:05-07:00", s); err == nil {
+		return t
+	}
+	if t, err := time.Parse("2006-01-02 15:04:05-07", s); err == nil {
+		return t
+	}
+	// Fallback: truncate to 10 chars and try date-only
+	if len(s) >= 10 {
+		if t, err := time.Parse("2006-01-02", s[:10]); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
 func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
-	rows, err := DB.Query(`
-		SELECT id, trainer_id, date, reason, created_at
+	rows, err := DB.Query(Q(
+		`SELECT id, trainer_id, date, reason, created_at
 		FROM days_off
-		WHERE trainer_id = ? AND date >= date('now')
-		ORDER BY date ASC
-	`, trainerID)
+		WHERE trainer_id = ? AND date >= `+DateNow()+`
+		ORDER BY date ASC`), trainerID)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +56,7 @@ func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
 		if err != nil {
 			return nil, err
 		}
-		d.Date, _ = time.Parse("2006-01-02", dateStr)
+		d.Date = parseDateString(dateStr)
 		d.Reason = reason.String
 		daysOff = append(daysOff, d)
 	}
@@ -39,11 +65,11 @@ func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
 
 func GetDayOff(trainerID string, date time.Time) (*models.DayOff, error) {
 	dateStr := date.Format("2006-01-02")
-	row := DB.QueryRow(`
+	row := DB.QueryRow(Q(`
 		SELECT id, trainer_id, date, reason, created_at
 		FROM days_off
 		WHERE trainer_id = ? AND date = ?
-	`, trainerID, dateStr)
+	`), trainerID, dateStr)
 
 	var d models.DayOff
 	var reason sql.NullString
@@ -55,7 +81,7 @@ func GetDayOff(trainerID string, date time.Time) (*models.DayOff, error) {
 	if err != nil {
 		return nil, err
 	}
-	d.Date, _ = time.Parse("2006-01-02", dateResult)
+	d.Date = parseDateString(dateResult)
 	d.Reason = reason.String
 	return &d, nil
 }
@@ -71,10 +97,10 @@ func CreateDayOff(trainerID string, date time.Time, reason string) (*models.DayO
 		reasonVal = nil
 	}
 
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		INSERT INTO days_off (id, trainer_id, date, reason)
 		VALUES (?, ?, ?, ?)
-	`, id, trainerID, dateStr, reasonVal)
+	`), id, trainerID, dateStr, reasonVal)
 	if err != nil {
 		return nil, err
 	}
@@ -89,17 +115,17 @@ func CreateDayOff(trainerID string, date time.Time, reason string) (*models.DayO
 }
 
 func DeleteDayOff(id string) error {
-	_, err := DB.Exec(`DELETE FROM days_off WHERE id = ?`, id)
+	_, err := DB.Exec(Q(`DELETE FROM days_off WHERE id = ?`), id)
 	return err
 }
 
 func IsDayOff(trainerID string, date time.Time) (bool, error) {
 	dateStr := date.Format("2006-01-02")
 	var count int
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT COUNT(*) FROM days_off
 		WHERE trainer_id = ? AND date = ?
-	`, trainerID, dateStr).Scan(&count)
+	`), trainerID, dateStr).Scan(&count)
 	if err != nil {
 		return false, err
 	}

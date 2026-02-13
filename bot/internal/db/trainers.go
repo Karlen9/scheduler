@@ -58,39 +58,39 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, gym_latitude, gym_longitude, gym_address, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at`
 
 func GetTrainerByTelegramID(telegramUserID int64) (*models.Trainer, error) {
-	row := DB.QueryRow(`
+	row := DB.QueryRow(Q(`
 		SELECT `+trainerColumns+`
 		FROM trainers
 		WHERE telegram_user_id = ?
-	`, telegramUserID)
+	`), telegramUserID)
 	return scanTrainer(row)
 }
 
 func GetTrainerByID(id string) (*models.Trainer, error) {
-	row := DB.QueryRow(`
+	row := DB.QueryRow(Q(`
 		SELECT `+trainerColumns+`
 		FROM trainers
 		WHERE id = ?
-	`, id)
+	`), id)
 	return scanTrainer(row)
 }
 
 func GetTrainerByWebhookSecret(secret string) (*models.Trainer, error) {
-	row := DB.QueryRow(`
+	row := DB.QueryRow(Q(`
 		SELECT `+trainerColumns+`
 		FROM trainers
 		WHERE webhook_secret = ? AND is_active = 1
-	`, secret)
+	`), secret)
 	return scanTrainer(row)
 }
 
 func GetTrainerByBotToken(botToken string) (*models.Trainer, error) {
 	tokenHash := crypto.HashToken(botToken)
-	row := DB.QueryRow(`
+	row := DB.QueryRow(Q(`
 		SELECT `+trainerColumns+`
 		FROM trainers
 		WHERE bot_token_hash = ?
-	`, tokenHash)
+	`), tokenHash)
 	return scanTrainer(row)
 }
 
@@ -138,10 +138,10 @@ func CreateTrainer(telegramUserID int64, botToken, botUsername, name, timezone s
 	}
 	tokenHash := crypto.HashToken(botToken)
 
-	_, err = DB.Exec(`
+	_, err = DB.Exec(Q(`
 		INSERT INTO trainers (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs)
+	`), id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs)
 	if err != nil {
 		return nil, err
 	}
@@ -150,11 +150,11 @@ func CreateTrainer(telegramUserID int64, botToken, botUsername, name, timezone s
 }
 
 func UpdateTrainer(id, name, timezone string, cancelCutoffHrs int) (*models.Trainer, error) {
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		UPDATE trainers
 		SET name = ?, timezone = ?, cancel_cutoff_hrs = ?
 		WHERE id = ?
-	`, name, timezone, cancelCutoffHrs, id)
+	`), name, timezone, cancelCutoffHrs, id)
 	if err != nil {
 		return nil, err
 	}
@@ -162,12 +162,12 @@ func UpdateTrainer(id, name, timezone string, cancelCutoffHrs int) (*models.Trai
 }
 
 func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoURL string, gymLatitude, gymLongitude float64) (*models.Trainer, error) {
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		UPDATE trainers
 		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?, photo_url = ?,
 		    gym_latitude = ?, gym_longitude = ?
 		WHERE id = ?
-	`, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude, id)
+	`), telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude, id)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func UpdateTrainerProfile(id, telegramHandle, phone, specialization, bio, photoU
 }
 
 func UpdateTrainerAvailableDurations(id, durations string) error {
-	_, err := DB.Exec(`UPDATE trainers SET available_durations = ? WHERE id = ?`, durations, id)
+	_, err := DB.Exec(Q(`UPDATE trainers SET available_durations = ? WHERE id = ?`), durations, id)
 	return err
 }
 
@@ -188,16 +188,16 @@ func UpdateTrainerNotificationPrefs(id string, notifyNewBookings, notifyCancella
 	if notifyCancellations {
 		nc = 1
 	}
-	_, err := DB.Exec(`UPDATE trainers SET notify_new_bookings = ?, notify_cancellations = ? WHERE id = ?`, nb, nc, id)
+	_, err := DB.Exec(Q(`UPDATE trainers SET notify_new_bookings = ?, notify_cancellations = ? WHERE id = ?`), nb, nc, id)
 	return err
 }
 
 func DeactivateTrainer(id string) error {
-	_, err := DB.Exec(`UPDATE trainers SET is_active = 0 WHERE id = ?`, id)
+	_, err := DB.Exec(Q(`UPDATE trainers SET is_active = 0 WHERE id = ?`), id)
 	return err
 }
 
 func ActivateTrainer(id string) error {
-	_, err := DB.Exec(`UPDATE trainers SET is_active = 1 WHERE id = ?`, id)
+	_, err := DB.Exec(Q(`UPDATE trainers SET is_active = 1 WHERE id = ?`), id)
 	return err
 }

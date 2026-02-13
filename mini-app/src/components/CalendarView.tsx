@@ -100,6 +100,12 @@ export function CalendarView({
     return false;
   };
 
+  const isDayOff = (date: Date) => {
+    if (!daysOff) return false;
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return daysOff.includes(iso);
+  };
+
   const isDisabled = (date: Date) => isPast(date) || isUnavailable(date);
 
   const prevMonth = () => {
@@ -156,11 +162,13 @@ export function CalendarView({
                 className={`w-full h-full flex items-center justify-center rounded-lg text-sm transition-colors ${
                   isSelected(date)
                     ? "bg-primary text-primary-foreground"
-                    : isDisabled(date)
-                      ? "text-muted-foreground opacity-40 cursor-not-allowed"
-                      : isToday(date)
-                        ? "bg-border text-foreground font-medium"
-                        : "text-foreground hover:bg-border"
+                    : isDayOff(date)
+                      ? "bg-red-900/30 text-red-400 cursor-not-allowed"
+                      : isDisabled(date)
+                        ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                        : isToday(date)
+                          ? "bg-border text-foreground font-medium"
+                          : "text-foreground hover:bg-border"
                 }`}
               >
                 {date.getDate()}
@@ -171,6 +179,16 @@ export function CalendarView({
           </div>
         ))}
       </div>
+
+      {/* Legend */}
+      {daysOff && daysOff.length > 0 && (
+        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-red-900/30" />
+            <span className="text-xs text-muted-foreground">Выходной</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

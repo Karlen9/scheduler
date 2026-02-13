@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Repeat } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Repeat, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { RecurringPageSkeleton } from "@/components/LoadingSkeleton";
 import { ServiceSelector } from "@/components/ServiceSelector";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RecurringScheduleCard } from "@/components/RecurringScheduleCard";
 import { RecurringSchedule, SessionType, WorkingHours } from "@/lib/types";
 import { api } from "@/lib/api";
+import { useRecurringSchedules, useSessionTypes, useWorkingHours } from "@/hooks/queries";
+import { invalidateRecurring } from "@/hooks/mutations";
 
 const DAYS = [
   { label: "Пн", value: 1 },
@@ -22,10 +24,33 @@ const DAYS = [
   { label: "Вс", value: 0 },
 ];
 
+const PERIODS = [
+  { label: "1 неделя", value: "1week" },
+  { label: "1 месяц", value: "1month" },
+  { label: "3 месяца", value: "3months" },
+];
+
+const DAY_NAMES_FULL: Record<number, string> = {
+  0: "Вс",
+  1: "Пн",
+  2: "Вт",
+  3: "Ср",
+  4: "Чт",
+  5: "Пт",
+  6: "Сб",
+};
+
+const MONTH_NAMES = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+function formatPreviewDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const dayName = DAY_NAMES_FULL[d.getDay()] || "?";
+  return `${dayName}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+}
+
 function generateTimeSlots(workingHours: WorkingHours[], days: number[], durationMinutes: number): string[] {
   if (days.length === 0 || durationMinutes <= 0) return [];
 
-  // For each selected day, find working hours and generate slots
   const slotsPerDay = days.map((day) => {
     const wh = workingHours.find((h) => h.dayOfWeek === day);
     if (!wh) return new Set<string>();
@@ -44,7 +69,6 @@ function generateTimeSlots(workingHours: WorkingHours[], days: number[], duratio
     return slots;
   });
 
-  // Intersection of all days' slots
   if (slotsPerDay.length === 0) return [];
   let result = slotsPerDay[0];
   for (let i = 1; i < slotsPerDay.length; i++) {
@@ -56,40 +80,25 @@ function generateTimeSlots(workingHours: WorkingHours[], days: number[], duratio
 }
 
 export default function ClientRecurringPage() {
-  const [schedules, setSchedules] = useState<RecurringSchedule[]>([]);
-  const [services, setServices] = useState<SessionType[]>([]);
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: schedules, isLoading: schedulesLoading } = useRecurringSchedules();
+  const { data: services, isLoading: servicesLoading } = useSessionTypes();
+  const { data: workingHours, isLoading: whLoading } = useWorkingHours();
+  const isLoading = schedulesLoading || servicesLoading || whLoading;
+
   const [isSaving, setIsSaving] = useState(false);
 
   // Form state
+  const [selectedService, setSelectedService] = useState<SessionType | null>(null);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<SessionType | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
+
+  // Preview state
+  const [previewDates, setPreviewDates] = useState<string[] | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
   // Cancel dialog
   const [cancelTarget, setCancelTarget] = useState<RecurringSchedule | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [schedulesData, servicesData, whData] = await Promise.all([
-        api.getRecurringSchedules(),
-        api.getSessionTypes(),
-        api.getWorkingHours(),
-      ]);
-      setSchedules(schedulesData);
-      setServices(servicesData);
-      setWorkingHours(whData);
-    } catch {
-      toast.error("Не удалось загрузить расписания");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const timeSlots = useMemo(
     () => generateTimeSlots(workingHours, selectedDays, selectedService?.durationMinutes ?? 0),
@@ -103,39 +112,55 @@ export default function ClientRecurringPage() {
     }
   }, [timeSlots, selectedTime]);
 
+  // Reset preview when form changes
+  useEffect(() => {
+    setPreviewDates(null);
+  }, [selectedService, selectedDays, selectedTime, selectedPeriod]);
+
   const toggleDay = (day: number) => {
     setSelectedDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
   };
 
+  const formReady = selectedService && selectedDays.length > 0 && selectedTime && selectedPeriod;
+
+  const handlePreview = async () => {
+    if (!formReady) return;
+    setIsPreviewing(true);
+    try {
+      const result = await api.previewRecurringSchedule({
+        sessionTypeId: selectedService.id,
+        daysOfWeek: selectedDays,
+        time: selectedTime,
+        period: selectedPeriod,
+      });
+      setPreviewDates(result.dates);
+    } catch {
+      toast.error("Не удалось загрузить предпросмотр");
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
+
   const handleCreate = async () => {
-    if (selectedDays.length === 0) {
-      toast.error("Выберите день недели");
-      return;
-    }
-    if (!selectedTime) {
-      toast.error("Выберите время");
-      return;
-    }
-    if (!selectedService) {
-      toast.error("Выберите услугу");
-      return;
-    }
+    if (!formReady || !previewDates) return;
 
     setIsSaving(true);
     try {
-      for (const day of selectedDays) {
-        await api.createRecurringSchedule({
-          dayOfWeek: day,
-          time: selectedTime,
-          durationMinutes: selectedService.durationMinutes,
-        });
-      }
-      toast.success(selectedDays.length > 1 ? "Расписания добавлены" : "Расписание добавлено");
+      await api.createRecurringSchedule({
+        sessionTypeId: selectedService.id,
+        daysOfWeek: selectedDays,
+        time: selectedTime,
+        period: selectedPeriod,
+      });
+      toast.success("Расписание отправлено на подтверждение");
+      setSelectedService(null);
       setSelectedDays([]);
       setSelectedTime(null);
-      fetchData();
+      setSelectedPeriod("");
+      setPreviewDates(null);
+      invalidateRecurring();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка создания расписания";
       toast.error(msg);
@@ -150,37 +175,25 @@ export default function ClientRecurringPage() {
       await api.cancelRecurringSchedule(cancelTarget.id);
       toast.success("Расписание отменено");
       setCancelTarget(null);
-      fetchData();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось отменить расписание");
     }
   };
 
-  const activeSchedules = schedules.filter((s) => s.status !== "cancelled");
+  const pendingSchedules = schedules.filter((s) => s.status === "pending");
+  const activeSchedules = schedules.filter((s) => s.status === "active");
+  const declinedSchedules = schedules.filter((s) => s.status === "declined");
   const cancelledSchedules = schedules.filter((s) => s.status === "cancelled");
+  const hasSchedules = schedules.length > 0;
 
   if (isLoading) {
-    return (
-      <div>
-        <TopBar title="Регулярные тренировки" showBack />
-        <div className="p-4 space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
-              <div className="h-4 bg-border rounded w-1/3 mb-3" />
-              <div className="h-4 bg-border rounded w-1/2 mb-2" />
-              <div className="h-4 bg-border rounded w-2/5" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <RecurringPageSkeleton />;
   }
 
   return (
-    <div>
-      <TopBar title="Регулярные тренировки" showBack />
-
-      <div className="p-4 space-y-6">
+    <>
+    <div className="p-4 space-y-6">
         {/* Add Form */}
         <div className="bg-card rounded-xl p-4 space-y-4">
           <h3 className="text-sm font-medium text-foreground">
@@ -253,16 +266,68 @@ export default function ClientRecurringPage() {
             </div>
           )}
 
+          {/* Period Selector */}
+          {selectedService && selectedDays.length > 0 && selectedTime && (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">
+                Период
+              </label>
+              <div className="flex gap-2">
+                {PERIODS.map((period) => (
+                  <button
+                    key={period.value}
+                    onClick={() => setSelectedPeriod(period.value)}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPeriod === period.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-foreground"
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preview Button */}
+          {formReady && !previewDates && (
+            <button
+              onClick={handlePreview}
+              disabled={isPreviewing}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-background text-foreground font-medium text-sm transition-opacity active:opacity-70 disabled:opacity-40"
+            >
+              <Eye className="w-4 h-4" />
+              {isPreviewing ? "Загрузка..." : "Предпросмотр"}
+            </button>
+          )}
+
+          {/* Preview Dates */}
+          {previewDates && (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">
+                Будет создано тренировок: {previewDates.length}
+              </label>
+              <div className="max-h-40 overflow-y-auto rounded-lg bg-background p-3 space-y-1">
+                {previewDates.map((date) => (
+                  <div key={date} className="text-sm text-foreground">
+                    {formatPreviewDate(date)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <PrimaryButton
             onClick={handleCreate}
-            disabled={isSaving || selectedDays.length === 0 || !selectedTime || !selectedService}
+            disabled={isSaving || !formReady || !previewDates}
           >
-            {isSaving ? "Сохранение..." : "Добавить расписание"}
+            {isSaving ? "Сохранение..." : "Отправить на подтверждение"}
           </PrimaryButton>
         </div>
 
         {/* Schedules List */}
-        {activeSchedules.length === 0 && cancelledSchedules.length === 0 ? (
+        {!hasSchedules ? (
           <EmptyState
             icon={<Repeat className="w-16 h-16" />}
             title="Нет регулярных тренировок"
@@ -270,6 +335,25 @@ export default function ClientRecurringPage() {
           />
         ) : (
           <>
+            {pendingSchedules.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Ожидают подтверждения
+                </h3>
+                <div className="space-y-3">
+                  {pendingSchedules.map((schedule) => (
+                    <RecurringScheduleCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      services={services}
+                      onCancel={setCancelTarget}
+                      detailPath="/recurring"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {activeSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
@@ -282,6 +366,24 @@ export default function ClientRecurringPage() {
                       schedule={schedule}
                       services={services}
                       onCancel={setCancelTarget}
+                      detailPath="/recurring"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {declinedSchedules.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Отклоненные
+                </h3>
+                <div className="space-y-3">
+                  {declinedSchedules.map((schedule) => (
+                    <RecurringScheduleCard
+                      key={schedule.id}
+                      schedule={schedule}
+                      services={services}
                     />
                   ))}
                 </div>
@@ -317,6 +419,6 @@ export default function ClientRecurringPage() {
         confirmText="Отменить"
         destructive
       />
-    </div>
+    </>
   );
 }

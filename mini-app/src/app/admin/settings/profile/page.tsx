@@ -7,38 +7,33 @@ import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { api } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
+import { useAdminProfile } from "@/hooks/queries";
+import { invalidateTrainer } from "@/hooks/mutations";
 
 export default function ProfilePage() {
+  const { data: profile, isLoading } = useAdminProfile();
   const [name, setName] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [bio, setBio] = useState("");
   const [phone, setPhone] = useState("");
   const [telegram, setTelegram] = useState("");
   const [gymCoords, setGymCoords] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const profile = await api.admin.getProfile();
-        setName(profile.name || "");
-        setSpecialization(profile.specialization || "");
-        setBio(profile.bio || "");
-        setPhone(profile.phone || "");
-        setTelegram(profile.telegramHandle || "");
-        if (profile.gymLatitude && profile.gymLongitude) {
-          setGymCoords(`${profile.gymLatitude}, ${profile.gymLongitude}`);
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-        toast.error("Ошибка загрузки профиля");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
+    if (isLoading || initialized || !profile) return;
+
+    setName(profile.name || "");
+    setSpecialization(profile.specialization || "");
+    setBio(profile.bio || "");
+    setPhone(profile.phone || "");
+    setTelegram(profile.telegramHandle || "");
+    if (profile.gymLatitude && profile.gymLongitude) {
+      setGymCoords(`${profile.gymLatitude}, ${profile.gymLongitude}`);
+    }
+    setInitialized(true);
+  }, [profile, isLoading, initialized]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -61,6 +56,7 @@ export default function ProfilePage() {
         gymLatitude,
         gymLongitude,
       });
+      invalidateTrainer();
       toast.success("Профиль сохранен");
     } catch (err) {
       console.error("Failed to save profile:", err);
@@ -70,7 +66,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div>
         <TopBar title="Профиль" showBack />
@@ -195,7 +191,7 @@ export default function ProfilePage() {
               Откройте Яндекс Карты, нажмите на здание на карте (не на организацию) и скопируйте координаты
             </p>
           </div>
-        </div> 
+        </div>
 
         {/* Save Button */}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>

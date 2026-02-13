@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Plus, X, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { MonthCalendar } from "@/components/MonthCalendar";
-import { DayOff } from "@/lib/types";
 import { api } from "@/lib/api";
+import { useAdminDaysOff } from "@/hooks/queries";
+import { invalidateDaysOff } from "@/hooks/mutations";
 
 const formatDate = (date: Date): string => {
   const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
@@ -15,39 +16,28 @@ const formatDate = (date: Date): string => {
     "января", "февраля", "марта", "апреля", "мая", "июня",
     "июля", "августа", "сентября", "октября", "ноября", "декабря"
   ];
-  return `${days[date.getUTCDay()]}, ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
+  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
 };
 
 const formatDateISO = (date: Date): string => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
+/** Parse "YYYY-MM-DD" as local midnight (avoids UTC timezone shift) */
+const parseLocalDate = (dateStr: string): Date => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
 export default function DaysOffPage() {
-  const [daysOff, setDaysOff] = useState<DayOff[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: daysOff, isLoading, mutate } = useAdminDaysOff();
   const [saving, setSaving] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [reason, setReason] = useState("");
-
-  const fetchDaysOff = useCallback(async () => {
-    try {
-      const data = await api.admin.getDaysOff();
-      setDaysOff(data);
-    } catch (err) {
-      console.error("Failed to fetch days off:", err);
-      toast.error("Ошибка загрузки выходных");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDaysOff();
-  }, [fetchDaysOff]);
 
   const handleAddDayOff = async () => {
     const dateStr = formatDateISO(selectedDate);
@@ -60,7 +50,8 @@ export default function DaysOffPage() {
 
     try {
       await api.admin.createDayOff(dateStr, reason || undefined);
-      await fetchDaysOff();
+      await mutate();
+      invalidateDaysOff();
       setShowCalendar(false);
       setReason("");
     } catch (err) {
@@ -72,12 +63,21 @@ export default function DaysOffPage() {
   };
 
   const handleRemoveDayOff = async (id: string) => {
+    // Optimistic local update
+    const previousDaysOff = daysOff;
+    mutate(
+      daysOff.filter((d) => d.id !== id),
+      false,
+    );
+
     try {
       await api.admin.deleteDayOff(id);
-      setDaysOff((prev) => prev.filter((d) => d.id !== id));
+      invalidateDaysOff();
     } catch (err) {
       console.error("Failed to delete day off:", err);
       toast.error("Ошибка удаления");
+      // Rollback on error
+      mutate(previousDaysOff, false);
     }
   };
 
@@ -86,10 +86,10 @@ export default function DaysOffPage() {
     return daysOff.some((d) => d.date.startsWith(dateStr));
   };
 
-  // Convert ISO dates to Date objects for display
-  const daysOffDates = daysOff.map((d) => new Date(d.date));
+  // Convert ISO dates to local Date objects for calendar display
+  const daysOffDates = daysOff.map((d) => parseLocalDate(d.date));
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div>
         <TopBar title="Выходные дни" showBack />
@@ -169,7 +169,7 @@ export default function DaysOffPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-foreground">
-                    {formatDate(new Date(dayOff.date))}
+                    {formatDate(parseLocalDate(dayOff.date))}
                   </p>
                   {dayOff.reason && (
                     <p className="text-sm text-muted-foreground">
