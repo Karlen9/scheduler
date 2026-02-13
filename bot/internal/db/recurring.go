@@ -11,10 +11,10 @@ import (
 func CreateRecurringSchedule(trainerID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string) (*models.RecurringSchedule, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(`
-		INSERT INTO recurring_schedules (id, trainer_id, client_id, client_name, day_of_week, time, duration_minutes, status, created_by)
+	_, err := DB.Exec(Q(`
+		INSERT INTO recurring_schedules (id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by)
 		VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)
-	`, id, trainerID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy)
+	`), id, trainerID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy)
 	if err != nil {
 		return nil, err
 	}
@@ -24,11 +24,11 @@ func CreateRecurringSchedule(trainerID, clientID, clientName string, dayOfWeek i
 
 func GetRecurringScheduleByID(id string) (*models.RecurringSchedule, error) {
 	var s models.RecurringSchedule
-	err := DB.QueryRow(`
-		SELECT id, trainer_id, client_id, client_name, day_of_week, time, duration_minutes, status, created_by, created_at
+	err := DB.QueryRow(Q(`
+		SELECT id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at
 		FROM recurring_schedules
 		WHERE id = ?
-	`, id).Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt)
+	`), id).Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -41,10 +41,10 @@ func GetRecurringScheduleByID(id string) (*models.RecurringSchedule, error) {
 
 func GetActiveRecurringSchedules() ([]models.RecurringSchedule, error) {
 	rows, err := DB.Query(`
-		SELECT id, trainer_id, client_id, client_name, day_of_week, time, duration_minutes, status, created_by, created_at
+		SELECT id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at
 		FROM recurring_schedules
 		WHERE status = 'active'
-		ORDER BY day_of_week, time
+		ORDER BY day_of_week, "time"
 	`)
 	if err != nil {
 		return nil, err
@@ -54,12 +54,12 @@ func GetActiveRecurringSchedules() ([]models.RecurringSchedule, error) {
 }
 
 func GetRecurringSchedulesByTrainerID(trainerID string) ([]models.RecurringSchedule, error) {
-	rows, err := DB.Query(`
-		SELECT id, trainer_id, client_id, client_name, day_of_week, time, duration_minutes, status, created_by, created_at
+	rows, err := DB.Query(Q(`
+		SELECT id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at
 		FROM recurring_schedules
 		WHERE trainer_id = ? AND status != 'cancelled'
-		ORDER BY day_of_week, time
-	`, trainerID)
+		ORDER BY day_of_week, "time"
+	`), trainerID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,12 +68,12 @@ func GetRecurringSchedulesByTrainerID(trainerID string) ([]models.RecurringSched
 }
 
 func GetRecurringSchedulesByClientID(clientID string) ([]models.RecurringSchedule, error) {
-	rows, err := DB.Query(`
-		SELECT id, trainer_id, client_id, client_name, day_of_week, time, duration_minutes, status, created_by, created_at
+	rows, err := DB.Query(Q(`
+		SELECT id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at
 		FROM recurring_schedules
 		WHERE client_id = ? AND status != 'cancelled'
-		ORDER BY day_of_week, time
-	`, clientID)
+		ORDER BY day_of_week, "time"
+	`), clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func GetRecurringSchedulesByClientID(clientID string) ([]models.RecurringSchedul
 }
 
 func UpdateRecurringScheduleStatus(id string, status models.RecurringScheduleStatus) error {
-	_, err := DB.Exec(`UPDATE recurring_schedules SET status = ? WHERE id = ?`, status, id)
+	_, err := DB.Exec(Q(`UPDATE recurring_schedules SET status = ? WHERE id = ?`), status, id)
 	return err
 }
 

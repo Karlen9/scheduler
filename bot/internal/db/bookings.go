@@ -12,10 +12,10 @@ import (
 func CreateBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
+	`), id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +38,11 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	var createdBy sql.NullString
 	var recurringScheduleID sql.NullString
 
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE id = ?
-	`, id).Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
+	`), id).Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
 		&durationMinutes, &createdBy, &recurringScheduleID)
 
@@ -83,12 +83,12 @@ func GetBookingByID(id string) (*models.Booking, error) {
 }
 
 func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE client_id = ?
 		ORDER BY starts_at DESC
-	`, clientID)
+	`), clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +98,12 @@ func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
 }
 
 func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE client_id = ? AND status IN ('pending', 'confirmed')
 		ORDER BY starts_at ASC
-	`, clientID)
+	`), clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +113,12 @@ func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
 }
 
 func GetBookingsByTrainerIDAndDateRange(trainerID string, start, end time.Time) ([]models.Booking, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE trainer_id = ? AND starts_at >= ? AND starts_at < ? AND status IN ('pending', 'confirmed')
 		ORDER BY starts_at ASC
-	`, trainerID, start, end)
+	`), trainerID, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -177,29 +177,29 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 }
 
 func UpdateBookingStatus(bookingID string, status models.BookingStatus) error {
-	_, err := DB.Exec(`UPDATE bookings SET status = ? WHERE id = ?`, status, bookingID)
+	_, err := DB.Exec(Q(`UPDATE bookings SET status = ? WHERE id = ?`), status, bookingID)
 	return err
 }
 
 func CancelBooking(bookingID string, reason string, cancelledBy models.CancelledBy) error {
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		UPDATE bookings
 		SET status = 'cancelled', cancel_reason = ?, cancelled_by = ?
 		WHERE id = ?
-	`, reason, cancelledBy, bookingID)
+	`), reason, cancelledBy, bookingID)
 	return err
 }
 
 func HasConflictingBooking(trainerID string, startsAt, endsAt time.Time, excludeBookingID string) (bool, error) {
 	var count int
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT COUNT(*) FROM bookings
 		WHERE trainer_id = ?
 		  AND id != ?
 		  AND status IN ('pending', 'confirmed')
 		  AND starts_at < ?
 		  AND ends_at > ?
-	`, trainerID, excludeBookingID, endsAt, startsAt).Scan(&count)
+	`), trainerID, excludeBookingID, endsAt, startsAt).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -211,19 +211,19 @@ func GetBookingsByTrainerID(trainerID string, status string) ([]models.Booking, 
 	var err error
 
 	if status != "" {
-		rows, err = DB.Query(`
+		rows, err = DB.Query(Q(`
 			SELECT `+bookingColumns+`
 			FROM bookings
 			WHERE trainer_id = ? AND status = ?
 			ORDER BY starts_at DESC
-		`, trainerID, status)
+		`), trainerID, status)
 	} else {
-		rows, err = DB.Query(`
+		rows, err = DB.Query(Q(`
 			SELECT `+bookingColumns+`
 			FROM bookings
 			WHERE trainer_id = ?
 			ORDER BY starts_at DESC
-		`, trainerID)
+		`), trainerID)
 	}
 
 	if err != nil {
@@ -240,7 +240,7 @@ func GetBookingsNeedingReminder() ([]models.Booking, error) {
 	now := time.Now().UTC()
 	oneHourLater := now.Add(time.Hour)
 
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT `+bookingColumns+`
 		FROM bookings
 		WHERE status = 'confirmed'
@@ -248,7 +248,7 @@ func GetBookingsNeedingReminder() ([]models.Booking, error) {
 		  AND starts_at > ?
 		  AND starts_at <= ?
 		ORDER BY starts_at ASC
-	`, now, oneHourLater)
+	`), now, oneHourLater)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func GetBookingsNeedingReminder() ([]models.Booking, error) {
 }
 
 func MarkReminderSent(bookingID string) error {
-	_, err := DB.Exec(`UPDATE bookings SET reminder_sent = 1 WHERE id = ?`, bookingID)
+	_, err := DB.Exec(Q(`UPDATE bookings SET reminder_sent = 1 WHERE id = ?`), bookingID)
 	return err
 }
 
@@ -267,13 +267,13 @@ func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
 	endOfDay := startOfDay.AddDate(0, 0, 1)
 
 	var count int
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT COUNT(*) FROM bookings
 		WHERE client_id = ?
 		  AND status IN ('pending', 'confirmed')
 		  AND starts_at >= ?
 		  AND starts_at < ?
-	`, clientID, startOfDay, endOfDay).Scan(&count)
+	`), clientID, startOfDay, endOfDay).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -283,10 +283,10 @@ func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
 func CreateBookingByTrainer(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, created_by)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'trainer')
-	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
+	`), id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
 	if err != nil {
 		return nil, err
 	}
@@ -297,10 +297,10 @@ func CreateBookingByTrainer(trainerID, clientID, sessionTypeID string, startsAt,
 func CreateRecurringBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID string) (*models.Booking, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, '', 'pending', ?, ?)
-	`, id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, durationMinutes, recurringScheduleID)
+	`), id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, durationMinutes, recurringScheduleID)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func CreateRecurringBooking(trainerID, clientID, sessionTypeID string, startsAt,
 }
 
 func ConfirmBookingsByRecurringScheduleID(scheduleID string) (int, error) {
-	result, err := DB.Exec(`UPDATE bookings SET status = 'confirmed' WHERE recurring_schedule_id = ? AND status = 'pending'`, scheduleID)
+	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'confirmed' WHERE recurring_schedule_id = ? AND status = 'pending'`), scheduleID)
 	if err != nil {
 		return 0, err
 	}
@@ -318,7 +318,7 @@ func ConfirmBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 }
 
 func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
-	result, err := DB.Exec(`UPDATE bookings SET status = 'rejected' WHERE recurring_schedule_id = ? AND status = 'pending'`, scheduleID)
+	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'rejected' WHERE recurring_schedule_id = ? AND status = 'pending'`), scheduleID)
 	if err != nil {
 		return 0, err
 	}
@@ -331,13 +331,13 @@ func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) 
 	endOfDay := startOfDay.AddDate(0, 0, 1)
 
 	var count int
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT COUNT(*) FROM bookings
 		WHERE recurring_schedule_id = ?
 		  AND starts_at >= ?
 		  AND starts_at < ?
 		  AND status IN ('pending', 'confirmed')
-	`, scheduleID, startOfDay, endOfDay).Scan(&count)
+	`), scheduleID, startOfDay, endOfDay).Scan(&count)
 	if err != nil {
 		return false, err
 	}

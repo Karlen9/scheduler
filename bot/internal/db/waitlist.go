@@ -12,10 +12,10 @@ import (
 func CreateWaitlistEntry(trainerID, clientID string, startsAt, endsAt time.Time, clientName string, durationMinutes int) (*models.WaitlistEntry, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		INSERT INTO waitlist (id, trainer_id, client_id, starts_at, ends_at, duration_minutes, client_name, status)
 		VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting')
-	`, id, trainerID, clientID, startsAt, endsAt, durationMinutes, clientName)
+	`), id, trainerID, clientID, startsAt, endsAt, durationMinutes, clientName)
 	if err != nil {
 		return nil, err
 	}
@@ -27,12 +27,12 @@ func GetWaitlistByID(id string) (*models.WaitlistEntry, error) {
 	var e models.WaitlistEntry
 	var offeredAt sql.NullTime
 
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT id, trainer_id, client_id, starts_at, ends_at, duration_minutes,
 		       client_name, status, offered_at, created_at
 		FROM waitlist
 		WHERE id = ?
-	`, id).Scan(&e.ID, &e.TrainerID, &e.ClientID, &e.StartsAt, &e.EndsAt, &e.DurationMinutes,
+	`), id).Scan(&e.ID, &e.TrainerID, &e.ClientID, &e.StartsAt, &e.EndsAt, &e.DurationMinutes,
 		&e.ClientName, &e.Status, &offeredAt, &e.CreatedAt)
 
 	if err == sql.ErrNoRows {
@@ -51,7 +51,7 @@ func GetWaitlistByID(id string) (*models.WaitlistEntry, error) {
 
 // GetWaitlistForSlot returns all "waiting" entries for a time range, ordered by created_at ASC (FIFO)
 func GetWaitlistForSlot(trainerID string, startsAt, endsAt time.Time) ([]models.WaitlistEntry, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT id, trainer_id, client_id, starts_at, ends_at, duration_minutes,
 		       client_name, status, offered_at, created_at
 		FROM waitlist
@@ -60,7 +60,7 @@ func GetWaitlistForSlot(trainerID string, startsAt, endsAt time.Time) ([]models.
 		  AND starts_at < ?
 		  AND ends_at > ?
 		ORDER BY created_at ASC
-	`, trainerID, endsAt, startsAt)
+	`), trainerID, endsAt, startsAt)
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +71,13 @@ func GetWaitlistForSlot(trainerID string, startsAt, endsAt time.Time) ([]models.
 
 // GetWaitlistByClientID returns client's active waitlist entries (waiting + offered)
 func GetWaitlistByClientID(clientID string) ([]models.WaitlistEntry, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT id, trainer_id, client_id, starts_at, ends_at, duration_minutes,
 		       client_name, status, offered_at, created_at
 		FROM waitlist
 		WHERE client_id = ? AND status IN ('waiting', 'offered')
 		ORDER BY starts_at ASC
-	`, clientID)
+	`), clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -88,13 +88,13 @@ func GetWaitlistByClientID(clientID string) ([]models.WaitlistEntry, error) {
 
 // GetWaitlistByTrainerID returns all active waitlist entries for a trainer
 func GetWaitlistByTrainerID(trainerID string) ([]models.WaitlistEntry, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT id, trainer_id, client_id, starts_at, ends_at, duration_minutes,
 		       client_name, status, offered_at, created_at
 		FROM waitlist
 		WHERE trainer_id = ? AND status IN ('waiting', 'offered')
 		ORDER BY starts_at ASC, created_at ASC
-	`, trainerID)
+	`), trainerID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,15 +104,15 @@ func GetWaitlistByTrainerID(trainerID string) ([]models.WaitlistEntry, error) {
 }
 
 func UpdateWaitlistStatus(id string, status models.WaitlistStatus) error {
-	_, err := DB.Exec(`UPDATE waitlist SET status = ? WHERE id = ?`, status, id)
+	_, err := DB.Exec(Q(`UPDATE waitlist SET status = ? WHERE id = ?`), status, id)
 	return err
 }
 
 // OfferWaitlistEntry sets status="offered" and offered_at=now
 func OfferWaitlistEntry(id string) error {
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		UPDATE waitlist SET status = 'offered', offered_at = ? WHERE id = ?
-	`, time.Now().UTC(), id)
+	`), time.Now().UTC(), id)
 	return err
 }
 
@@ -120,12 +120,12 @@ func OfferWaitlistEntry(id string) error {
 func GetExpiredOffers(timeout time.Duration) ([]models.WaitlistEntry, error) {
 	cutoff := time.Now().UTC().Add(-timeout)
 
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT id, trainer_id, client_id, starts_at, ends_at, duration_minutes,
 		       client_name, status, offered_at, created_at
 		FROM waitlist
 		WHERE status = 'offered' AND offered_at < ?
-	`, cutoff)
+	`), cutoff)
 	if err != nil {
 		return nil, err
 	}
@@ -137,14 +137,14 @@ func GetExpiredOffers(timeout time.Duration) ([]models.WaitlistEntry, error) {
 // ClientHasWaitlistForSlot checks if a client already has an active waitlist entry for this slot
 func ClientHasWaitlistForSlot(clientID, trainerID string, startsAt, endsAt time.Time) (bool, error) {
 	var count int
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT COUNT(*) FROM waitlist
 		WHERE client_id = ?
 		  AND trainer_id = ?
 		  AND status IN ('waiting', 'offered')
 		  AND starts_at < ?
 		  AND ends_at > ?
-	`, clientID, trainerID, endsAt, startsAt).Scan(&count)
+	`), clientID, trainerID, endsAt, startsAt).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -153,20 +153,20 @@ func ClientHasWaitlistForSlot(clientID, trainerID string, startsAt, endsAt time.
 
 // CancelWaitlistEntriesForSlot cancels a client's waitlist entries for a specific slot
 func CancelWaitlistEntriesForSlot(clientID, trainerID string, startsAt, endsAt time.Time) error {
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		UPDATE waitlist SET status = 'cancelled'
 		WHERE client_id = ?
 		  AND trainer_id = ?
 		  AND status IN ('waiting', 'offered')
 		  AND starts_at < ?
 		  AND ends_at > ?
-	`, clientID, trainerID, endsAt, startsAt)
+	`), clientID, trainerID, endsAt, startsAt)
 	return err
 }
 
 // GetWaitlistCountForSlots returns a map of startsAt -> count for the given day
 func GetWaitlistCountForSlots(trainerID string, startOfDay, endOfDay time.Time) (map[string]int, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT starts_at, COUNT(*) as cnt
 		FROM waitlist
 		WHERE trainer_id = ?
@@ -174,7 +174,7 @@ func GetWaitlistCountForSlots(trainerID string, startOfDay, endOfDay time.Time) 
 		  AND starts_at >= ?
 		  AND starts_at < ?
 		GROUP BY starts_at
-	`, trainerID, startOfDay, endOfDay)
+	`), trainerID, startOfDay, endOfDay)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func GetWaitlistCountForSlots(trainerID string, startOfDay, endOfDay time.Time) 
 
 // GetClientWaitlistForSlots returns a set of startsAt times where the client has active waitlist entries
 func GetClientWaitlistForSlots(clientID, trainerID string, startOfDay, endOfDay time.Time) (map[string]bool, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT starts_at
 		FROM waitlist
 		WHERE client_id = ?
@@ -204,7 +204,7 @@ func GetClientWaitlistForSlots(clientID, trainerID string, startOfDay, endOfDay 
 		  AND status IN ('waiting', 'offered')
 		  AND starts_at >= ?
 		  AND starts_at < ?
-	`, clientID, trainerID, startOfDay, endOfDay)
+	`), clientID, trainerID, startOfDay, endOfDay)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func GetClientWaitlistForSlots(clientID, trainerID string, startOfDay, endOfDay 
 // GetWaitlistPosition returns the position (1-based) of an entry in its slot's queue
 func GetWaitlistPosition(entry *models.WaitlistEntry) (int, error) {
 	var position int
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT COUNT(*) + 1
 		FROM waitlist
 		WHERE trainer_id = ?
@@ -234,7 +234,7 @@ func GetWaitlistPosition(entry *models.WaitlistEntry) (int, error) {
 		  AND starts_at = ?
 		  AND ends_at = ?
 		  AND created_at < ?
-	`, entry.TrainerID, entry.StartsAt, entry.EndsAt, entry.CreatedAt).Scan(&position)
+	`), entry.TrainerID, entry.StartsAt, entry.EndsAt, entry.CreatedAt).Scan(&position)
 	if err != nil {
 		return 0, err
 	}

@@ -137,8 +137,12 @@ func main() {
 		log.Fatalf("Failed to initialize encryption: %v", err)
 	}
 
-	// Initialize database
-	if err := db.Init(cfg.DatabasePath); err != nil {
+	// Initialize database (Postgres if DATABASE_URL is set, otherwise SQLite)
+	dbTarget := cfg.DatabasePath
+	if cfg.DatabaseURL != "" {
+		dbTarget = cfg.DatabaseURL
+	}
+	if err := db.Init(dbTarget); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()

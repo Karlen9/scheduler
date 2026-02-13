@@ -9,12 +9,12 @@ import (
 )
 
 func GetWorkingHoursByTrainerID(trainerID string) ([]models.WorkingHours, error) {
-	rows, err := DB.Query(`
+	rows, err := DB.Query(Q(`
 		SELECT id, trainer_id, day_of_week, start_time, end_time
 		FROM working_hours
 		WHERE trainer_id = ?
 		ORDER BY day_of_week
-	`, trainerID)
+	`), trainerID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,18 +35,18 @@ func GetWorkingHoursByTrainerID(trainerID string) ([]models.WorkingHours, error)
 func UpsertWorkingHours(trainerID string, dayOfWeek int, startTime, endTime string) error {
 	// Check if exists
 	var existingID string
-	err := DB.QueryRow(`
+	err := DB.QueryRow(Q(`
 		SELECT id FROM working_hours
 		WHERE trainer_id = ? AND day_of_week = ?
-	`, trainerID, dayOfWeek).Scan(&existingID)
+	`), trainerID, dayOfWeek).Scan(&existingID)
 
 	if err == sql.ErrNoRows {
 		// Insert new
 		id := uuid.New().String()
-		_, err = DB.Exec(`
+		_, err = DB.Exec(Q(`
 			INSERT INTO working_hours (id, trainer_id, day_of_week, start_time, end_time)
 			VALUES (?, ?, ?, ?, ?)
-		`, id, trainerID, dayOfWeek, startTime, endTime)
+		`), id, trainerID, dayOfWeek, startTime, endTime)
 		return err
 	}
 	if err != nil {
@@ -54,23 +54,23 @@ func UpsertWorkingHours(trainerID string, dayOfWeek int, startTime, endTime stri
 	}
 
 	// Update existing
-	_, err = DB.Exec(`
+	_, err = DB.Exec(Q(`
 		UPDATE working_hours
 		SET start_time = ?, end_time = ?
 		WHERE id = ?
-	`, startTime, endTime, existingID)
+	`), startTime, endTime, existingID)
 	return err
 }
 
 func DeleteWorkingHours(trainerID string, dayOfWeek int) error {
-	_, err := DB.Exec(`
+	_, err := DB.Exec(Q(`
 		DELETE FROM working_hours
 		WHERE trainer_id = ? AND day_of_week = ?
-	`, trainerID, dayOfWeek)
+	`), trainerID, dayOfWeek)
 	return err
 }
 
 func ClearWorkingHours(trainerID string) error {
-	_, err := DB.Exec(`DELETE FROM working_hours WHERE trainer_id = ?`, trainerID)
+	_, err := DB.Exec(Q(`DELETE FROM working_hours WHERE trainer_id = ?`), trainerID)
 	return err
 }
