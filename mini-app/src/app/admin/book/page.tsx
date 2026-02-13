@@ -16,7 +16,7 @@ import { api } from "@/lib/api";
 import { ClientInfo, SessionType, TimeSlot } from "@/lib/types";
 import { getAvatarColor } from "@/lib/colors";
 
-type Step = "client" | "service" | "date" | "time";
+type Step = "client" | "date" | "time";
 
 export default function AdminBookPage() {
   const router = useRouter();
@@ -122,21 +122,23 @@ export default function AdminBookPage() {
     [],
   );
 
-  // Re-fetch slots when service changes and a date is already selected
+
+  // Auto-select first service when services load
   useEffect(() => {
-    if (selectedDate && selectedService && step === "time") {
-      fetchSlots(selectedDate, selectedService.durationMinutes);
+    if (services.length === 1 && !selectedService) {
+      setSelectedService(services[0]);
     }
-  }, [selectedService]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [services]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectClient = (client: ClientInfo) => {
     setSelectedClient(client);
-    setStep("service");
+    setStep("date");
   };
 
-  const handleServiceNext = () => {
-    if (selectedService) {
-      setStep("date");
+  const handleServiceChange = (service: SessionType) => {
+    setSelectedService(service);
+    if (selectedDate) {
+      fetchSlots(selectedDate, service.durationMinutes);
     }
   };
 
@@ -181,11 +183,9 @@ export default function AdminBookPage() {
       setStep("date");
       setSelectedTime(null);
     } else if (step === "date") {
-      setStep("service");
-      setSelectedDate(null);
-    } else if (step === "service") {
       setStep("client");
       setSelectedClient(null);
+      setSelectedDate(null);
     } else {
       router.back();
     }
@@ -215,8 +215,6 @@ export default function AdminBookPage() {
     switch (step) {
       case "client":
         return "Выберите клиента";
-      case "service":
-        return "Выберите услугу";
       case "date":
         return "Выберите дату";
       case "time":
@@ -260,17 +258,6 @@ export default function AdminBookPage() {
                 >
                   {selectedClient.name}
                 </button>
-              )}
-              {selectedClient && selectedService && step !== "client" && step !== "service" && (
-                <>
-                  <span>&rarr;</span>
-                  <button
-                    onClick={() => { setStep("service"); setSelectedDate(null); setSelectedTime(null); }}
-                    className="text-primary underline underline-offset-2"
-                  >
-                    {selectedService.name}
-                  </button>
-                </>
               )}
               {selectedDate && (step === "time") && (
                 <>
@@ -345,43 +332,44 @@ export default function AdminBookPage() {
               </div>
             )}
 
-            {/* Step: Select Service */}
-            {step === "service" && (
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                  {stepTitle()}
-                </h3>
-                <ServiceSelector
-                  services={services}
-                  selectedId={selectedService?.id ?? ""}
-                  onChange={setSelectedService}
-                />
-              </div>
-            )}
-
-            {/* Step: Select Date */}
+            {/* Step: Select Service + Date */}
             {(step === "date" || step === "time") && (
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                  {step === "date" ? "Выберите дату" : "Выбрана дата"}
-                </h3>
-                <CalendarView
-                  selectedDate={selectedDate}
-                  onSelectDate={handleDateSelect}
-                  nonWorkingDays={nonWorkingDays}
-                  daysOff={daysOff}
-                />
-                {selectedDate && step === "date" && !isLoading && (
-                  <div className="mt-3 p-3 bg-card rounded-lg text-center">
-                    <p className="text-sm text-foreground">
-                      Выбрана дата:{" "}
-                      <span className="font-medium">
-                        {formatDate(selectedDate)}
-                      </span>
-                    </p>
+              <>
+                {services.length > 1 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                      Услуга
+                    </h3>
+                    <ServiceSelector
+                      services={services}
+                      selectedId={selectedService?.id ?? ""}
+                      onChange={handleServiceChange}
+                    />
                   </div>
                 )}
-              </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    {step === "date" ? "Выберите дату" : "Выбрана дата"}
+                  </h3>
+                  <CalendarView
+                    selectedDate={selectedDate}
+                    onSelectDate={handleDateSelect}
+                    nonWorkingDays={nonWorkingDays}
+                    daysOff={daysOff}
+                  />
+                  {selectedDate && step === "date" && !isLoading && (
+                    <div className="mt-3 p-3 bg-card rounded-lg text-center">
+                      <p className="text-sm text-foreground">
+                        Выбрана дата:{" "}
+                        <span className="font-medium">
+                          {formatDate(selectedDate)}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             {/* Loading time slots */}
@@ -444,21 +432,6 @@ export default function AdminBookPage() {
           </>
         )}
       </div>
-
-      {/* Service step: Next button */}
-      {step === "service" && (
-        <div
-          className="fixed bottom-[88px] left-0 right-0 p-4 bg-background border-t border-border"
-          style={{ maxWidth: "430px", margin: "0 auto", width: "100%" }}
-        >
-          <PrimaryButton
-            onClick={handleServiceNext}
-            disabled={!selectedService}
-          >
-            Далее
-          </PrimaryButton>
-        </div>
-      )}
 
       {/* Time step: Confirm button */}
       {step === "time" && !noSlotsAvailable && (
