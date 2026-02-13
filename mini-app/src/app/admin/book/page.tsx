@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Search } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
+import { ActivityBackButton } from "@/components/ActivityBackButton";
+import { ClientListSkeleton } from "@/components/LoadingSkeleton";
 import { ServiceSelector } from "@/components/ServiceSelector";
 import { CalendarView } from "@/components/CalendarView";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
@@ -15,6 +16,8 @@ import { formatDuration } from "@/components/DurationSelector";
 import { api } from "@/lib/api";
 import { ClientInfo, SessionType, TimeSlot } from "@/lib/types";
 import { getAvatarColor } from "@/lib/colors";
+import { useClients, useAdminServices, useWorkingHours, useDaysOff } from "@/hooks/queries";
+import { invalidateBookings } from "@/hooks/mutations";
 
 type Step = "client" | "date" | "time";
 
@@ -23,63 +26,49 @@ export default function AdminBookPage() {
 
   const [step, setStep] = useState<Step>("client");
 
+  // SWR hooks for initial data
+  const { data: clients, isLoading: isClientsLoading } = useClients();
+  const { data: services, isLoading: isServicesLoading } = useAdminServices();
+  const { data: workingHoursData, isLoading: isWorkingHoursLoading } = useWorkingHours();
+  const { data: daysOffData, isLoading: isDaysOffLoading } = useDaysOff();
+
+  const isInitialLoading = isClientsLoading || isServicesLoading || isWorkingHoursLoading || isDaysOffLoading;
+
+  // Derive nonWorkingDays from workingHoursData
+  const nonWorkingDays = useMemo(() => {
+    const workingDaySet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
+    const nonWorking: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      if (!workingDaySet.has(i)) {
+        nonWorking.push(i);
+      }
+    }
+    return nonWorking;
+  }, [workingHoursData]);
+
+  // Derive daysOff strings from daysOffData
+  const daysOff = useMemo(() => {
+    return daysOffData.map((d) => d.date);
+  }, [daysOffData]);
+
   // Client selection
-  const [clients, setClients] = useState<ClientInfo[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Service
-  const [services, setServices] = useState<SessionType[]>([]);
   const [selectedService, setSelectedService] = useState<SessionType | null>(null);
 
   // Date & time
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [nonWorkingDays, setNonWorkingDays] = useState<number[]>([]);
-  const [daysOff, setDaysOff] = useState<string[]>([]);
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noSlotsAvailable, setNoSlotsAvailable] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [message, setMessage] = useState("");
-
-  // Load clients, durations, working hours, days off on mount
-  useEffect(() => {
-    async function loadInitialData() {
-      try {
-        const [clientsData, servicesData, workingHours, daysOffData] =
-          await Promise.all([
-            api.admin.getClients(),
-            api.admin.getServices(),
-            api.getWorkingHours(),
-            api.getDaysOff(),
-          ]);
-
-        setClients(clientsData);
-        setServices(servicesData);
-
-        const workingDaySet = new Set(workingHours.map((wh) => wh.dayOfWeek));
-        const nonWorking: number[] = [];
-        for (let i = 0; i < 7; i++) {
-          if (!workingDaySet.has(i)) {
-            nonWorking.push(i);
-          }
-        }
-        setNonWorkingDays(nonWorking);
-        setDaysOff(daysOffData.map((d) => d.date));
-      } catch (err) {
-        console.error("Failed to load initial data:", err);
-        toast.error("Не удалось загрузить данные");
-      } finally {
-        setIsInitialLoading(false);
-      }
-    }
-    loadInitialData();
-  }, []);
 
   const filteredClients = useMemo(() => {
     if (!searchQuery.trim()) return clients;
@@ -163,6 +152,7 @@ export default function AdminBookPage() {
         time: selectedTime,
         message: message || undefined,
       });
+      invalidateBookings();
       setShowSuccess(true);
     } catch (err) {
       const msg =
@@ -224,29 +214,11 @@ export default function AdminBookPage() {
 
   return (
     <div className="flex flex-col">
-      <TopBar
-        title="Записать клиента"
-        showBack
-        onBack={handleBack}
-      />
+      <ActivityBackButton href="/admin" />
 
       <div className="flex-1 p-4 space-y-4 pb-24">
         {isInitialLoading ? (
-          <div className="space-y-4 animate-pulse">
-            <div className="h-4 bg-card rounded w-36 mb-2" />
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-card rounded-xl p-4 flex items-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-full bg-border" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-border rounded w-1/2" />
-                  <div className="h-3 bg-border rounded w-1/3" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <ClientListSkeleton />
         ) : (
           <>
             {/* Step indicator */}

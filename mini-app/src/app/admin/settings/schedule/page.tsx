@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { TimePickerModal } from "@/components/TimePickerModal";
 import { WorkingHours } from "@/lib/types";
 import { api } from "@/lib/api";
+import { useAdminWorkingHours } from "@/hooks/queries";
+import { invalidateWorkingHours } from "@/hooks/mutations";
 
 const DAY_NAMES = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
@@ -16,60 +18,50 @@ interface DaySchedule {
   endTime: string;
 }
 
-export default function SchedulePage() {
-  const [schedule, setSchedule] = useState<Record<number, DaySchedule>>({
-    0: { enabled: false, startTime: "09:00", endTime: "18:00" },
-    1: { enabled: true, startTime: "09:00", endTime: "21:00" },
-    2: { enabled: true, startTime: "09:00", endTime: "21:00" },
-    3: { enabled: true, startTime: "09:00", endTime: "21:00" },
-    4: { enabled: true, startTime: "09:00", endTime: "21:00" },
-    5: { enabled: true, startTime: "09:00", endTime: "21:00" },
-    6: { enabled: false, startTime: "09:00", endTime: "18:00" },
-  });
+const defaultSchedule: Record<number, DaySchedule> = {
+  0: { enabled: false, startTime: "09:00", endTime: "18:00" },
+  1: { enabled: true, startTime: "09:00", endTime: "21:00" },
+  2: { enabled: true, startTime: "09:00", endTime: "21:00" },
+  3: { enabled: true, startTime: "09:00", endTime: "21:00" },
+  4: { enabled: true, startTime: "09:00", endTime: "21:00" },
+  5: { enabled: true, startTime: "09:00", endTime: "21:00" },
+  6: { enabled: false, startTime: "09:00", endTime: "18:00" },
+};
 
-  const [loading, setLoading] = useState(true);
+export default function SchedulePage() {
+  const { data: workingHours, isLoading } = useAdminWorkingHours();
+  const [schedule, setSchedule] = useState<Record<number, DaySchedule>>(defaultSchedule);
+  const [initialized, setInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [pickerDay, setPickerDay] = useState<number | null>(null);
   const [pickerType, setPickerType] = useState<"start" | "end">("start");
   const [showPicker, setShowPicker] = useState(false);
 
-  const fetchWorkingHours = useCallback(async () => {
-    try {
-      const hours = await api.admin.getWorkingHours();
-
-      // Reset all days to disabled first
-      const newSchedule: Record<number, DaySchedule> = {
-        0: { enabled: false, startTime: "09:00", endTime: "18:00" },
-        1: { enabled: false, startTime: "09:00", endTime: "21:00" },
-        2: { enabled: false, startTime: "09:00", endTime: "21:00" },
-        3: { enabled: false, startTime: "09:00", endTime: "21:00" },
-        4: { enabled: false, startTime: "09:00", endTime: "21:00" },
-        5: { enabled: false, startTime: "09:00", endTime: "21:00" },
-        6: { enabled: false, startTime: "09:00", endTime: "18:00" },
-      };
-
-      // Enable days that have working hours
-      hours.forEach((wh) => {
-        newSchedule[wh.dayOfWeek] = {
-          enabled: true,
-          startTime: wh.startTime,
-          endTime: wh.endTime,
-        };
-      });
-
-      setSchedule(newSchedule);
-    } catch (err) {
-      console.error("Failed to fetch working hours:", err);
-      toast.error("Ошибка загрузки расписания");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchWorkingHours();
-  }, [fetchWorkingHours]);
+    if (isLoading || initialized) return;
+
+    const newSchedule: Record<number, DaySchedule> = {
+      0: { enabled: false, startTime: "09:00", endTime: "18:00" },
+      1: { enabled: false, startTime: "09:00", endTime: "21:00" },
+      2: { enabled: false, startTime: "09:00", endTime: "21:00" },
+      3: { enabled: false, startTime: "09:00", endTime: "21:00" },
+      4: { enabled: false, startTime: "09:00", endTime: "21:00" },
+      5: { enabled: false, startTime: "09:00", endTime: "21:00" },
+      6: { enabled: false, startTime: "09:00", endTime: "18:00" },
+    };
+
+    workingHours.forEach((wh) => {
+      newSchedule[wh.dayOfWeek] = {
+        enabled: true,
+        startTime: wh.startTime,
+        endTime: wh.endTime,
+      };
+    });
+
+    setSchedule(newSchedule);
+    setInitialized(true);
+  }, [workingHours, isLoading, initialized]);
 
   const handleDayToggle = (day: number) => {
     setSchedule((prev) => ({
@@ -113,6 +105,7 @@ export default function SchedulePage() {
       }
 
       await api.admin.updateWorkingHours(hours);
+      invalidateWorkingHours();
       toast.success("Расписание сохранено");
     } catch (err) {
       console.error("Failed to save working hours:", err);
@@ -122,7 +115,7 @@ export default function SchedulePage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div>
         <TopBar title="Расписание" showBack />

@@ -18,7 +18,7 @@ const adminTabs = [
 
 const adminSubTabs = [
   { icon: ClipboardList, href: "/admin/bookings" },
-  { icon: UserPlus, href: "/admin/book" },
+  { icon: UserPlus, href: "/admin/book", label: "Записать" },
   { icon: Repeat, href: "/admin/recurring" },
 ];
 

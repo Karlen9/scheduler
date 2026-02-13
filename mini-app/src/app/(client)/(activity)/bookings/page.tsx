@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { CalendarX, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { BookingCard } from "@/components/BookingCard";
@@ -9,30 +9,14 @@ import { BookingCardSkeleton } from "@/components/LoadingSkeleton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api } from "@/lib/api";
 import { Booking } from "@/lib/types";
+import { useBookings } from "@/hooks/queries";
+import { invalidateBookings } from "@/hooks/mutations";
 
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: bookings, isLoading, error } = useBookings();
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [showPast, setShowPast] = useState(false);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setError(null);
-      const bookingsData = await api.getBookings();
-      setBookings(bookingsData);
-    } catch {
-      setError("Не удалось загрузить записи");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const activeBookings = bookings
     .filter((b) => b.status === "pending" || b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending")
@@ -48,7 +32,7 @@ export default function BookingsPage() {
       toast.success("Запись отменена");
       setCancelTarget(null);
       setCancelReason("");
-      fetchData();
+      invalidateBookings();
     } catch {
       toast.error("Не удалось отменить запись");
     }
@@ -58,7 +42,7 @@ export default function BookingsPage() {
     try {
       await api.confirmBooking(booking.id);
       toast.success("Запись подтверждена");
-      fetchData();
+      invalidateBookings();
     } catch {
       toast.error("Не удалось подтвердить запись");
     }
@@ -68,7 +52,7 @@ export default function BookingsPage() {
     try {
       await api.declineBooking(booking.id);
       toast.success("Запись отклонена");
-      fetchData();
+      invalidateBookings();
     } catch {
       toast.error("Не удалось отклонить запись");
     }
@@ -78,8 +62,8 @@ export default function BookingsPage() {
     return (
       <div className="p-4 space-y-4">
         <h2 className="text-lg font-semibold px-1">Мои записи</h2>
-        <div className="animate-pulse">
-          <div className="h-4 bg-card rounded w-28 mb-3" />
+        <div>
+          <div className="h-4 bg-card rounded w-28 mb-3 animate-pulse" />
           <div className="space-y-3">
             <BookingCardSkeleton />
             <BookingCardSkeleton />
@@ -99,7 +83,7 @@ export default function BookingsPage() {
           <EmptyState
             icon={<CalendarX className="w-16 h-16" />}
             title="Ошибка загрузки"
-            description={error}
+            description="Не удалось загрузить записи"
           />
         </div>
       </div>

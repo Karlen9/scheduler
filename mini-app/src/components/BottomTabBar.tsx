@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { LucideIcon } from "lucide-react";
 
@@ -16,6 +17,67 @@ interface Tab {
 interface SubTab {
   icon: LucideIcon;
   href: string;
+  label?: string;
+}
+
+function PlusButton({
+  href,
+  isActive,
+  bouncing,
+  icon: Icon,
+}: {
+  href: string;
+  isActive: boolean;
+  bouncing: boolean;
+  icon: LucideIcon;
+}) {
+  return (
+    <Link
+      href={href}
+      className="relative z-10 flex items-center justify-center mx-5 active:scale-95"
+      style={{ width: "56px" }}
+    >
+      <div
+        className={`absolute w-[82px] h-[82px] rounded-full flex items-center justify-center transition-all shadow-lg shadow-brand/30 ${
+          isActive
+            ? "bg-brand text-white scale-105"
+            : "bg-brand/80 text-white"
+        }`}
+        style={{ top: "50%", transform: `translateY(-50%)${isActive ? " scale(1.05)" : ""}` }}
+      >
+        <Icon className={`w-9 h-9 ${bouncing ? "tab-bounce" : ""}`} strokeWidth={2.5} />
+      </div>
+    </Link>
+  );
+}
+
+function TabButton({
+  href,
+  isActive,
+  bouncing,
+  icon: Icon,
+  label,
+  activeColor = "text-brand",
+}: {
+  href: string;
+  isActive: boolean;
+  bouncing: boolean;
+  icon: LucideIcon;
+  label?: string;
+  activeColor?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex flex-col items-center justify-center gap-1 rounded-full transition-colors z-10 active:scale-90 ${
+        isActive ? activeColor : "text-muted-foreground"
+      }`}
+      style={{ width: "100px", height: "64px" }}
+    >
+      <Icon className={`w-6 h-6 ${bouncing ? "tab-bounce" : ""}`} />
+      {label && <span className="text-[11px] font-medium">{label}</span>}
+    </Link>
+  );
 }
 
 interface BottomTabBarProps {
@@ -25,6 +87,8 @@ interface BottomTabBarProps {
 
 export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
   const pathname = usePathname();
+  const prevPathRef = useRef(pathname);
+  const [animatingKey, setAnimatingKey] = useState<string | null>(null);
 
   const activeIndex = tabs.findIndex((tab) => {
     if (tab.matchPaths) {
@@ -50,117 +114,122 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
     ? subTabs.findIndex((t) => pathname === t.href || pathname.startsWith(t.href + "/"))
     : -1;
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 px-4 pb-4" style={{ maxWidth: "430px", margin: "0 auto" }}>
-      <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-2 py-2">
-        {showSubTabs ? (
-          <>
-            {/* Sliding indicator for sub-tabs */}
-            {activeSubIndex >= 0 && (
-              <div
-                className="absolute top-2 bottom-2 rounded-full bg-[#2c2c2e] transition-transform duration-300 ease-in-out"
-                style={{
-                  width: `calc((100% - 16px) / ${subTabs.length})`,
-                  transform: `translateX(calc(${activeSubIndex} * 100%))`,
-                  left: "8px",
-                }}
-              />
-            )}
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const subTabsRef = useRef<HTMLDivElement>(null);
+  const [sideTabW, setSideTabW] = useState(0);
+  const [subTabW, setSubTabW] = useState(0);
 
-            <div className="relative flex items-center">
-              {subTabs.map((tab) => {
-                const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
-                const Icon = tab.icon;
-                return (
-                  <Link
-                    key={tab.href}
-                    href={tab.href}
-                    className={`flex-1 flex items-center justify-center py-3.5 rounded-full transition-colors z-10 ${
-                      isActive ? "text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </Link>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Sliding active indicator — only for side tabs */}
-            {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && (() => {
-              const tabWidth = `(100% - 16px - 64px) / ${sideTabs.length}`;
-              const inset = 32;
-              const left = activeSideIndex === 0
-                ? `${8 + inset}px`
-                : `calc(8px + (${tabWidth}) + 64px + ${inset}px)`;
-              return (
+  useEffect(() => {
+    if (tabsRef.current) {
+      const first = tabsRef.current.firstElementChild as HTMLElement | null;
+      if (first) setSideTabW(first.offsetWidth);
+    }
+    if (subTabsRef.current) {
+      const first = subTabsRef.current.firstElementChild as HTMLElement | null;
+      if (first) setSubTabW(first.offsetWidth);
+    }
+  });
+
+  // Trigger bounce animation on route change
+  useEffect(() => {
+    if (pathname !== prevPathRef.current) {
+      prevPathRef.current = pathname;
+      const key = showSubTabs ? pathname : tabs[currentIndex]?.key;
+      if (key) {
+        setAnimatingKey(key);
+        const timer = setTimeout(() => setAnimatingKey(null), 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [pathname, currentIndex, showSubTabs, tabs]);
+
+  return (
+      <div className="fixed bottom-0 left-0 right-0 pb-6 flex justify-center">
+        <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-2 py-2 overflow-visible">
+          {showSubTabs ? (
+            <>
+              {/* Sliding indicator for sub-tabs */}
+              {activeSubIndex >= 0 && subTabW > 0 && (
                 <div
                   className="absolute top-2 bottom-2 rounded-full bg-[#2c2c2e]"
                   style={{
-                    width: `calc(${tabWidth} - ${inset * 2}px)`,
-                    left,
+                    width: `${subTabW}px`,
+                    left: `${8 + activeSubIndex * subTabW}px`,
                     transition: "left 300ms ease-in-out",
                   }}
                 />
-              );
-            })()}
-            {!hasCenterButton && (
-              <div
-                className="absolute top-2 bottom-2 rounded-full bg-[#2c2c2e] transition-transform duration-300 ease-in-out"
-                style={{
-                  width: `calc((100% - 16px) / ${tabs.length})`,
-                  transform: `translateX(calc(${currentIndex} * 100%))`,
-                  left: "8px",
-                }}
-              />
-            )}
+              )}
 
-            {/* Tab buttons */}
-            <div className="relative flex items-center">
-              {tabs.map((tab, index) => {
-                const isActive = index === currentIndex;
-                const Icon = tab.icon;
-
-                if (tab.isCenter) {
+              <div ref={subTabsRef} className="relative flex items-center">
+                {subTabs.map((tab) => {
+                  const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
+                  const bouncing = animatingKey === tab.href;
                   return (
-                    <Link
+                    <TabButton
+                      key={tab.href}
+                      href={tab.href}
+                      isActive={isActive}
+                      bouncing={bouncing}
+                      icon={tab.icon}
+                      label={tab.label}
+                      activeColor="text-foreground"
+                    />
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Active indicator for side tabs */}
+              {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
+                <div
+                  className="absolute top-2 bottom-2 rounded-full bg-[#2c2c2e]"
+                  style={{
+                    width: `${sideTabW}px`,
+                    left: activeSideIndex === 0
+                      ? "8px"
+                      : `calc(100% - 8px - ${sideTabW}px)`,
+                    transition: "left 300ms ease-in-out",
+                  }}
+                />
+              )}
+
+              {/* Tab buttons */}
+              <div ref={tabsRef} className="relative flex items-center">
+                {tabs.map((tab, index) => {
+                  const isActive = index === currentIndex;
+                  const Icon = tab.icon;
+                  const bouncing = animatingKey === tab.key;
+
+                  if (tab.isCenter) {
+                    return (
+                      <PlusButton
+                        key={tab.key}
+                        href={tab.href}
+                        isActive={isActive}
+                        bouncing={bouncing}
+                        icon={Icon}
+                      />
+                    );
+                  }
+
+                  return (
+                    <TabButton
                       key={tab.key}
                       href={tab.href}
-                      className="relative z-10 flex items-center justify-center mx-1"
-                    >
-                      <div
-                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                          isActive
-                            ? "bg-brand text-white scale-105"
-                            : "bg-brand/80 text-white"
-                        }`}
-                      >
-                        <Icon className="w-7 h-7" strokeWidth={2.5} />
-                      </div>
-                    </Link>
+                      isActive={isActive}
+                      bouncing={bouncing}
+                      icon={Icon}
+                      label={tab.label}
+                    />
                   );
-                }
-
-                return (
-                  <Link
-                    key={tab.key}
-                    href={tab.href}
-                    className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-full transition-colors z-10 ${
-                      isActive ? "text-brand" : "text-muted-foreground"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">{tab.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </>
-        )}
+                })}
+              </div>
+            </>
+          )}
+        </div>
+        {/* Bottom safe area */}
+        <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
-      {/* Bottom safe area */}
-      <div className="h-[env(safe-area-inset-bottom)]" />
-    </div>
   );
 }

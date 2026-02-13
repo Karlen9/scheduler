@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Calendar,
@@ -18,6 +18,8 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api } from "@/lib/api";
 import { RecurringSchedule, Booking } from "@/lib/types";
 import { formatDuration } from "@/components/DurationSelector";
+import { useAdminRecurringDetail } from "@/hooks/queries";
+import { invalidateRecurring } from "@/hooks/mutations";
 
 // --- Constants ---
 
@@ -169,25 +171,9 @@ export default function AdminRecurringDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [schedule, setSchedule] = useState<RecurringSchedule | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: schedule, isLoading, mutate } = useAdminRecurringDetail(id);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const data = await api.admin.getRecurringScheduleDetail(id);
-      setSchedule(data);
-    } catch {
-      toast.error("Не удалось загрузить расписание");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const handleRequestCancel = async () => {
     if (!cancelTarget || !schedule) return;
@@ -196,7 +182,8 @@ export default function AdminRecurringDetailPage() {
       await api.admin.requestCancelBooking(schedule.id, cancelTarget.id);
       toast.success("Запрос на отмену отправлен");
       setCancelTarget(null);
-      fetchData();
+      mutate();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось запросить отмену");
     } finally {
@@ -210,7 +197,8 @@ export default function AdminRecurringDetailPage() {
     try {
       await api.admin.approveCancelBooking(schedule.id, booking.id);
       toast.success("Отмена подтверждена");
-      fetchData();
+      mutate();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось подтвердить отмену");
     } finally {
@@ -224,7 +212,8 @@ export default function AdminRecurringDetailPage() {
     try {
       await api.admin.declineCancelBooking(schedule.id, booking.id);
       toast.success("Отмена отклонена");
-      fetchData();
+      mutate();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось отклонить отмену");
     } finally {
@@ -238,7 +227,8 @@ export default function AdminRecurringDetailPage() {
     try {
       await api.admin.approveMoveBooking(schedule.id, booking.id);
       toast.success("Перенос подтвержден");
-      fetchData();
+      mutate();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось подтвердить перенос");
     } finally {
@@ -252,7 +242,8 @@ export default function AdminRecurringDetailPage() {
     try {
       await api.admin.declineMoveBooking(schedule.id, booking.id);
       toast.success("Перенос отклонен");
-      fetchData();
+      mutate();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось отклонить перенос");
     } finally {

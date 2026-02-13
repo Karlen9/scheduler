@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DurationSelector } from "@/components/DurationSelector";
+import { CalendarSkeleton } from "@/components/LoadingSkeleton";
 import { CalendarView } from "@/components/CalendarView";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -14,12 +15,19 @@ import { api } from "@/lib/api";
 import { getUserName } from "@/lib/telegram";
 import { TimeSlot } from "@/lib/types";
 import { formatDuration } from "@/components/DurationSelector";
+import { useWorkingHours, useDaysOff, useDurations, useProfile } from "@/hooks/queries";
+import { invalidateBookings } from "@/hooks/mutations";
 
 function BookingPageContent() {
   const router = useRouter();
 
+  const { data: workingHoursData, isLoading: whLoading } = useWorkingHours();
+  const { data: daysOffData, isLoading: doLoading } = useDaysOff();
+  const { data: availableDurations, isLoading: durLoading } = useDurations();
+  const { data: profile, isLoading: profLoading } = useProfile();
+  const isInitialLoading = whLoading || doLoading || durLoading || profLoading;
+
   const [step, setStep] = useState<"date" | "time">("date");
-  const [durations, setDurations] = useState<number[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<number>(0);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -28,46 +36,30 @@ function BookingPageContent() {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [noSlotsAvailable, setNoSlotsAvailable] = useState(false);
-  const [nonWorkingDays, setNonWorkingDays] = useState<number[]>([]);
-  const [daysOff, setDaysOff] = useState<string[]>([]);
   const [message, setMessage] = useState("");
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  const nonWorkingDays = (() => {
+    const workingDaySet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
+    const result: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      if (!workingDaySet.has(i)) result.push(i);
+    }
+    return result;
+  })();
+
+  const daysOff = daysOffData.map((d) => d.date);
+
+  // Set initial duration from profile/durations once loaded
   useEffect(() => {
-    async function loadScheduleData() {
-      try {
-        const [workingHours, daysOffData, availableDurations, profile] = await Promise.all([
-          api.getWorkingHours(),
-          api.getDaysOff(),
-          api.getDurations(),
-          api.getProfile().catch(() => null),
-        ]);
-
-        const workingDaySet = new Set(workingHours.map((wh) => wh.dayOfWeek));
-        const nonWorking: number[] = [];
-        for (let i = 0; i < 7; i++) {
-          if (!workingDaySet.has(i)) {
-            nonWorking.push(i);
-          }
-        }
-        setNonWorkingDays(nonWorking);
-        setDaysOff(daysOffData.map((d) => d.date));
-        setDurations(availableDurations);
-
-        const preferred = profile?.preferredDuration || 0;
-        if (preferred && availableDurations.includes(preferred)) {
-          setSelectedDuration(preferred);
-        } else if (availableDurations.length > 0) {
-          setSelectedDuration(availableDurations[0]);
-        }
-      } catch (err) {
-        console.error("Failed to load schedule data:", err);
-      } finally {
-        setIsInitialLoading(false);
+    if (availableDurations.length > 0 && selectedDuration === 0) {
+      const preferred = profile?.preferredDuration || 0;
+      if (preferred && availableDurations.includes(preferred)) {
+        setSelectedDuration(preferred);
+      } else {
+        setSelectedDuration(availableDurations[0]);
       }
     }
-    loadScheduleData();
-  }, []);
+  }, [availableDurations, profile, selectedDuration]);
 
   const formatDateISO = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -121,6 +113,7 @@ function BookingPageContent() {
       const dateStr = formatDateISO(selectedDate);
       const name = getUserName();
       await api.createBooking(selectedDuration, dateStr, selectedTime, name, message || undefined);
+      invalidateBookings();
       setShowSuccess(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Не удалось создать запись";
@@ -150,6 +143,7 @@ function BookingPageContent() {
       <div className="flex-1 p-4 space-y-4 pb-24">
         {isInitialLoading ? (
           <div className="space-y-4 animate-pulse">
+            {/* Duration selector */}
             <div>
               <div className="h-4 bg-card rounded w-28 mb-2" />
               <div className="flex gap-2">
@@ -158,27 +152,21 @@ function BookingPageContent() {
                 <div className="flex-1 h-10 bg-card rounded-lg" />
               </div>
             </div>
+            {/* Calendar */}
             <div>
               <div className="h-4 bg-card rounded w-24 mb-2" />
-              <div className="bg-card rounded-xl p-4">
-                <div className="h-8 bg-border rounded w-40 mx-auto mb-4" />
-                <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: 35 }).map((_, i) => (
-                    <div key={i} className="aspect-square bg-border rounded-lg" />
-                  ))}
-                </div>
-              </div>
+              <CalendarSkeleton />
             </div>
           </div>
         ) : (
         <>
-        {durations.length > 1 && (
+        {availableDurations.length > 1 && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">
               Длительность
             </h3>
             <DurationSelector
-              durations={durations}
+              durations={availableDurations}
               selected={selectedDuration}
               onChange={setSelectedDuration}
             />

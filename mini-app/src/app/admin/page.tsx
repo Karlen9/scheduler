@@ -1,42 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Users } from "lucide-react";
-import { api } from "@/lib/api";
-import { Trainer, Booking } from "@/lib/types";
+import { useTrainer } from "@/hooks/queries";
+import { useAdminBookings } from "@/hooks/queries";
+import { Booking } from "@/lib/types";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [trainer, setTrainer] = useState<Trainer | null>(null);
-  const [stats, setStats] = useState({ pending: 0, upcoming: 0 });
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: trainer, isLoading: trainerLoading } = useTrainer();
+  const { data: bookings, isLoading: bookingsLoading } = useAdminBookings();
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [trainerData, bookings] = await Promise.all([
-          api.getTrainer(),
-          api.admin.getBookings(),
-        ]);
-        setTrainer(trainerData);
+  const isLoading = trainerLoading || bookingsLoading;
 
-        const now = new Date();
-        const pending = bookings.filter((b: Booking) => b.status === "pending").length;
-        const upcoming = bookings.filter(
-          (b: Booking) =>
-            (b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending") &&
-            new Date(b.startsAt) > now
-        ).length;
-        setStats({ pending, upcoming });
-      } catch (err) {
-        console.error("Failed to load dashboard:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadData();
-  }, []);
+  const stats = useMemo(() => {
+    const now = new Date();
+    const pending = bookings.filter((b: Booking) => b.status === "pending").length;
+    const upcoming = bookings.filter(
+      (b: Booking) =>
+        (b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending") &&
+        new Date(b.startsAt) > now
+    ).length;
+    return { pending, upcoming };
+  }, [bookings]);
 
   if (isLoading) {
     return (

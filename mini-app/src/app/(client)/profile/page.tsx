@@ -6,46 +6,38 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { DurationSelector } from "@/components/DurationSelector";
 import { api } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
+import { useProfile, useDurations } from "@/hooks/queries";
+import { invalidateProfile } from "@/hooks/mutations";
 
 export default function ClientProfilePage() {
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: durations, isLoading: durationsLoading } = useDurations();
+  const loading = profileLoading || durationsLoading;
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [preferredDuration, setPreferredDuration] = useState<number>(60);
-  const [durations, setDurations] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [notifyBookingStatus, setNotifyBookingStatus] = useState(true);
   const [notifyReminders, setNotifyReminders] = useState(true);
   const [notifyDaysOff, setNotifyDaysOff] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [profile, availableDurations] = await Promise.all([
-          api.getProfile(),
-          api.getDurations().catch(() => [60]),
-        ]);
-        setName(profile.name || "");
-        setPhone(profile.phone || "");
-        setPreferredDuration(profile.preferredDuration || availableDurations[0] || 60);
-        setDurations(availableDurations);
-        setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
-        setNotifyReminders(profile.notifyReminders ?? true);
-        setNotifyDaysOff(profile.notifyDaysOff ?? false);
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-        toast.error("Ошибка загрузки профиля");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+    if (profile) {
+      setName(profile.name || "");
+      setPhone(profile.phone || "");
+      setPreferredDuration(profile.preferredDuration || durations[0] || 60);
+      setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
+      setNotifyReminders(profile.notifyReminders ?? true);
+      setNotifyDaysOff(profile.notifyDaysOff ?? false);
+    }
+  }, [profile, durations]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
       await api.updateProfile({ name, phone, preferredDuration });
+      invalidateProfile();
       toast.success("Профиль сохранен");
     } catch (err) {
       console.error("Failed to save profile:", err);

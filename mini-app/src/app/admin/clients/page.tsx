@@ -1,23 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Users } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
-import { api } from "@/lib/api";
 import { ClientInfo } from "@/lib/types";
 import { getAvatarColor } from "@/lib/colors";
+import { useClients } from "@/hooks/queries";
 
 export default function AdminClientsPage() {
-  const [clients, setClients] = useState<ClientInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    api.admin
-      .getClients()
-      .then(setClients)
-      .catch((err) => console.error("Failed to load clients:", err))
-      .finally(() => setIsLoading(false));
-  }, []);
+  const { data: clients, isLoading } = useClients();
 
   if (isLoading) {
     return (

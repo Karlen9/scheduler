@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Repeat, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { RecurringPageSkeleton } from "@/components/LoadingSkeleton";
 import { ServiceSelector } from "@/components/ServiceSelector";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RecurringScheduleCard } from "@/components/RecurringScheduleCard";
 import { RecurringSchedule, SessionType, WorkingHours } from "@/lib/types";
 import { api } from "@/lib/api";
+import { useRecurringSchedules, useSessionTypes, useWorkingHours } from "@/hooks/queries";
+import { invalidateRecurring } from "@/hooks/mutations";
 
 const DAYS = [
   { label: "Пн", value: 1 },
@@ -77,10 +80,11 @@ function generateTimeSlots(workingHours: WorkingHours[], days: number[], duratio
 }
 
 export default function ClientRecurringPage() {
-  const [schedules, setSchedules] = useState<RecurringSchedule[]>([]);
-  const [services, setServices] = useState<SessionType[]>([]);
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: schedules, isLoading: schedulesLoading } = useRecurringSchedules();
+  const { data: services, isLoading: servicesLoading } = useSessionTypes();
+  const { data: workingHours, isLoading: whLoading } = useWorkingHours();
+  const isLoading = schedulesLoading || servicesLoading || whLoading;
+
   const [isSaving, setIsSaving] = useState(false);
 
   // Form state
@@ -95,27 +99,6 @@ export default function ClientRecurringPage() {
 
   // Cancel dialog
   const [cancelTarget, setCancelTarget] = useState<RecurringSchedule | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [schedulesData, servicesData, whData] = await Promise.all([
-        api.getRecurringSchedules(),
-        api.getSessionTypes(),
-        api.getWorkingHours(),
-      ]);
-      setSchedules(schedulesData);
-      setServices(servicesData);
-      setWorkingHours(whData);
-    } catch {
-      toast.error("Не удалось загрузить расписания");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const timeSlots = useMemo(
     () => generateTimeSlots(workingHours, selectedDays, selectedService?.durationMinutes ?? 0),
@@ -177,7 +160,7 @@ export default function ClientRecurringPage() {
       setSelectedTime(null);
       setSelectedPeriod("");
       setPreviewDates(null);
-      fetchData();
+      invalidateRecurring();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка создания расписания";
       toast.error(msg);
@@ -192,7 +175,7 @@ export default function ClientRecurringPage() {
       await api.cancelRecurringSchedule(cancelTarget.id);
       toast.success("Расписание отменено");
       setCancelTarget(null);
-      fetchData();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось отменить расписание");
     }
@@ -205,17 +188,7 @@ export default function ClientRecurringPage() {
   const hasSchedules = schedules.length > 0;
 
   if (isLoading) {
-    return (
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
-            <div className="h-4 bg-border rounded w-1/3 mb-3" />
-            <div className="h-4 bg-border rounded w-1/2 mb-2" />
-            <div className="h-4 bg-border rounded w-2/5" />
-          </div>
-        ))}
-      </div>
-    );
+    return <RecurringPageSkeleton />;
   }
 
   return (

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Plus, X, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { MonthCalendar } from "@/components/MonthCalendar";
-import { DayOff } from "@/lib/types";
 import { api } from "@/lib/api";
+import { useAdminDaysOff } from "@/hooks/queries";
+import { invalidateDaysOff } from "@/hooks/mutations";
 
 const formatDate = (date: Date): string => {
   const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
@@ -32,28 +33,11 @@ const parseLocalDate = (dateStr: string): Date => {
 };
 
 export default function DaysOffPage() {
-  const [daysOff, setDaysOff] = useState<DayOff[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: daysOff, isLoading, mutate } = useAdminDaysOff();
   const [saving, setSaving] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [reason, setReason] = useState("");
-
-  const fetchDaysOff = useCallback(async () => {
-    try {
-      const data = await api.admin.getDaysOff();
-      setDaysOff(data);
-    } catch (err) {
-      console.error("Failed to fetch days off:", err);
-      toast.error("Ошибка загрузки выходных");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDaysOff();
-  }, [fetchDaysOff]);
 
   const handleAddDayOff = async () => {
     const dateStr = formatDateISO(selectedDate);
@@ -66,7 +50,8 @@ export default function DaysOffPage() {
 
     try {
       await api.admin.createDayOff(dateStr, reason || undefined);
-      await fetchDaysOff();
+      await mutate();
+      invalidateDaysOff();
       setShowCalendar(false);
       setReason("");
     } catch (err) {
@@ -78,12 +63,21 @@ export default function DaysOffPage() {
   };
 
   const handleRemoveDayOff = async (id: string) => {
+    // Optimistic local update
+    const previousDaysOff = daysOff;
+    mutate(
+      daysOff.filter((d) => d.id !== id),
+      false,
+    );
+
     try {
       await api.admin.deleteDayOff(id);
-      setDaysOff((prev) => prev.filter((d) => d.id !== id));
+      invalidateDaysOff();
     } catch (err) {
       console.error("Failed to delete day off:", err);
       toast.error("Ошибка удаления");
+      // Rollback on error
+      mutate(previousDaysOff, false);
     }
   };
 
@@ -95,7 +89,7 @@ export default function DaysOffPage() {
   // Convert ISO dates to local Date objects for calendar display
   const daysOffDates = daysOff.map((d) => parseLocalDate(d.date));
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div>
         <TopBar title="Выходные дни" showBack />

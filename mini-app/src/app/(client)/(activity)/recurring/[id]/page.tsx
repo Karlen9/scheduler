@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Calendar, Clock, Dumbbell, Repeat, X, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDuration } from "@/components/DurationSelector";
 import { api } from "@/lib/api";
 import { RecurringSchedule, Booking } from "@/lib/types";
+import { useRecurringDetail } from "@/hooks/queries";
+import { invalidateRecurring } from "@/hooks/mutations";
 
 // --- Status config ---
 
@@ -95,25 +97,9 @@ export default function RecurringScheduleDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [schedule, setSchedule] = useState<RecurringSchedule | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: schedule, isLoading, mutate } = useRecurringDetail(id);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const data = await api.getRecurringScheduleDetail(id);
-      setSchedule(data);
-    } catch {
-      toast.error("Не удалось загрузить расписание");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const handleRequestCancel = async () => {
     if (!cancelTarget || !schedule) return;
@@ -122,7 +108,8 @@ export default function RecurringScheduleDetailPage() {
       await api.requestCancelBooking(schedule.id, cancelTarget.id);
       toast.success("Запрос на отмену отправлен");
       setCancelTarget(null);
-      fetchData();
+      mutate();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось отправить запрос на отмену");
     } finally {

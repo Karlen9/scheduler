@@ -1,21 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { TopBar } from "@/components/TopBar";
-import { api } from "@/lib/api";
 import { SessionType } from "@/lib/types";
 import { formatDuration } from "@/components/DurationSelector";
+import { useSessionTypes } from "@/hooks/queries";
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<SessionType[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.getSessionTypes()
-      .then(setServices)
-      .catch((err) => console.error("Failed to load services:", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: services, isLoading: loading } = useSessionTypes();
 
   if (loading) {
     return (
@@ -44,7 +35,7 @@ export default function ServicesPage() {
             Нет доступных услуг
           </div>
         ) : (
-          services.map((service) => (
+          services.map((service: SessionType) => (
             <div
               key={service.id}
               className="bg-card rounded-xl p-4"

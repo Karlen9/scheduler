@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
@@ -8,6 +8,8 @@ import { ServiceCard } from "@/components/ServiceCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SessionType } from "@/lib/types";
 import { api } from "@/lib/api";
+import { useAdminServices } from "@/hooks/queries";
+import { invalidateServices } from "@/hooks/mutations";
 
 interface ServiceFormData {
   type: string;
@@ -17,10 +19,9 @@ interface ServiceFormData {
 }
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<SessionType[]>([]);
+  const { data: services, isLoading, mutate } = useAdminServices();
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<SessionType | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ServiceFormData>({
     type: "personal",
@@ -28,22 +29,6 @@ export default function ServicesPage() {
     price: "",
     duration: "60",
   });
-
-  const fetchServices = useCallback(async () => {
-    try {
-      const data = await api.admin.getServices();
-      setServices(data);
-    } catch (err) {
-      console.error("Failed to fetch services:", err);
-      toast.error("Ошибка загрузки услуг");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
 
   const handleAddClick = () => {
     setEditingService(null);
@@ -84,7 +69,8 @@ export default function ServicesPage() {
         });
       }
 
-      await fetchServices();
+      await mutate();
+      invalidateServices();
       setShowForm(false);
       setEditingService(null);
     } catch (err) {
@@ -95,7 +81,7 @@ export default function ServicesPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div>
         <TopBar title="Услуги и цены" showBack />

@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Repeat, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { TopBar } from "@/components/TopBar";
+import { ActivityBackButton } from "@/components/ActivityBackButton";
+import { RecurringPageSkeleton } from "@/components/LoadingSkeleton";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ServiceSelector } from "@/components/ServiceSelector";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RecurringScheduleCard } from "@/components/RecurringScheduleCard";
-import { RecurringSchedule, ClientInfo, SessionType, WorkingHours } from "@/lib/types";
+import { RecurringSchedule, SessionType, WorkingHours } from "@/lib/types";
 import { api } from "@/lib/api";
+import { useAdminRecurringSchedules, useClients, useAdminServices, useWorkingHours } from "@/hooks/queries";
+import { invalidateRecurring } from "@/hooks/mutations";
 
 const DAYS = [
   { label: "Пн", value: 1 },
@@ -78,11 +81,13 @@ function generateTimeSlots(workingHours: WorkingHours[], days: number[], duratio
 }
 
 export default function AdminRecurringPage() {
-  const [schedules, setSchedules] = useState<RecurringSchedule[]>([]);
-  const [clients, setClients] = useState<ClientInfo[]>([]);
-  const [services, setServices] = useState<SessionType[]>([]);
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: schedules, isLoading: schedulesLoading } = useAdminRecurringSchedules();
+  const { data: clients, isLoading: clientsLoading } = useClients();
+  const { data: services, isLoading: servicesLoading } = useAdminServices();
+  const { data: workingHoursData, isLoading: workingHoursLoading } = useWorkingHours();
+
+  const isLoading = schedulesLoading || clientsLoading || servicesLoading || workingHoursLoading;
+
   const [isSaving, setIsSaving] = useState(false);
 
   // Form state
@@ -99,32 +104,9 @@ export default function AdminRecurringPage() {
   // Cancel dialog
   const [cancelTarget, setCancelTarget] = useState<RecurringSchedule | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [schedulesData, clientsData, servicesData, whData] = await Promise.all([
-        api.admin.getRecurringSchedules(),
-        api.admin.getClients(),
-        api.admin.getServices(),
-        api.getWorkingHours(),
-      ]);
-      setSchedules(schedulesData);
-      setClients(clientsData);
-      setServices(servicesData);
-      setWorkingHours(whData);
-    } catch {
-      toast.error("Не удалось загрузить данные");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   const timeSlots = useMemo(
-    () => generateTimeSlots(workingHours, selectedDays, selectedService?.durationMinutes ?? 0),
-    [workingHours, selectedDays, selectedService],
+    () => generateTimeSlots(workingHoursData, selectedDays, selectedService?.durationMinutes ?? 0),
+    [workingHoursData, selectedDays, selectedService],
   );
 
   // Reset selected time when available slots change
@@ -183,7 +165,7 @@ export default function AdminRecurringPage() {
       setSelectedTime(null);
       setSelectedPeriod("");
       setPreviewDates(null);
-      fetchData();
+      invalidateRecurring();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка создания расписания";
       toast.error(msg);
@@ -196,7 +178,7 @@ export default function AdminRecurringPage() {
     try {
       await api.admin.approveRecurringSchedule(schedule.id);
       toast.success("Расписание подтверждено");
-      fetchData();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось подтвердить расписание");
     }
@@ -206,7 +188,7 @@ export default function AdminRecurringPage() {
     try {
       await api.admin.declineRecurringSchedule(schedule.id);
       toast.success("Расписание отклонено");
-      fetchData();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось отклонить расписание");
     }
@@ -218,7 +200,7 @@ export default function AdminRecurringPage() {
       await api.admin.cancelRecurringSchedule(cancelTarget.id);
       toast.success("Расписание отменено");
       setCancelTarget(null);
-      fetchData();
+      invalidateRecurring();
     } catch {
       toast.error("Не удалось отменить расписание");
     }
@@ -233,23 +215,15 @@ export default function AdminRecurringPage() {
   if (isLoading) {
     return (
       <div>
-        <TopBar title="Регулярные записи" showBack />
-        <div className="p-4 space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
-              <div className="h-4 bg-border rounded w-1/3 mb-3" />
-              <div className="h-4 bg-border rounded w-1/2 mb-2" />
-              <div className="h-4 bg-border rounded w-2/5" />
-            </div>
-          ))}
-        </div>
+        <ActivityBackButton href="/admin" />
+        <RecurringPageSkeleton />
       </div>
     );
   }
 
   return (
     <div>
-      <TopBar title="Регулярные записи" showBack />
+      <ActivityBackButton href="/admin" />
 
       <div className="p-4 space-y-6">
         {/* Add Form */}
