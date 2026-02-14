@@ -79,14 +79,12 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		chatID = client.TelegramUserID
 	}
 
-	fileID, msgID, err := bot.SendPhoto(chatID, photoData, filename)
+	fileID, _, err := bot.SendPhoto(chatID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		http.Error(w, "failed to upload photo", http.StatusInternalServerError)
 		return
 	}
-
-	go bot.DeleteMessage(chatID, msgID)
 
 	if client != nil {
 		if err := db.UpdateClientPhoto(client.ID, fileID); err != nil {
@@ -117,14 +115,12 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	bot := &telegram.Bot{Token: trainer.BotToken}
 
-	fileID, msgID, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
+	fileID, _, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		http.Error(w, "failed to upload photo", http.StatusInternalServerError)
 		return
 	}
-
-	go bot.DeleteMessage(trainer.TelegramUserID, msgID)
 
 	if err := db.UpdateTrainerPhoto(trainer.ID, fileID); err != nil {
 		log.Printf("UpdateTrainerPhoto error: %v", err)
