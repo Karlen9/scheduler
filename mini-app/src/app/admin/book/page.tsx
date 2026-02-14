@@ -313,6 +313,11 @@ export default function AdminBookPage() {
                       selectedId={selectedService?.id ?? ""}
                       onChange={handleServiceChange}
                     />
+                    {!selectedService && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Выберите услугу для продолжения
+                      </p>
+                    )}
                   </div>
                 )}
 

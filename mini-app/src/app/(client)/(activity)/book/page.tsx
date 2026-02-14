@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { DurationSelector } from "@/components/DurationSelector";
+import { ServiceSelector } from "@/components/ServiceSelector";
 import { CalendarSkeleton } from "@/components/LoadingSkeleton";
 import { CalendarView } from "@/components/CalendarView";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
@@ -13,9 +13,8 @@ import { SuccessModal } from "@/components/SuccessModal";
 import { EmptyState } from "@/components/EmptyState";
 import { api } from "@/lib/api";
 import { getUserName } from "@/lib/telegram";
-import { TimeSlot } from "@/lib/types";
-import { formatDuration } from "@/components/DurationSelector";
-import { useWorkingHours, useDaysOff, useDurations, useProfile } from "@/hooks/queries";
+import { SessionType, TimeSlot } from "@/lib/types";
+import { useWorkingHours, useDaysOff, useSessionTypes, useProfile } from "@/hooks/queries";
 import { invalidateBookings } from "@/hooks/mutations";
 
 function BookingPageContent() {
@@ -23,12 +22,12 @@ function BookingPageContent() {
 
   const { data: workingHoursData, isLoading: whLoading } = useWorkingHours();
   const { data: daysOffData, isLoading: doLoading } = useDaysOff();
-  const { data: availableDurations, isLoading: durLoading } = useDurations();
+  const { data: services, isLoading: svcLoading } = useSessionTypes();
   const { data: profile, isLoading: profLoading } = useProfile();
-  const isInitialLoading = whLoading || doLoading || durLoading || profLoading;
+  const isInitialLoading = whLoading || doLoading || svcLoading || profLoading;
 
   const [step, setStep] = useState<"date" | "time">("date");
-  const [selectedDuration, setSelectedDuration] = useState<number>(0);
+  const [selectedService, setSelectedService] = useState<SessionType | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,17 +48,12 @@ function BookingPageContent() {
 
   const daysOff = daysOffData.map((d) => d.date);
 
-  // Set initial duration from profile/durations once loaded
+  // Auto-select first service when only one exists
   useEffect(() => {
-    if (availableDurations.length > 0 && selectedDuration === 0) {
-      const preferred = profile?.preferredDuration || 0;
-      if (preferred && availableDurations.includes(preferred)) {
-        setSelectedDuration(preferred);
-      } else {
-        setSelectedDuration(availableDurations[0]);
-      }
+    if (services.length === 1 && !selectedService) {
+      setSelectedService(services[0]);
     }
-  }, [availableDurations, profile, selectedDuration]);
+  }, [services]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatDateISO = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -92,27 +86,28 @@ function BookingPageContent() {
     [],
   );
 
-  useEffect(() => {
-    if (selectedDate && selectedDuration) {
-      fetchSlots(selectedDate, selectedDuration);
+  const handleServiceChange = (service: SessionType) => {
+    setSelectedService(service);
+    if (selectedDate) {
+      fetchSlots(selectedDate, service.durationMinutes);
     }
-  }, [selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+  };
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    if (selectedDuration) {
-      fetchSlots(date, selectedDuration);
+    if (selectedService) {
+      fetchSlots(date, selectedService.durationMinutes);
     }
   };
 
   const handleConfirm = async () => {
-    if (!selectedDate || !selectedTime || !selectedDuration) return;
+    if (!selectedDate || !selectedTime || !selectedService) return;
 
     setIsSubmitting(true);
     try {
       const dateStr = formatDateISO(selectedDate);
       const name = getUserName();
-      await api.createBooking(selectedDuration, dateStr, selectedTime, name, message || undefined);
+      await api.createBooking(selectedService.durationMinutes, dateStr, selectedTime, name, message || undefined);
       invalidateBookings();
       setShowSuccess(true);
     } catch (err) {
@@ -128,7 +123,7 @@ function BookingPageContent() {
     router.push("/bookings");
   };
 
-  const canConfirm = selectedDate && selectedTime && !isSubmitting;
+  const canConfirm = selectedDate && selectedTime && selectedService && !isSubmitting;
 
   const formatDate = (date: Date) => {
     const months = [
@@ -160,16 +155,21 @@ function BookingPageContent() {
           </div>
         ) : (
         <>
-        {availableDurations.length > 1 && (
+        {services.length > 0 && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">
-              Длительность
+              Услуга
             </h3>
-            <DurationSelector
-              durations={availableDurations}
-              selected={selectedDuration}
-              onChange={setSelectedDuration}
+            <ServiceSelector
+              services={services}
+              selectedId={selectedService?.id ?? ""}
+              onChange={handleServiceChange}
             />
+            {services.length > 1 && !selectedService && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Выберите услугу для продолжения
+              </p>
+            )}
           </div>
         )}
 
@@ -263,7 +263,7 @@ function BookingPageContent() {
         isOpen={showSuccess}
         onClose={handleSuccessClose}
         title="Запись отправлена"
-        description={`Вы записаны на ${selectedDate ? formatDate(selectedDate) : ""} в ${selectedTime}${selectedDuration ? ` (${formatDuration(selectedDuration)})` : ""}. Ожидайте подтверждения.`}
+        description={`Вы записаны на ${selectedDate ? formatDate(selectedDate) : ""} в ${selectedTime}${selectedService ? ` — ${selectedService.name}` : ""}. Ожидайте подтверждения.`}
       />
     </div>
   );
