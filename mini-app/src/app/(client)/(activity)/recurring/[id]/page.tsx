@@ -64,6 +64,22 @@ function formatDaysOfWeek(schedule: RecurringSchedule): string {
   return DAY_NAMES[schedule.dayOfWeek] || "?";
 }
 
+function parseDayTimes(dayTimesJSON?: string): Record<string, string> | null {
+  if (!dayTimesJSON) return null;
+  try {
+    return JSON.parse(dayTimesJSON);
+  } catch {
+    return null;
+  }
+}
+
+function formatDayTimesDisplay(dayTimes: Record<string, string>): string {
+  const entries = Object.entries(dayTimes)
+    .map(([d, t]) => ({ day: parseInt(d), time: t }))
+    .sort((a, b) => a.day - b.day);
+  return entries.map((e) => `${DAY_NAMES[e.day] || "?"} ${e.time}`).join(", ");
+}
+
 function formatDateRange(startDate?: string, endDate?: string): string | null {
   if (!startDate || !endDate) return null;
   const start = new Date(startDate);
@@ -101,17 +117,17 @@ export default function RecurringScheduleDetailPage() {
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const handleRequestCancel = async () => {
+  const handleCancelBooking = async () => {
     if (!cancelTarget || !schedule) return;
     setIsCancelling(true);
     try {
       await api.requestCancelBooking(schedule.id, cancelTarget.id);
-      toast.success("Запрос на отмену отправлен");
+      toast.success("Тренировка отменена");
       setCancelTarget(null);
       mutate();
       invalidateRecurring();
     } catch {
-      toast.error("Не удалось отправить запрос на отмену");
+      toast.error("Не удалось отменить тренировку");
     } finally {
       setIsCancelling(false);
     }
@@ -149,7 +165,8 @@ export default function RecurringScheduleDetailPage() {
   }
 
   const scheduleStatus = scheduleStatusConfig[schedule.status] || scheduleStatusConfig.pending;
-  const daysLabel = formatDaysOfWeek(schedule);
+  const dayTimes = parseDayTimes(schedule.dayTimes);
+  const daysLabel = dayTimes ? formatDayTimesDisplay(dayTimes) : formatDaysOfWeek(schedule);
   const dateRange = formatDateRange(schedule.startDate, schedule.endDate);
   const serviceName = getServiceName(schedule);
 
@@ -172,17 +189,29 @@ export default function RecurringScheduleDetailPage() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Repeat className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm text-foreground">{daysLabel}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm text-foreground">
-                {schedule.time}
-                <span className="text-muted-foreground"> · {formatDuration(schedule.durationMinutes)}</span>
-              </span>
-            </div>
+            {dayTimes ? (
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-foreground">
+                  {daysLabel}
+                  <span className="text-muted-foreground"> · {formatDuration(schedule.durationMinutes)}</span>
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-foreground">{daysLabel}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-foreground">
+                    {schedule.time}
+                    <span className="text-muted-foreground"> · {formatDuration(schedule.durationMinutes)}</span>
+                  </span>
+                </div>
+              </>
+            )}
             {dateRange && (
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -202,7 +231,6 @@ export default function RecurringScheduleDetailPage() {
               {sortedBookings.map((booking) => {
                 const status = bookingStatusConfig[booking.status] || bookingStatusConfig.pending;
                 const isConfirmed = booking.status === "confirmed";
-                const isCancelRequested = booking.status === "cancel_requested";
                 const isReschedulePending = booking.status === "reschedule_pending";
 
                 return (
@@ -248,19 +276,8 @@ export default function RecurringScheduleDetailPage() {
                           className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-background text-destructive text-sm font-medium transition-opacity active:opacity-70"
                         >
                           <X className="w-4 h-4" />
-                          Запросить отмену
+                          Отменить
                         </button>
-                      </div>
-                    )}
-
-                    {isCancelRequested && (
-                      <div className="pt-3 border-t border-border">
-                        <div className="flex items-center gap-2 justify-center">
-                          <ArrowRight className="w-4 h-4 text-orange-400" />
-                          <span className="text-sm text-orange-400">
-                            Ожидает подтверждения отмены
-                          </span>
-                        </div>
                       </div>
                     )}
 
@@ -292,10 +309,10 @@ export default function RecurringScheduleDetailPage() {
       <ConfirmDialog
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
-        onConfirm={handleRequestCancel}
-        title="Запросить отмену?"
-        description="Тренер получит запрос на отмену этой тренировки. До подтверждения тренером тренировка остается в силе."
-        confirmText={isCancelling ? "Отправка..." : "Запросить отмену"}
+        onConfirm={handleCancelBooking}
+        title="Отменить тренировку?"
+        description="Тренировка будет отменена. Тренер получит уведомление."
+        confirmText={isCancelling ? "Отмена..." : "Отменить"}
         destructive
       />
     </>

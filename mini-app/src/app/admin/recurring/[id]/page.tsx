@@ -158,6 +158,22 @@ function formatDaysOfWeek(schedule: RecurringSchedule): string {
   return DAY_NAMES[schedule.dayOfWeek] || "?";
 }
 
+function parseDayTimes(dayTimesJSON?: string): Record<string, string> | null {
+  if (!dayTimesJSON) return null;
+  try {
+    return JSON.parse(dayTimesJSON);
+  } catch {
+    return null;
+  }
+}
+
+function formatDayTimesDisplay(dayTimes: Record<string, string>): string {
+  const entries = Object.entries(dayTimes)
+    .map(([d, t]) => ({ day: parseInt(d), time: t }))
+    .sort((a, b) => a.day - b.day);
+  return entries.map((e) => `${DAY_NAMES[e.day] || "?"} ${e.time}`).join(", ");
+}
+
 function getServiceName(schedule: RecurringSchedule): string {
   if (schedule.sessionType?.name) {
     return schedule.sessionType.name;
@@ -175,47 +191,17 @@ export default function AdminRecurringDetailPage() {
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const handleRequestCancel = async () => {
+  const handleCancelBooking = async () => {
     if (!cancelTarget || !schedule) return;
     setActionLoading(cancelTarget.id);
     try {
       await api.admin.requestCancelBooking(schedule.id, cancelTarget.id);
-      toast.success("Запрос на отмену отправлен");
+      toast.success("Тренировка отменена");
       setCancelTarget(null);
       mutate();
       invalidateRecurring();
     } catch {
-      toast.error("Не удалось запросить отмену");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleApproveCancelBooking = async (booking: Booking) => {
-    if (!schedule) return;
-    setActionLoading(booking.id);
-    try {
-      await api.admin.approveCancelBooking(schedule.id, booking.id);
-      toast.success("Отмена подтверждена");
-      mutate();
-      invalidateRecurring();
-    } catch {
-      toast.error("Не удалось подтвердить отмену");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleDeclineCancelBooking = async (booking: Booking) => {
-    if (!schedule) return;
-    setActionLoading(booking.id);
-    try {
-      await api.admin.declineCancelBooking(schedule.id, booking.id);
-      toast.success("Отмена отклонена");
-      mutate();
-      invalidateRecurring();
-    } catch {
-      toast.error("Не удалось отклонить отмену");
+      toast.error("Не удалось отменить тренировку");
     } finally {
       setActionLoading(null);
     }
@@ -290,7 +276,8 @@ export default function AdminRecurringDetailPage() {
 
   const scheduleStatus =
     scheduleStatusConfig[schedule.status] || scheduleStatusConfig.pending;
-  const daysLabel = formatDaysOfWeek(schedule);
+  const dayTimes = parseDayTimes(schedule.dayTimes);
+  const daysLabel = dayTimes ? formatDayTimesDisplay(dayTimes) : formatDaysOfWeek(schedule);
   const dateRange = formatDateRange(schedule.startDate, schedule.endDate);
   const serviceName = getServiceName(schedule);
 
@@ -331,21 +318,36 @@ export default function AdminRecurringDetailPage() {
               <span className="text-sm text-foreground">{serviceName}</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Repeat className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-foreground">{daysLabel}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-foreground">
-                {schedule.time}
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {formatDuration(schedule.durationMinutes)}
+            {dayTimes ? (
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-foreground">
+                  {daysLabel}
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {formatDuration(schedule.durationMinutes)}
+                  </span>
                 </span>
-              </span>
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground">{daysLabel}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground">
+                    {schedule.time}
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {formatDuration(schedule.durationMinutes)}
+                    </span>
+                  </span>
+                </div>
+              </>
+            )}
 
             {dateRange && (
               <div className="flex items-center gap-2">
@@ -378,8 +380,6 @@ export default function AdminRecurringDetailPage() {
                   booking={booking}
                   actionLoading={actionLoading}
                   onRequestCancel={setCancelTarget}
-                  onApproveCancelBooking={handleApproveCancelBooking}
-                  onDeclineCancelBooking={handleDeclineCancelBooking}
                   onApproveMoveBooking={handleApproveMoveBooking}
                   onDeclineMoveBooking={handleDeclineMoveBooking}
                 />
@@ -392,7 +392,7 @@ export default function AdminRecurringDetailPage() {
       <ConfirmDialog
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
-        onConfirm={handleRequestCancel}
+        onConfirm={handleCancelBooking}
         title="Отменить тренировку?"
         description={
           cancelTarget
@@ -412,8 +412,6 @@ interface BookingRowProps {
   booking: Booking;
   actionLoading: string | null;
   onRequestCancel: (booking: Booking) => void;
-  onApproveCancelBooking: (booking: Booking) => void;
-  onDeclineCancelBooking: (booking: Booking) => void;
   onApproveMoveBooking: (booking: Booking) => void;
   onDeclineMoveBooking: (booking: Booking) => void;
 }
@@ -422,8 +420,6 @@ function BookingRow({
   booking,
   actionLoading,
   onRequestCancel,
-  onApproveCancelBooking,
-  onDeclineCancelBooking,
   onApproveMoveBooking,
   onDeclineMoveBooking,
 }: BookingRowProps) {
@@ -432,10 +428,6 @@ function BookingRow({
   const isThisLoading = actionLoading === booking.id;
 
   const isConfirmed = booking.status === "confirmed";
-  const isCancelRequestedByClient =
-    booking.status === "cancel_requested" && booking.cancelledBy === "client";
-  const isCancelRequestedByTrainer =
-    booking.status === "cancel_requested" && booking.cancelledBy === "trainer";
   const isReschedulePending = booking.status === "reschedule_pending";
 
   return (
@@ -478,42 +470,6 @@ function BookingRow({
           >
             {isThisLoading ? "Отмена..." : "Отменить"}
           </button>
-        </div>
-      )}
-
-      {/* Cancel requested by client: Approve/Decline */}
-      {isCancelRequestedByClient && (
-        <div className="pt-3 border-t border-border space-y-2">
-          <p className="text-xs text-orange-400 mb-2">
-            Клиент просит отменить
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => onApproveCancelBooking(booking)}
-              disabled={isThisLoading}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-green-900/30 text-green-400 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40"
-            >
-              <Check className="w-4 h-4" />
-              Подтвердить
-            </button>
-            <button
-              onClick={() => onDeclineCancelBooking(booking)}
-              disabled={isThisLoading}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-red-900/30 text-red-400 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40"
-            >
-              <X className="w-4 h-4" />
-              Отклонить
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Cancel requested by trainer: Waiting for client */}
-      {isCancelRequestedByTrainer && (
-        <div className="pt-3 border-t border-border">
-          <p className="text-xs text-orange-400">
-            Ожидает подтверждения клиента
-          </p>
         </div>
       )}
 

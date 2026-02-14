@@ -49,35 +49,23 @@ function formatPreviewDate(dateStr: string): string {
   return `${dayName}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
 }
 
-function generateTimeSlots(workingHours: WorkingHours[], days: number[], durationMinutes: number): string[] {
-  if (days.length === 0 || durationMinutes <= 0) return [];
+function generateTimeSlotsForDay(workingHours: WorkingHours[], day: number, durationMinutes: number): string[] {
+  if (durationMinutes <= 0) return [];
+  const wh = workingHours.find((h) => h.dayOfWeek === day);
+  if (!wh) return [];
 
-  const slotsPerDay = days.map((day) => {
-    const wh = workingHours.find((h) => h.dayOfWeek === day);
-    if (!wh) return new Set<string>();
+  const [startH, startM] = wh.startTime.split(":").map(Number);
+  const [endH, endM] = wh.endTime.split(":").map(Number);
+  const startMin = startH * 60 + startM;
+  const endMin = endH * 60 + endM;
 
-    const [startH, startM] = wh.startTime.split(":").map(Number);
-    const [endH, endM] = wh.endTime.split(":").map(Number);
-    const startMin = startH * 60 + startM;
-    const endMin = endH * 60 + endM;
-
-    const slots = new Set<string>();
-    for (let m = startMin; m + durationMinutes <= endMin; m += 30) {
-      const h = Math.floor(m / 60);
-      const min = m % 60;
-      slots.add(`${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`);
-    }
-    return slots;
-  });
-
-  if (slotsPerDay.length === 0) return [];
-  let result = slotsPerDay[0];
-  for (let i = 1; i < slotsPerDay.length; i++) {
-    const next = slotsPerDay[i];
-    result = new Set([...result].filter((s) => next.has(s)));
+  const slots: string[] = [];
+  for (let m = startMin; m + durationMinutes <= endMin; m += 30) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    slots.push(`${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`);
   }
-
-  return [...result].sort();
+  return slots;
 }
 
 export default function AdminRecurringPage() {
@@ -93,8 +81,8 @@ export default function AdminRecurringPage() {
   // Form state
   const [selectedClientId, setSelectedClientId] = useState("");
   const [selectedService, setSelectedService] = useState<SessionType | null>(null);
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [dayTimeMap, setDayTimeMap] = useState<Record<number, string>>({});
+  const [activeDay, setActiveDay] = useState<number | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
 
   // Preview state
@@ -104,30 +92,48 @@ export default function AdminRecurringPage() {
   // Cancel dialog
   const [cancelTarget, setCancelTarget] = useState<RecurringSchedule | null>(null);
 
-  const timeSlots = useMemo(
-    () => generateTimeSlots(workingHoursData, selectedDays, selectedService?.durationMinutes ?? 0),
-    [workingHoursData, selectedDays, selectedService],
+  const timeSlotsForActiveDay = useMemo(
+    () => activeDay !== null ? generateTimeSlotsForDay(workingHoursData, activeDay, selectedService?.durationMinutes ?? 0) : [],
+    [workingHoursData, activeDay, selectedService],
   );
-
-  // Reset selected time when available slots change
-  useEffect(() => {
-    if (selectedTime && !timeSlots.includes(selectedTime)) {
-      setSelectedTime(null);
-    }
-  }, [timeSlots, selectedTime]);
 
   // Reset preview when form changes
   useEffect(() => {
     setPreviewDates(null);
-  }, [selectedClientId, selectedService, selectedDays, selectedTime, selectedPeriod]);
+  }, [selectedClientId, selectedService, dayTimeMap, selectedPeriod]);
 
-  const toggleDay = (day: number) => {
-    setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
-    );
+  const handleDayClick = (day: number) => {
+    if (activeDay === day) {
+      setDayTimeMap((prev) => {
+        const next = { ...prev };
+        delete next[day];
+        return next;
+      });
+      setActiveDay(null);
+    } else if (day in dayTimeMap) {
+      setActiveDay(day);
+    } else {
+      setActiveDay(day);
+    }
   };
 
-  const formReady = selectedClientId && selectedService && selectedDays.length > 0 && selectedTime && selectedPeriod;
+  const handleTimeSelect = (time: string) => {
+    if (activeDay === null) return;
+    setDayTimeMap((prev) => ({ ...prev, [activeDay]: time }));
+    setActiveDay(null);
+  };
+
+  const configuredDays = Object.keys(dayTimeMap).map(Number);
+  const hasDayTimes = configuredDays.length > 0;
+  const formReady = selectedClientId && selectedService && hasDayTimes && selectedPeriod;
+
+  const buildDayTimesPayload = (): Record<string, string> => {
+    const result: Record<string, string> = {};
+    for (const [day, time] of Object.entries(dayTimeMap)) {
+      result[day] = time;
+    }
+    return result;
+  };
 
   const handlePreview = async () => {
     if (!formReady) return;
@@ -135,8 +141,7 @@ export default function AdminRecurringPage() {
     try {
       const result = await api.admin.previewRecurringSchedule({
         sessionTypeId: selectedService.id,
-        daysOfWeek: selectedDays,
-        time: selectedTime,
+        dayTimes: buildDayTimesPayload(),
         period: selectedPeriod,
       });
       setPreviewDates(result.dates);
@@ -148,21 +153,20 @@ export default function AdminRecurringPage() {
   };
 
   const handleCreate = async () => {
-    if (!formReady || !previewDates) return;
+    if (!formReady) return;
     setIsSaving(true);
     try {
       await api.admin.createRecurringSchedule({
         clientId: selectedClientId,
         sessionTypeId: selectedService.id,
-        daysOfWeek: selectedDays,
-        time: selectedTime,
+        dayTimes: buildDayTimesPayload(),
         period: selectedPeriod,
       });
       toast.success("Расписание создано");
       setSelectedClientId("");
       setSelectedService(null);
-      setSelectedDays([]);
-      setSelectedTime(null);
+      setDayTimeMap({});
+      setActiveDay(null);
       setSelectedPeriod("");
       setPreviewDates(null);
       invalidateRecurring();
@@ -265,42 +269,48 @@ export default function AdminRecurringPage() {
             </div>
           )}
 
-          {/* Day Selector (multi) */}
+          {/* Day Selector */}
           <div>
             <label className="block text-sm text-muted-foreground mb-2">
               Дни недели
             </label>
             <div className="flex gap-2">
-              {DAYS.map((day) => (
-                <button
-                  key={day.value}
-                  onClick={() => toggleDay(day.value)}
-                  className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
-                    selectedDays.includes(day.value)
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background text-foreground"
-                  }`}
-                >
-                  {day.label}
-                </button>
-              ))}
+              {DAYS.map((day) => {
+                const isConfigured = day.value in dayTimeMap;
+                const isActive = activeDay === day.value;
+                return (
+                  <button
+                    key={day.value}
+                    onClick={() => handleDayClick(day.value)}
+                    className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground ring-2 ring-primary/50"
+                        : isConfigured
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background text-foreground"
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Time Slot Grid */}
-          {selectedService && selectedDays.length > 0 && (
+          {/* Time Slot Grid for active day */}
+          {selectedService && activeDay !== null && (
             <div>
               <label className="block text-sm text-muted-foreground mb-2">
-                Время
+                Время для {DAY_NAMES_FULL[activeDay]}
               </label>
-              {timeSlots.length > 0 ? (
+              {timeSlotsForActiveDay.length > 0 ? (
                 <div className="grid grid-cols-4 gap-2">
-                  {timeSlots.map((slot) => (
+                  {timeSlotsForActiveDay.map((slot) => (
                     <button
                       key={slot}
-                      onClick={() => setSelectedTime(slot)}
+                      onClick={() => handleTimeSelect(slot)}
                       className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                        selectedTime === slot
+                        dayTimeMap[activeDay] === slot
                           ? "bg-primary text-primary-foreground"
                           : "bg-background text-foreground"
                       }`}
@@ -311,14 +321,26 @@ export default function AdminRecurringPage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Нет доступных слотов для выбранных дней
+                  Нет доступных слотов для {DAY_NAMES_FULL[activeDay]}
                 </p>
               )}
             </div>
           )}
 
+          {/* Summary of configured days */}
+          {hasDayTimes && activeDay === null && (
+            <div className="space-y-1">
+              {DAYS.filter((d) => d.value in dayTimeMap).map((d) => (
+                <div key={d.value} className="flex items-center justify-between text-sm px-1">
+                  <span className="text-foreground">{d.label}</span>
+                  <span className="text-muted-foreground">{dayTimeMap[d.value]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Period Selector */}
-          {selectedService && selectedDays.length > 0 && selectedTime && (
+          {selectedService && hasDayTimes && (
             <div>
               <label className="block text-sm text-muted-foreground mb-2">
                 Период
@@ -341,40 +363,43 @@ export default function AdminRecurringPage() {
             </div>
           )}
 
-          {/* Preview Button */}
-          {formReady && !previewDates && (
-            <button
-              onClick={handlePreview}
-              disabled={isPreviewing}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-background text-foreground font-medium text-sm transition-opacity active:opacity-70 disabled:opacity-40"
-            >
-              <Eye className="w-4 h-4" />
-              {isPreviewing ? "Загрузка..." : "Предпросмотр"}
-            </button>
-          )}
+          {/* Preview & Book buttons */}
+          {formReady && (
+            <div className="space-y-2">
+              {!previewDates && (
+                <button
+                  onClick={handlePreview}
+                  disabled={isPreviewing}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-background text-foreground font-medium text-sm transition-opacity active:opacity-70 disabled:opacity-40"
+                >
+                  <Eye className="w-4 h-4" />
+                  {isPreviewing ? "Загрузка..." : "Предпросмотр"}
+                </button>
+              )}
 
-          {/* Preview Dates */}
-          {previewDates && (
-            <div>
-              <label className="block text-sm text-muted-foreground mb-2">
-                Будет создано тренировок: {previewDates.length}
-              </label>
-              <div className="max-h-40 overflow-y-auto rounded-lg bg-background p-3 space-y-1">
-                {previewDates.map((date) => (
-                  <div key={date} className="text-sm text-foreground">
-                    {formatPreviewDate(date)}
+              {previewDates && (
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    Будет создано тренировок: {previewDates.length}
+                  </label>
+                  <div className="max-h-40 overflow-y-auto rounded-lg bg-background p-3 space-y-1">
+                    {previewDates.map((date) => (
+                      <div key={date} className="text-sm text-foreground">
+                        {formatPreviewDate(date)}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              <PrimaryButton
+                onClick={handleCreate}
+                disabled={isSaving}
+              >
+                {isSaving ? "Сохранение..." : "Добавить расписание"}
+              </PrimaryButton>
             </div>
           )}
-
-          <PrimaryButton
-            onClick={handleCreate}
-            disabled={isSaving || !formReady || !previewDates}
-          >
-            {isSaving ? "Сохранение..." : "Добавить расписание"}
-          </PrimaryButton>
         </div>
 
         {/* Schedules List */}

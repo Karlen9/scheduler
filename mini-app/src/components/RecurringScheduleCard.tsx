@@ -42,6 +42,22 @@ function formatDaysOfWeek(schedule: RecurringSchedule): string {
   return DAY_NAMES[schedule.dayOfWeek] || "?";
 }
 
+function parseDayTimes(dayTimesJSON?: string): Record<string, string> | null {
+  if (!dayTimesJSON) return null;
+  try {
+    return JSON.parse(dayTimesJSON);
+  } catch {
+    return null;
+  }
+}
+
+function formatDayTimesDisplay(dayTimes: Record<string, string>): string {
+  const entries = Object.entries(dayTimes)
+    .map(([d, t]) => ({ day: parseInt(d), time: t }))
+    .sort((a, b) => a.day - b.day);
+  return entries.map((e) => `${DAY_NAMES[e.day] || "?"} ${e.time}`).join(", ");
+}
+
 function formatDateRange(startDate?: string, endDate?: string): string | null {
   if (!startDate || !endDate) return null;
   const start = new Date(startDate);
@@ -75,7 +91,8 @@ export function RecurringScheduleCard({
 }: RecurringScheduleCardProps) {
   const router = useRouter();
   const status = statusConfig[schedule.status] || statusConfig.pending;
-  const daysLabel = formatDaysOfWeek(schedule);
+  const dayTimes = parseDayTimes(schedule.dayTimes);
+  const daysLabel = dayTimes ? formatDayTimesDisplay(dayTimes) : formatDaysOfWeek(schedule);
   const dateRange = formatDateRange(schedule.startDate, schedule.endDate);
   const canCancel = onCancel && (schedule.status === "active" || schedule.status === "pending");
   const canApprove = onApprove && schedule.status === "pending";
@@ -104,19 +121,31 @@ export function RecurringScheduleCard({
               </span>
             </div>
           )}
-          <div className="flex items-center gap-2 mb-2">
-            <Repeat className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">
-              {daysLabel}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">
-              {schedule.time}
-              <span className="text-muted-foreground"> · {getServiceName(schedule, services)}</span>
-            </span>
-          </div>
+          {dayTimes ? (
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm text-foreground">
+                {daysLabel}
+                <span className="text-muted-foreground"> · {getServiceName(schedule, services)}</span>
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-2">
+                <Repeat className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-foreground">
+                  {daysLabel}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-foreground">
+                  {schedule.time}
+                  <span className="text-muted-foreground"> · {getServiceName(schedule, services)}</span>
+                </span>
+              </div>
+            </>
+          )}
           {dateRange && (
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
