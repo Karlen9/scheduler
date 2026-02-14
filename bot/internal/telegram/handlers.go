@@ -542,7 +542,7 @@ func (h *Handler) NotifyClientTrainerBooking(booking *models.Booking) error {
 	}
 
 	text := FormatTrainerCreatedBookingClient(booking)
-	_, err = h.Bot.SendClientBookingConfirmMessage(client.TelegramUserID, booking.ID, text)
+	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
 	return err
 }
 
