@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
+	"strconv"
 )
 
 const telegramAPI = "https://api.telegram.org/bot"
@@ -446,6 +449,124 @@ func (b *Bot) SendWebAppButton(chatID int64, text, webAppURL string) (*Message, 
 	}
 
 	return b.SendMessage(chatID, text, keyboard)
+}
+
+// SendPhoto sends a photo to a chat via multipart upload and returns the file_id and message_id
+func (b *Bot) SendPhoto(chatID int64, photoData []byte, filename string) (string, int, error) {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+
+	w.WriteField("chat_id", strconv.FormatInt(chatID, 10))
+
+	part, err := w.CreateFormFile("photo", filename)
+	if err != nil {
+		return "", 0, fmt.Errorf("create form file: %w", err)
+	}
+	if _, err := part.Write(photoData); err != nil {
+		return "", 0, fmt.Errorf("write photo data: %w", err)
+	}
+	w.Close()
+
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/sendPhoto",
+		w.FormDataContentType(),
+		&buf,
+	)
+	if err != nil {
+		return "", 0, err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			MessageID int `json:"message_id"`
+			Photo     []struct {
+				FileID string `json:"file_id"`
+			} `json:"photo"`
+		} `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", 0, err
+	}
+	if !result.OK {
+		return "", 0, fmt.Errorf("sendPhoto failed: %s", result.Description)
+	}
+	if len(result.Result.Photo) == 0 {
+		return "", 0, fmt.Errorf("sendPhoto returned no photo sizes")
+	}
+
+	// Use the largest photo size (last in the array)
+	fileID := result.Result.Photo[len(result.Result.Photo)-1].FileID
+	return fileID, result.Result.MessageID, nil
+}
+
+// DeleteMessage deletes a message from a chat
+func (b *Bot) DeleteMessage(chatID int64, messageID int) error {
+	data := map[string]interface{}{
+		"chat_id":    chatID,
+		"message_id": messageID,
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/deleteMessage",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+// GetFile downloads a file from Telegram by file_id. Returns file bytes and content type.
+func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
+	// Step 1: get file path
+	resp, err := http.Get(fmt.Sprintf("%s%s/getFile?file_id=%s", telegramAPI, b.Token, fileID))
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			FilePath string `json:"file_path"`
+		} `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, "", err
+	}
+	if !result.OK {
+		return nil, "", fmt.Errorf("getFile failed: %s", result.Description)
+	}
+
+	// Step 2: download the file
+	fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.Token, result.Result.FilePath)
+	fileResp, err := http.Get(fileURL)
+	if err != nil {
+		return nil, "", err
+	}
+	defer fileResp.Body.Close()
+
+	data, err := io.ReadAll(fileResp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	contentType := fileResp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+
+	return data, contentType, nil
 }
 
 // PollUpdates starts polling for updates
