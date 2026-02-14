@@ -72,9 +72,9 @@ function TabButton({
       className={`flex flex-col items-center justify-center gap-1 rounded-full transition-colors z-10 active:scale-90 ${
         isActive ? activeColor : "text-muted-foreground"
       }`}
-      style={{ width: "100px", height: "64px" }}
+      style={{ width: "80px", height: "48px" }}
     >
-      <Icon className={`w-6 h-6 ${bouncing ? "tab-bounce" : ""}`} />
+      <Icon className={`w-5 h-5 ${bouncing ? "tab-bounce" : ""}`} />
       {label && <span className="text-[11px] font-medium">{label}</span>}
     </Link>
   );
@@ -145,16 +145,16 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
 
   return (
       <div className="fixed bottom-0 left-0 right-0 pb-6 flex justify-center">
-        <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-2 py-2 overflow-visible">
+        <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-1.5 py-1.5 overflow-visible">
           {showSubTabs ? (
             <>
               {/* Sliding indicator for sub-tabs */}
               {activeSubIndex >= 0 && subTabW > 0 && (
                 <div
-                  className="absolute top-2 bottom-2 rounded-full bg-[#2c2c2e]"
+                  className="absolute top-1.5 bottom-1.5 rounded-full bg-[#2c2c2e]"
                   style={{
                     width: `${subTabW}px`,
-                    left: `${8 + activeSubIndex * subTabW}px`,
+                    left: `${6 + activeSubIndex * subTabW}px`,
                     transition: "left 300ms ease-in-out",
                   }}
                 />
@@ -183,12 +183,12 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
               {/* Active indicator for side tabs */}
               {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
                 <div
-                  className="absolute top-2 bottom-2 rounded-full bg-[#2c2c2e]"
+                  className="absolute top-1.5 bottom-1.5 rounded-full bg-[#2c2c2e]"
                   style={{
                     width: `${sideTabW}px`,
                     left: activeSideIndex === 0
-                      ? "8px"
-                      : `calc(100% - 8px - ${sideTabW}px)`,
+                      ? "6px"
+                      : `calc(100% - 6px - ${sideTabW}px)`,
                     transition: "left 300ms ease-in-out",
                   }}
                 />
