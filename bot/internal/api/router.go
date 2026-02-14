@@ -34,6 +34,9 @@ func NewRouter() http.Handler {
 	// Super admin (list all trainers) - protect in production!
 	r.Get("/superadmin/trainers", HandleListAllTrainers)
 
+	// Public photo proxy (no auth needed for display)
+	r.Get("/api/photo/{fileId}", HandleGetPhoto)
+
 	// API routes with auth
 	r.Route("/api", func(r chi.Router) {
 		r.Use(TelegramAuthMiddleware("")) // botToken not used, we look it up per trainer
@@ -50,6 +53,9 @@ func NewRouter() http.Handler {
 		r.Delete("/bookings/{id}", HandleCancelBooking)
 		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
 		r.Put("/bookings/{id}/decline", HandleClientDeclineBooking)
+
+		// Photo upload (client)
+		r.Post("/upload/photo", HandleUploadPhoto)
 
 		// Client profile
 		r.Get("/profile", HandleGetClientProfile)
@@ -123,6 +129,9 @@ func NewRouter() http.Handler {
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-cancel", HandleAdminDeclineCancelBooking)
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-move", HandleAdminApproveMoveBooking)
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
+
+			// Photo upload (trainer)
+			r.Post("/upload/photo", HandleUploadPhoto)
 
 			// Notification preferences
 			r.Get("/notifications", HandleAdminGetNotificationPrefs)

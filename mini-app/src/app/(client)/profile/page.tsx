@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { DurationSelector } from "@/components/DurationSelector";
-import { api } from "@/lib/api";
+import { api, getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
 import { useProfile, useDurations } from "@/hooks/queries";
 import { invalidateProfile } from "@/hooks/mutations";
@@ -16,8 +17,11 @@ export default function ClientProfilePage() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [preferredDuration, setPreferredDuration] = useState<number>(60);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [notifyBookingStatus, setNotifyBookingStatus] = useState(true);
   const [notifyReminders, setNotifyReminders] = useState(true);
   const [notifyDaysOff, setNotifyDaysOff] = useState(false);
@@ -26,12 +30,31 @@ export default function ClientProfilePage() {
     if (profile) {
       setName(profile.name || "");
       setPhone(profile.phone || "");
+      setPhotoUrl(profile.photoUrl || "");
       setPreferredDuration(profile.preferredDuration || durations[0] || 60);
       setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
       setNotifyReminders(profile.notifyReminders ?? true);
       setNotifyDaysOff(profile.notifyDaysOff ?? false);
     }
   }, [profile, durations]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const result = await api.uploadPhoto(file);
+      setPhotoUrl(result.fileId);
+      invalidateProfile();
+      toast.success("Фото обновлено");
+    } catch (err) {
+      console.error("Failed to upload photo:", err);
+      toast.error("Ошибка загрузки фото");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -90,8 +113,32 @@ export default function ClientProfilePage() {
     <div className="p-4 space-y-6">
       {/* Avatar */}
       <div className="flex justify-center pt-2">
-        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl ${name ? getAvatarColor(name) : "bg-card text-muted-foreground"}`}>
-          {name.charAt(0) || "?"}
+        <div className="relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+          {photoUrl ? (
+            <img
+              src={getPhotoUrl(photoUrl)}
+              alt={name}
+              className="w-24 h-24 rounded-full object-cover"
+            />
+          ) : (
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl ${name ? getAvatarColor(name) : "bg-card text-muted-foreground"}`}>
+              {name.charAt(0) || "?"}
+            </div>
+          )}
+          <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-brand flex items-center justify-center shadow-lg">
+            {isUploading ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4 text-white" />
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
         </div>
       </div>
 

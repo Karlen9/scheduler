@@ -488,6 +488,7 @@ type ClientProfileResponse struct {
 	ID                  string `json:"id"`
 	Name                string `json:"name"`
 	Phone               string `json:"phone,omitempty"`
+	PhotoURL            string `json:"photoUrl,omitempty"`
 	PreferredDuration   int    `json:"preferredDuration,omitempty"`
 	NotifyBookingStatus bool   `json:"notifyBookingStatus"`
 	NotifyReminders     bool   `json:"notifyReminders"`
@@ -511,6 +512,7 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 		ID:                  client.ID,
 		Name:                client.Name,
 		Phone:               client.Phone,
+		PhotoURL:            client.PhotoURL,
 		PreferredDuration:   client.PreferredDuration,
 		NotifyBookingStatus: client.NotifyBookingStatus,
 		NotifyReminders:     client.NotifyReminders,
@@ -569,6 +571,7 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		ID:                  updated.ID,
 		Name:                updated.Name,
 		Phone:               updated.Phone,
+		PhotoURL:            updated.PhotoURL,
 		PreferredDuration:   updated.PreferredDuration,
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
@@ -628,6 +631,7 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 		ID:                  updated.ID,
 		Name:                updated.Name,
 		Phone:               updated.Phone,
+		PhotoURL:            updated.PhotoURL,
 		PreferredDuration:   updated.PreferredDuration,
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
