@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Share2, Phone, MessageCircle } from "lucide-react";
-import Image from "next/image";
 import { getAvatarColor } from "@/lib/colors";
+import { getPhotoUrl } from "@/lib/api";
 
 interface TrainerCardProps {
   name: string;
@@ -28,6 +29,7 @@ export function TrainerCard({
   onServices,
   onShare,
 }: TrainerCardProps) {
+  const [photoError, setPhotoError] = useState(false);
   const handleMessage = () => {
     if (telegram) {
       const handle = telegram.replace("@", "");
@@ -41,8 +43,13 @@ export function TrainerCard({
       {/* Profile Header */}
       <div className="flex gap-4 mb-4">
         <div className="relative w-[127px] h-[127px] rounded-full overflow-hidden flex-shrink-0 bg-border">
-          {photoUrl ? (
-            <Image src={photoUrl} alt={name} fill className="object-cover" />
+          {photoUrl && !photoError ? (
+            <img
+              src={getPhotoUrl(photoUrl)}
+              alt={name}
+              className="w-full h-full object-cover"
+              onError={() => setPhotoError(true)}
+            />
           ) : (
             <div className={`w-full h-full flex items-center justify-center text-4xl ${getAvatarColor(name)}`}>
               {name.charAt(0)}

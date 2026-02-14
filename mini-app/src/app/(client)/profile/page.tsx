@@ -18,6 +18,7 @@ export default function ClientProfilePage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [photoError, setPhotoError] = useState(false);
   const [preferredDuration, setPreferredDuration] = useState<number>(60);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -45,6 +46,7 @@ export default function ClientProfilePage() {
     try {
       const result = await api.uploadPhoto(file);
       setPhotoUrl(result.fileId);
+      setPhotoError(false);
       invalidateProfile();
       toast.success("Фото обновлено");
     } catch (err) {
@@ -114,11 +116,12 @@ export default function ClientProfilePage() {
       {/* Avatar */}
       <div className="flex justify-center pt-2">
         <div className="relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-          {photoUrl ? (
+          {photoUrl && !photoError ? (
             <img
               src={getPhotoUrl(photoUrl)}
               alt={name}
               className="w-24 h-24 rounded-full object-cover"
+              onError={() => setPhotoError(true)}
             />
           ) : (
             <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl ${name ? getAvatarColor(name) : "bg-card text-muted-foreground"}`}>

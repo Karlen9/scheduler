@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [gymCoords, setGymCoords] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
+  const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +47,7 @@ export default function ProfilePage() {
     try {
       const result = await api.admin.uploadPhoto(file);
       setPhotoUrl(result.fileId);
+      setPhotoError(false);
       invalidateTrainer();
       toast.success("Фото обновлено");
     } catch (err) {
@@ -118,11 +120,12 @@ export default function ProfilePage() {
         {/* Avatar */}
         <div className="flex justify-center">
           <div className="relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            {photoUrl ? (
+            {photoUrl && !photoError ? (
               <img
                 src={getPhotoUrl(photoUrl)}
                 alt={name}
                 className="w-24 h-24 rounded-full object-cover"
+                onError={() => setPhotoError(true)}
               />
             ) : (
               <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl ${name ? getAvatarColor(name) : "bg-card text-muted-foreground"}`}>
