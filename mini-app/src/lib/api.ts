@@ -135,7 +135,7 @@ export const api = {
     });
   },
 
-  async updateNotificationPrefs(prefs: { notifyBookingStatus?: boolean; notifyReminders?: boolean; notifyDaysOff?: boolean }): Promise<ClientProfile> {
+  async updateNotificationPrefs(prefs: { notifyBookingStatus?: boolean; notifyReminders?: boolean; notifyDaysOff?: boolean; notifyCancellations?: boolean }): Promise<ClientProfile> {
     return fetchAPI<ClientProfile>("/api/profile/notifications", {
       method: "PUT",
       body: JSON.stringify(prefs),
@@ -154,8 +154,7 @@ export const api = {
 
   async createRecurringSchedule(data: {
     sessionTypeId: string;
-    daysOfWeek: number[];
-    time: string;
+    dayTimes: Record<string, string>;
     period: string;
   }): Promise<RecurringSchedule> {
     return fetchAPI<RecurringSchedule>("/api/recurring", {
@@ -166,8 +165,7 @@ export const api = {
 
   async previewRecurringSchedule(data: {
     sessionTypeId: string;
-    daysOfWeek: number[];
-    time: string;
+    dayTimes: Record<string, string>;
     period: string;
   }): Promise<RecurringPreviewResponse> {
     return fetchAPI<RecurringPreviewResponse>("/api/recurring/preview", {
@@ -352,8 +350,7 @@ export const api = {
     async createRecurringSchedule(data: {
       clientId: string;
       sessionTypeId: string;
-      daysOfWeek: number[];
-      time: string;
+      dayTimes: Record<string, string>;
       period: string;
     }): Promise<RecurringSchedule> {
       return fetchAPI<RecurringSchedule>("/api/admin/recurring", {
@@ -365,8 +362,7 @@ export const api = {
     async previewRecurringSchedule(data: {
       clientId?: string;
       sessionTypeId: string;
-      daysOfWeek: number[];
-      time: string;
+      dayTimes: Record<string, string>;
       period: string;
     }): Promise<RecurringPreviewResponse> {
       return fetchAPI<RecurringPreviewResponse>("/api/admin/recurring/preview", {
@@ -405,17 +401,6 @@ export const api = {
       });
     },
 
-    async approveCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
-      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/approve-cancel`, {
-        method: "PUT",
-      });
-    },
-
-    async declineCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
-      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/decline-cancel`, {
-        method: "PUT",
-      });
-    },
 
     async approveMoveBooking(scheduleId: string, bookingId: string): Promise<Booking> {
       return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/approve-move`, {

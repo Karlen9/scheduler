@@ -1,7 +1,10 @@
 package telegram
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -271,6 +274,42 @@ func formatDaysOfWeekMsg(daysOfWeek string) string {
 	return strings.Join(names, ", ")
 }
 
+// formatDayTimesMsg formats per-day times like "Пн 09:00, Ср 10:30"
+func formatDayTimesMsg(dayTimesJSON string) string {
+	if dayTimesJSON == "" {
+		return ""
+	}
+	var m map[string]string
+	if err := json.Unmarshal([]byte(dayTimesJSON), &m); err != nil {
+		return ""
+	}
+	// Sort by day number
+	keys := make([]int, 0, len(m))
+	for k := range m {
+		d, _ := strconv.Atoi(k)
+		keys = append(keys, d)
+	}
+	sort.Ints(keys)
+
+	parts := make([]string, 0, len(keys))
+	for _, d := range keys {
+		name := dayNamesShort[d]
+		t := m[strconv.Itoa(d)]
+		parts = append(parts, fmt.Sprintf("%s %s", name, t))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// scheduleTimeLine returns the schedule line for days+time display
+func scheduleTimeLine(schedule *models.RecurringSchedule) string {
+	if schedule.DayTimes != "" {
+		if s := formatDayTimesMsg(schedule.DayTimes); s != "" {
+			return s
+		}
+	}
+	return formatDaysOfWeekMsg(schedule.DaysOfWeek) + " · " + schedule.Time
+}
+
 func formatScheduleDateRange(startDate, endDate string) string {
 	if startDate == "" || endDate == "" {
 		return ""
@@ -300,11 +339,10 @@ func scheduleServiceDisplay(schedule *models.RecurringSchedule) string {
 
 // FormatRecurringScheduleRequest creates a message for trainer about new recurring schedule request from client
 func FormatRecurringScheduleRequest(schedule *models.RecurringSchedule, count int) string {
-	msg := fmt.Sprintf("🔄 Новое расписание\n\n👤 %s\n📋 %s\n📅 %s · %s\n📆 %s",
+	msg := fmt.Sprintf("🔄 Новое расписание\n\n👤 %s\n📋 %s\n📅 %s\n📆 %s",
 		schedule.ClientName,
 		scheduleServiceDisplay(schedule),
-		formatDaysOfWeekMsg(schedule.DaysOfWeek),
-		schedule.Time,
+		scheduleTimeLine(schedule),
 		formatScheduleDateRange(schedule.StartDate, schedule.EndDate),
 	)
 	if count > 0 {
@@ -315,10 +353,9 @@ func FormatRecurringScheduleRequest(schedule *models.RecurringSchedule, count in
 
 // FormatRecurringScheduleRequestForClient creates a message for client about trainer-created schedule
 func FormatRecurringScheduleRequestForClient(schedule *models.RecurringSchedule, count int) string {
-	msg := fmt.Sprintf("📅 Тренер предлагает регулярное расписание\n\n📋 %s\n📅 %s · %s\n📆 %s",
+	msg := fmt.Sprintf("📅 Тренер предлагает регулярное расписание\n\n📋 %s\n📅 %s\n📆 %s",
 		scheduleServiceDisplay(schedule),
-		formatDaysOfWeekMsg(schedule.DaysOfWeek),
-		schedule.Time,
+		scheduleTimeLine(schedule),
 		formatScheduleDateRange(schedule.StartDate, schedule.EndDate),
 	)
 	if count > 0 {
@@ -330,11 +367,10 @@ func FormatRecurringScheduleRequestForClient(schedule *models.RecurringSchedule,
 
 // FormatRecurringScheduleApproved creates a message shown to trainer after approving (or shown to trainer when client approves)
 func FormatRecurringScheduleApproved(schedule *models.RecurringSchedule, count int) string {
-	return fmt.Sprintf("✅ Расписание подтверждено\n\n👤 %s\n📋 %s\n📅 %s · %s\n📆 %s\n📊 %d записей создано",
+	return fmt.Sprintf("✅ Расписание подтверждено\n\n👤 %s\n📋 %s\n📅 %s\n📆 %s\n📊 %d записей создано",
 		schedule.ClientName,
 		scheduleServiceDisplay(schedule),
-		formatDaysOfWeekMsg(schedule.DaysOfWeek),
-		schedule.Time,
+		scheduleTimeLine(schedule),
 		formatScheduleDateRange(schedule.StartDate, schedule.EndDate),
 		count,
 	)
@@ -342,10 +378,9 @@ func FormatRecurringScheduleApproved(schedule *models.RecurringSchedule, count i
 
 // FormatRecurringScheduleApprovedClient creates a message for client about approved schedule
 func FormatRecurringScheduleApprovedClient(schedule *models.RecurringSchedule, count int) string {
-	return fmt.Sprintf("✅ Ваше расписание подтверждено!\n\n📋 %s\n📅 %s · %s\n📆 %s\n📊 %d записей создано",
+	return fmt.Sprintf("✅ Ваше расписание подтверждено!\n\n📋 %s\n📅 %s\n📆 %s\n📊 %d записей создано",
 		scheduleServiceDisplay(schedule),
-		formatDaysOfWeekMsg(schedule.DaysOfWeek),
-		schedule.Time,
+		scheduleTimeLine(schedule),
 		formatScheduleDateRange(schedule.StartDate, schedule.EndDate),
 		count,
 	)
@@ -353,57 +388,37 @@ func FormatRecurringScheduleApprovedClient(schedule *models.RecurringSchedule, c
 
 // FormatRecurringScheduleDeclined creates a message shown to trainer after declining
 func FormatRecurringScheduleDeclined(schedule *models.RecurringSchedule) string {
-	return fmt.Sprintf("❌ Расписание отклонено\n\n👤 %s\n📋 %s\n📅 %s · %s\n📆 %s",
+	return fmt.Sprintf("❌ Расписание отклонено\n\n👤 %s\n📋 %s\n📅 %s\n📆 %s",
 		schedule.ClientName,
 		scheduleServiceDisplay(schedule),
-		formatDaysOfWeekMsg(schedule.DaysOfWeek),
-		schedule.Time,
+		scheduleTimeLine(schedule),
 		formatScheduleDateRange(schedule.StartDate, schedule.EndDate),
 	)
 }
 
 // FormatRecurringScheduleDeclinedClient creates a message for client about declined schedule
 func FormatRecurringScheduleDeclinedClient(schedule *models.RecurringSchedule) string {
-	return fmt.Sprintf("❌ К сожалению, ваше расписание отклонено\n\n📋 %s\n📅 %s · %s\n📆 %s",
+	return fmt.Sprintf("❌ К сожалению, ваше расписание отклонено\n\n📋 %s\n📅 %s\n📆 %s",
 		scheduleServiceDisplay(schedule),
-		formatDaysOfWeekMsg(schedule.DaysOfWeek),
-		schedule.Time,
+		scheduleTimeLine(schedule),
 		formatScheduleDateRange(schedule.StartDate, schedule.EndDate),
 	)
 }
 
-// ========== Cancel/Move Request Messages ==========
+// ========== Cancellation Notification Messages ==========
 
-// FormatCancelRequestForTrainer creates a message for trainer when client requests booking cancel
-func FormatCancelRequestForTrainer(booking *models.Booking) string {
-	return fmt.Sprintf("❌ Запрос на отмену\n\n👤 %s\n📋 %s\n🕐 %s\n\nКлиент просит отменить эту тренировку.",
+// FormatBookingCancelledForTrainer creates a notification for trainer when client cancels
+func FormatBookingCancelledForTrainer(booking *models.Booking) string {
+	return fmt.Sprintf("❌ Клиент отменил запись\n\n👤 %s\n📋 %s\n🕐 %s",
 		booking.ClientName,
 		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
 }
 
-// FormatCancelRequestForClient creates a message for client when trainer requests booking cancel
-func FormatCancelRequestForClient(booking *models.Booking) string {
-	return fmt.Sprintf("❌ Тренер предлагает отменить тренировку\n\n📋 %s\n🕐 %s\n\nПодтвердите или отклоните отмену.",
-		bookingServiceDisplay(booking),
-		formatDateTime(booking.StartsAt),
-	)
-}
-
-// FormatCancelApproved creates a message after cancel is approved
-func FormatCancelApproved(booking *models.Booking) string {
-	return fmt.Sprintf("✅ Отмена подтверждена\n\n👤 %s\n📋 %s\n🕐 %s",
-		booking.ClientName,
-		bookingServiceDisplay(booking),
-		formatDateTime(booking.StartsAt),
-	)
-}
-
-// FormatCancelDeclined creates a message after cancel is declined
-func FormatCancelDeclined(booking *models.Booking) string {
-	return fmt.Sprintf("↩️ Отмена отклонена\n\n👤 %s\n📋 %s\n🕐 %s\n\nТренировка остаётся в расписании.",
-		booking.ClientName,
+// FormatBookingCancelledForClient creates a notification for client when trainer cancels
+func FormatBookingCancelledForClient(booking *models.Booking) string {
+	return fmt.Sprintf("❌ Тренер отменил вашу запись\n\n📋 %s\n🕐 %s",
 		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
@@ -469,7 +484,7 @@ func FormatTrainerCreatedBookingClient(booking *models.Booking) string {
 		msg += fmt.Sprintf("\n💬 Сообщение: %s", booking.ClientMessage)
 	}
 
-	msg += "\n\nЗапись подтверждена."
+	msg += "\n\nПодтвердите или отклоните запись."
 	return msg
 }
 

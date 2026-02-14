@@ -224,6 +224,8 @@ func migrateSQLite() error {
 		`ALTER TABLE bookings ADD COLUMN telegram_notification_chat_id INTEGER`,
 		`ALTER TABLE bookings ADD COLUMN telegram_notification_msg_id INTEGER`,
 		`ALTER TABLE clients ADD COLUMN photo_url TEXT DEFAULT ''`,
+		`ALTER TABLE clients ADD COLUMN notify_cancellations INTEGER DEFAULT 1`,
+		`ALTER TABLE recurring_schedules ADD COLUMN day_times TEXT`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -467,6 +469,8 @@ func migratePostgres() error {
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS telegram_notification_chat_id BIGINT`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS telegram_notification_msg_id INTEGER`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT ''`,
+		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS notify_cancellations INTEGER DEFAULT 1`,
+		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS day_times TEXT`,
 	}
 
 	for _, migration := range alterMigrations {

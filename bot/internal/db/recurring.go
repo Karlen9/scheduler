@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -13,14 +14,14 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-const recurringColumns = `id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at, session_type_id, days_of_week, start_date, end_date,
+const recurringColumns = `id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at, session_type_id, days_of_week, start_date, end_date, day_times,
 	COALESCE((SELECT photo_url FROM clients WHERE id = recurring_schedules.client_id), '')`
 
 func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models.RecurringSchedule, error) {
 	var s models.RecurringSchedule
-	var sessionTypeID, daysOfWeek, startDate, endDate sql.NullString
+	var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
 
-	err := row.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &s.ClientPhotoURL)
+	err := row.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -36,6 +37,9 @@ func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models
 	}
 	if endDate.Valid {
 		s.EndDate = endDate.String
+	}
+	if dayTimes.Valid {
+		s.DayTimes = dayTimes.String
 	}
 
 	return &s, nil
@@ -56,13 +60,13 @@ func CreateRecurringSchedule(trainerID, clientID, clientName string, dayOfWeek i
 }
 
 // CreateRecurringScheduleFull creates a recurring schedule with all Phase 2 fields
-func CreateRecurringScheduleFull(trainerID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string, sessionTypeID string, daysOfWeek string, startDate string, endDate string) (*models.RecurringSchedule, error) {
+func CreateRecurringScheduleFull(trainerID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string, sessionTypeID string, daysOfWeek string, startDate string, endDate string, dayTimes string) (*models.RecurringSchedule, error) {
 	id := uuid.New().String()
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO recurring_schedules (id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, session_type_id, days_of_week, start_date, end_date)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
-	`), id, trainerID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy, sessionTypeID, daysOfWeek, startDate, endDate)
+		INSERT INTO recurring_schedules (id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, session_type_id, days_of_week, start_date, end_date, day_times)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
+	`), id, trainerID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy, sessionTypeID, daysOfWeek, startDate, endDate, dayTimes)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +189,9 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 	// Parse days of week
 	daysOfWeek := parseDaysOfWeekStr(schedule.DaysOfWeek)
 
+	// Parse per-day times if available
+	dayTimesMap := parseDayTimesJSON(schedule.DayTimes)
+
 	// Parse dates
 	startDate, err := time.Parse("2006-01-02", schedule.StartDate)
 	if err != nil {
@@ -205,8 +212,8 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 		}
 	}
 
-	// Parse time
-	timeParts := parseTimeStr(schedule.Time)
+	// Parse fallback time
+	fallbackTimeParts := parseTimeStr(schedule.Time)
 
 	// Get working hours and days off for filtering
 	workingHours, _ := GetWorkingHoursByTrainerID(schedule.TrainerID)
@@ -238,6 +245,13 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 			continue
 		}
 
+		// Use per-day time if available, otherwise fallback
+		timeParts := fallbackTimeParts
+		dowStr := strconv.Itoa(dow)
+		if t, ok := dayTimesMap[dowStr]; ok {
+			timeParts = parseTimeStr(t)
+		}
+
 		startsAt := time.Date(d.Year(), d.Month(), d.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
 		endsAt := startsAt.Add(time.Duration(schedule.DurationMinutes) * time.Minute)
 
@@ -265,9 +279,9 @@ func scanRecurringSchedules(rows *sql.Rows) ([]models.RecurringSchedule, error) 
 	var schedules []models.RecurringSchedule
 	for rows.Next() {
 		var s models.RecurringSchedule
-		var sessionTypeID, daysOfWeek, startDate, endDate sql.NullString
+		var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
 
-		if err := rows.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &s.ClientPhotoURL); err != nil {
+		if err := rows.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL); err != nil {
 			return nil, err
 		}
 
@@ -282,6 +296,9 @@ func scanRecurringSchedules(rows *sql.Rows) ([]models.RecurringSchedule, error) 
 		}
 		if endDate.Valid {
 			s.EndDate = endDate.String
+		}
+		if dayTimes.Valid {
+			s.DayTimes = dayTimes.String
 		}
 
 		schedules = append(schedules, s)
@@ -313,4 +330,16 @@ func parseTimeStr(t string) []int {
 		parts[1], _ = strconv.Atoi(t[3:5])
 	}
 	return parts
+}
+
+// parseDayTimesJSON parses a JSON string like `{"1":"09:00","3":"10:30"}` into a map
+func parseDayTimesJSON(s string) map[string]string {
+	if s == "" {
+		return nil
+	}
+	var m map[string]string
+	if err := json.Unmarshal([]byte(s), &m); err != nil {
+		return nil
+	}
+	return m
 }

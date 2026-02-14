@@ -38,9 +38,9 @@ type Client struct {
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`
-	NotifyDaysOff       bool      `json:"notifyDaysOff"`
-	NotifyWaitlist      bool      `json:"-"` // kept for DB compat, not exposed in API
-	CreatedAt           time.Time `json:"createdAt"`
+	NotifyDaysOff          bool      `json:"notifyDaysOff"`
+	NotifyCancellations    bool      `json:"notifyCancellations"`
+	CreatedAt              time.Time `json:"createdAt"`
 }
 
 type SessionType struct {
@@ -132,6 +132,7 @@ type RecurringSchedule struct {
 	DaysOfWeek    string       `json:"daysOfWeek,omitempty"`
 	StartDate     string       `json:"startDate,omitempty"`
 	EndDate       string       `json:"endDate,omitempty"`
+	DayTimes      string       `json:"dayTimes,omitempty"`
 	// Joined fields
 	SessionType    *SessionType `json:"sessionType,omitempty"`
 	ClientPhotoURL string       `json:"clientPhotoUrl,omitempty"`

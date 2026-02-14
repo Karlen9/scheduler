@@ -60,6 +60,7 @@ export interface ClientProfile {
   notifyBookingStatus?: boolean;
   notifyReminders?: boolean;
   notifyDaysOff?: boolean;
+  notifyCancellations?: boolean;
 }
 
 export interface ClientInfo {
@@ -95,6 +96,7 @@ export interface RecurringSchedule {
   daysOfWeek?: string;          // comma-separated: "1,3,5"
   startDate?: string;           // "2026-02-17"
   endDate?: string;             // "2026-05-17"
+  dayTimes?: string;            // JSON: '{"1":"09:00","3":"10:30"}'
   bookings?: Booking[];
 }
 

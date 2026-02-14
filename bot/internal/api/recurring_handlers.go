@@ -20,10 +20,6 @@ import (
 // Called with the schedule and the number of preview dates (expected bookings).
 var NotifyRecurringScheduleFunc func(schedule *models.RecurringSchedule, previewCount int) error
 
-// NotifyCancelRequestFunc notifies the other side about a cancel request for a recurring booking.
-// Called with (booking, requestedBy "client"/"trainer").
-var NotifyCancelRequestFunc func(booking *models.Booking, requestedBy string) error
-
 // NotifyMoveRequestFunc notifies the other side about a move/reschedule request for a recurring booking.
 // Called with (newBooking, oldBooking, requestedBy "client"/"trainer").
 var NotifyMoveRequestFunc func(newBooking, oldBooking *models.Booking, requestedBy string) error
@@ -31,25 +27,28 @@ var NotifyMoveRequestFunc func(newBooking, oldBooking *models.Booking, requested
 // ========== Shared Types & Helpers ==========
 
 type CreateRecurringScheduleRequest struct {
-	SessionTypeID string `json:"sessionTypeId"`
-	DaysOfWeek    []int  `json:"daysOfWeek"`
-	Time          string `json:"time"`
-	Period        string `json:"period"`
+	SessionTypeID string            `json:"sessionTypeId"`
+	DaysOfWeek    []int             `json:"daysOfWeek"`
+	Time          string            `json:"time"`
+	Period        string            `json:"period"`
+	DayTimes      map[string]string `json:"dayTimes,omitempty"`
 }
 
 type AdminCreateRecurringScheduleRequest struct {
-	ClientID      string `json:"clientId"`
-	SessionTypeID string `json:"sessionTypeId"`
-	DaysOfWeek    []int  `json:"daysOfWeek"`
-	Time          string `json:"time"`
-	Period        string `json:"period"`
+	ClientID      string            `json:"clientId"`
+	SessionTypeID string            `json:"sessionTypeId"`
+	DaysOfWeek    []int             `json:"daysOfWeek"`
+	Time          string            `json:"time"`
+	Period        string            `json:"period"`
+	DayTimes      map[string]string `json:"dayTimes,omitempty"`
 }
 
 type PreviewRecurringScheduleRequest struct {
-	SessionTypeID string `json:"sessionTypeId"`
-	DaysOfWeek    []int  `json:"daysOfWeek"`
-	Time          string `json:"time"`
-	Period        string `json:"period"`
+	SessionTypeID string            `json:"sessionTypeId"`
+	DaysOfWeek    []int             `json:"daysOfWeek"`
+	Time          string            `json:"time"`
+	Period        string            `json:"period"`
+	DayTimes      map[string]string `json:"dayTimes,omitempty"`
 }
 
 type RecurringPreviewResponse struct {
@@ -73,7 +72,7 @@ func calculateDateRange(period string) (string, string, error) {
 	return startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), nil
 }
 
-func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, durationMinutes int, startDateStr, endDateStr string) ([]string, error) {
+func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, durationMinutes int, startDateStr, endDateStr string, dayTimes map[string]string) ([]string, error) {
 	startDate, err := time.Parse("2006-01-02", startDateStr)
 	if err != nil {
 		return nil, err
@@ -99,7 +98,7 @@ func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, du
 		requestedDays[d] = true
 	}
 
-	timeParts := parseTime(timeStr)
+	fallbackTimeParts := parseTime(timeStr)
 	var dates []string
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dow := int(d.Weekday())
@@ -112,6 +111,12 @@ func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, du
 		if dayOffSet[d.Format("2006-01-02")] {
 			continue
 		}
+		// Use per-day time if available
+		timeParts := fallbackTimeParts
+		dowStr := strconv.Itoa(dow)
+		if t, ok := dayTimes[dowStr]; ok {
+			timeParts = parseTime(t)
+		}
 		startsAt := time.Date(d.Year(), d.Month(), d.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
 		endsAt := startsAt.Add(time.Duration(durationMinutes) * time.Minute)
 		hasConflict, _ := db.HasConflictingBooking(trainerID, startsAt, endsAt, "")
@@ -123,20 +128,33 @@ func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, du
 	return dates, nil
 }
 
-func validateRecurringRequest(sessionTypeID string, daysOfWeek []int, timeStr, period string) error {
+func validateRecurringRequest(sessionTypeID string, daysOfWeek []int, timeStr, period string, dayTimes map[string]string) error {
 	if sessionTypeID == "" {
 		return fmt.Errorf("Выберите услугу")
 	}
-	if len(daysOfWeek) == 0 {
-		return fmt.Errorf("Выберите дни недели")
-	}
-	for _, d := range daysOfWeek {
-		if d < 0 || d > 6 {
-			return fmt.Errorf("Неверный день недели")
+	hasDayTimes := len(dayTimes) > 0
+	if !hasDayTimes {
+		if len(daysOfWeek) == 0 {
+			return fmt.Errorf("Выберите дни недели")
 		}
-	}
-	if timeStr == "" || len(timeStr) < 5 {
-		return fmt.Errorf("Выберите время")
+		for _, d := range daysOfWeek {
+			if d < 0 || d > 6 {
+				return fmt.Errorf("Неверный день недели")
+			}
+		}
+		if timeStr == "" || len(timeStr) < 5 {
+			return fmt.Errorf("Выберите время")
+		}
+	} else {
+		for dayStr, t := range dayTimes {
+			d, err := strconv.Atoi(dayStr)
+			if err != nil || d < 0 || d > 6 {
+				return fmt.Errorf("Неверный день недели")
+			}
+			if t == "" || len(t) < 5 {
+				return fmt.Errorf("Выберите время")
+			}
+		}
 	}
 	validPeriods := map[string]bool{"1week": true, "1month": true, "3months": true}
 	if !validPeriods[period] {
@@ -152,6 +170,29 @@ func daysOfWeekToString(days []int) string {
 		parts[i] = strconv.Itoa(d)
 	}
 	return strings.Join(parts, ",")
+}
+
+// extractFromDayTimes extracts daysOfWeek list and first time from a dayTimes map
+func extractFromDayTimes(dayTimes map[string]string) ([]int, string) {
+	days := make([]int, 0, len(dayTimes))
+	firstTime := ""
+	for dayStr, t := range dayTimes {
+		d, _ := strconv.Atoi(dayStr)
+		days = append(days, d)
+		if firstTime == "" {
+			firstTime = t
+		}
+	}
+	sort.Ints(days)
+	return days, firstTime
+}
+
+func dayTimesToJSON(dayTimes map[string]string) string {
+	if len(dayTimes) == 0 {
+		return ""
+	}
+	b, _ := json.Marshal(dayTimes)
+	return string(b)
 }
 
 // ========== Client Recurring Endpoints ==========
@@ -218,7 +259,16 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period); err != nil {
+	// When dayTimes is provided, extract days and first time for backward compat
+	if len(req.DayTimes) > 0 {
+		days, firstTime := extractFromDayTimes(req.DayTimes)
+		req.DaysOfWeek = days
+		if req.Time == "" {
+			req.Time = firstTime
+		}
+	}
+
+	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -244,7 +294,7 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	schedule, err := db.CreateRecurringScheduleFull(
 		trainer.ID, client.ID, client.Name,
 		firstDay, req.Time, sessionType.DurationMinutes,
-		"client", req.SessionTypeID, daysStr, startDate, endDate,
+		"client", req.SessionTypeID, daysStr, startDate, endDate, dayTimesToJSON(req.DayTimes),
 	)
 	if err != nil {
 		log.Printf("Error creating recurring schedule: %v", err)
@@ -258,7 +308,7 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	// Notify trainer
 	if NotifyRecurringScheduleFunc != nil {
 		schedule.SessionType = sessionType
-		previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate)
+		previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 		if err := NotifyRecurringScheduleFunc(schedule, len(previewDates)); err != nil {
 			log.Printf("Error notifying about recurring schedule: %v", err)
 		}
@@ -287,7 +337,15 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period); err != nil {
+	if len(req.DayTimes) > 0 {
+		days, firstTime := extractFromDayTimes(req.DayTimes)
+		req.DaysOfWeek = days
+		if req.Time == "" {
+			req.Time = firstTime
+		}
+	}
+
+	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -304,7 +362,7 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate)
+	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
@@ -415,7 +473,16 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period); err != nil {
+	// When dayTimes is provided, extract days and first time for backward compat
+	if len(req.DayTimes) > 0 {
+		days, firstTime := extractFromDayTimes(req.DayTimes)
+		req.DaysOfWeek = days
+		if req.Time == "" {
+			req.Time = firstTime
+		}
+	}
+
+	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -452,7 +519,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	schedule, err := db.CreateRecurringScheduleFull(
 		trainer.ID, client.ID, client.Name,
 		firstDay, req.Time, sessionType.DurationMinutes,
-		"trainer", req.SessionTypeID, daysStr, startDate, endDate,
+		"trainer", req.SessionTypeID, daysStr, startDate, endDate, dayTimesToJSON(req.DayTimes),
 	)
 	if err != nil {
 		log.Printf("Error creating recurring schedule: %v", err)
@@ -466,7 +533,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	// Notify client
 	if NotifyRecurringScheduleFunc != nil {
 		schedule.SessionType = sessionType
-		previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate)
+		previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 		if err := NotifyRecurringScheduleFunc(schedule, len(previewDates)); err != nil {
 			log.Printf("Error notifying about recurring schedule: %v", err)
 		}
@@ -489,7 +556,15 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period); err != nil {
+	if len(req.DayTimes) > 0 {
+		days, firstTime := extractFromDayTimes(req.DayTimes)
+		req.DaysOfWeek = days
+		if req.Time == "" {
+			req.Time = firstTime
+		}
+	}
+
+	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -506,7 +581,7 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate)
+	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
@@ -638,22 +713,22 @@ func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.RequestCancelBooking(booking.ID, models.CancelledByClient); err != nil {
-		log.Printf("Error requesting cancel: %v", err)
+	if err := db.CancelBooking(booking.ID, "", models.CancelledByClient); err != nil {
+		log.Printf("Error cancelling booking: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("CANCEL REQUEST (CLIENT) booking %s", booking.ID[:8])
+	log.Printf("CANCEL (CLIENT) booking %s", booking.ID[:8])
 
-	if NotifyCancelRequestFunc != nil {
-		booking.Status = models.BookingStatusCancelRequested
-		if err := NotifyCancelRequestFunc(booking, "client"); err != nil {
-			log.Printf("Error notifying cancel request: %v", err)
+	updated, _ := db.GetBookingByID(booking.ID)
+
+	if NotifyCancellationFunc != nil {
+		if err := NotifyCancellationFunc(updated, "client"); err != nil {
+			log.Printf("Error notifying cancellation: %v", err)
 		}
 	}
 
-	updated, _ := db.GetBookingByID(booking.ID)
 	writeJSON(w, updated)
 }
 
@@ -724,22 +799,22 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.RequestCancelBooking(booking.ID, models.CancelledByTrainer); err != nil {
-		log.Printf("Error requesting cancel: %v", err)
+	if err := db.CancelBooking(booking.ID, "", models.CancelledByTrainer); err != nil {
+		log.Printf("Error cancelling booking: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("CANCEL REQUEST (ADMIN) booking %s", booking.ID[:8])
+	log.Printf("CANCEL (ADMIN) booking %s", booking.ID[:8])
 
-	if NotifyCancelRequestFunc != nil {
-		booking.Status = models.BookingStatusCancelRequested
-		if err := NotifyCancelRequestFunc(booking, "trainer"); err != nil {
-			log.Printf("Error notifying cancel request: %v", err)
+	updated, _ := db.GetBookingByID(booking.ID)
+
+	if NotifyCancellationFunc != nil {
+		if err := NotifyCancellationFunc(updated, "trainer"); err != nil {
+			log.Printf("Error notifying cancellation: %v", err)
 		}
 	}
 
-	updated, _ := db.GetBookingByID(booking.ID)
 	writeJSON(w, updated)
 }
 
@@ -786,70 +861,6 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, newBooking)
-}
-
-// --- Admin: Approve/Decline Cancel ---
-
-func HandleAdminApproveCancelBooking(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
-		return
-	}
-
-	booking, _ := getScheduleBooking(w, r)
-	if booking == nil {
-		return
-	}
-	if booking.TrainerID != trainer.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
-		return
-	}
-	if booking.Status != models.BookingStatusCancelRequested {
-		http.Error(w, "Нет запроса на отмену", http.StatusBadRequest)
-		return
-	}
-
-	if err := db.ApproveCancelBooking(booking.ID); err != nil {
-		log.Printf("Error approving cancel: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("CANCEL APPROVED booking %s", booking.ID[:8])
-	updated, _ := db.GetBookingByID(booking.ID)
-	writeJSON(w, updated)
-}
-
-func HandleAdminDeclineCancelBooking(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
-		return
-	}
-
-	booking, _ := getScheduleBooking(w, r)
-	if booking == nil {
-		return
-	}
-	if booking.TrainerID != trainer.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
-		return
-	}
-	if booking.Status != models.BookingStatusCancelRequested {
-		http.Error(w, "Нет запроса на отмену", http.StatusBadRequest)
-		return
-	}
-
-	if err := db.DeclineCancelBooking(booking.ID); err != nil {
-		log.Printf("Error declining cancel: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("CANCEL DECLINED booking %s", booking.ID[:8])
-	updated, _ := db.GetBookingByID(booking.ID)
-	writeJSON(w, updated)
 }
 
 // --- Admin: Approve/Decline Move ---
