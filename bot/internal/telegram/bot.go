@@ -527,12 +527,23 @@ func (b *Bot) DeleteMessage(chatID int64, messageID int) error {
 
 // GetFile downloads a file from Telegram by file_id. Returns file bytes and content type.
 func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
-	// Step 1: get file path
-	resp, err := http.Get(fmt.Sprintf("%s%s/getFile?file_id=%s", telegramAPI, b.Token, fileID))
+	// Step 1: get file path via POST (avoids URL-encoding issues with file_id)
+	body := map[string]string{"file_id": fileID}
+	jsonBody, _ := json.Marshal(body)
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/getFile",
+		"application/json",
+		bytes.NewBuffer(jsonBody),
+	)
 	if err != nil {
 		return nil, "", err
 	}
 	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
 
 	var result struct {
 		OK     bool `json:"ok"`
@@ -541,7 +552,7 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 		} `json:"result"`
 		Description string `json:"description"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(respBytes, &result); err != nil {
 		return nil, "", err
 	}
 	if !result.OK {

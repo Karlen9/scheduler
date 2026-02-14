@@ -1,9 +1,16 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/jpeg"
+	_ "image/png"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 
@@ -26,34 +33,45 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 
 	// Determine which trainer's bot to use
 	trainerID := r.URL.Query().Get("trainer")
-	var botToken string
 	if trainerID != "" {
 		trainer, err := db.GetTrainerByID(trainerID)
 		if err != nil || trainer == nil {
 			http.Error(w, "trainer not found", http.StatusNotFound)
 			return
 		}
-		botToken = trainer.BotToken
-	} else {
-		trainer, err := db.GetFirstTrainer()
-		if err != nil || trainer == nil {
-			http.Error(w, "no trainer configured", http.StatusInternalServerError)
+		bot := &telegram.Bot{Token: trainer.BotToken}
+		data, contentType, err := bot.GetFile(fileID)
+		if err != nil {
+			log.Printf("GetFile error: %v", err)
+			http.Error(w, "failed to fetch photo", http.StatusBadGateway)
 			return
 		}
-		botToken = trainer.BotToken
-	}
-
-	bot := &telegram.Bot{Token: botToken}
-	data, contentType, err := bot.GetFile(fileID)
-	if err != nil {
-		log.Printf("GetFile error: %v", err)
-		http.Error(w, "failed to fetch photo", http.StatusBadGateway)
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		w.Write(data)
 		return
 	}
 
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Cache-Control", "public, max-age=3600")
-	w.Write(data)
+	// No trainer specified — try all active trainers (file_ids are bot-scoped)
+	trainers, err := db.GetAllActiveTrainers()
+	if err != nil || len(trainers) == 0 {
+		http.Error(w, "no trainer configured", http.StatusInternalServerError)
+		return
+	}
+
+	for _, trainer := range trainers {
+		bot := &telegram.Bot{Token: trainer.BotToken}
+		data, contentType, err := bot.GetFile(fileID)
+		if err == nil {
+			w.Header().Set("Content-Type", contentType)
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+			w.Write(data)
+			return
+		}
+	}
+
+	log.Printf("GetFile error: no trainer's bot could resolve file_id %s", fileID[:20])
+	http.Error(w, "failed to fetch photo", http.StatusBadGateway)
 }
 
 // HandleUploadPhoto handles photo upload for clients.
@@ -155,5 +173,40 @@ func readUploadedPhoto(r *http.Request) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("only image files allowed")
 	}
 
-	return photoData, header.Filename, nil
+	// Re-encode as JPEG to ensure unique bytes on every upload.
+	// This prevents Telegram from returning a stale cached file_id
+	// (which happens when the same image content is re-uploaded after
+	// a previous upload's message was deleted, invalidating the file_id).
+	reencoded, err := reencodAsJPEG(photoData)
+	if err != nil {
+		log.Printf("Image re-encode failed, using original: %v", err)
+		return photoData, header.Filename, nil
+	}
+
+	return reencoded, "photo.jpg", nil
+}
+
+// reencodAsJPEG decodes an image and re-encodes it as JPEG with a random
+// pixel modification to ensure unique bytes (avoids Telegram file_id caching).
+func reencodAsJPEG(data []byte) ([]byte, error) {
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+
+	bounds := img.Bounds()
+	mutable := image.NewRGBA(bounds)
+	draw.Draw(mutable, bounds, img, bounds.Min, draw.Src)
+
+	// Flip LSB of a random pixel to guarantee unique bytes
+	x := rand.Intn(bounds.Dx()) + bounds.Min.X
+	y := rand.Intn(bounds.Dy()) + bounds.Min.Y
+	r, g, b, a := mutable.At(x, y).RGBA()
+	mutable.SetRGBA(x, y, color.RGBA{uint8(r>>8) ^ 1, uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)})
+
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, mutable, &jpeg.Options{Quality: 95}); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
