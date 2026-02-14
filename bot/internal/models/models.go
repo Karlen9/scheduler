@@ -34,6 +34,7 @@ type Client struct {
 	TrainerID           string    `json:"trainerId"`
 	Name                string    `json:"name"`
 	Phone               string    `json:"phone,omitempty"`
+	PhotoURL            string    `json:"photoUrl,omitempty"`
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`

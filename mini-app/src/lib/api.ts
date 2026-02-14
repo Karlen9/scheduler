@@ -11,8 +11,9 @@ async function fetchAPI<T>(
   const initData = getInitData();
   const trainerId = getTrainerId();
 
+  const isFormData = options?.body instanceof FormData;
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options?.headers || {}),
   };
 
@@ -39,6 +40,10 @@ async function fetchAPI<T>(
   }
 
   return response.json();
+}
+
+export function getPhotoUrl(fileId: string): string {
+  return `${API_BASE_URL}/api/photo/${fileId}`;
 }
 
 export const api = {
@@ -98,6 +103,17 @@ export const api = {
   async declineBooking(bookingId: string): Promise<Booking> {
     return fetchAPI<Booking>(`/api/bookings/${bookingId}/decline`, {
       method: "PUT",
+    });
+  },
+
+  // ========== Photo Upload ==========
+
+  async uploadPhoto(file: File): Promise<{ fileId: string }> {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return fetchAPI<{ fileId: string }>("/api/upload/photo", {
+      method: "POST",
+      body: formData,
     });
   },
 
@@ -186,6 +202,16 @@ export const api = {
       return fetchAPI<Trainer>("/api/admin/profile", {
         method: "PUT",
         body: JSON.stringify(data),
+      });
+    },
+
+    // Photo upload (trainer)
+    async uploadPhoto(file: File): Promise<{ fileId: string }> {
+      const formData = new FormData();
+      formData.append("photo", file);
+      return fetchAPI<{ fileId: string }>("/api/admin/upload/photo", {
+        method: "POST",
+        body: formData,
       });
     },
 

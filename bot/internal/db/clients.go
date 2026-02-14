@@ -10,16 +10,19 @@ import (
 
 func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Client, error) {
 	var c models.Client
-	var phone sql.NullString
+	var phone, photoURL sql.NullString
 	var preferredDuration sql.NullInt64
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyWaitlist sql.NullInt64
-	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &preferredDuration,
+	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &photoURL, &preferredDuration,
 		&notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyWaitlist, &c.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	if phone.Valid {
 		c.Phone = phone.String
+	}
+	if photoURL.Valid {
+		c.PhotoURL = photoURL.String
 	}
 	if preferredDuration.Valid {
 		c.PreferredDuration = int(preferredDuration.Int64)
@@ -33,7 +36,7 @@ func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Clien
 
 func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE telegram_user_id = ? AND trainer_id = ?
 	`), telegramUserID, trainerID)
@@ -50,7 +53,7 @@ func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Clie
 
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE id = ?
 	`), id)
@@ -113,9 +116,19 @@ func boolToInt(b bool) int {
 	return 0
 }
 
+func UpdateClientPhoto(clientID, fileID string) error {
+	_, err := DB.Exec(Q(`UPDATE clients SET photo_url = ? WHERE id = ?`), fileID, clientID)
+	return err
+}
+
+func UpdateTrainerPhoto(trainerID, fileID string) error {
+	_, err := DB.Exec(Q(`UPDATE trainers SET photo_url = ? WHERE id = ?`), fileID, trainerID)
+	return err
+}
+
 func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_waitlist, created_at
 		FROM clients
 		WHERE trainer_id = ?
 		ORDER BY name ASC

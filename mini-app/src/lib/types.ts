@@ -54,6 +54,7 @@ export interface ClientProfile {
   id: string;
   name: string;
   phone?: string;
+  photoUrl?: string;
   preferredDuration?: number;
   notifyBookingStatus?: boolean;
   notifyReminders?: boolean;
