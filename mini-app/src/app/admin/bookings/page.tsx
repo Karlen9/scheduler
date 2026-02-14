@@ -10,11 +10,24 @@ import { NextBookingBanner } from "@/components/schedule/NextBookingBanner";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
 import { Booking } from "@/lib/types";
 import { api } from "@/lib/api";
-import { useAdminBookings } from "@/hooks/queries";
+import { useAdminBookings, useAdminWorkingHours, useAdminDaysOff } from "@/hooks/queries";
 import { invalidateBookings } from "@/hooks/mutations";
 
 export default function AdminBookingsPage() {
   const { data: bookings, isLoading, error: fetchError } = useAdminBookings({ refreshInterval: 15000 });
+  const { data: workingHoursData } = useAdminWorkingHours();
+  const { data: daysOffData } = useAdminDaysOff();
+
+  const nonWorkingDays = useMemo(() => {
+    const workingSet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
+    const result: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      if (!workingSet.has(i)) result.push(i);
+    }
+    return result;
+  }, [workingHoursData]);
+
+  const daysOff = useMemo(() => daysOffData.map((d) => d.date), [daysOffData]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<Booking | null>(null);
@@ -166,6 +179,8 @@ export default function AdminBookingsPage() {
         <ScheduleView
           bookings={scheduleBookings}
           onBookingClick={handleBookingClick}
+          nonWorkingDays={nonWorkingDays}
+          daysOff={daysOff}
         />
       </div>
 
