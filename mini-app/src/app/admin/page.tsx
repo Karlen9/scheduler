@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Users } from "lucide-react";
+import { StatCard } from "@/components/StatCard";
 import { useTrainer } from "@/hooks/queries";
 import { useAdminBookings } from "@/hooks/queries";
 import { Booking } from "@/lib/types";
@@ -52,31 +53,22 @@ export default function AdminDashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <button
+        <StatCard
+          icon={ClipboardList}
+          iconColor="text-warning"
+          iconBg="bg-warning/20"
+          value={stats.pending}
+          label="Новых заявок"
           onClick={() => router.push("/admin/bookings")}
-          className="bg-card rounded-xl p-4 text-left"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
-              <ClipboardList className="w-4 h-4 text-warning" />
-            </div>
-          </div>
-          <p className="text-2xl font-semibold text-foreground">{stats.pending}</p>
-          <p className="text-xs text-muted-foreground">Новых заявок</p>
-        </button>
-
-        <button
+        />
+        <StatCard
+          icon={ClipboardList}
+          iconColor="text-success"
+          iconBg="bg-success/20"
+          value={stats.upcoming}
+          label="Ближайших записей"
           onClick={() => router.push("/admin/bookings")}
-          className="bg-card rounded-xl p-4 text-left"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center">
-              <ClipboardList className="w-4 h-4 text-success" />
-            </div>
-          </div>
-          <p className="text-2xl font-semibold text-foreground">{stats.upcoming}</p>
-          <p className="text-xs text-muted-foreground">Ближайших записей</p>
-        </button>
+        />
       </div>
 
       {/* Quick actions */}
