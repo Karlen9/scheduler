@@ -92,12 +92,9 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bot := &telegram.Bot{Token: trainer.BotToken}
-	chatID := trainer.TelegramUserID
-	if client != nil {
-		chatID = client.TelegramUserID
-	}
 
-	fileID, _, err := bot.SendPhoto(chatID, photoData, filename)
+	// Always send to trainer's chat (used as CDN, not meant for the client to see)
+	fileID, _, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		http.Error(w, "failed to upload photo", http.StatusInternalServerError)

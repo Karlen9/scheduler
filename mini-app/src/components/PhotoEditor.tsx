@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import { RotateCw, RotateCcw, X, Check } from "lucide-react";
 
@@ -16,6 +16,11 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
   const onCropComplete = useCallback((_: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels);
   }, []);
@@ -27,7 +32,7 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden" style={{ touchAction: "none" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <button onClick={onCancel} className="p-2 -m-2 text-muted-foreground">
@@ -40,7 +45,7 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
       </div>
 
       {/* Crop area */}
-      <div className="relative flex-1">
+      <div className="relative flex-1 overflow-hidden">
         <Cropper
           image={imageSrc}
           crop={crop}
@@ -49,9 +54,9 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
           aspect={1}
           cropShape="round"
           showGrid={false}
+          restrictPosition={true}
           onCropChange={setCrop}
           onZoomChange={setZoom}
-          onRotationChange={setRotation}
           onCropComplete={onCropComplete}
         />
       </div>
