@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { api } from "@/lib/api";
+import { api, getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
 import { useAdminProfile } from "@/hooks/queries";
 import { invalidateTrainer } from "@/hooks/mutations";
@@ -19,7 +19,10 @@ export default function ProfilePage() {
   const [telegram, setTelegram] = useState("");
   const [gymCoords, setGymCoords] = useState("");
   const [initialized, setInitialized] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isLoading || initialized || !profile) return;
@@ -29,11 +32,30 @@ export default function ProfilePage() {
     setBio(profile.bio || "");
     setPhone(profile.phone || "");
     setTelegram(profile.telegramHandle || "");
+    setPhotoUrl(profile.photoUrl || "");
     if (profile.gymLatitude && profile.gymLongitude) {
       setGymCoords(`${profile.gymLatitude}, ${profile.gymLongitude}`);
     }
     setInitialized(true);
   }, [profile, isLoading, initialized]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const result = await api.admin.uploadPhoto(file);
+      setPhotoUrl(result.fileId);
+      invalidateTrainer();
+      toast.success("Фото обновлено");
+    } catch (err) {
+      console.error("Failed to upload photo:", err);
+      toast.error("Ошибка загрузки фото");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -95,13 +117,32 @@ export default function ProfilePage() {
       <div className="p-4 space-y-6">
         {/* Avatar */}
         <div className="flex justify-center">
-          <div className="relative">
-            <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl ${name ? getAvatarColor(name) : "bg-card text-muted-foreground"}`}>
-              {name.charAt(0) || "?"}
+          <div className="relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            {photoUrl ? (
+              <img
+                src={getPhotoUrl(photoUrl)}
+                alt={name}
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            ) : (
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl ${name ? getAvatarColor(name) : "bg-card text-muted-foreground"}`}>
+                {name.charAt(0) || "?"}
+              </div>
+            )}
+            <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-brand flex items-center justify-center shadow-lg">
+              {isUploading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4 text-white" />
+              )}
             </div>
-            <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-brand flex items-center justify-center shadow-lg">
-              <Camera className="w-4 h-4 text-white" />
-            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
           </div>
         </div>
 
