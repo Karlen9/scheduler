@@ -131,7 +131,7 @@ func NewRouter() http.Handler {
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
 
 			// Photo upload (trainer)
-			r.Post("/upload/photo", HandleUploadPhoto)
+			r.Post("/upload/photo", HandleAdminUploadPhoto)
 
 			// Notification preferences
 			r.Get("/notifications", HandleAdminGetNotificationPrefs)
