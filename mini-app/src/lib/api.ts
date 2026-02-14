@@ -42,10 +42,13 @@ async function fetchAPI<T>(
   return response.json();
 }
 
-export function getPhotoUrl(fileId: string): string {
+export function getPhotoUrl(fileIdOrUrl: string): string {
+  // Direct URLs (e.g. Telegram profile photos) — use as-is
+  if (fileIdOrUrl.startsWith("http")) return fileIdOrUrl;
+  // File IDs — proxy through our API
   const trainerId = getTrainerId();
   const query = trainerId ? `?trainer=${trainerId}` : "";
-  return `${API_BASE_URL}/api/photo/${fileId}${query}`;
+  return `${API_BASE_URL}/api/photo/${fileIdOrUrl}${query}`;
 }
 
 export const api = {

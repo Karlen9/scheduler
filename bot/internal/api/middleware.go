@@ -30,6 +30,7 @@ type TelegramUser struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Username  string `json:"username"`
+	PhotoURL  string `json:"photo_url"`
 }
 
 // TelegramAuthMiddleware validates Telegram initData and extracts user info
@@ -85,6 +86,13 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 				log.Printf("Error getting/creating client: %v", err)
 				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 				return
+			}
+
+			// Auto-set Telegram profile photo if client has no custom photo
+			if client.PhotoURL == "" && user.PhotoURL != "" {
+				if err := db.UpdateClientPhoto(client.ID, user.PhotoURL); err == nil {
+					client.PhotoURL = user.PhotoURL
+				}
 			}
 
 			ctx := context.WithValue(r.Context(), ClientContextKey, client)
