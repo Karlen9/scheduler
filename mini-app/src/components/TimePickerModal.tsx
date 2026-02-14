@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { BottomSheet } from "@/components/BottomSheet";
 
 interface TimePickerModalProps {
   isOpen: boolean;
@@ -21,52 +21,26 @@ export function TimePickerModal({
   selectedTime,
   title = "Выберите время",
 }: TimePickerModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      {/* Modal */}
-      <div
-        className="relative w-full bg-background rounded-t-2xl p-4 max-h-[80vh] overflow-auto"
-        style={{ maxWidth: "430px" }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-foreground">{title}</h3>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title={title} className="max-h-[80vh] overflow-auto">
+      <div className="grid grid-cols-4 gap-2">
+        {HOURS.map((time) => (
           <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-card"
+            key={time}
+            onClick={() => {
+              onSelect(time);
+              onClose();
+            }}
+            className={`py-3 rounded-lg text-sm transition-colors ${
+              selectedTime === time
+                ? "bg-brand text-white"
+                : "bg-card text-foreground active:bg-border"
+            }`}
           >
-            <X className="w-5 h-5 text-muted-foreground" />
+            {time}
           </button>
-        </div>
-
-        {/* Time Grid */}
-        <div className="grid grid-cols-4 gap-2">
-          {HOURS.map((time) => (
-            <button
-              key={time}
-              onClick={() => {
-                onSelect(time);
-                onClose();
-              }}
-              className={`py-3 rounded-lg text-sm transition-colors ${
-                selectedTime === time
-                  ? "bg-brand text-white"
-                  : "bg-card text-foreground active:bg-border"
-              }`}
-            >
-              {time}
-            </button>
-          ))}
-        </div>
-
-        {/* Safe area */}
-        <div className="h-[env(safe-area-inset-bottom)]" />
+        ))}
       </div>
-    </div>
+    </BottomSheet>
   );
 }

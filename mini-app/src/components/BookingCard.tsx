@@ -2,6 +2,7 @@
 
 import { Calendar, Clock, Dumbbell } from "lucide-react";
 import { Booking } from "@/lib/types";
+import { StatusBadge } from "@/components/StatusBadge";
 
 interface BookingCardProps {
   booking: Booking;
@@ -9,16 +10,6 @@ interface BookingCardProps {
   onConfirm?: (booking: Booking) => void;
   onDecline?: (booking: Booking) => void;
 }
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  pending: { label: "Ожидает", color: "bg-yellow-900/30 text-yellow-400" },
-  confirmed: { label: "Подтверждено", color: "bg-green-900/30 text-green-400" },
-  rejected: { label: "Отклонено", color: "bg-red-900/30 text-red-400" },
-  cancelled: { label: "Отменено", color: "bg-gray-700/30 text-gray-400" },
-  completed: { label: "Завершено", color: "bg-blue-900/30 text-blue-400" },
-  cancel_requested: { label: "Отмена запрошена", color: "bg-orange-900/30 text-orange-400" },
-  reschedule_pending: { label: "Перенос", color: "bg-purple-900/30 text-purple-400" },
-};
 
 function formatDate(date: Date): string {
   const months = [
@@ -35,7 +26,6 @@ function formatTime(date: Date): string {
 export function BookingCard({ booking, onCancel, onConfirm, onDecline }: BookingCardProps) {
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
-  const status = statusLabels[booking.status] || statusLabels.pending;
   const isActive = booking.status === "pending" || booking.status === "confirmed";
   const isTrainerPending = booking.status === "pending" && booking.createdBy === "trainer";
 
@@ -63,9 +53,7 @@ export function BookingCard({ booking, onCancel, onConfirm, onDecline }: Booking
             </span>
           </div>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>
-          {status.label}
-        </span>
+        <StatusBadge status={booking.status} />
       </div>
 
       {isTrainerPending && onConfirm && onDecline ? (

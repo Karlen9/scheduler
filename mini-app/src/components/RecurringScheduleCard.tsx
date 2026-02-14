@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Clock, Repeat, Calendar, Check, X, ChevronRight } from "lucide-react";
 import { formatDuration } from "@/components/DurationSelector";
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { StatusBadge, statusBorders } from "@/components/StatusBadge";
 import { RecurringSchedule, SessionType } from "@/lib/types";
 
 interface RecurringScheduleCardProps {
@@ -23,13 +24,6 @@ const DAY_NAMES: Record<number, string> = {
   4: "Чт",
   5: "Пт",
   6: "Сб",
-};
-
-const statusConfig: Record<string, { label: string; color: string; border: string }> = {
-  pending: { label: "Ожидает", color: "bg-yellow-900/30 text-yellow-400", border: "border-yellow-500" },
-  active: { label: "Активно", color: "bg-green-900/30 text-green-400", border: "border-green-500" },
-  declined: { label: "Отклонено", color: "bg-red-900/30 text-red-400", border: "border-red-500" },
-  cancelled: { label: "Отменено", color: "bg-gray-700/30 text-gray-400", border: "border-gray-500" },
 };
 
 function formatDaysOfWeek(schedule: RecurringSchedule): string {
@@ -90,7 +84,7 @@ export function RecurringScheduleCard({
   detailPath,
 }: RecurringScheduleCardProps) {
   const router = useRouter();
-  const status = statusConfig[schedule.status] || statusConfig.pending;
+  const border = statusBorders[schedule.status] || statusBorders.pending;
   const dayTimes = parseDayTimes(schedule.dayTimes);
   const daysLabel = dayTimes ? formatDayTimesDisplay(dayTimes) : formatDaysOfWeek(schedule);
   const dateRange = formatDateRange(schedule.startDate, schedule.endDate);
@@ -108,7 +102,7 @@ export function RecurringScheduleCard({
 
   return (
     <div
-      className={`bg-card rounded-xl p-4 border-l-4 ${status.border} ${detailPath && isActive ? "cursor-pointer active:opacity-80 transition-opacity" : ""}`}
+      className={`bg-card rounded-xl p-4 border-l-4 ${border} ${detailPath && isActive ? "cursor-pointer active:opacity-80 transition-opacity" : ""}`}
       onClick={handleCardClick}
     >
       <div className="flex items-start justify-between mb-3">
@@ -156,9 +150,7 @@ export function RecurringScheduleCard({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>
-            {status.label}
-          </span>
+          <StatusBadge status={schedule.status} />
           {detailPath && isActive && (
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
