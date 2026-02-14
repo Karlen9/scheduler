@@ -67,6 +67,7 @@ export interface ClientInfo {
   trainerId: string;
   name: string;
   phone?: string;
+  photoUrl?: string;
   createdAt: string;
 }
 

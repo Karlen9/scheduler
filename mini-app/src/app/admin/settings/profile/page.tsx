@@ -5,6 +5,7 @@ import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { PhotoEditor } from "@/components/PhotoEditor";
 import { api, getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
 import { useAdminProfile } from "@/hooks/queries";
@@ -23,6 +24,7 @@ export default function ProfilePage() {
   const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [editorImage, setEditorImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -40,11 +42,19 @@ export default function ProfilePage() {
     setInitialized(true);
   }, [profile, isLoading, initialized]);
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const url = URL.createObjectURL(file);
+    setEditorImage(url);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleEditorConfirm = async (blob: Blob) => {
+    setEditorImage(null);
     setIsUploading(true);
     try {
+      const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
       const result = await api.admin.uploadPhoto(file);
       setPhotoUrl(result.fileId);
       setPhotoError(false);
@@ -55,7 +65,6 @@ export default function ProfilePage() {
       toast.error("Ошибка загрузки фото");
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -144,7 +153,7 @@ export default function ProfilePage() {
               type="file"
               accept="image/jpeg,image/png,image/webp"
               className="hidden"
-              onChange={handlePhotoUpload}
+              onChange={handleFileSelect}
             />
           </div>
         </div>
@@ -242,6 +251,14 @@ export default function ProfilePage() {
           {isSaving ? "Сохранение..." : "Сохранить"}
         </PrimaryButton>
       </div>
+
+      {editorImage && (
+        <PhotoEditor
+          imageSrc={editorImage}
+          onConfirm={handleEditorConfirm}
+          onCancel={() => setEditorImage(null)}
+        />
+      )}
     </div>
   );
 }

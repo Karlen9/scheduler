@@ -5,6 +5,7 @@ import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { DurationSelector } from "@/components/DurationSelector";
+import { PhotoEditor } from "@/components/PhotoEditor";
 import { api, getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
 import { useProfile, useDurations } from "@/hooks/queries";
@@ -22,6 +23,7 @@ export default function ClientProfilePage() {
   const [preferredDuration, setPreferredDuration] = useState<number>(60);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [editorImage, setEditorImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notifyBookingStatus, setNotifyBookingStatus] = useState(true);
   const [notifyReminders, setNotifyReminders] = useState(true);
@@ -39,11 +41,19 @@ export default function ClientProfilePage() {
     }
   }, [profile, durations]);
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const url = URL.createObjectURL(file);
+    setEditorImage(url);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleEditorConfirm = async (blob: Blob) => {
+    setEditorImage(null);
     setIsUploading(true);
     try {
+      const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
       const result = await api.uploadPhoto(file);
       setPhotoUrl(result.fileId);
       setPhotoError(false);
@@ -54,7 +64,6 @@ export default function ClientProfilePage() {
       toast.error("Ошибка загрузки фото");
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -140,7 +149,7 @@ export default function ClientProfilePage() {
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="hidden"
-            onChange={handlePhotoUpload}
+            onChange={handleFileSelect}
           />
         </div>
       </div>
@@ -224,6 +233,14 @@ export default function ClientProfilePage() {
           ))}
         </div>
       </div>
+
+      {editorImage && (
+        <PhotoEditor
+          imageSrc={editorImage}
+          onConfirm={handleEditorConfirm}
+          onCancel={() => setEditorImage(null)}
+        />
+      )}
     </div>
   );
 }
