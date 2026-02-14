@@ -138,10 +138,6 @@ func (h *Handler) handleCallbackQuery(cq *CallbackQuery) {
 		h.handleClientAcceptSchedule(cq, bookingID) // bookingID is actually scheduleID
 	case "client_decline_schedule":
 		h.handleClientDeclineSchedule(cq, bookingID) // bookingID is actually scheduleID
-	case "cancel_approve":
-		h.handleCancelApprove(cq, bookingID)
-	case "cancel_decline":
-		h.handleCancelDecline(cq, bookingID)
 	case "move_approve":
 		h.handleMoveApprove(cq, bookingID) // bookingID is actually newBookingID
 	case "move_decline":
@@ -542,7 +538,7 @@ func (h *Handler) NotifyClientTrainerBooking(booking *models.Booking) error {
 	}
 
 	text := FormatTrainerCreatedBookingClient(booking)
-	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
+	_, err = h.Bot.SendClientBookingConfirmMessage(client.TelegramUserID, booking.ID, text)
 	return err
 }
 
@@ -632,65 +628,7 @@ func (h *Handler) handleClientDeclineBooking(cq *CallbackQuery, bookingID string
 	h.notifyTrainerClientResponse(booking, false)
 }
 
-// ========== Cancel/Move Approval Handlers ==========
-
-func (h *Handler) handleCancelApprove(cq *CallbackQuery, bookingID string) {
-	booking, err := db.GetBookingByID(bookingID)
-	if err != nil || booking == nil {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
-		return
-	}
-	if booking.Status != models.BookingStatusCancelRequested {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Запрос уже обработан")
-		if cq.Message != nil {
-			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelApproved(booking), nil)
-		}
-		return
-	}
-
-	if err := db.ApproveCancelBooking(bookingID); err != nil {
-		log.Printf("Error approving cancel: %v", err)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при подтверждении")
-		return
-	}
-
-	h.Bot.AnswerCallbackQuery(cq.ID, "Отмена подтверждена")
-	if cq.Message != nil {
-		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelApproved(booking), nil)
-	}
-
-	// Notify the other side
-	h.notifyCancelResult(booking, true)
-}
-
-func (h *Handler) handleCancelDecline(cq *CallbackQuery, bookingID string) {
-	booking, err := db.GetBookingByID(bookingID)
-	if err != nil || booking == nil {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
-		return
-	}
-	if booking.Status != models.BookingStatusCancelRequested {
-		h.Bot.AnswerCallbackQuery(cq.ID, "Запрос уже обработан")
-		if cq.Message != nil {
-			h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelDeclined(booking), nil)
-		}
-		return
-	}
-
-	if err := db.DeclineCancelBooking(bookingID); err != nil {
-		log.Printf("Error declining cancel: %v", err)
-		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка при отклонении")
-		return
-	}
-
-	h.Bot.AnswerCallbackQuery(cq.ID, "Отмена отклонена")
-	if cq.Message != nil {
-		h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, FormatCancelDeclined(booking), nil)
-	}
-
-	// Notify the other side
-	h.notifyCancelResult(booking, false)
-}
+// ========== Move Approval Handlers ==========
 
 func (h *Handler) handleMoveApprove(cq *CallbackQuery, newBookingID string) {
 	newBooking, err := db.GetBookingByID(newBookingID)
@@ -748,38 +686,6 @@ func (h *Handler) handleMoveDecline(cq *CallbackQuery, newBookingID string) {
 	h.notifyMoveResult(newBooking, oldBooking, false)
 }
 
-func (h *Handler) notifyCancelResult(booking *models.Booking, approved bool) {
-	// Determine who requested: if cancelled_by=client, notify client; if trainer, notify trainer
-	// The approver is the other side, so we notify the requester about the result
-	if booking.CancelledBy == models.CancelledByClient {
-		// Client requested, trainer decided — notify client
-		client, err := db.GetClientByID(booking.ClientID)
-		if err != nil || client == nil {
-			return
-		}
-		var text string
-		if approved {
-			text = fmt.Sprintf("✅ Ваш запрос на отмену подтверждён\n\n📋 %s\n🕐 %s", bookingServiceDisplay(booking), formatDateTime(booking.StartsAt))
-		} else {
-			text = fmt.Sprintf("↩️ Ваш запрос на отмену отклонён\n\n📋 %s\n🕐 %s\n\nТренировка остаётся в расписании.", bookingServiceDisplay(booking), formatDateTime(booking.StartsAt))
-		}
-		h.Bot.SendMessage(client.TelegramUserID, text, nil)
-	} else {
-		// Trainer requested, client decided — notify trainer
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
-			return
-		}
-		var text string
-		if approved {
-			text = FormatCancelApproved(booking)
-		} else {
-			text = FormatCancelDeclined(booking)
-		}
-		h.Bot.SendMessage(trainer.TelegramUserID, text, nil)
-	}
-}
-
 func (h *Handler) notifyMoveResult(newBooking, oldBooking *models.Booking, approved bool) {
 	if oldBooking == nil {
 		return
@@ -811,25 +717,25 @@ func (h *Handler) notifyMoveResult(newBooking, oldBooking *models.Booking, appro
 	}
 }
 
-// NotifyCancelRequest sends a cancel request notification with approval buttons
-func (h *Handler) NotifyCancelRequest(booking *models.Booking, requestedBy string) error {
-	if requestedBy == "client" {
-		// Notify trainer
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
-			return fmt.Errorf("trainer not found")
-		}
-		text := FormatCancelRequestForTrainer(booking)
-		_, err = h.Bot.SendCancelApprovalMessage(trainer.TelegramUserID, booking.ID, text)
-		return err
+// NotifyTrainerBookingCancelled sends a cancellation notification to the trainer
+func (h *Handler) NotifyTrainerBookingCancelled(booking *models.Booking) error {
+	trainer, err := db.GetTrainerByID(booking.TrainerID)
+	if err != nil || trainer == nil {
+		return fmt.Errorf("trainer not found")
 	}
-	// Notify client
+	text := FormatBookingCancelledForTrainer(booking)
+	_, err = h.Bot.SendMessage(trainer.TelegramUserID, text, nil)
+	return err
+}
+
+// NotifyClientBookingCancelled sends a cancellation notification to the client
+func (h *Handler) NotifyClientBookingCancelled(booking *models.Booking) error {
 	client, err := db.GetClientByID(booking.ClientID)
 	if err != nil || client == nil {
 		return fmt.Errorf("client not found")
 	}
-	text := FormatCancelRequestForClient(booking)
-	_, err = h.Bot.SendCancelApprovalMessage(client.TelegramUserID, booking.ID, text)
+	text := FormatBookingCancelledForClient(booking)
+	_, err = h.Bot.SendMessage(client.TelegramUserID, text, nil)
 	return err
 }
 

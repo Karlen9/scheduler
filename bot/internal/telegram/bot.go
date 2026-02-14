@@ -410,20 +410,6 @@ func (b *Bot) SendClientBookingConfirmMessage(chatID int64, bookingID string, te
 	return b.SendMessage(chatID, text, keyboard)
 }
 
-// SendCancelApprovalMessage sends a cancel request with approve/decline buttons
-func (b *Bot) SendCancelApprovalMessage(chatID int64, bookingID string, text string) (*Message, error) {
-	keyboard := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{
-				{Text: BtnAccept, CallbackData: fmt.Sprintf("cancel_approve:%s", bookingID)},
-				{Text: BtnReject, CallbackData: fmt.Sprintf("cancel_decline:%s", bookingID)},
-			},
-		},
-	}
-
-	return b.SendMessage(chatID, text, keyboard)
-}
-
 // SendMoveApprovalMessage sends a move request with approve/decline buttons
 func (b *Bot) SendMoveApprovalMessage(chatID int64, newBookingID string, text string) (*Message, error) {
 	keyboard := &InlineKeyboardMarkup{

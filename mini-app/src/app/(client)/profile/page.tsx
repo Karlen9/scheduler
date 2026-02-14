@@ -4,17 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { DurationSelector } from "@/components/DurationSelector";
+import { ServiceSelector } from "@/components/ServiceSelector";
 import { PhotoEditor } from "@/components/PhotoEditor";
 import { api, getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
-import { useProfile, useDurations } from "@/hooks/queries";
+import { useProfile, useSessionTypes } from "@/hooks/queries";
 import { invalidateProfile } from "@/hooks/mutations";
 
 export default function ClientProfilePage() {
   const { data: profile, isLoading: profileLoading } = useProfile();
-  const { data: durations, isLoading: durationsLoading } = useDurations();
-  const loading = profileLoading || durationsLoading;
+  const { data: services, isLoading: servicesLoading } = useSessionTypes();
+  const loading = profileLoading || servicesLoading;
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -28,18 +28,20 @@ export default function ClientProfilePage() {
   const [notifyBookingStatus, setNotifyBookingStatus] = useState(true);
   const [notifyReminders, setNotifyReminders] = useState(true);
   const [notifyDaysOff, setNotifyDaysOff] = useState(false);
+  const [notifyCancellations, setNotifyCancellations] = useState(true);
 
   useEffect(() => {
     if (profile) {
       setName(profile.name || "");
       setPhone(profile.phone || "");
       setPhotoUrl(profile.photoUrl || "");
-      setPreferredDuration(profile.preferredDuration || durations[0] || 60);
+      setPreferredDuration(profile.preferredDuration || services[0]?.durationMinutes || 60);
       setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
       setNotifyReminders(profile.notifyReminders ?? true);
       setNotifyDaysOff(profile.notifyDaysOff ?? false);
+      setNotifyCancellations(profile.notifyCancellations ?? true);
     }
-  }, [profile, durations]);
+  }, [profile, services]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,13 +84,14 @@ export default function ClientProfilePage() {
   };
 
   const handleToggleNotification = async (
-    key: "notifyBookingStatus" | "notifyReminders" | "notifyDaysOff",
+    key: "notifyBookingStatus" | "notifyReminders" | "notifyDaysOff" | "notifyCancellations",
     value: boolean,
   ) => {
     const setters = {
       notifyBookingStatus: setNotifyBookingStatus,
       notifyReminders: setNotifyReminders,
       notifyDaysOff: setNotifyDaysOff,
+      notifyCancellations: setNotifyCancellations,
     };
     setters[key](value);
     try {
@@ -183,15 +186,15 @@ export default function ClientProfilePage() {
           />
         </div>
 
-        {durations.length > 1 && (
+        {services.length > 1 && (
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Предпочитаемая длительность
+              Основной вид занятия
             </label>
-            <DurationSelector
-              durations={durations}
-              selected={preferredDuration}
-              onChange={setPreferredDuration}
+            <ServiceSelector
+              services={services}
+              selectedId={services.find(s => s.durationMinutes === preferredDuration)?.id ?? ""}
+              onChange={(service) => setPreferredDuration(service.durationMinutes)}
             />
           </div>
         )}
@@ -207,7 +210,8 @@ export default function ClientProfilePage() {
         <h3 className="text-sm text-muted-foreground mb-3">Уведомления</h3>
         <div className="bg-card rounded-lg divide-y divide-border">
           {[
-            { key: "notifyBookingStatus" as const, label: "Статус записи", desc: "Подтверждение и отмена записей", value: notifyBookingStatus },
+            { key: "notifyBookingStatus" as const, label: "Статус записи", desc: "Подтверждение и отклонение записей", value: notifyBookingStatus },
+            { key: "notifyCancellations" as const, label: "Отмена записей", desc: "Уведомления об отмене записей тренером", value: notifyCancellations },
             { key: "notifyReminders" as const, label: "Напоминания", desc: "За час до тренировки", value: notifyReminders },
             { key: "notifyDaysOff" as const, label: "Выходные тренера", desc: "Новые выходные дни", value: notifyDaysOff },
           ].map((item) => (
@@ -220,7 +224,7 @@ export default function ClientProfilePage() {
                 type="button"
                 onClick={() => handleToggleNotification(item.key, !item.value)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  item.value ? "bg-brand" : "bg-muted"
+                  item.value ? "bg-brand" : "bg-muted ring-1 ring-white/20"
                 }`}
               >
                 <span

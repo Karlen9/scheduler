@@ -314,8 +314,8 @@ func main() {
 		return handler.NotifyClientRecurringSchedule(schedule, previewCount)
 	}
 
-	// Set up cancel request notification callback
-	api.NotifyCancelRequestFunc = func(booking *models.Booking, requestedBy string) error {
+	// Set up cancellation notification callback
+	api.NotifyCancellationFunc = func(booking *models.Booking, cancelledBy string) error {
 		trainer, err := db.GetTrainerByID(booking.TrainerID)
 		if err != nil || trainer == nil {
 			return err
@@ -325,7 +325,24 @@ func main() {
 			log.Printf("No handler found for trainer %s", trainer.Name)
 			return nil
 		}
-		return handler.NotifyCancelRequest(booking, requestedBy)
+		if cancelledBy == "client" {
+			// Client cancelled — notify trainer if enabled
+			if !trainer.NotifyCancellations {
+				log.Printf("Skipping cancellation notification for trainer %s (disabled)", trainer.Name)
+				return nil
+			}
+			return handler.NotifyTrainerBookingCancelled(booking)
+		}
+		// Trainer cancelled — notify client if enabled
+		client, err := db.GetClientByID(booking.ClientID)
+		if err != nil || client == nil {
+			return err
+		}
+		if !client.NotifyCancellations {
+			log.Printf("Skipping cancellation notification for client %s (disabled)", client.Name)
+			return nil
+		}
+		return handler.NotifyClientBookingCancelled(booking)
 	}
 
 	// Set up move request notification callback

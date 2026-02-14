@@ -27,6 +27,10 @@ var UpdateTrainerMessageFunc func(booking *models.Booking) error
 // confirms or declines a trainer-created booking via the REST API
 var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
 
+// NotifyCancellationFunc is a callback to notify the other side about an immediate cancellation.
+// cancelledBy is "client" or "trainer".
+var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
+
 
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
@@ -340,6 +344,13 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 	)
 
 	booking, _ = db.GetBookingByID(bookingID)
+
+	if NotifyCancellationFunc != nil {
+		if err := NotifyCancellationFunc(booking, "client"); err != nil {
+			log.Printf("Error notifying cancellation: %v", err)
+		}
+	}
+
 	writeJSON(w, booking)
 }
 
@@ -493,6 +504,7 @@ type ClientProfileResponse struct {
 	NotifyBookingStatus bool   `json:"notifyBookingStatus"`
 	NotifyReminders     bool   `json:"notifyReminders"`
 	NotifyDaysOff       bool   `json:"notifyDaysOff"`
+	NotifyCancellations bool   `json:"notifyCancellations"`
 }
 
 type UpdateClientProfileRequest struct {
@@ -517,6 +529,7 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyBookingStatus: client.NotifyBookingStatus,
 		NotifyReminders:     client.NotifyReminders,
 		NotifyDaysOff:       client.NotifyDaysOff,
+		NotifyCancellations: client.NotifyCancellations,
 	}
 
 	writeJSON(w, resp)
@@ -576,6 +589,7 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
+		NotifyCancellations: updated.NotifyCancellations,
 	}
 
 	writeJSON(w, resp)
@@ -587,6 +601,7 @@ type UpdateClientNotificationPrefsRequest struct {
 	NotifyBookingStatus *bool `json:"notifyBookingStatus"`
 	NotifyReminders     *bool `json:"notifyReminders"`
 	NotifyDaysOff       *bool `json:"notifyDaysOff"`
+	NotifyCancellations *bool `json:"notifyCancellations"`
 }
 
 func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request) {
@@ -614,8 +629,12 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 	if req.NotifyDaysOff != nil {
 		notifyDaysOff = *req.NotifyDaysOff
 	}
+	notifyCancellations := client.NotifyCancellations
+	if req.NotifyCancellations != nil {
+		notifyCancellations = *req.NotifyCancellations
+	}
 
-	if err := db.UpdateClientNotificationPrefs(client.ID, notifyBookingStatus, notifyReminders, notifyDaysOff, client.NotifyWaitlist); err != nil {
+	if err := db.UpdateClientNotificationPrefs(client.ID, notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations); err != nil {
 		log.Printf("Error updating notification prefs: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
@@ -636,6 +655,7 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
+		NotifyCancellations: updated.NotifyCancellations,
 	}
 	writeJSON(w, resp)
 }
