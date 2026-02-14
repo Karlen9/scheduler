@@ -295,7 +295,7 @@ func CreateBookingByTrainer(trainerID, clientID, sessionTypeID string, startsAt,
 
 	_, err := DB.Exec(Q(`
 		INSERT INTO bookings (id, trainer_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, 'trainer')
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'trainer')
 	`), id, trainerID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
 	if err != nil {
 		return nil, err
@@ -334,24 +334,6 @@ func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 	}
 	n, err := result.RowsAffected()
 	return int(n), err
-}
-
-// RequestCancelBooking sets booking status to cancel_requested
-func RequestCancelBooking(bookingID string, requestedBy models.CancelledBy) error {
-	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'cancel_requested', cancelled_by = ? WHERE id = ?`), requestedBy, bookingID)
-	return err
-}
-
-// ApproveCancelBooking cancels the booking (approving a cancel request)
-func ApproveCancelBooking(bookingID string) error {
-	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status = 'cancel_requested'`), bookingID)
-	return err
-}
-
-// DeclineCancelBooking reverts a cancel request back to confirmed
-func DeclineCancelBooking(bookingID string) error {
-	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'confirmed', cancelled_by = NULL WHERE id = ? AND status = 'cancel_requested'`), bookingID)
-	return err
 }
 
 // CreateRescheduleBooking creates a new booking that replaces an existing one (status = reschedule_pending)

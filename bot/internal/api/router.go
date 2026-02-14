@@ -125,8 +125,6 @@ func NewRouter() http.Handler {
 			// Admin recurring individual booking management
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/cancel-request", HandleAdminBookingCancelRequest)
 			r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleAdminBookingMoveRequest)
-			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-cancel", HandleAdminApproveCancelBooking)
-			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-cancel", HandleAdminDeclineCancelBooking)
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-move", HandleAdminApproveMoveBooking)
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
 
