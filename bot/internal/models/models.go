@@ -100,8 +100,9 @@ type Booking struct {
 	ReplacesBookingID    string        `json:"replacesBookingId,omitempty"`
 
 	// Joined fields for API responses
-	SessionType *SessionType `json:"sessionType,omitempty"`
-	Client      *Client      `json:"-"`
+	SessionType    *SessionType `json:"sessionType,omitempty"`
+	ClientPhotoURL string       `json:"clientPhotoUrl,omitempty"`
+	Client         *Client      `json:"-"`
 }
 
 // RecurringScheduleStatus represents the status of a recurring schedule
@@ -132,8 +133,9 @@ type RecurringSchedule struct {
 	StartDate     string       `json:"startDate,omitempty"`
 	EndDate       string       `json:"endDate,omitempty"`
 	// Joined fields
-	SessionType *SessionType `json:"sessionType,omitempty"`
-	Bookings    []Booking    `json:"bookings,omitempty"`
+	SessionType    *SessionType `json:"sessionType,omitempty"`
+	ClientPhotoURL string       `json:"clientPhotoUrl,omitempty"`
+	Bookings       []Booking    `json:"bookings,omitempty"`
 }
 
 // TimeSlot represents an available time slot for booking

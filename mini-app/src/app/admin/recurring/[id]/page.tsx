@@ -6,7 +6,6 @@ import {
   Calendar,
   Clock,
   Dumbbell,
-  User,
   Repeat,
   X,
   Check,
@@ -16,6 +15,7 @@ import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api } from "@/lib/api";
+import { ClientAvatar } from "@/components/ClientAvatar";
 import { RecurringSchedule, Booking } from "@/lib/types";
 import { formatDuration } from "@/components/DurationSelector";
 import { useAdminRecurringDetail } from "@/hooks/queries";
@@ -320,7 +320,7 @@ export default function AdminRecurringDetailPage() {
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-muted-foreground" />
+              <ClientAvatar name={schedule.clientName} photoUrl={schedule.clientPhotoUrl} size="sm" />
               <span className="text-sm text-foreground">
                 {schedule.clientName}
               </span>
@@ -455,7 +455,7 @@ function BookingRow({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-muted-foreground" />
+            <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="sm" />
             <span className="text-sm text-foreground">
               {booking.clientName}
             </span>

@@ -2,7 +2,7 @@
 
 import { Check, X } from "lucide-react";
 import { Booking } from "@/lib/types";
-import { getAvatarColor } from "@/lib/colors";
+import { ClientAvatar } from "@/components/ClientAvatar";
 
 interface PendingBookingCardProps {
   booking: Booking;
@@ -30,9 +30,7 @@ export function PendingBookingCard({ booking, onAccept, onReject }: PendingBooki
   return (
     <div className="bg-card rounded-xl p-4 border-l-4 border-l-warning">
       <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base font-medium shrink-0 ${getAvatarColor(booking.clientName)}`}>
-          {booking.clientName.charAt(0)}
-        </div>
+        <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} />
         <div className="flex-1 min-w-0">
           <p className="font-medium text-foreground truncate">
             {booking.clientName}

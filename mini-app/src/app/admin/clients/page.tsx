@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Users } from "lucide-react";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { EmptyState } from "@/components/EmptyState";
+import { ClientAvatar } from "@/components/ClientAvatar";
 import { ClientInfo } from "@/lib/types";
-import { getAvatarColor } from "@/lib/colors";
-import { getPhotoUrl } from "@/lib/api";
 import { useClients } from "@/hooks/queries";
 
 export default function AdminClientsPage() {
@@ -60,7 +58,7 @@ export default function AdminClientsPage() {
           key={client.id}
           className="bg-card rounded-xl p-4 flex items-center gap-3"
         >
-          <ClientAvatar name={client.name} photoUrl={client.photoUrl} />
+          <ClientAvatar name={client.name} photoUrl={client.photoUrl} size="md" />
           <div className="flex-1 min-w-0">
             <div className="font-medium text-foreground truncate">
               {client.name}
@@ -72,27 +70,6 @@ export default function AdminClientsPage() {
         </div>
       ))}
       </div>
-    </div>
-  );
-}
-
-function ClientAvatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
-  const [error, setError] = useState(false);
-
-  if (photoUrl && !error) {
-    return (
-      <img
-        src={getPhotoUrl(photoUrl)}
-        alt={name}
-        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-        onError={() => setError(true)}
-      />
-    );
-  }
-
-  return (
-    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium flex-shrink-0 ${getAvatarColor(name)}`}>
-      {name.charAt(0)}
     </div>
   );
 }

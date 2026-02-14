@@ -1,6 +1,7 @@
 "use client";
 
 import { Booking } from "@/lib/types";
+import { ClientAvatar } from "@/components/ClientAvatar";
 
 interface DayTimelineProps {
   date: Date;
@@ -156,9 +157,12 @@ export function DayTimeline({
                 borderLeft: `3px solid ${colors.border}`,
               }}
             >
-              <p className="text-sm font-medium text-foreground truncate">
-                {booking.clientName}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="sm" />
+                <p className="text-sm font-medium text-foreground truncate">
+                  {booking.clientName}
+                </p>
+              </div>
               {rowSpan >= 2 && (
                 <p className="text-xs text-muted-foreground truncate">
                   {booking.sessionType?.name || "Тренировка"}
