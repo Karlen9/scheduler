@@ -34,8 +34,8 @@ func NewRouter() http.Handler {
 	// Super admin (list all trainers) - protect in production!
 	r.Get("/superadmin/trainers", HandleListAllTrainers)
 
-	// Public photo proxy (no auth needed for display)
-	r.Get("/api/photo/{fileId}", HandleGetPhoto)
+	// Public photo proxy (no auth needed, outside /api to avoid route group conflict)
+	r.Get("/photo/{fileId}", HandleGetPhoto)
 
 	// API routes with auth
 	r.Route("/api", func(r chi.Router) {
