@@ -320,6 +320,13 @@ export const api = {
       return this.updateBookingStatus(bookingId, "cancelled", reason);
     },
 
+    async rescheduleBooking(bookingId: string, data: { date: string; time: string }): Promise<Booking> {
+      return fetchAPI<Booking>(`/api/admin/bookings/${bookingId}/reschedule`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+
     // Durations
     async getDurations(): Promise<number[]> {
       return fetchAPI<number[]>("/api/admin/durations");

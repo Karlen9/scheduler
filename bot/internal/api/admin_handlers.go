@@ -564,6 +564,105 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
+// ========== Reschedule Booking ==========
+
+type AdminRescheduleBookingRequest struct {
+	Date string `json:"date"` // "2026-03-10"
+	Time string `json:"time"` // "10:00"
+}
+
+func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	if bookingID == "" {
+		http.Error(w, "Укажите ID записи", http.StatusBadRequest)
+		return
+	}
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil || booking.TrainerID != trainer.ID {
+		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		return
+	}
+
+	if booking.Status != models.BookingStatusPending && booking.Status != models.BookingStatusConfirmed {
+		http.Error(w, "Нельзя изменить эту запись", http.StatusBadRequest)
+		return
+	}
+
+	var req AdminRescheduleBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	if req.Date == "" || req.Time == "" {
+		http.Error(w, "Укажите дату и время", http.StatusBadRequest)
+		return
+	}
+
+	date, err := parseDate(req.Date)
+	if err != nil {
+		http.Error(w, "Неверный формат даты", http.StatusBadRequest)
+		return
+	}
+
+	timeParts := parseTime(req.Time)
+	duration := booking.DurationMinutes
+	if duration == 0 && booking.SessionType != nil {
+		duration = booking.SessionType.DurationMinutes
+	}
+	if duration == 0 {
+		duration = 60
+	}
+
+	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
+
+	// Check for conflicts (exclude current booking)
+	hasConflict, err := db.HasConflictingBooking(trainer.ID, startsAt, endsAt, bookingID)
+	if err != nil {
+		log.Printf("Error checking conflicts: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if hasConflict {
+		http.Error(w, "Это время уже занято", http.StatusConflict)
+		return
+	}
+
+	if err := db.UpdateBookingDateTime(bookingID, startsAt, endsAt, duration); err != nil {
+		log.Printf("Error updating booking: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("📅 RESCHEDULE [%s] Trainer: %s moved booking for client: %s | New: %s %s",
+		bookingID[:8], trainer.Name, booking.ClientName, req.Date, req.Time)
+
+	// Refresh booking
+	booking, _ = db.GetBookingByID(bookingID)
+
+	// Notify client
+	if NotifyStatusChangeFunc != nil && booking != nil {
+		if err := NotifyStatusChangeFunc(booking, "rescheduled"); err != nil {
+			log.Printf("Error notifying client about reschedule: %v", err)
+		}
+	}
+
+	writeJSON(w, booking)
+}
+
 // ========== Trainer-Initiated Bookings ==========
 
 // NotifyTrainerBookingFunc is a callback to notify client about trainer-created booking

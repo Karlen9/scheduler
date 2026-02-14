@@ -200,6 +200,13 @@ func CancelBooking(bookingID string, reason string, cancelledBy models.Cancelled
 	return err
 }
 
+func UpdateBookingDateTime(bookingID string, startsAt, endsAt time.Time, durationMinutes int) error {
+	_, err := DB.Exec(Q(`
+		UPDATE bookings SET starts_at = ?, ends_at = ?, duration_minutes = ? WHERE id = ?
+	`), startsAt, endsAt, durationMinutes, bookingID)
+	return err
+}
+
 func HasConflictingBooking(trainerID string, startsAt, endsAt time.Time, excludeBookingID string) (bool, error) {
 	var count int
 	err := DB.QueryRow(Q(`

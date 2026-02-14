@@ -100,6 +100,7 @@ func NewRouter() http.Handler {
 			r.Get("/bookings", HandleAdminGetBookings)
 			r.Post("/bookings", HandleAdminCreateBooking)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
+			r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
 
 			// Days off management
 			r.Get("/days-off", HandleGetDaysOff)

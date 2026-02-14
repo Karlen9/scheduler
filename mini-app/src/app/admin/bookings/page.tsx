@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { PendingBookingCard } from "@/components/PendingBookingCard";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { RescheduleSheet } from "@/components/RescheduleSheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NextBookingBanner } from "@/components/schedule/NextBookingBanner";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
@@ -34,6 +35,7 @@ export default function AdminBookingsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
 
   const error = fetchError ? (fetchError instanceof Error ? fetchError.message : "Ошибка загрузки") : null;
 
@@ -90,6 +92,11 @@ export default function AdminBookingsPage() {
 
   const handleBookingClick = (booking: Booking) => {
     setSelectedBooking(booking);
+  };
+
+  const handleRescheduleClick = (booking: Booking) => {
+    setSelectedBooking(null);
+    setRescheduleBooking(booking);
   };
 
   const handleCancelClick = () => {
@@ -209,7 +216,19 @@ export default function AdminBookingsPage() {
         booking={selectedBooking}
         isOpen={!!selectedBooking}
         onClose={() => setSelectedBooking(null)}
+        onReschedule={handleRescheduleClick}
         onCancel={handleCancelClick}
+      />
+
+      {/* Reschedule sheet */}
+      <RescheduleSheet
+        booking={rescheduleBooking}
+        isOpen={!!rescheduleBooking}
+        onClose={() => setRescheduleBooking(null)}
+        onSuccess={() => {
+          toast.success("Запись перенесена");
+          invalidateBookings();
+        }}
       />
 
       {/* Cancel dialog */}
