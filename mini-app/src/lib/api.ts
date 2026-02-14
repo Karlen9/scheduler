@@ -43,7 +43,9 @@ async function fetchAPI<T>(
 }
 
 export function getPhotoUrl(fileId: string): string {
-  return `${API_BASE_URL}/api/photo/${fileId}`;
+  const trainerId = getTrainerId();
+  const query = trainerId ? `?trainer=${trainerId}` : "";
+  return `${API_BASE_URL}/api/photo/${fileId}${query}`;
 }
 
 export const api = {
