@@ -41,7 +41,7 @@ function PlusButton({
         className={`absolute w-[82px] h-[82px] rounded-full flex items-center justify-center transition-all shadow-lg shadow-brand/30 ${
           isActive
             ? "bg-brand text-white scale-105"
-            : "bg-brand/80 text-white"
+            : "bg-brand text-white"
         }`}
         style={{ top: "50%", transform: `translateY(-50%)${isActive ? " scale(1.05)" : ""}` }}
       >
