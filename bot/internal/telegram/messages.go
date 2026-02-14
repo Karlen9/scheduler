@@ -469,7 +469,7 @@ func FormatTrainerCreatedBookingClient(booking *models.Booking) string {
 		msg += fmt.Sprintf("\n💬 Сообщение: %s", booking.ClientMessage)
 	}
 
-	msg += "\n\nПодтвердите или отклоните запись."
+	msg += "\n\nЗапись подтверждена."
 	return msg
 }
 
