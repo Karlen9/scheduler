@@ -43,7 +43,7 @@ async function fetchAPI<T>(
 }
 
 export function getPhotoUrl(fileId: string): string {
-  return `${API_BASE_URL}/photo/${fileId}`;
+  return `${API_BASE_URL}/api/photo/${fileId}`;
 }
 
 export const api = {

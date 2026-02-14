@@ -34,13 +34,13 @@ func NewRouter() http.Handler {
 	// Super admin (list all trainers) - protect in production!
 	r.Get("/superadmin/trainers", HandleListAllTrainers)
 
-	// Public photo proxy (no auth needed, outside /api to avoid route group conflict)
-	r.Get("/photo/{fileId}", HandleGetPhoto)
-
 	// API routes with auth
 	r.Route("/api", func(r chi.Router) {
 		r.Use(TelegramAuthMiddleware("")) // botToken not used, we look it up per trainer
 		r.Use(DevAuthMiddleware(0))       // Fallback for dev
+
+		// Photo proxy (works without auth — middleware passes through unauthenticated requests)
+		r.Get("/photo/{fileId}", HandleGetPhoto)
 
 		r.Get("/trainer", HandleGetTrainer)
 		r.Get("/services", HandleGetServices)
