@@ -1,9 +1,11 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -54,8 +56,8 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// HandleUploadPhoto handles photo upload for clients and trainers.
-// POST /api/upload/photo (client) or POST /api/admin/upload/photo (trainer)
+// HandleUploadPhoto handles photo upload for clients.
+// POST /api/upload/photo
 func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	trainer := GetTrainerFromContext(r)
@@ -64,64 +66,29 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxPhotoSize+512) // small buffer for multipart headers
-	if err := r.ParseMultipartForm(maxPhotoSize); err != nil {
-		http.Error(w, "file too large (max 5MB)", http.StatusBadRequest)
-		return
-	}
-
-	file, header, err := r.FormFile("photo")
+	photoData, filename, err := readUploadedPhoto(r)
 	if err != nil {
-		http.Error(w, "photo field required", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	// Validate content type
-	ct := header.Header.Get("Content-Type")
-	switch ct {
-	case "image/jpeg", "image/png", "image/webp":
-		// ok
-	default:
-		http.Error(w, "only JPEG, PNG, WebP allowed", http.StatusBadRequest)
+		log.Printf("Upload read error: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	photoData, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, "failed to read photo", http.StatusInternalServerError)
-		return
-	}
-
-	// Upload to Telegram via the trainer's bot
 	bot := &telegram.Bot{Token: trainer.BotToken}
-	chatID := trainer.TelegramUserID // send to trainer's chat as temp storage
+	chatID := trainer.TelegramUserID
 	if client != nil {
 		chatID = client.TelegramUserID
 	}
 
-	fileID, msgID, err := bot.SendPhoto(chatID, photoData, header.Filename)
+	fileID, msgID, err := bot.SendPhoto(chatID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		http.Error(w, "failed to upload photo", http.StatusInternalServerError)
 		return
 	}
 
-	// Delete the temp message
 	go bot.DeleteMessage(chatID, msgID)
 
-	// Determine if this is an admin (trainer) or client upload
-	isAdmin := client != nil && client.TelegramUserID == trainer.TelegramUserID
-	// Check route prefix to distinguish admin vs client
-	if isAdmin && len(r.URL.Path) > 10 && r.URL.Path[:10] == "/api/admin" {
-		// Update trainer photo
-		if err := db.UpdateTrainerPhoto(trainer.ID, fileID); err != nil {
-			log.Printf("UpdateTrainerPhoto error: %v", err)
-			http.Error(w, "failed to save photo", http.StatusInternalServerError)
-			return
-		}
-	} else if client != nil {
-		// Update client photo
+	if client != nil {
 		if err := db.UpdateClientPhoto(client.ID, fileID); err != nil {
 			log.Printf("UpdateClientPhoto error: %v", err)
 			http.Error(w, "failed to save photo", http.StatusInternalServerError)
@@ -130,4 +97,67 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, map[string]string{"fileId": fileID})
+}
+
+// HandleAdminUploadPhoto handles photo upload for trainers.
+// POST /api/admin/upload/photo
+func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "trainer not found", http.StatusNotFound)
+		return
+	}
+
+	photoData, filename, err := readUploadedPhoto(r)
+	if err != nil {
+		log.Printf("Upload read error: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	bot := &telegram.Bot{Token: trainer.BotToken}
+
+	fileID, msgID, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
+	if err != nil {
+		log.Printf("SendPhoto error: %v", err)
+		http.Error(w, "failed to upload photo", http.StatusInternalServerError)
+		return
+	}
+
+	go bot.DeleteMessage(trainer.TelegramUserID, msgID)
+
+	if err := db.UpdateTrainerPhoto(trainer.ID, fileID); err != nil {
+		log.Printf("UpdateTrainerPhoto error: %v", err)
+		http.Error(w, "failed to save photo", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, map[string]string{"fileId": fileID})
+}
+
+// readUploadedPhoto reads and validates the uploaded photo from a multipart request.
+func readUploadedPhoto(r *http.Request) ([]byte, string, error) {
+	r.Body = http.MaxBytesReader(nil, r.Body, maxPhotoSize+1<<20) // 6MB total for multipart overhead
+	if err := r.ParseMultipartForm(maxPhotoSize); err != nil {
+		return nil, "", fmt.Errorf("file too large (max 5MB)")
+	}
+
+	file, header, err := r.FormFile("photo")
+	if err != nil {
+		return nil, "", fmt.Errorf("photo field required")
+	}
+	defer file.Close()
+
+	photoData, err := io.ReadAll(file)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read photo")
+	}
+
+	// Detect content type from actual file bytes
+	ct := http.DetectContentType(photoData)
+	if !strings.HasPrefix(ct, "image/") {
+		return nil, "", fmt.Errorf("only image files allowed")
+	}
+
+	return photoData, header.Filename, nil
 }
