@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Clock, Repeat, User, Calendar, Check, X, ChevronRight } from "lucide-react";
+import { Clock, Repeat, Calendar, Check, X, ChevronRight } from "lucide-react";
 import { formatDuration } from "@/components/DurationSelector";
+import { ClientAvatar } from "@/components/ClientAvatar";
 import { RecurringSchedule, SessionType } from "@/lib/types";
 
 interface RecurringScheduleCardProps {
@@ -97,7 +98,7 @@ export function RecurringScheduleCard({
         <div className="flex-1">
           {schedule.clientName && (
             <div className="flex items-center gap-2 mb-2">
-              <User className="w-4 h-4 text-muted-foreground" />
+              <ClientAvatar name={schedule.clientName} photoUrl={schedule.clientPhotoUrl} size="sm" />
               <span className="text-sm font-medium text-foreground">
                 {schedule.clientName}
               </span>

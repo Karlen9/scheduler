@@ -34,6 +34,7 @@ export interface Booking {
   startsAt: string; // ISO datetime
   endsAt: string;
   clientName: string;
+  clientPhotoUrl?: string;
   clientMessage?: string;
   status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed" | "cancel_requested" | "reschedule_pending";
   cancelReason?: string;
@@ -81,6 +82,7 @@ export interface DayOff {
 export interface RecurringSchedule {
   id: string;
   clientName: string;
+  clientPhotoUrl?: string;
   dayOfWeek: number;           // kept for backward compat
   time: string;
   durationMinutes: number;

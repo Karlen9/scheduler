@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { formatDuration } from "@/components/DurationSelector";
 import { api } from "@/lib/api";
 import { ClientInfo, SessionType, TimeSlot } from "@/lib/types";
-import { getAvatarColor } from "@/lib/colors";
+import { ClientAvatar } from "@/components/ClientAvatar";
 import { useClients, useAdminServices, useWorkingHours, useDaysOff } from "@/hooks/queries";
 import { invalidateBookings } from "@/hooks/mutations";
 
@@ -282,11 +282,7 @@ export default function AdminBookPage() {
                             : ""
                         }`}
                       >
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-medium shrink-0 ${getAvatarColor(client.name)}`}
-                        >
-                          {client.name.charAt(0)}
-                        </div>
+                        <ClientAvatar name={client.name} photoUrl={client.photoUrl} />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-foreground truncate">
                             {client.name}

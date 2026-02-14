@@ -1,7 +1,7 @@
 "use client";
 
 import { Booking } from "@/lib/types";
-import { getAvatarColor } from "@/lib/colors";
+import { ClientAvatar } from "@/components/ClientAvatar";
 
 interface NearestBookingCardProps {
   booking: Booking;
@@ -56,9 +56,7 @@ export function NearestBookingCard({ booking, onClick }: NearestBookingCardProps
               {formatTime(startsAt)} – {formatTime(endsAt)}
             </p>
           </div>
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${getAvatarColor(booking.clientName)}`}>
-            {booking.clientName.charAt(0)}
-          </div>
+          <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} />
         </div>
       </button>
     </div>

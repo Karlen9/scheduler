@@ -28,7 +28,8 @@ func CreateBooking(trainerID, clientID, sessionTypeID string, startsAt, endsAt t
 // Must match scanBookingRow field order exactly.
 const bookingColumns = `id, trainer_id, client_id, session_type_id, starts_at, ends_at,
 	client_name, client_message, status, cancel_reason, cancelled_by, created_at,
-	duration_minutes, created_by, recurring_schedule_id, replaces_booking_id`
+	duration_minutes, created_by, recurring_schedule_id, replaces_booking_id,
+	COALESCE((SELECT photo_url FROM clients WHERE id = bookings.client_id), '')`
 
 func GetBookingByID(id string) (*models.Booking, error) {
 	var b models.Booking
@@ -46,7 +47,7 @@ func GetBookingByID(id string) (*models.Booking, error) {
 		WHERE id = ?
 	`), id).Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
-		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID)
+		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -146,7 +147,7 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 
 		if err := rows.Scan(&b.ID, &b.TrainerID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
-			&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID); err != nil {
+			&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL); err != nil {
 			return nil, err
 		}
 

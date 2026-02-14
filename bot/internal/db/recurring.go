@@ -13,13 +13,14 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-const recurringColumns = `id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at, session_type_id, days_of_week, start_date, end_date`
+const recurringColumns = `id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at, session_type_id, days_of_week, start_date, end_date,
+	COALESCE((SELECT photo_url FROM clients WHERE id = recurring_schedules.client_id), '')`
 
 func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models.RecurringSchedule, error) {
 	var s models.RecurringSchedule
 	var sessionTypeID, daysOfWeek, startDate, endDate sql.NullString
 
-	err := row.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate)
+	err := row.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &s.ClientPhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +267,7 @@ func scanRecurringSchedules(rows *sql.Rows) ([]models.RecurringSchedule, error) 
 		var s models.RecurringSchedule
 		var sessionTypeID, daysOfWeek, startDate, endDate sql.NullString
 
-		if err := rows.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate); err != nil {
+		if err := rows.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &s.ClientPhotoURL); err != nil {
 			return nil, err
 		}
 
