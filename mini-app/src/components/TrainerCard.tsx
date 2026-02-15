@@ -8,12 +8,11 @@ import { getPhotoUrl } from "@/lib/api";
 interface TrainerCardProps {
   name: string;
   specialization: string;
-  rating?: number;
-  bio: string;
   photoUrl?: string;
   phone?: string;
   telegram?: string;
   botUsername?: string;
+  servicesCount?: number;
   onServices?: () => void;
   onShare?: () => void;
 }
@@ -21,11 +20,11 @@ interface TrainerCardProps {
 export function TrainerCard({
   name,
   specialization,
-  bio,
   photoUrl,
   phone,
   telegram,
   botUsername,
+  servicesCount,
   onServices,
   onShare,
 }: TrainerCardProps) {
@@ -61,9 +60,11 @@ export function TrainerCard({
           <h2 className="text-xl font-bold text-foreground mb-2 leading-tight">
             {name}
           </h2>
-          <p className="text-sm font-medium text-foreground mb-3 leading-snug">
-            {specialization}
-          </p>
+          {specialization && (
+            <p className="text-sm font-medium text-foreground mb-3 leading-snug">
+              {specialization}
+            </p>
+          )}
 
           {/* Contact Info */}
           {(phone || telegram) && (
@@ -85,10 +86,15 @@ export function TrainerCard({
         </div>
       </div>
 
-      {/* Bio */}
-      <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-        {bio}
-      </p>
+      {/* Stats row */}
+      {servicesCount != null && servicesCount > 0 && (
+        <div className="bg-background rounded-xl p-4 mb-4">
+          <div className="text-center">
+            <p className="text-lg font-bold text-foreground">{servicesCount}</p>
+            <p className="text-xs text-muted-foreground">Услуг</p>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-2">
