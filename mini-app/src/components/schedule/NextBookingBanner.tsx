@@ -1,10 +1,12 @@
 "use client";
 
+import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Booking } from "@/lib/types";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
 interface NextBookingBannerProps {
-  booking: Booking;
+  booking: Booking | null;
 }
 
 function formatTime(iso: string): string {
@@ -44,6 +46,30 @@ function dayWord(n: number): string {
 }
 
 export function NextBookingBanner({ booking }: NextBookingBannerProps) {
+  const router = useRouter();
+
+  if (!booking) {
+    return (
+      <div>
+        <h2 className="text-base font-medium text-foreground mb-3">Ближайшая запись</h2>
+        <div className="bg-card rounded-xl p-4 border-l-4 border-l-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-muted-foreground">Записей нет</p>
+              <p className="text-sm text-muted-foreground/60 mt-0.5">Нет предстоящих тренировок</p>
+            </div>
+            <button
+              onClick={() => router.push("/admin/book")}
+              className="w-10 h-10 rounded-full bg-brand flex items-center justify-center transition-opacity active:opacity-80"
+            >
+              <Plus className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h2 className="text-base font-medium text-foreground mb-3">Ближайшая запись</h2>

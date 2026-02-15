@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Booking } from "@/lib/types";
+import { Booking, WorkingHours } from "@/lib/types";
 import { MonthGrid, WeekStrip } from "@/components/Calendar";
 import { DayTimeline } from "./DayTimeline";
 
@@ -13,6 +13,8 @@ interface ScheduleViewProps {
   onBookingClick?: (booking: Booking) => void;
   nonWorkingDays?: number[];
   daysOff?: string[];
+  workingHours?: WorkingHours[];
+  onEmptySlotClick?: (date: Date, time: string) => void;
 }
 
 const monthNamesGen = [
@@ -43,7 +45,7 @@ function formatDateHeader(date: Date): string {
   return `${day} ${month.charAt(0).toUpperCase() + month.slice(1)}, ${weekday}`;
 }
 
-export function ScheduleView({ bookings, onBookingClick, nonWorkingDays, daysOff }: ScheduleViewProps) {
+export function ScheduleView({ bookings, onBookingClick, nonWorkingDays, daysOff, workingHours, onEmptySlotClick }: ScheduleViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = useState(() => toLocalDate(new Date()));
 
@@ -88,18 +90,21 @@ export function ScheduleView({ bookings, onBookingClick, nonWorkingDays, daysOff
       <h2 className="text-base font-medium text-foreground mb-3">Расписание</h2>
 
       {/* Tabs */}
-      <div className="flex bg-card rounded-xl p-1 mb-4">
+      <div className="flex border-b border-border mb-4">
         {(["day", "week", "month"] as ViewMode[]).map((mode) => (
           <button
             key={mode}
             onClick={() => setViewMode(mode)}
-            className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+            className={`flex-1 py-2.5 text-sm transition-colors relative ${
               viewMode === mode
-                ? "bg-background text-foreground font-medium"
+                ? "text-brand font-medium"
                 : "text-muted-foreground"
             }`}
           >
             {mode === "day" ? "День" : mode === "week" ? "Неделя" : "Месяц"}
+            {viewMode === mode && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand rounded-full" />
+            )}
           </button>
         ))}
       </div>
@@ -160,6 +165,8 @@ export function ScheduleView({ bookings, onBookingClick, nonWorkingDays, daysOff
         bookings={dayBookings}
         date={selectedDate}
         onBookingClick={onBookingClick}
+        workingHours={workingHours}
+        onEmptySlotClick={onEmptySlotClick}
       />
     </div>
   );
