@@ -407,19 +407,27 @@ func FormatRecurringScheduleDeclinedClient(schedule *models.RecurringSchedule) s
 
 // FormatBookingCancelledForTrainer creates a notification for trainer when client cancels
 func FormatBookingCancelledForTrainer(booking *models.Booking) string {
-	return fmt.Sprintf("❌ Клиент отменил запись\n\n👤 %s\n📋 %s\n🕐 %s",
+	msg := fmt.Sprintf("❌ Клиент отменил запись\n\n👤 %s\n📋 %s\n🕐 %s",
 		booking.ClientName,
 		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
+	if booking.CancelReason != "" {
+		msg += fmt.Sprintf("\n💬 Причина: %s", booking.CancelReason)
+	}
+	return msg
 }
 
 // FormatBookingCancelledForClient creates a notification for client when trainer cancels
 func FormatBookingCancelledForClient(booking *models.Booking) string {
-	return fmt.Sprintf("❌ Тренер отменил вашу запись\n\n📋 %s\n🕐 %s",
+	msg := fmt.Sprintf("❌ Тренер отменил вашу запись\n\n📋 %s\n🕐 %s",
 		bookingServiceDisplay(booking),
 		formatDateTime(booking.StartsAt),
 	)
+	if booking.CancelReason != "" {
+		msg += fmt.Sprintf("\n💬 Причина: %s", booking.CancelReason)
+	}
+	return msg
 }
 
 // FormatMoveRequestForTrainer creates a message for trainer when client requests booking move
