@@ -11,8 +11,6 @@ interface BookingDetailModalProps {
   onClose: () => void;
   onReschedule?: (booking: Booking) => void;
   onCancel?: (booking: Booking) => void;
-  onAccept?: (booking: Booking) => void;
-  onReject?: (booking: Booking) => void;
 }
 
 function formatDate(date: Date): string {
@@ -34,8 +32,6 @@ export function BookingDetailModal({
   onClose,
   onReschedule,
   onCancel,
-  onAccept,
-  onReject,
 }: BookingDetailModalProps) {
   if (!booking) return null;
 
@@ -96,24 +92,6 @@ export function BookingDetailModal({
           </div>
         )}
       </div>
-
-      {/* Accept / Reject for pending client-created bookings */}
-      {booking.status === "pending" && booking.createdBy !== "trainer" && (onAccept || onReject) && (
-        <div className="flex gap-3 mb-3">
-          <button
-            onClick={() => onAccept?.(booking)}
-            className="flex-1 py-3 px-4 rounded-[28px] bg-green-600 text-white text-sm font-medium transition-opacity active:opacity-80"
-          >
-            Подтвердить
-          </button>
-          <button
-            onClick={() => onReject?.(booking)}
-            className="flex-1 py-3 px-4 rounded-[28px] bg-red-600 text-white text-sm font-medium transition-opacity active:opacity-80"
-          >
-            Отклонить
-          </button>
-        </div>
-      )}
 
       {/* Actions */}
       {(booking.status === "pending" || booking.status === "confirmed") && (
