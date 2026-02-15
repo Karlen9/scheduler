@@ -42,7 +42,7 @@ export default function AdminBookingsPage() {
   const pendingBookings = useMemo(
     () =>
       bookings
-        .filter((b) => b.status === "pending")
+        .filter((b) => b.status === "pending" && b.createdBy !== "trainer")
         .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
     [bookings],
   );

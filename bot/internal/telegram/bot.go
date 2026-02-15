@@ -354,74 +354,9 @@ func (b *Bot) AnswerCallbackQuery(callbackQueryID string, text string) error {
 	return nil
 }
 
-// SendBookingApprovalMessage sends a booking approval request to trainer
-func (b *Bot) SendBookingApprovalMessage(trainerChatID int64, bookingID string, text string) (*Message, error) {
-	keyboard := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{
-				{Text: BtnAccept, CallbackData: fmt.Sprintf("accept:%s", bookingID)},
-				{Text: BtnReject, CallbackData: fmt.Sprintf("reject:%s", bookingID)},
-			},
-		},
-	}
-
-	return b.SendMessage(trainerChatID, text, keyboard)
-}
-
-// SendRecurringScheduleApprovalMessage sends a recurring schedule approval request to trainer
-func (b *Bot) SendRecurringScheduleApprovalMessage(chatID int64, scheduleID, text string) (*Message, error) {
-	keyboard := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{
-				{Text: BtnAccept, CallbackData: fmt.Sprintf("accept_schedule:%s", scheduleID)},
-				{Text: BtnReject, CallbackData: fmt.Sprintf("reject_schedule:%s", scheduleID)},
-			},
-		},
-	}
-
-	return b.SendMessage(chatID, text, keyboard)
-}
-
-// SendRecurringScheduleClientApprovalMessage sends a recurring schedule confirmation request to client
-func (b *Bot) SendRecurringScheduleClientApprovalMessage(chatID int64, scheduleID, text string) (*Message, error) {
-	keyboard := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{
-				{Text: BtnClientAccept, CallbackData: fmt.Sprintf("client_accept_schedule:%s", scheduleID)},
-				{Text: BtnClientDecline, CallbackData: fmt.Sprintf("client_decline_schedule:%s", scheduleID)},
-			},
-		},
-	}
-
-	return b.SendMessage(chatID, text, keyboard)
-}
-
-// SendClientBookingConfirmMessage sends a trainer-created booking confirmation request to client
-func (b *Bot) SendClientBookingConfirmMessage(chatID int64, bookingID string, text string) (*Message, error) {
-	keyboard := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{
-				{Text: BtnClientAccept, CallbackData: fmt.Sprintf("client_accept:%s", bookingID)},
-				{Text: BtnClientDecline, CallbackData: fmt.Sprintf("client_decline:%s", bookingID)},
-			},
-		},
-	}
-
-	return b.SendMessage(chatID, text, keyboard)
-}
-
-// SendMoveApprovalMessage sends a move request with approve/decline buttons
-func (b *Bot) SendMoveApprovalMessage(chatID int64, newBookingID string, text string) (*Message, error) {
-	keyboard := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{
-				{Text: BtnAccept, CallbackData: fmt.Sprintf("move_approve:%s", newBookingID)},
-				{Text: BtnReject, CallbackData: fmt.Sprintf("move_decline:%s", newBookingID)},
-			},
-		},
-	}
-
-	return b.SendMessage(chatID, text, keyboard)
+// SendNotification sends a plain notification message (no inline buttons)
+func (b *Bot) SendNotification(chatID int64, text string) (*Message, error) {
+	return b.SendMessage(chatID, text, nil)
 }
 
 // SendWebAppButton sends a message with web app button

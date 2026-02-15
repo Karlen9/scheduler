@@ -132,12 +132,8 @@ const BtnOpenApp = "📅 Записаться"
 // BtnOpenAdmin is the button text for opening admin panel
 const BtnOpenAdmin = "🔧 Панель управления"
 
-// BtnAccept is the accept button text
-const BtnAccept = "✅ Подтвердить"
-
-// BtnReject is the reject button text
-const BtnReject = "❌ Отклонить"
-
+// MsgOpenAppHint is the hint to open the app for actions
+const MsgOpenAppHint = "\n\nОткройте приложение для подтверждения или отклонения."
 
 // FormatNewBookingMessage creates a message for trainer about new booking request
 func FormatNewBookingMessage(booking *models.Booking) string {
@@ -155,6 +151,7 @@ func FormatNewBookingMessage(booking *models.Booking) string {
 		msg += fmt.Sprintf("\n💬 Сообщение: %s", booking.ClientMessage)
 	}
 
+	msg += MsgOpenAppHint
 	return msg
 }
 
@@ -348,6 +345,7 @@ func FormatRecurringScheduleRequest(schedule *models.RecurringSchedule, count in
 	if count > 0 {
 		msg += fmt.Sprintf("\n📊 %d тренировок", count)
 	}
+	msg += MsgOpenAppHint
 	return msg
 }
 
@@ -361,7 +359,7 @@ func FormatRecurringScheduleRequestForClient(schedule *models.RecurringSchedule,
 	if count > 0 {
 		msg += fmt.Sprintf("\n📊 %d тренировок", count)
 	}
-	msg += "\n\nПодтвердите или отклоните расписание."
+	msg += MsgOpenAppHint
 	return msg
 }
 
@@ -426,20 +424,22 @@ func FormatBookingCancelledForClient(booking *models.Booking) string {
 
 // FormatMoveRequestForTrainer creates a message for trainer when client requests booking move
 func FormatMoveRequestForTrainer(newBooking, oldBooking *models.Booking) string {
-	return fmt.Sprintf("🔄 Запрос на перенос\n\n👤 %s\n📋 %s\n🕐 Было: %s\n🕐 Новое: %s",
+	return fmt.Sprintf("🔄 Запрос на перенос\n\n👤 %s\n📋 %s\n🕐 Было: %s\n🕐 Новое: %s%s",
 		oldBooking.ClientName,
 		bookingServiceDisplay(oldBooking),
 		formatDateTime(oldBooking.StartsAt),
 		formatDateTime(newBooking.StartsAt),
+		MsgOpenAppHint,
 	)
 }
 
 // FormatMoveRequestForClient creates a message for client when trainer requests booking move
 func FormatMoveRequestForClient(newBooking, oldBooking *models.Booking) string {
-	return fmt.Sprintf("🔄 Тренер предлагает перенести тренировку\n\n📋 %s\n🕐 Было: %s\n🕐 Новое: %s\n\nПодтвердите или отклоните перенос.",
+	return fmt.Sprintf("🔄 Тренер предлагает перенести тренировку\n\n📋 %s\n🕐 Было: %s\n🕐 Новое: %s%s",
 		bookingServiceDisplay(oldBooking),
 		formatDateTime(oldBooking.StartsAt),
 		formatDateTime(newBooking.StartsAt),
+		MsgOpenAppHint,
 	)
 }
 
@@ -464,12 +464,6 @@ func FormatMoveDeclined(oldBooking *models.Booking) string {
 
 // ========== Trainer-Initiated Booking Messages ==========
 
-// BtnClientAccept is the accept button text for client (trainer-created booking)
-const BtnClientAccept = "✅ Подтвердить"
-
-// BtnClientDecline is the decline button text for client (trainer-created booking)
-const BtnClientDecline = "❌ Отклонить"
-
 // FormatTrainerCreatedBookingClient creates a message for client when trainer books them
 func FormatTrainerCreatedBookingClient(booking *models.Booking) string {
 	msg := fmt.Sprintf(`📅 Тренер записал вас на тренировку
@@ -484,7 +478,7 @@ func FormatTrainerCreatedBookingClient(booking *models.Booking) string {
 		msg += fmt.Sprintf("\n💬 Сообщение: %s", booking.ClientMessage)
 	}
 
-	msg += "\n\nПодтвердите или отклоните запись."
+	msg += MsgOpenAppHint
 	return msg
 }
 
