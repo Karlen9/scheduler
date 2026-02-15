@@ -208,8 +208,8 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
           <button
             key={`empty-${slot.startMin}`}
             onClick={() => onEmptySlotClick?.(date, formatMinutes(slot.startMin))}
-            className="absolute left-14 right-0 border border-dashed border-border rounded-xl px-3 py-2 text-left transition-opacity active:opacity-80 overflow-hidden"
-            style={{ top: top + 2, height: height - 4 }}
+            className="absolute left-12 right-0 bg-card border border-dashed border-surface-border rounded-xl px-3 py-2 text-left transition-opacity active:opacity-80 overflow-hidden"
+            style={{ top: top + 1.5, height: height - 3 }}
           >
             <div className="flex items-center justify-between h-full">
               <div className="min-w-0">
@@ -245,8 +245,8 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
           <button
             key={booking.id}
             onClick={() => onBookingClick?.(booking)}
-            className={`absolute left-14 right-0 ${style.bg} rounded-xl px-3 py-2 text-left transition-opacity active:opacity-80 overflow-hidden`}
-            style={{ top: top + 2, height: height - 4 }}
+            className={`absolute left-12 right-0 ${style.bg} rounded-xl px-3 py-2 text-left transition-opacity active:opacity-80 overflow-hidden`}
+            style={{ top: top + 1.5, height: height - 3 }}
           >
             <div className="flex items-center gap-2 h-full">
               <div className="flex-1 min-w-0">
