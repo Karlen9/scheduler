@@ -1,23 +1,27 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Bell, Users } from "lucide-react";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
-import { PendingBookingCard } from "@/components/PendingBookingCard";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { RescheduleSheet } from "@/components/RescheduleSheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NextBookingBanner } from "@/components/schedule/NextBookingBanner";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
+import { StatCard } from "@/components/StatCard";
 import { Booking } from "@/lib/types";
 import { api } from "@/lib/api";
-import { useAdminBookings, useAdminWorkingHours, useAdminDaysOff } from "@/hooks/queries";
+import { useAdminBookings, useAdminWorkingHours, useAdminDaysOff, useClients } from "@/hooks/queries";
 import { invalidateBookings } from "@/hooks/mutations";
 
 export default function AdminBookingsPage() {
+  const router = useRouter();
   const { data: bookings, isLoading, error: fetchError } = useAdminBookings({ refreshInterval: 15000 });
   const { data: workingHoursData } = useAdminWorkingHours();
   const { data: daysOffData } = useAdminDaysOff();
+  const { data: clients } = useClients();
 
   const nonWorkingDays = useMemo(() => {
     const workingSet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
@@ -39,11 +43,8 @@ export default function AdminBookingsPage() {
 
   const error = fetchError ? (fetchError instanceof Error ? fetchError.message : "Ошибка загрузки") : null;
 
-  const pendingBookings = useMemo(
-    () =>
-      bookings
-        .filter((b) => b.status === "pending" && b.createdBy !== "trainer")
-        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
+  const pendingCount = useMemo(
+    () => bookings.filter((b) => b.status === "pending" && b.createdBy !== "trainer").length,
     [bookings],
   );
 
@@ -65,6 +66,7 @@ export default function AdminBookingsPage() {
     try {
       await api.admin.updateBookingStatus(booking.id, "confirmed");
       toast.success("Запись подтверждена");
+      setSelectedBooking(null);
       await invalidateBookings();
     } catch {
       toast.error("Не удалось подтвердить запись");
@@ -72,6 +74,7 @@ export default function AdminBookingsPage() {
   };
 
   const handleRejectClick = (booking: Booking) => {
+    setSelectedBooking(null);
     setRejectTarget(booking);
     setShowRejectDialog(true);
   };
@@ -117,6 +120,10 @@ export default function AdminBookingsPage() {
     setCancelReason("");
   };
 
+  const handleEmptySlotClick = (_date: Date, _time: string) => {
+    router.push("/admin/book");
+  };
+
   if (isLoading) {
     return (
       <div>
@@ -158,29 +165,25 @@ export default function AdminBookingsPage() {
       <ActivityBackButton href="/admin" />
       <div className="p-4 space-y-6">
         {/* Next upcoming booking */}
-        {nextBooking && <NextBookingBanner booking={nextBooking} />}
+        <NextBookingBanner booking={nextBooking} />
 
-        {/* Pending bookings */}
-        {pendingBookings.length > 0 && (
-          <section>
-            <h2 className="text-base font-medium text-foreground mb-3">
-              Новые заявки
-              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-warning/20 text-warning">
-                {pendingBookings.length}
-              </span>
-            </h2>
-            <div className="space-y-3">
-              {pendingBookings.map((booking) => (
-                <PendingBookingCard
-                  key={booking.id}
-                  booking={booking}
-                  onAccept={handleAccept}
-                  onReject={handleRejectClick}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Stats row */}
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            icon={Bell}
+            iconColor="text-warning"
+            iconBg="bg-warning/20"
+            value={pendingCount}
+            label="Новые заявки"
+          />
+          <StatCard
+            icon={Users}
+            iconColor="text-brand"
+            iconBg="bg-brand/20"
+            value={clients.length}
+            label="Все клиенты"
+          />
+        </div>
 
         {/* Schedule */}
         <ScheduleView
@@ -188,6 +191,8 @@ export default function AdminBookingsPage() {
           onBookingClick={handleBookingClick}
           nonWorkingDays={nonWorkingDays}
           daysOff={daysOff}
+          workingHours={workingHoursData}
+          onEmptySlotClick={handleEmptySlotClick}
         />
       </div>
 
@@ -218,6 +223,8 @@ export default function AdminBookingsPage() {
         onClose={() => setSelectedBooking(null)}
         onReschedule={handleRescheduleClick}
         onCancel={handleCancelClick}
+        onAccept={handleAccept}
+        onReject={handleRejectClick}
       />
 
       {/* Reschedule sheet */}
