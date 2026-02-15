@@ -202,7 +202,7 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
       {/* Empty slot cards */}
       {emptySlots.map((slot) => {
         const top = ((slot.startMin - minHour * 60) / 60) * HOUR_HEIGHT;
-        const height = Math.max(((slot.endMin - slot.startMin) / 60) * HOUR_HEIGHT, 40);
+        const height = ((slot.endMin - slot.startMin) / 60) * HOUR_HEIGHT;
 
         return (
           <button
@@ -238,7 +238,7 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
         const startMin = start.getUTCHours() * 60 + start.getUTCMinutes();
         const endMin = end.getUTCHours() * 60 + end.getUTCMinutes();
         const top = ((startMin - minHour * 60) / 60) * HOUR_HEIGHT;
-        const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 40);
+        const height = ((endMin - startMin) / 60) * HOUR_HEIGHT;
         const style = getCardStyle(booking.status);
 
         return (
