@@ -7,6 +7,7 @@ import { ClientAvatar } from "@/components/ClientAvatar";
 
 interface NextBookingBannerProps {
   booking: Booking | null;
+  onBookingClick?: (booking: Booking) => void;
 }
 
 function formatTime(iso: string): string {
@@ -45,7 +46,7 @@ function dayWord(n: number): string {
   return "дней";
 }
 
-export function NextBookingBanner({ booking }: NextBookingBannerProps) {
+export function NextBookingBanner({ booking, onBookingClick }: NextBookingBannerProps) {
   const router = useRouter();
 
   if (!booking) {
@@ -73,7 +74,10 @@ export function NextBookingBanner({ booking }: NextBookingBannerProps) {
   return (
     <div>
       <h2 className="text-base font-medium text-foreground mb-3">Ближайшая запись</h2>
-      <div className="bg-card rounded-xl p-4 border-l-4 border-l-brand">
+      <button
+        onClick={() => onBookingClick?.(booking)}
+        className="w-full bg-card rounded-xl p-4 border-l-4 border-l-brand text-left transition-opacity active:opacity-80"
+      >
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="font-medium text-foreground truncate">{booking.clientName}</p>
@@ -87,7 +91,7 @@ export function NextBookingBanner({ booking }: NextBookingBannerProps) {
           </div>
           <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="lg" />
         </div>
-      </div>
+      </button>
     </div>
   );
 }

@@ -165,7 +165,7 @@ export default function AdminBookingsPage() {
       <ActivityBackButton href="/admin" />
       <div className="p-4 space-y-6">
         {/* Next upcoming booking */}
-        <NextBookingBanner booking={nextBooking} />
+        <NextBookingBanner booking={nextBooking} onBookingClick={handleBookingClick} />
 
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-3">
