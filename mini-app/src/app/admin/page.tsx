@@ -17,7 +17,7 @@ export default function AdminDashboardPage() {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const pending = bookings.filter((b: Booking) => b.status === "pending").length;
+    const pending = bookings.filter((b: Booking) => b.status === "pending" && b.createdBy !== "trainer").length;
     const upcoming = bookings.filter(
       (b: Booking) =>
         (b.status === "confirmed" || b.status === "cancel_requested" || b.status === "reschedule_pending") &&
