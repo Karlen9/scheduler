@@ -151,7 +151,6 @@ func FormatNewBookingMessage(booking *models.Booking) string {
 		msg += fmt.Sprintf("\n💬 Сообщение: %s", booking.ClientMessage)
 	}
 
-	msg += MsgOpenAppHint
 	return msg
 }
 

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Bell, Users } from "lucide-react";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { BottomSheet } from "@/components/BottomSheet";
+import { PendingBookingCard } from "@/components/PendingBookingCard";
 import { RescheduleSheet } from "@/components/RescheduleSheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NextBookingBanner } from "@/components/schedule/NextBookingBanner";
@@ -40,13 +42,17 @@ export default function AdminBookingsPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
+  const [showPendingSheet, setShowPendingSheet] = useState(false);
 
   const error = fetchError ? (fetchError instanceof Error ? fetchError.message : "Ошибка загрузки") : null;
 
-  const pendingCount = useMemo(
-    () => bookings.filter((b) => b.status === "pending" && b.createdBy !== "trainer").length,
+  const pendingBookings = useMemo(
+    () => bookings.filter((b) => b.status === "pending" && b.createdBy !== "trainer")
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
     [bookings],
   );
+
+  const pendingCount = pendingBookings.length;
 
   const scheduleBookings = useMemo(
     () => bookings.filter((b) => b.status === "confirmed" || b.status === "pending"),
@@ -175,6 +181,7 @@ export default function AdminBookingsPage() {
             iconBg="bg-warning/20"
             value={pendingCount}
             label="Новые заявки"
+            onClick={pendingCount > 0 ? () => setShowPendingSheet(true) : undefined}
           />
           <StatCard
             icon={Users}
@@ -256,6 +263,31 @@ export default function AdminBookingsPage() {
         inputValue={cancelReason}
         onInputChange={setCancelReason}
       />
+
+      {/* Pending requests sheet */}
+      <BottomSheet
+        isOpen={showPendingSheet}
+        onClose={() => setShowPendingSheet(false)}
+        title="Новые заявки"
+        className="max-h-[70vh] overflow-y-auto"
+      >
+        <div className="space-y-3">
+          {pendingBookings.map((booking) => (
+            <PendingBookingCard
+              key={booking.id}
+              booking={booking}
+              onAccept={async (b) => {
+                await handleAccept(b);
+                if (pendingBookings.length <= 1) setShowPendingSheet(false);
+              }}
+              onReject={(b) => {
+                setShowPendingSheet(false);
+                handleRejectClick(b);
+              }}
+            />
+          ))}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

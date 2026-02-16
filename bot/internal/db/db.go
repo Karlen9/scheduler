@@ -226,6 +226,7 @@ func migrateSQLite() error {
 		`ALTER TABLE clients ADD COLUMN photo_url TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN notify_cancellations INTEGER DEFAULT 1`,
 		`ALTER TABLE recurring_schedules ADD COLUMN day_times TEXT`,
+		`ALTER TABLE session_types ADD COLUMN image_url TEXT DEFAULT ''`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -471,6 +472,7 @@ func migratePostgres() error {
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS notify_cancellations INTEGER DEFAULT 1`,
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS day_times TEXT`,
+		`ALTER TABLE session_types ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''`,
 	}
 
 	for _, migration := range alterMigrations {

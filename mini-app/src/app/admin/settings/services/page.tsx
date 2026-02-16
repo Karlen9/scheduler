@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { ServiceCard } from "@/components/ServiceCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SessionType } from "@/lib/types";
-import { api } from "@/lib/api";
+import { api, getPhotoUrl } from "@/lib/api";
 import { useAdminServices } from "@/hooks/queries";
 import { invalidateServices } from "@/hooks/mutations";
 
@@ -16,6 +16,7 @@ interface ServiceFormData {
   name: string;
   price: string;
   duration: string;
+  imageUrl: string;
 }
 
 export default function ServicesPage() {
@@ -23,16 +24,19 @@ export default function ServicesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<SessionType | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<ServiceFormData>({
     type: "personal",
     name: "",
     price: "",
     duration: "60",
+    imageUrl: "",
   });
 
   const handleAddClick = () => {
     setEditingService(null);
-    setFormData({ type: "personal", name: "", price: "", duration: "60" });
+    setFormData({ type: "personal", name: "", price: "", duration: "60", imageUrl: "" });
     setShowForm(true);
   };
 
@@ -43,8 +47,25 @@ export default function ServicesPage() {
       name: service.name,
       price: service.price.toString(),
       duration: service.durationMinutes.toString(),
+      imageUrl: service.imageUrl || "",
     });
     setShowForm(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const result = await api.admin.uploadPhoto(file);
+      setFormData((prev) => ({ ...prev, imageUrl: result.fileId }));
+    } catch (err) {
+      console.error("Failed to upload image:", err);
+      toast.error("Ошибка загрузки фото");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -58,6 +79,7 @@ export default function ServicesPage() {
           name: formData.name,
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
+          imageUrl: formData.imageUrl,
         });
       } else {
         await api.admin.createService({
@@ -66,6 +88,7 @@ export default function ServicesPage() {
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
           currency: "RUB",
+          imageUrl: formData.imageUrl,
         });
       }
 
@@ -102,6 +125,48 @@ export default function ServicesPage() {
         />
 
         <div className="p-4 space-y-4">
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">
+              Фото услуги
+            </label>
+            <div className="flex items-center gap-3">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-16 h-16 rounded-full bg-card border border-border flex items-center justify-center overflow-hidden cursor-pointer transition-opacity active:opacity-80"
+              >
+                {formData.imageUrl ? (
+                  <img
+                    src={getPhotoUrl(formData.imageUrl)}
+                    alt="Фото услуги"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Camera className="w-6 h-6 text-muted-foreground" />
+                )}
+              </div>
+              {formData.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, imageUrl: "" }))}
+                  className="w-8 h-8 rounded-full bg-card flex items-center justify-center"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+              {uploading && (
+                <span className="text-xs text-muted-foreground">Загрузка...</span>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </div>
+
           {!editingService && (
             <div>
               <label className="block text-sm text-muted-foreground mb-1">

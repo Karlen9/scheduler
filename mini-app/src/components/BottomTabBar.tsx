@@ -43,7 +43,7 @@ function PlusButton({
             ? "bg-brand text-white scale-105"
             : "bg-brand text-white"
         }`}
-        style={{ top: "50%", transform: `translateY(-50%)${isActive ? " scale(1.05)" : ""}` }}
+        style={{ top: "50%", left: "50%", transform: `translate(-50%, -50%)${isActive ? " scale(1.05)" : ""}` }}
       >
         <Icon className={`w-9 h-9 ${bouncing ? "tab-bounce" : ""}`} strokeWidth={2.5} />
       </div>

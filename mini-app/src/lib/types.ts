@@ -20,6 +20,7 @@ export interface SessionType {
   durationMinutes: number;
   price: number;
   currency: string;
+  imageUrl?: string;
 }
 
 export interface WorkingHours {

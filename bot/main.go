@@ -633,7 +633,7 @@ func seedLegacyData(cfg *config.Config) error {
 	}
 
 	for _, st := range sessionTypes {
-		db.CreateSessionType(trainer.ID, st.typeCode, st.name, st.duration, st.price, "RUB")
+		db.CreateSessionType(trainer.ID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
 	}
 
 	workingHours := []struct {
