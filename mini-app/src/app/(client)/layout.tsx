@@ -2,20 +2,14 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Plus, User, ClipboardList, CalendarPlus, Repeat } from "lucide-react";
+import { Plus, User, ClipboardList } from "lucide-react";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { initTelegramApp, getTelegramWebApp } from "@/lib/telegram";
 
 const clientTabs = [
-  { key: "home", label: "Главная", icon: Home, href: "/" },
-  { key: "activity", label: "", icon: Plus, href: "/book", isCenter: true, matchPaths: ["/book", "/bookings", "/recurring"] },
+  { key: "bookings", label: "Записи", icon: ClipboardList, href: "/bookings", matchPaths: ["/bookings", "/recurring"] },
+  { key: "book", label: "", icon: Plus, href: "/book", isCenter: true },
   { key: "profile", label: "Профиль", icon: User, href: "/profile" },
-];
-
-const clientSubTabs = [
-  { icon: ClipboardList, href: "/bookings" },
-  { icon: CalendarPlus, href: "/book" },
-  { icon: Repeat, href: "/recurring" },
 ];
 
 export default function ClientLayout({
@@ -51,7 +45,7 @@ export default function ClientLayout({
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       <div className="pb-24">{children}</div>
-      <BottomTabBar tabs={clientTabs} subTabs={clientSubTabs} />
+      <BottomTabBar tabs={clientTabs} />
     </div>
   );
 }

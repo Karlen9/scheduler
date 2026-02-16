@@ -5,6 +5,7 @@ import { MonthGrid } from "@/components/Calendar";
 
 interface CalendarViewProps {
   selectedDate: Date | null;
+  selectedDates?: Date[];
   onSelectDate: (date: Date) => void;
   disabledDates?: Date[];
   nonWorkingDays?: number[];
@@ -13,6 +14,7 @@ interface CalendarViewProps {
 
 export function CalendarView({
   selectedDate,
+  selectedDates,
   onSelectDate,
   nonWorkingDays,
   daysOff,
@@ -31,6 +33,7 @@ export function CalendarView({
     <MonthGrid
       displayDate={currentMonth}
       selectedDate={selectedDate}
+      selectedDates={selectedDates}
       onSelectDate={onSelectDate}
       onPrevMonth={prevMonth}
       onNextMonth={nextMonth}

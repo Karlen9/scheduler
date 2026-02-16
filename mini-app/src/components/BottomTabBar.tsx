@@ -72,7 +72,7 @@ function TabButton({
       className={`flex flex-col items-center justify-center gap-1 rounded-full transition-colors z-10 active:scale-90 ${
         isActive ? activeColor : "text-muted-foreground"
       }`}
-      style={{ width: "80px", height: "48px" }}
+      style={{ width: "96px", height: "48px" }}
     >
       <Icon className={`w-5 h-5 ${bouncing ? "tab-bounce" : ""}`} />
       {label && <span className="text-[11px] font-medium">{label}</span>}
@@ -145,7 +145,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
 
   return (
       <div className="fixed bottom-0 left-0 right-0 pb-6 flex justify-center">
-        <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-1.5 py-1.5 overflow-visible">
+        <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-3 py-1.5 overflow-visible">
           {showSubTabs ? (
             <>
               {/* Sliding indicator for sub-tabs */}

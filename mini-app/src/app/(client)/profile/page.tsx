@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
+import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ServiceSelector } from "@/components/ServiceSelector";
 import { PhotoEditor } from "@/components/PhotoEditor";
@@ -124,6 +125,8 @@ export default function ClientProfilePage() {
   }
 
   return (
+    <div>
+      <ActivityBackButton href="/" />
     <div className="p-4 space-y-6">
       {/* Avatar */}
       <div className="flex justify-center pt-2">
@@ -245,6 +248,7 @@ export default function ClientProfilePage() {
           onCancel={() => setEditorImage(null)}
         />
       )}
+    </div>
     </div>
   );
 }

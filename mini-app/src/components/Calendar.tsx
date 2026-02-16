@@ -52,6 +52,8 @@ export interface MonthGridProps {
   displayDate: Date;
   /** Selected date (highlighted) */
   selectedDate: Date | null;
+  /** Multiple selected dates (for multi-select mode) */
+  selectedDates?: Date[];
   onSelectDate: (date: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -78,6 +80,7 @@ export interface MonthGridProps {
 export function MonthGrid({
   displayDate,
   selectedDate,
+  selectedDates,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
@@ -160,7 +163,8 @@ export function MonthGrid({
           }
 
           const isCurrentMonth = date.getMonth() === month;
-          const selected = selectedDate ? isSameDay(date, selectedDate) : false;
+          const selected = (selectedDate ? isSameDay(date, selectedDate) : false) ||
+            (selectedDates?.some(sd => isSameDay(date, sd)) ?? false);
           const isDayToday = isSameDay(date, today);
           const disabled = isDisabled(date);
           const dayOff = isDayOffDate(date);
