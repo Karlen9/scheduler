@@ -19,6 +19,7 @@ function ClientBookContent() {
       workingHours={workingHours}
       daysOff={daysOff}
       isLoading={whLoading || doLoading || svcLoading}
+      showRecurring={false}
       successRedirect="/bookings"
       title="Онлайн запись"
       onCreateBooking={async (params) => {
