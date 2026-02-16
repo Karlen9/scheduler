@@ -44,7 +44,7 @@ export default function ClientLayout({
       className="min-h-screen bg-background"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
-      <div className="pb-24">{children}</div>
+      <div className="pb-24 bg-card">{children}</div>
       <BottomTabBar tabs={clientTabs} />
     </div>
   );

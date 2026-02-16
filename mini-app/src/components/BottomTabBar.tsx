@@ -144,7 +144,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
   }, [pathname, currentIndex, showSubTabs, tabs]);
 
   return (
-      <div className="fixed bottom-0 left-0 right-0 pb-6 flex justify-center">
+      <div className="fixed bottom-0 left-0 right-0 pb-6 flex justify-center z-50">
         <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-3 py-1.5 overflow-visible">
           {showSubTabs ? (
             <>
