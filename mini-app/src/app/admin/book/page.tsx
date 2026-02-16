@@ -1,6 +1,7 @@
 "use client";
 
 import { BookingForm } from "@/components/BookingForm";
+import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { api } from "@/lib/api";
 import { useClients, useAdminServices, useWorkingHours, useDaysOff } from "@/hooks/queries";
 import { invalidateClients } from "@/hooks/mutations";
@@ -14,6 +15,8 @@ export default function AdminBookPage() {
   const daysOff = daysOffData.map((d) => d.date);
 
   return (
+    <>
+    <ActivityBackButton href="/admin" />
     <BookingForm
       services={services}
       workingHours={workingHours}
@@ -53,5 +56,6 @@ export default function AdminBookPage() {
         });
       }}
     />
+    </>
   );
 }

@@ -20,6 +20,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isHome = pathname === "/admin" || pathname === "/admin/";
+  const isBookPage = pathname === "/admin/book";
 
   useEffect(() => {
     const webApp = getTelegramWebApp();
@@ -40,8 +41,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       className="min-h-screen bg-background"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
-      <div className="pb-24">{children}</div>
-      <BottomTabBar tabs={adminTabs} />
+      <div className={isBookPage ? "" : "pb-24"}>{children}</div>
+      {!isBookPage && <BottomTabBar tabs={adminTabs} />}
     </div>
   );
 }
