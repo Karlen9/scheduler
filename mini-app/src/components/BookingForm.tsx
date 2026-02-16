@@ -680,7 +680,7 @@ export function BookingForm({
 
   return (
     <div className="flex flex-col">
-      <div className="flex-1 p-4 space-y-4 pb-24">
+      <div className="flex-1 p-4 space-y-4 pb-48">
         <h2 className="text-lg font-semibold px-1">{title}</h2>
 
         {/* ══ Client Selector (admin only) ══ */}
@@ -916,27 +916,13 @@ export function BookingForm({
                       <BookingSummary date={selectedDate} service={selectedService} time={selectedTime} />
                     )}
 
-                    {/* Multi Mode: Time Slots + Chips */}
-                    {mode === "multi" && selectedDates.length > 0 && (
-                      <>
-                        {activeDateISO && timeSlots.length > 0 && (
-                          <div className={`transition-opacity duration-200 ${isLoadingSlots ? "opacity-40 pointer-events-none" : ""}`}>
-                            <h3 className="text-sm font-medium text-muted-foreground mb-2">Выберите время</h3>
-                            <TimeSlotLegend />
-                            <TimeSlotGrid slots={timeSlots} selected={multiActiveTime} onSelect={handleMultiTimeSelect} />
-                          </div>
-                        )}
-                        <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1">
-                          {selectedDates.map((date) => {
-                            const iso = formatDateISO(date);
-                            const time = timeAssignments[iso];
-                            const endTime = time && selectedService ? addMinutesToTime(time, selectedService.durationMinutes) : undefined;
-                            return (
-                              <DateChip key={iso} date={date} time={time} endTime={endTime} active={activeDateISO === iso} onClick={() => handleChipTap(date)} />
-                            );
-                          })}
-                        </div>
-                      </>
+                    {/* Multi Mode: Time Slots */}
+                    {mode === "multi" && selectedDates.length > 0 && activeDateISO && timeSlots.length > 0 && (
+                      <div className={`transition-opacity duration-200 ${isLoadingSlots ? "opacity-40 pointer-events-none" : ""}`}>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Выберите время</h3>
+                        <TimeSlotLegend />
+                        <TimeSlotGrid slots={timeSlots} selected={multiActiveTime} onSelect={handleMultiTimeSelect} />
+                      </div>
                     )}
 
                     {/* Comment */}
@@ -1105,7 +1091,19 @@ export function BookingForm({
 
       {/* Pinned bottom button */}
       {showForm && !isInitialLoading && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm" style={{ maxWidth: "430px", margin: "0 auto" }}>
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm space-y-3" style={{ maxWidth: "430px", margin: "0 auto" }}>
+          {bookingType === "onetime" && mode === "multi" && selectedDates.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1">
+              {selectedDates.map((date) => {
+                const iso = formatDateISO(date);
+                const time = timeAssignments[iso];
+                const endTime = time && selectedService ? addMinutesToTime(time, selectedService.durationMinutes) : undefined;
+                return (
+                  <DateChip key={iso} date={date} time={time} endTime={endTime} active={activeDateISO === iso} onClick={() => handleChipTap(date)} />
+                );
+              })}
+            </div>
+          )}
           {bookingType === "onetime" ? (
             <PrimaryButton onClick={handleOnetimeSubmit} disabled={onetimeButtonDisabled}>
               {onetimeButtonText}
