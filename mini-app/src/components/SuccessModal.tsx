@@ -19,7 +19,7 @@ export function SuccessModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
       <div className="bg-background rounded-2xl p-6 w-full max-w-sm">
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-16 h-16 flex items-center justify-center mb-4">

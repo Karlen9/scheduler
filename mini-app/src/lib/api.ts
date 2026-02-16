@@ -338,6 +338,13 @@ export const api = {
       return fetchAPI<ClientInfo[]>("/api/admin/clients");
     },
 
+    async createGhostClient(name: string): Promise<ClientInfo> {
+      return fetchAPI<ClientInfo>("/api/admin/clients", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+    },
+
     // Trainer-initiated bookings
     async createBooking(data: { clientId: string; duration: number; date: string; time: string; message?: string }): Promise<Booking> {
       return fetchAPI<Booking>("/api/admin/bookings", {

@@ -181,6 +181,7 @@ export default function AdminHomePage() {
             iconBg="bg-brand/20"
             value={clients.length}
             label="Все клиенты"
+            onClick={() => router.push("/admin/clients")}
           />
         </div>
 

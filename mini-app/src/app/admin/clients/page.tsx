@@ -62,6 +62,9 @@ export default function AdminClientsPage() {
           <div className="flex-1 min-w-0">
             <div className="font-medium text-foreground truncate">
               {client.name}
+              {client.isGhost && (
+                <span className="ml-1.5 text-xs text-muted-foreground font-normal">(гость)</span>
+              )}
             </div>
             {client.phone && (
               <div className="text-sm text-muted-foreground">{client.phone}</div>

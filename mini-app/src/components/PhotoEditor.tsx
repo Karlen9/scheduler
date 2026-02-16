@@ -32,7 +32,7 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden" style={{ touchAction: "none" }}>
+    <div className="fixed inset-0 z-[60] bg-background flex flex-col overflow-hidden" style={{ touchAction: "none" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <button onClick={onCancel} className="p-2 -m-2 text-muted-foreground">

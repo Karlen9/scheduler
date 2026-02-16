@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -761,10 +762,18 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	log.Printf("📅 TRAINER BOOKING [%s] Trainer: %s booked client: %s | Duration: %dmin | Time: %s %s",
 		booking.ID[:8], trainer.Name, client.Name, req.Duration, req.Date, req.Time)
 
-	// Notify client about trainer-created booking
-	if NotifyTrainerBookingFunc != nil {
-		if err := NotifyTrainerBookingFunc(booking); err != nil {
-			log.Printf("Error notifying client about trainer booking: %v", err)
+	// Ghost clients: auto-confirm and skip notification
+	if client.IsGhost {
+		if err := db.UpdateBookingStatus(booking.ID, models.BookingStatusConfirmed); err != nil {
+			log.Printf("Error auto-confirming ghost booking: %v", err)
+		}
+		booking, _ = db.GetBookingByID(booking.ID)
+	} else {
+		// Notify client about trainer-created booking
+		if NotifyTrainerBookingFunc != nil {
+			if err := NotifyTrainerBookingFunc(booking); err != nil {
+				log.Printf("Error notifying client about trainer booking: %v", err)
+			}
 		}
 	}
 
@@ -981,6 +990,40 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 // ========== Admin Clients ==========
+
+func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		http.Error(w, "Укажите имя клиента", http.StatusBadRequest)
+		return
+	}
+
+	client, err := db.CreateGhostClient(trainer.ID, name)
+	if err != nil {
+		log.Printf("Error creating ghost client: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("👻 GHOST CLIENT created: %s for trainer %s", name, trainer.Name)
+
+	w.WriteHeader(http.StatusCreated)
+	writeJSON(w, client)
+}
 
 func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)

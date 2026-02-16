@@ -3,6 +3,7 @@
 import { BookingForm } from "@/components/BookingForm";
 import { api } from "@/lib/api";
 import { useClients, useAdminServices, useWorkingHours, useDaysOff } from "@/hooks/queries";
+import { invalidateClients } from "@/hooks/mutations";
 
 export default function AdminBookPage() {
   const { data: clients, isLoading: clientsLoading } = useClients();
@@ -22,6 +23,11 @@ export default function AdminBookPage() {
       showRecurring={false}
       successRedirect="/admin"
       title="Записать клиента"
+      onCreateGhostClient={async (name) => {
+        const client = await api.admin.createGhostClient(name);
+        invalidateClients();
+        return client;
+      }}
       onCreateBooking={async (params) => {
         await api.admin.createBooking({
           clientId: params.clientId!,

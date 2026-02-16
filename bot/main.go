@@ -218,6 +218,9 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
+		if client.IsGhost {
+			return nil
+		}
 		if !client.NotifyBookingStatus {
 			log.Printf("Skipping status change notification for client %s (disabled)", client.Name)
 			return nil
@@ -252,6 +255,9 @@ func main() {
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			return err
+		}
+		if client.IsGhost {
+			return nil
 		}
 		if !client.NotifyBookingStatus {
 			log.Printf("Skipping trainer booking notification for client %s (disabled)", client.Name)
@@ -307,6 +313,9 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
+		if client.IsGhost {
+			return nil
+		}
 		if !client.NotifyBookingStatus {
 			log.Printf("Skipping recurring schedule notification for client %s (disabled)", client.Name)
 			return nil
@@ -337,6 +346,9 @@ func main() {
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			return err
+		}
+		if client.IsGhost {
+			return nil
 		}
 		if !client.NotifyCancellations {
 			log.Printf("Skipping cancellation notification for client %s (disabled)", client.Name)

@@ -39,7 +39,7 @@ export function ConfirmDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
       <div className="bg-background rounded-2xl p-6 w-full max-w-sm">
         <h3 className="text-lg font-medium text-foreground mb-2">
           {title}
