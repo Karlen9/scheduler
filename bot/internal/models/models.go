@@ -51,6 +51,7 @@ type SessionType struct {
 	DurationMinutes int    `json:"durationMinutes"`
 	Price           int    `json:"price"`
 	Currency        string `json:"currency"`
+	ImageURL        string `json:"imageUrl,omitempty"`
 	IsActive        bool   `json:"-"`
 }
 

@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock } from "lucide-react";
-import { TrainerCard } from "@/components/TrainerCard";
+import { Clock, Phone, MessageCircle, Share2, Dumbbell } from "lucide-react";
 import { formatDuration } from "@/components/DurationSelector";
+import { getPhotoUrl } from "@/lib/api";
+import { getAvatarColor } from "@/lib/colors";
 import { useTrainer, useSessionTypes } from "@/hooks/queries";
 
 export default function HomePage() {
@@ -12,11 +13,17 @@ export default function HomePage() {
   const { data: trainer, isLoading: trainerLoading } = useTrainer();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [heroError, setHeroError] = useState(false);
 
   const isLoading = trainerLoading || servicesLoading;
 
-  const handleServices = () => {
-    router.push("/services");
+  const handleMessage = () => {
+    if (trainer?.telegramHandle) {
+      const handle = trainer.telegramHandle.replace("@", "");
+      window.open(`https://t.me/${handle}`, "_blank");
+    } else if (trainer?.botUsername) {
+      window.open(`https://t.me/${trainer.botUsername}`, "_blank");
+    }
   };
 
   const handleShare = () => {
@@ -34,129 +41,215 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="px-4 pt-4 space-y-6">
-        <div className="bg-card rounded-xl p-4 animate-pulse">
-          <div className="flex gap-4 mb-4">
-            <div className="w-[127px] h-[127px] rounded-full bg-border" />
-            <div className="flex-1 space-y-3 pt-2">
-              <div className="h-6 bg-border rounded w-3/4" />
-              <div className="h-4 bg-border rounded w-1/2" />
-              <div className="h-3 bg-border rounded w-full" />
-              <div className="h-3 bg-border rounded w-2/3" />
-            </div>
-          </div>
-          <div className="bg-background rounded-xl p-4 mb-4">
-            <div className="h-6 bg-border rounded w-8 mx-auto" />
-            <div className="h-3 bg-border rounded w-16 mx-auto mt-2" />
-          </div>
-          <div className="flex gap-2">
+      <div className="animate-pulse">
+        {/* Hero skeleton */}
+        <div className="w-full h-[280px] bg-border" />
+        {/* Card skeleton */}
+        <div className="bg-card rounded-t-2xl -mt-6 relative px-4 pt-6 pb-4 space-y-4">
+          <div className="h-7 bg-border rounded w-2/3" />
+          <div className="h-4 bg-border rounded w-1/2" />
+          <div className="h-3 bg-border rounded w-3/4" />
+          <div className="flex gap-2 pt-2">
             <div className="flex-1 h-12 bg-border rounded-[28px]" />
             <div className="flex-1 h-12 bg-border rounded-[28px]" />
             <div className="w-12 h-12 bg-border rounded-[28px]" />
           </div>
-        </div>
-        <div className="space-y-3">
-          <div className="h-5 bg-card rounded w-24" />
-          <div className="h-16 bg-card rounded-xl" />
+          <div className="space-y-3 pt-4">
+            <div className="h-5 bg-border rounded w-24" />
+            <div className="h-16 bg-border rounded-xl" />
+            <div className="h-16 bg-border rounded-xl" />
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="px-4 pt-4 space-y-6 pb-4">
-      {trainer ? (
-        <TrainerCard
-          name={trainer.name}
-          specialization={trainer.specialization || ""}
-          photoUrl={trainer.photoUrl}
-          phone={trainer.phone}
-          telegram={trainer.telegramHandle}
-          botUsername={trainer.botUsername}
-          servicesCount={services.length}
-          onServices={handleServices}
-          onShare={handleShare}
-        />
-      ) : (
+  if (!trainer) {
+    return (
+      <div className="px-4 pt-4">
         <div className="bg-card rounded-xl p-4 text-center text-muted-foreground">
           Не удалось загрузить информацию о тренере
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* Bio Section */}
-      {trainer?.bio && (
-        <section>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Описание:</h3>
-          <div className="bg-card rounded-xl p-4">
-            <p
-              className={`text-sm text-muted-foreground leading-relaxed ${
-                !bioExpanded ? "line-clamp-4" : ""
-              }`}
-            >
-              {trainer.bio}
-            </p>
-            {trainer.bio.length > 200 && (
-              <button
-                onClick={() => setBioExpanded(!bioExpanded)}
-                className="text-sm text-brand mt-2 font-medium"
-              >
-                {bioExpanded ? "Скрыть" : "Показать больше"}
-              </button>
+  const hasPhoto = trainer.photoUrl && !heroError;
+
+  return (
+    <div>
+      {/* Hero Section */}
+      <div className="relative w-full h-[280px] overflow-hidden">
+        {hasPhoto ? (
+          <>
+            <img
+              src={getPhotoUrl(trainer.photoUrl!)}
+              alt={trainer.name}
+              className="w-full h-full object-cover"
+              onError={() => setHeroError(true)}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          </>
+        ) : (
+          <div className={`w-full h-full flex items-center justify-center text-7xl ${getAvatarColor(trainer.name)}`}>
+            {trainer.name.charAt(0)}
+          </div>
+        )}
+      </div>
+
+      {/* Trainer Info Card */}
+      <div className="bg-card rounded-t-2xl -mt-6 relative z-10">
+        <div className="px-4 pt-6 pb-4 space-y-4">
+          {/* Name & specialization */}
+          <div>
+            <h1 className="text-2xl font-bold text-foreground leading-tight">
+              {trainer.name}
+            </h1>
+            {trainer.specialization && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {trainer.specialization}
+              </p>
             )}
           </div>
-        </section>
-      )}
 
-      {/* Services Section */}
-      {services.length > 0 && (
-        <section>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Услуги:</h3>
-          <div className="space-y-2">
-            {services.map((service) => (
-              <div
-                key={service.id}
-                className="bg-card rounded-xl p-4 flex items-center justify-between"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{service.name}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">
-                      {formatDuration(service.durationMinutes)}
-                    </p>
-                  </div>
+          {/* Contact row */}
+          {(trainer.phone || trainer.telegramHandle) && (
+            <div className="flex items-center gap-4">
+              {trainer.phone && (
+                <a href={`tel:${trainer.phone}`} className="flex items-center gap-1.5 text-muted-foreground">
+                  <Phone className="w-3.5 h-3.5" />
+                  <span className="text-xs">{trainer.phone}</span>
+                </a>
+              )}
+              {trainer.telegramHandle && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span className="text-xs">{trainer.telegramHandle}</span>
                 </div>
-                {service.price > 0 && (
-                  <p className="text-sm font-semibold text-foreground ml-4">
-                    {service.price} {service.currency || "₽"}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+              )}
+            </div>
+          )}
 
-      {/* Location Section */}
-      {trainer?.gymLatitude && trainer?.gymLongitude && (
-        <section>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Локация:</h3>
-          <a
-            href={`https://yandex.ru/maps/?pt=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&l=map`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block bg-card rounded-xl overflow-hidden"
+          {/* Bio Section */}
+          {trainer.bio && (
+            <div>
+              <p
+                className={`text-sm text-muted-foreground leading-relaxed ${
+                  !bioExpanded ? "line-clamp-4" : ""
+                }`}
+              >
+                {trainer.bio}
+              </p>
+              {trainer.bio.length > 200 && (
+                <button
+                  onClick={() => setBioExpanded(!bioExpanded)}
+                  className="text-sm text-brand mt-1 font-medium"
+                >
+                  {bioExpanded ? "Скрыть" : "Показать больше"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            {(trainer.telegramHandle || trainer.botUsername) && (
+              <button
+                onClick={handleMessage}
+                className="flex-1 py-3 px-4 rounded-[28px] bg-brand text-white text-sm font-medium transition-opacity active:opacity-80"
+              >
+                Написать
+              </button>
+            )}
+            <button
+              onClick={() => router.push("/services")}
+              className="flex-1 py-3 px-4 rounded-[28px] bg-surface-hover border border-surface-border text-muted-foreground text-sm font-medium transition-opacity active:opacity-80"
+            >
+              Услуги и цены
+            </button>
+            <button
+              onClick={handleShare}
+              className="w-12 h-12 rounded-[28px] bg-surface-hover border border-surface-border flex items-center justify-center transition-opacity active:opacity-80"
+            >
+              <Share2 className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+
+        {/* Services Section */}
+        {services.length > 0 && (
+          <div className="px-4 pb-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Услуги:</h3>
+            <div className="space-y-2">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className="bg-background rounded-xl p-3 flex items-center gap-3"
+                >
+                  {/* Service thumbnail */}
+                  <div className="w-10 h-10 rounded-full bg-border flex-shrink-0 overflow-hidden flex items-center justify-center">
+                    {service.imageUrl ? (
+                      <img
+                        src={getPhotoUrl(service.imageUrl)}
+                        alt={service.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Dumbbell className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  {/* Service info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">{service.name}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        {formatDuration(service.durationMinutes)}
+                      </p>
+                    </div>
+                  </div>
+                  {service.price > 0 && (
+                    <p className="text-sm font-semibold text-foreground ml-2 flex-shrink-0">
+                      {service.price.toLocaleString("ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Location Section */}
+        {trainer.gymLatitude && trainer.gymLongitude && (
+          <div className="px-4 pb-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Локация:</h3>
+            <a
+              href={`https://yandex.ru/maps/?pt=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&l=map`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-background rounded-xl overflow-hidden"
+            >
+              <iframe
+                src={`https://yandex.ru/map-widget/v1/?ll=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&pt=${trainer.gymLongitude},${trainer.gymLatitude},pm2rdm`}
+                width="100%"
+                height="200"
+                style={{ border: "none", display: "block", pointerEvents: "none" }}
+                allowFullScreen
+              />
+            </a>
+          </div>
+        )}
+
+        {/* Bottom CTA */}
+        <div className="px-4 pb-6">
+          <button
+            onClick={() => router.push("/book")}
+            className="w-full py-4 rounded-[28px] bg-brand text-white text-base font-semibold transition-opacity active:opacity-80"
           >
-            <iframe
-              src={`https://yandex.ru/map-widget/v1/?ll=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&pt=${trainer.gymLongitude},${trainer.gymLatitude},pm2rdm`}
-              width="100%"
-              height="200"
-              style={{ border: "none", display: "block", pointerEvents: "none" }}
-              allowFullScreen
-            />
-          </a>
-        </section>
-      )}
+            Записаться
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

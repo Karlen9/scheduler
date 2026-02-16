@@ -8,9 +8,17 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+const sessionTypeColumns = `id, trainer_id, type, name, duration_minutes, price, currency, image_url, is_active`
+
+func scanSessionType(row interface{ Scan(...interface{}) error }) (models.SessionType, error) {
+	var st models.SessionType
+	err := row.Scan(&st.ID, &st.TrainerID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.ImageURL, &st.IsActive)
+	return st, err
+}
+
 func GetSessionTypesByTrainerID(trainerID string) ([]models.SessionType, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, trainer_id, type, name, duration_minutes, price, currency, is_active
+		SELECT `+sessionTypeColumns+`
 		FROM session_types
 		WHERE trainer_id = ? AND is_active = 1
 		ORDER BY type
@@ -22,8 +30,8 @@ func GetSessionTypesByTrainerID(trainerID string) ([]models.SessionType, error) 
 
 	var sessionTypes []models.SessionType
 	for rows.Next() {
-		var st models.SessionType
-		if err := rows.Scan(&st.ID, &st.TrainerID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.IsActive); err != nil {
+		st, err := scanSessionType(rows)
+		if err != nil {
 			return nil, err
 		}
 		sessionTypes = append(sessionTypes, st)
@@ -33,12 +41,12 @@ func GetSessionTypesByTrainerID(trainerID string) ([]models.SessionType, error) 
 }
 
 func GetSessionTypeByID(id string) (*models.SessionType, error) {
-	var st models.SessionType
-	err := DB.QueryRow(Q(`
-		SELECT id, trainer_id, type, name, duration_minutes, price, currency, is_active
+	row := DB.QueryRow(Q(`
+		SELECT `+sessionTypeColumns+`
 		FROM session_types
 		WHERE id = ?
-	`), id).Scan(&st.ID, &st.TrainerID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.IsActive)
+	`), id)
+	st, err := scanSessionType(row)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -50,12 +58,12 @@ func GetSessionTypeByID(id string) (*models.SessionType, error) {
 }
 
 func GetSessionTypeByType(trainerID, sessionType string) (*models.SessionType, error) {
-	var st models.SessionType
-	err := DB.QueryRow(Q(`
-		SELECT id, trainer_id, type, name, duration_minutes, price, currency, is_active
+	row := DB.QueryRow(Q(`
+		SELECT `+sessionTypeColumns+`
 		FROM session_types
 		WHERE trainer_id = ? AND type = ? AND is_active = 1
-	`), trainerID, sessionType).Scan(&st.ID, &st.TrainerID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.IsActive)
+	`), trainerID, sessionType)
+	st, err := scanSessionType(row)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -66,13 +74,13 @@ func GetSessionTypeByType(trainerID, sessionType string) (*models.SessionType, e
 	return &st, nil
 }
 
-func CreateSessionType(trainerID, sessionType, name string, durationMinutes, price int, currency string) (*models.SessionType, error) {
+func CreateSessionType(trainerID, sessionType, name string, durationMinutes, price int, currency, imageURL string) (*models.SessionType, error) {
 	id := uuid.New().String()
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO session_types (id, trainer_id, type, name, duration_minutes, price, currency)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`), id, trainerID, sessionType, name, durationMinutes, price, currency)
+		INSERT INTO session_types (id, trainer_id, type, name, duration_minutes, price, currency, image_url)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`), id, trainerID, sessionType, name, durationMinutes, price, currency, imageURL)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +97,7 @@ func UpsertSessionType(trainerID, sessionType, name string, durationMinutes, pri
 	`), trainerID, sessionType).Scan(&existingID)
 
 	if err == sql.ErrNoRows {
-		return CreateSessionType(trainerID, sessionType, name, durationMinutes, price, currency)
+		return CreateSessionType(trainerID, sessionType, name, durationMinutes, price, currency, "")
 	}
 	if err != nil {
 		return nil, err
@@ -110,7 +118,7 @@ func UpsertSessionType(trainerID, sessionType, name string, durationMinutes, pri
 
 func GetAllSessionTypesByTrainerID(trainerID string) ([]models.SessionType, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, trainer_id, type, name, duration_minutes, price, currency, is_active
+		SELECT `+sessionTypeColumns+`
 		FROM session_types
 		WHERE trainer_id = ?
 		ORDER BY type
@@ -122,8 +130,8 @@ func GetAllSessionTypesByTrainerID(trainerID string) ([]models.SessionType, erro
 
 	var sessionTypes []models.SessionType
 	for rows.Next() {
-		var st models.SessionType
-		if err := rows.Scan(&st.ID, &st.TrainerID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.IsActive); err != nil {
+		st, err := scanSessionType(rows)
+		if err != nil {
 			return nil, err
 		}
 		sessionTypes = append(sessionTypes, st)
@@ -132,12 +140,12 @@ func GetAllSessionTypesByTrainerID(trainerID string) ([]models.SessionType, erro
 	return sessionTypes, rows.Err()
 }
 
-func UpdateSessionType(id, name string, durationMinutes, price int, currency string, isActive bool) (*models.SessionType, error) {
+func UpdateSessionType(id, name string, durationMinutes, price int, currency, imageURL string, isActive bool) (*models.SessionType, error) {
 	_, err := DB.Exec(Q(`
 		UPDATE session_types
-		SET name = ?, duration_minutes = ?, price = ?, currency = ?, is_active = ?
+		SET name = ?, duration_minutes = ?, price = ?, currency = ?, image_url = ?, is_active = ?
 		WHERE id = ?
-	`), name, durationMinutes, price, currency, BoolVal(isActive), id)
+	`), name, durationMinutes, price, currency, imageURL, BoolVal(isActive), id)
 	if err != nil {
 		return nil, err
 	}

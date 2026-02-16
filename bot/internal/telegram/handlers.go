@@ -3,6 +3,7 @@ package telegram
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
@@ -111,8 +112,64 @@ func (h *Handler) handleHelp(msg *Message) {
 }
 
 func (h *Handler) handleCallbackQuery(cq *CallbackQuery) {
-	// Inline buttons have been removed; reply with hint for old messages
-	h.Bot.AnswerCallbackQuery(cq.ID, "Используйте приложение")
+	parts := strings.SplitN(cq.Data, ":", 2)
+	if len(parts) != 2 {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Используйте приложение")
+		return
+	}
+
+	action, bookingID := parts[0], parts[1]
+	if action != "accept" && action != "reject" {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Используйте приложение")
+		return
+	}
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil || booking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Запись не найдена")
+		return
+	}
+
+	if booking.Status != models.BookingStatusPending {
+		h.Bot.AnswerCallbackQuery(cq.ID, "Заявка уже обработана")
+		// Remove stale buttons
+		if cq.Message != nil {
+			h.UpdateBookingNotificationMessage(cq.Message.Chat.ID, cq.Message.MessageID, booking)
+		}
+		return
+	}
+
+	var newStatus models.BookingStatus
+	var toastText string
+	if action == "accept" {
+		newStatus = models.BookingStatusConfirmed
+		toastText = "✅ Запись подтверждена"
+	} else {
+		newStatus = models.BookingStatusRejected
+		toastText = "❌ Запись отклонена"
+	}
+
+	if err := db.UpdateBookingStatus(bookingID, newStatus); err != nil {
+		log.Printf("Error updating booking via callback: %v", err)
+		h.Bot.AnswerCallbackQuery(cq.ID, "Ошибка, попробуйте через приложение")
+		return
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, toastText)
+
+	// Refresh booking for notification messages
+	booking, _ = db.GetBookingByID(bookingID)
+	if booking == nil {
+		return
+	}
+
+	// Edit the trainer's message to remove buttons and show new status
+	if cq.Message != nil {
+		h.UpdateBookingNotificationMessage(cq.Message.Chat.ID, cq.Message.MessageID, booking)
+	}
+
+	// Notify client about status change
+	h.NotifyClientStatusChange(booking, string(newStatus))
 }
 
 // NotifyClientStatusChange sends a notification to client when booking status changes via admin panel
@@ -146,7 +203,15 @@ func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 	}
 
 	text := FormatNewBookingMessage(booking)
-	msg, err := h.Bot.SendNotification(trainer.TelegramUserID, text)
+	keyboard := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: "✅ Подтвердить", CallbackData: "accept:" + booking.ID},
+				{Text: "❌ Отклонить", CallbackData: "reject:" + booking.ID},
+			},
+		},
+	}
+	msg, err := h.Bot.SendMessage(trainer.TelegramUserID, text, keyboard)
 	if err != nil {
 		return err
 	}

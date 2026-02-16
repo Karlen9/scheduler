@@ -333,7 +333,7 @@ func (h *MasterHandler) seedDefaults(trainerID string) {
 	}
 
 	for _, st := range sessionTypes {
-		db.CreateSessionType(trainerID, st.typeCode, st.name, st.duration, st.price, "RUB")
+		db.CreateSessionType(trainerID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
 	}
 
 	// Working hours (Mon-Fri 9-18, Sat 10-15)

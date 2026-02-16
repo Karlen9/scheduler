@@ -229,6 +229,7 @@ export const api = {
       durationMinutes: number;
       price: number;
       currency?: string;
+      imageUrl?: string;
     }): Promise<SessionType> {
       return fetchAPI<SessionType>("/api/admin/services", {
         method: "POST",

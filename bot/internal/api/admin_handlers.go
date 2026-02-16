@@ -131,14 +131,16 @@ type CreateSessionTypeRequest struct {
 	DurationMinutes int    `json:"durationMinutes"`
 	Price           int    `json:"price"`
 	Currency        string `json:"currency,omitempty"`
+	ImageURL        string `json:"imageUrl,omitempty"`
 }
 
 type UpdateSessionTypeRequest struct {
-	Name            string `json:"name,omitempty"`
-	DurationMinutes *int   `json:"durationMinutes,omitempty"`
-	Price           *int   `json:"price,omitempty"`
-	Currency        string `json:"currency,omitempty"`
-	IsActive        *bool  `json:"isActive,omitempty"`
+	Name            string  `json:"name,omitempty"`
+	DurationMinutes *int    `json:"durationMinutes,omitempty"`
+	Price           *int    `json:"price,omitempty"`
+	Currency        string  `json:"currency,omitempty"`
+	ImageURL        *string `json:"imageUrl,omitempty"`
+	IsActive        *bool   `json:"isActive,omitempty"`
 }
 
 func HandleAdminGetServices(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +204,7 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service, err := db.CreateSessionType(trainer.ID, req.Type, req.Name, req.DurationMinutes, req.Price, currency)
+	service, err := db.CreateSessionType(trainer.ID, req.Type, req.Name, req.DurationMinutes, req.Price, currency, req.ImageURL)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
@@ -269,12 +271,17 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		currency = req.Currency
 	}
 
+	imageURL := existing.ImageURL
+	if req.ImageURL != nil {
+		imageURL = *req.ImageURL
+	}
+
 	isActive := existing.IsActive
 	if req.IsActive != nil {
 		isActive = *req.IsActive
 	}
 
-	updated, err := db.UpdateSessionType(existing.ID, name, duration, price, currency, isActive)
+	updated, err := db.UpdateSessionType(existing.ID, name, duration, price, currency, imageURL, isActive)
 	if err != nil {
 		log.Printf("Error updating service: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
