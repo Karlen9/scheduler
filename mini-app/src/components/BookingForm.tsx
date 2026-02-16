@@ -699,15 +699,6 @@ export function BookingForm({
             </div>
             {filteredClients.length === 0 ? (
               <div className="space-y-3">
-                <EmptyState
-                  icon={<AlertCircle className="w-16 h-16" />}
-                  title="Клиенты не найдены"
-                  description={
-                    clients!.length === 0
-                      ? "Пока нет зарегистрированных клиентов"
-                      : "Попробуйте изменить запрос поиска"
-                  }
-                />
                 {onCreateGhostClient && searchQuery.trim() && (
                   <button
                     onClick={handleCreateGhostClient}
@@ -717,6 +708,15 @@ export function BookingForm({
                     {isCreatingGhost ? "Создание..." : `Добавить «${searchQuery.trim()}»`}
                   </button>
                 )}
+                <EmptyState
+                  icon={<AlertCircle className="w-16 h-16" />}
+                  title="Клиенты не найдены"
+                  description={
+                    clients!.length === 0
+                      ? "Пока нет зарегистрированных клиентов"
+                      : "Попробуйте изменить запрос поиска"
+                  }
+                />
               </div>
             ) : (
               <div className="space-y-2">
