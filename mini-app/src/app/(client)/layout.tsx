@@ -20,6 +20,7 @@ export default function ClientLayout({
   const pathname = usePathname();
   const router = useRouter();
   const isHome = pathname === "/" || pathname === "";
+  const isBookPage = pathname === "/book";
 
   useEffect(() => {
     initTelegramApp();
@@ -44,8 +45,8 @@ export default function ClientLayout({
       className="min-h-screen bg-background"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
-      <div className="pb-24 bg-card">{children}</div>
-      <BottomTabBar tabs={clientTabs} />
+      <div className={isBookPage ? "" : "pb-24 bg-card"}>{children}</div>
+      {!isBookPage && <BottomTabBar tabs={clientTabs} />}
     </div>
   );
 }
