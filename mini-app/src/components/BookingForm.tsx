@@ -907,20 +907,12 @@ export function BookingForm({
                       <div className={`transition-opacity duration-200 ${isLoadingSlots ? "opacity-40 pointer-events-none" : ""}`}>
                         <h3 className="text-sm font-medium text-muted-foreground mb-2">Выберите время</h3>
                         <TimeSlotLegend />
-                        {noSlotsAvailable ? (
-                          <EmptyState
-                            icon={<AlertCircle className="w-16 h-16" />}
-                            title="Нет доступных слотов"
-                            description="На выбранную дату нет свободного времени. Попробуйте другой день."
-                          />
-                        ) : (
-                          <TimeSlotGrid slots={timeSlots} selected={selectedTime} onSelect={handleSingleTimeSelect} />
-                        )}
+                        <TimeSlotGrid slots={timeSlots} selected={selectedTime} onSelect={handleSingleTimeSelect} />
                       </div>
                     )}
 
                     {/* Single Mode: Summary */}
-                    {mode === "single" && selectedDate && selectedService && !noSlotsAvailable && (
+                    {mode === "single" && selectedDate && selectedService && (
                       <BookingSummary date={selectedDate} service={selectedService} time={selectedTime} />
                     )}
 
@@ -931,15 +923,7 @@ export function BookingForm({
                           <div className={`transition-opacity duration-200 ${isLoadingSlots ? "opacity-40 pointer-events-none" : ""}`}>
                             <h3 className="text-sm font-medium text-muted-foreground mb-2">Выберите время</h3>
                             <TimeSlotLegend />
-                            {noSlotsAvailable ? (
-                              <EmptyState
-                                icon={<AlertCircle className="w-16 h-16" />}
-                                title="Нет доступных слотов"
-                                description="На выбранную дату нет свободного времени. Попробуйте другой день."
-                              />
-                            ) : (
-                              <TimeSlotGrid slots={timeSlots} selected={multiActiveTime} onSelect={handleMultiTimeSelect} />
-                            )}
+                            <TimeSlotGrid slots={timeSlots} selected={multiActiveTime} onSelect={handleMultiTimeSelect} />
                           </div>
                         )}
                         <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1">
@@ -956,7 +940,7 @@ export function BookingForm({
                     )}
 
                     {/* Comment */}
-                    {((mode === "single" && selectedTime && !noSlotsAvailable) ||
+                    {((mode === "single" && selectedTime) ||
                       (mode === "multi" && selectedDates.length > 0 && selectedDates.every((d) => timeAssignments[formatDateISO(d)]))) && (
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-2">Комментарий</h3>
@@ -971,10 +955,7 @@ export function BookingForm({
                       </div>
                     )}
 
-                    {/* Action Button */}
-                    <PrimaryButton onClick={handleOnetimeSubmit} disabled={onetimeButtonDisabled}>
-                      {onetimeButtonText}
-                    </PrimaryButton>
+                    {/* Action button is pinned to bottom */}
                   </>
                 )}
               </>
@@ -1114,9 +1095,6 @@ export function BookingForm({
                       </div>
                     )}
 
-                    <PrimaryButton onClick={handleCreateSchedule} disabled={isSaving}>
-                      {isSaving ? "Сохранение..." : "Отправить на подтверждение"}
-                    </PrimaryButton>
                   </div>
                 )}
               </div>
@@ -1124,6 +1102,21 @@ export function BookingForm({
           </>
         )}
       </div>
+
+      {/* Pinned bottom button */}
+      {showForm && !isInitialLoading && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm" style={{ maxWidth: "430px", margin: "0 auto" }}>
+          {bookingType === "onetime" ? (
+            <PrimaryButton onClick={handleOnetimeSubmit} disabled={onetimeButtonDisabled}>
+              {onetimeButtonText}
+            </PrimaryButton>
+          ) : recFormReady ? (
+            <PrimaryButton onClick={handleCreateSchedule} disabled={isSaving}>
+              {isSaving ? "Сохранение..." : "Отправить на подтверждение"}
+            </PrimaryButton>
+          ) : null}
+        </div>
+      )}
 
       {/* One-time success */}
       <SuccessModal

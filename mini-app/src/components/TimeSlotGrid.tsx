@@ -22,7 +22,7 @@ export function TimeSlotGrid({ slots, selected, onSelect }: TimeSlotGridProps) {
               ? "bg-primary text-primary-foreground"
               : slot.available
                 ? "bg-card text-foreground hover:bg-border"
-                : "bg-card text-muted-foreground opacity-40 cursor-not-allowed"
+                : "bg-error/15 text-error cursor-not-allowed"
           }`}
         >
           {slot.time}
