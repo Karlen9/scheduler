@@ -1,14 +1,33 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { useState } from "react";
+import { Users, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { EmptyState } from "@/components/EmptyState";
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ClientInfo } from "@/lib/types";
+import { api } from "@/lib/api";
 import { useClients } from "@/hooks/queries";
+import { invalidateClients } from "@/hooks/mutations";
 
 export default function AdminClientsPage() {
   const { data: clients, isLoading } = useClients();
+  const [deleteTarget, setDeleteTarget] = useState<ClientInfo | null>(null);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await api.admin.deleteClient(deleteTarget.id);
+      invalidateClients();
+      toast.success(`Клиент ${deleteTarget.name} удалён`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось удалить клиента";
+      toast.error(msg);
+    }
+    setDeleteTarget(null);
+  };
 
   if (isLoading) {
     return (
@@ -70,9 +89,25 @@ export default function AdminClientsPage() {
               <div className="text-sm text-muted-foreground">{client.phone}</div>
             )}
           </div>
+          <button
+            onClick={() => setDeleteTarget(client)}
+            className="p-2 rounded-lg text-muted-foreground transition-colors active:bg-card"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Удалить клиента?"
+        description={`Клиент «${deleteTarget?.name}» будет удалён. Если у клиента есть записи, удаление не будет выполнено.`}
+        confirmText="Удалить"
+        destructive
+      />
     </div>
   );
 }

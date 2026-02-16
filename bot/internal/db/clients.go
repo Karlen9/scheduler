@@ -152,6 +152,11 @@ func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 	return clients, rows.Err()
 }
 
+func DeleteClient(clientID string) error {
+	_, err := DB.Exec(Q(`DELETE FROM clients WHERE id = ?`), clientID)
+	return err
+}
+
 func CreateGhostClient(trainerID, name string) (*models.Client, error) {
 	id := uuid.New().String()
 	fakeTelegramID := -time.Now().UnixNano()

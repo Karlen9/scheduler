@@ -345,6 +345,10 @@ export const api = {
       });
     },
 
+    async deleteClient(id: string): Promise<void> {
+      await fetchAPI<void>(`/api/admin/clients/${id}`, { method: "DELETE" });
+    },
+
     // Trainer-initiated bookings
     async createBooking(data: { clientId: string; duration: number; date: string; time: string; message?: string }): Promise<Booking> {
       return fetchAPI<Booking>("/api/admin/bookings", {

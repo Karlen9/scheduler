@@ -1025,6 +1025,40 @@ func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, client)
 }
 
+func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		return
+	}
+
+	clientID := chi.URLParam(r, "id")
+	if clientID == "" {
+		http.Error(w, "Укажите ID клиента", http.StatusBadRequest)
+		return
+	}
+
+	client, err := db.GetClientByID(clientID)
+	if err != nil {
+		log.Printf("Error getting client: %v", err)
+		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if client == nil || client.TrainerID != trainer.ID {
+		http.Error(w, "Клиент не найден", http.StatusNotFound)
+		return
+	}
+
+	if err := db.DeleteClient(clientID); err != nil {
+		log.Printf("Error deleting client: %v", err)
+		http.Error(w, "Не удалось удалить клиента. Возможно, у него есть записи.", http.StatusConflict)
+		return
+	}
+
+	log.Printf("🗑 CLIENT deleted: %s (%s) by trainer %s", client.Name, clientID[:8], trainer.Name)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
