@@ -530,12 +530,19 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	log.Printf("🔄 RECURRING CREATE (ADMIN) [%s] Client: %s | Days: %s | Time: %s | Period: %s",
 		schedule.ID[:8], client.Name, daysStr, req.Time, req.Period)
 
-	// Notify client
-	if NotifyRecurringScheduleFunc != nil {
-		schedule.SessionType = sessionType
-		previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
-		if err := NotifyRecurringScheduleFunc(schedule, len(previewDates)); err != nil {
-			log.Printf("Error notifying about recurring schedule: %v", err)
+	// Ghost clients: auto-approve and generate bookings immediately
+	if client.IsGhost {
+		if _, err := db.ApproveAndGenerateBookings(schedule.ID); err != nil {
+			log.Printf("Error auto-approving ghost recurring schedule: %v", err)
+		}
+	} else {
+		// Notify client
+		if NotifyRecurringScheduleFunc != nil {
+			schedule.SessionType = sessionType
+			previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
+			if err := NotifyRecurringScheduleFunc(schedule, len(previewDates)); err != nil {
+				log.Printf("Error notifying about recurring schedule: %v", err)
+			}
 		}
 	}
 

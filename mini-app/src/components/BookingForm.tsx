@@ -238,6 +238,7 @@ export interface BookingFormProps {
   onCreateBooking: (params: CreateBookingParams) => Promise<void>;
   onCreateRecurring: (params: CreateRecurringParams) => Promise<void>;
   onPreviewRecurring: (params: PreviewRecurringParams) => Promise<{ dates: string[] }>;
+  onCreateGhostClient?: (name: string) => Promise<ClientInfo>;
   successRedirect: string;
   title?: string;
 }
@@ -254,17 +255,34 @@ export function BookingForm({
   onCreateBooking,
   onCreateRecurring,
   onPreviewRecurring,
+  onCreateGhostClient,
   successRedirect,
   title = "Онлайн запись",
 }: BookingFormProps) {
   const router = useRouter();
-  const hasClientSelector = !!clients && clients.length > 0;
+  const hasClientSelector = !!clients;
 
   // ═══════════════════════════════
   // Client selection (admin only)
   // ═══════════════════════════════
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCreatingGhost, setIsCreatingGhost] = useState(false);
+
+  const handleCreateGhostClient = async () => {
+    if (!onCreateGhostClient || !searchQuery.trim()) return;
+    setIsCreatingGhost(true);
+    try {
+      const client = await onCreateGhostClient(searchQuery.trim());
+      setSelectedClient(client);
+      setSearchQuery("");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось создать клиента";
+      toast.error(msg);
+    } finally {
+      setIsCreatingGhost(false);
+    }
+  };
 
   const filteredClients = useMemo(() => {
     if (!clients) return [];
@@ -641,15 +659,18 @@ export function BookingForm({
   const multiActiveTime = activeDateISO ? timeAssignments[activeDateISO] ?? null : null;
 
   const getOnetimeSuccessDescription = () => {
+    const isGhost = selectedClient?.isGhost;
     if (mode === "single" && selectedDate && selectedTime && selectedService) {
       const prefix = selectedClient ? `${selectedClient.name} записан(а)` : "Вы записаны";
-      return `${prefix} на ${selectedDate.getDate()} ${MONTHS_FULL[selectedDate.getMonth()]} в ${selectedTime} — ${selectedService.name}. Ожидайте подтверждения.`;
+      const suffix = isGhost ? "" : " Ожидайте подтверждения.";
+      return `${prefix} на ${selectedDate.getDate()} ${MONTHS_FULL[selectedDate.getMonth()]} в ${selectedTime} — ${selectedService.name}.${suffix}`;
     }
     if (mode === "multi") {
       const suffix = selectedClient ? ` для ${selectedClient.name}` : "";
-      return `Создано записей: ${selectedDates.length}${suffix}. Ожидайте подтверждения.`;
+      const confirm = isGhost ? "" : " Ожидайте подтверждения.";
+      return `Создано записей: ${selectedDates.length}${suffix}.${confirm}`;
     }
-    return "Ожидайте подтверждения.";
+    return isGhost ? "Запись создана." : "Ожидайте подтверждения.";
   };
 
   // Whether to show the booking form (client selector passed or not needed)
@@ -677,15 +698,26 @@ export function BookingForm({
               />
             </div>
             {filteredClients.length === 0 ? (
-              <EmptyState
-                icon={<AlertCircle className="w-16 h-16" />}
-                title="Клиенты не найдены"
-                description={
-                  clients!.length === 0
-                    ? "Пока нет зарегистрированных клиентов"
-                    : "Попробуйте изменить запрос поиска"
-                }
-              />
+              <div className="space-y-3">
+                <EmptyState
+                  icon={<AlertCircle className="w-16 h-16" />}
+                  title="Клиенты не найдены"
+                  description={
+                    clients!.length === 0
+                      ? "Пока нет зарегистрированных клиентов"
+                      : "Попробуйте изменить запрос поиска"
+                  }
+                />
+                {onCreateGhostClient && searchQuery.trim() && (
+                  <button
+                    onClick={handleCreateGhostClient}
+                    disabled={isCreatingGhost}
+                    className="w-full border-2 border-dashed border-border rounded-xl p-4 text-sm text-muted-foreground transition-colors active:bg-card disabled:opacity-50"
+                  >
+                    {isCreatingGhost ? "Создание..." : `Добавить «${searchQuery.trim()}»`}
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="space-y-2">
                 {filteredClients.map((client) => (
@@ -696,13 +728,27 @@ export function BookingForm({
                   >
                     <ClientAvatar name={client.name} photoUrl={client.photoUrl} />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-foreground truncate">{client.name}</div>
+                      <div className="font-medium text-foreground truncate">
+                        {client.name}
+                        {client.isGhost && (
+                          <span className="ml-1.5 text-xs text-muted-foreground font-normal">(гость)</span>
+                        )}
+                      </div>
                       {client.phone && (
                         <div className="text-sm text-muted-foreground">{client.phone}</div>
                       )}
                     </div>
                   </button>
                 ))}
+                {onCreateGhostClient && searchQuery.trim() && !filteredClients.some(c => c.name.toLowerCase() === searchQuery.trim().toLowerCase()) && (
+                  <button
+                    onClick={handleCreateGhostClient}
+                    disabled={isCreatingGhost}
+                    className="w-full border-2 border-dashed border-border rounded-xl p-4 text-sm text-muted-foreground transition-colors active:bg-card disabled:opacity-50"
+                  >
+                    {isCreatingGhost ? "Создание..." : `Добавить «${searchQuery.trim()}»`}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -713,7 +759,12 @@ export function BookingForm({
           <div className="flex items-center gap-3 bg-card rounded-xl p-3">
             <ClientAvatar name={selectedClient.name} photoUrl={selectedClient.photoUrl} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{selectedClient.name}</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {selectedClient.name}
+                {selectedClient.isGhost && (
+                  <span className="ml-1.5 text-xs text-muted-foreground font-normal">(гость)</span>
+                )}
+              </p>
               {selectedClient.phone && (
                 <p className="text-xs text-muted-foreground">{selectedClient.phone}</p>
               )}

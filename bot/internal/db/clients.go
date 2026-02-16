@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -12,9 +13,10 @@ func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Clien
 	var c models.Client
 	var phone, photoURL sql.NullString
 	var preferredDuration sql.NullInt64
+	var isGhost sql.NullInt64
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
 	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &photoURL, &preferredDuration,
-		&notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt)
+		&isGhost, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -27,6 +29,7 @@ func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Clien
 	if preferredDuration.Valid {
 		c.PreferredDuration = int(preferredDuration.Int64)
 	}
+	c.IsGhost = isGhost.Valid && isGhost.Int64 == 1
 	c.NotifyBookingStatus = !notifyBookingStatus.Valid || notifyBookingStatus.Int64 == 1
 	c.NotifyReminders = !notifyReminders.Valid || notifyReminders.Int64 == 1
 	c.NotifyDaysOff = notifyDaysOff.Valid && notifyDaysOff.Int64 == 1
@@ -36,7 +39,7 @@ func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Clien
 
 func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at
 		FROM clients
 		WHERE telegram_user_id = ? AND trainer_id = ?
 	`), telegramUserID, trainerID)
@@ -53,7 +56,7 @@ func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Clie
 
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at
 		FROM clients
 		WHERE id = ?
 	`), id)
@@ -128,7 +131,7 @@ func UpdateTrainerPhoto(trainerID, fileID string) error {
 
 func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at
 		FROM clients
 		WHERE trainer_id = ?
 		ORDER BY name ASC
@@ -147,4 +150,19 @@ func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 		clients = append(clients, *c)
 	}
 	return clients, rows.Err()
+}
+
+func CreateGhostClient(trainerID, name string) (*models.Client, error) {
+	id := uuid.New().String()
+	fakeTelegramID := -time.Now().UnixNano()
+
+	_, err := DB.Exec(Q(`
+		INSERT INTO clients (id, telegram_user_id, trainer_id, name, is_ghost)
+		VALUES (?, ?, ?, ?, 1)
+	`), id, fakeTelegramID, trainerID, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetClientByID(id)
 }

@@ -36,6 +36,7 @@ type Client struct {
 	Phone               string    `json:"phone,omitempty"`
 	PhotoURL            string    `json:"photoUrl,omitempty"`
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
+	IsGhost             bool      `json:"isGhost,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`
 	NotifyDaysOff          bool      `json:"notifyDaysOff"`

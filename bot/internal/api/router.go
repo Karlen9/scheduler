@@ -109,6 +109,7 @@ func NewRouter() http.Handler {
 
 			// Clients
 			r.Get("/clients", HandleAdminGetClients)
+			r.Post("/clients", HandleAdminCreateGhostClient)
 
 			// Profile management
 			r.Get("/profile", HandleGetProfile)
