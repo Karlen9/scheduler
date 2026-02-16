@@ -240,15 +240,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Bottom CTA */}
-        <div className="px-4 pb-6">
-          <button
-            onClick={() => router.push("/book")}
-            className="w-full py-4 rounded-[28px] bg-brand text-white text-base font-semibold transition-opacity active:opacity-80"
-          >
-            Записаться
-          </button>
-        </div>
       </div>
     </div>
   );

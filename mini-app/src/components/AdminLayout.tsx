@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Plus, User, ClipboardList, UserPlus, Repeat } from "lucide-react";
+import { ClipboardList, Plus, User } from "lucide-react";
 import { BottomTabBar } from "./BottomTabBar";
 import { getTelegramWebApp } from "@/lib/telegram";
 
@@ -11,15 +11,9 @@ interface AdminLayoutProps {
 }
 
 const adminTabs = [
-  { key: "home", label: "Главная", icon: Home, href: "/admin" },
-  { key: "bookings", label: "", icon: Plus, href: "/admin/bookings", isCenter: true, matchPaths: ["/admin/bookings", "/admin/book", "/admin/recurring"] },
+  { key: "home", label: "Записи", icon: ClipboardList, href: "/admin", matchPaths: ["/admin/recurring"] },
+  { key: "book", label: "", icon: Plus, href: "/admin/book", isCenter: true },
   { key: "profile", label: "Профиль", icon: User, href: "/admin/settings" },
-];
-
-const adminSubTabs = [
-  { icon: ClipboardList, href: "/admin/bookings" },
-  { icon: UserPlus, href: "/admin/book", label: "Записать" },
-  { icon: Repeat, href: "/admin/recurring" },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -47,7 +41,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
       <div className="pb-24">{children}</div>
-      <BottomTabBar tabs={adminTabs} subTabs={adminSubTabs} />
+      <BottomTabBar tabs={adminTabs} />
     </div>
   );
 }
