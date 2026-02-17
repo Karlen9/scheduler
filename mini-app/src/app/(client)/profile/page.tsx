@@ -228,7 +228,7 @@ export default function ClientProfilePage() {
                 type="button"
                 onClick={() => handleToggleNotification(item.key, !item.value)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  item.value ? "bg-brand" : "bg-muted ring-1 ring-white/20"
+                  item.value ? "bg-brand" : "bg-switch-background"
                 }`}
               >
                 <span
