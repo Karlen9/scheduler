@@ -65,6 +65,8 @@ export interface MonthGridProps {
   disablePast?: boolean;
   /** ISO date strings (or a Set) that have a dot indicator */
   dotDates?: Set<string>;
+  /** ISO date strings of dates already booked by this client */
+  bookedDates?: Set<string>;
   /** Fill outer-month days instead of empty cells */
   fillOuterDays?: boolean;
   /** Wrap in bg-card container */
@@ -88,6 +90,7 @@ export function MonthGrid({
   daysOff,
   disablePast,
   dotDates,
+  bookedDates,
   fillOuterDays = false,
   card = false,
   showLegend = false,
@@ -119,12 +122,17 @@ export function MonthGrid({
     return d < today;
   }
 
+  function isBooked(d: Date): boolean {
+    return bookedDates?.has(toISODate(d)) ?? false;
+  }
+
   function isDisabled(d: Date): boolean {
     if (disablePast && isPast(d)) return true;
     if (disableNonWorking) {
       if (nonWorkingSet.size > 0 && nonWorkingSet.has(d.getDay())) return true;
       if (daysOffSet.size > 0 && daysOffSet.has(toISODate(d))) return true;
     }
+    if (bookedDates?.has(toISODate(d))) return true;
     return false;
   }
 
@@ -169,6 +177,7 @@ export function MonthGrid({
           const disabled = isDisabled(date);
           const dayOff = isDayOffDate(date);
           const nonWorking = isNonWorking(date);
+          const booked = isBooked(date);
           const hasDot = dotDates?.has(toISODate(date)) && !selected && !nonWorking;
 
           return (
@@ -182,24 +191,28 @@ export function MonthGrid({
                 className={`w-9 h-9 flex items-center justify-center rounded-full text-sm transition-colors ${
                   selected
                     ? "bg-brand text-white font-medium"
-                    : dayOff && isCurrentMonth
-                      ? "bg-red-900/30 text-red-400"
-                      : disabled && disablePast && isPast(date)
-                        ? "text-muted-foreground opacity-40"
-                        : nonWorking
-                          ? isCurrentMonth ? "text-muted-foreground/30" : "text-muted-foreground/20"
-                          : isDayToday
-                            ? "ring-1 ring-brand text-brand font-medium"
-                            : isCurrentMonth
-                              ? "text-foreground"
-                              : "text-muted-foreground/40"
+                    : booked && isCurrentMonth
+                      ? "text-muted-foreground/50"
+                      : dayOff && isCurrentMonth
+                        ? "bg-red-900/30 text-red-400"
+                        : disabled && disablePast && isPast(date)
+                          ? "text-muted-foreground opacity-40"
+                          : nonWorking
+                            ? isCurrentMonth ? "text-muted-foreground/30" : "text-muted-foreground/20"
+                            : isDayToday
+                              ? "ring-1 ring-brand text-brand font-medium"
+                              : isCurrentMonth
+                                ? "text-foreground"
+                                : "text-muted-foreground/40"
                 }`}
               >
                 {date.getDate()}
               </span>
-              {hasDot && (
+              {booked && isCurrentMonth && !selected ? (
+                <div className="w-1.5 h-1.5 rounded-full bg-brand/60 mt-0.5" />
+              ) : hasDot ? (
                 <div className="w-1 h-1 rounded-full bg-brand mt-0.5" />
-              )}
+              ) : null}
             </button>
           );
         })}
