@@ -57,11 +57,36 @@ export function getTelegramWebApp(): TelegramWebApp | null {
   return null;
 }
 
+export type ThemePreference = "auto" | "light" | "dark";
+
+const THEME_STORAGE_KEY = "theme-preference";
+
+export function getThemePreference(): ThemePreference {
+  if (typeof localStorage === "undefined") return "auto";
+  const val = localStorage.getItem(THEME_STORAGE_KEY);
+  if (val === "light" || val === "dark") return val;
+  return "auto";
+}
+
+export function setThemePreference(pref: ThemePreference) {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(THEME_STORAGE_KEY, pref);
+}
+
 export function applyTheme() {
   if (typeof document === "undefined") return;
 
-  const webApp = getTelegramWebApp();
-  const isDark = webApp ? webApp.colorScheme === "dark" : false;
+  const pref = getThemePreference();
+  let isDark: boolean;
+
+  if (pref === "light") {
+    isDark = false;
+  } else if (pref === "dark") {
+    isDark = true;
+  } else {
+    const webApp = getTelegramWebApp();
+    isDark = webApp ? webApp.colorScheme === "dark" : false;
+  }
 
   if (isDark) {
     document.documentElement.classList.add("dark");
