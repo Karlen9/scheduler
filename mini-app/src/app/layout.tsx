@@ -25,7 +25,7 @@ export default function RootLayout({
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" />
         {/* Detect dark/light theme early to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=window.Telegram&&window.Telegram.WebApp;if(t&&t.colorScheme==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})()` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=localStorage.getItem('theme-preference');if(p==='dark'){document.documentElement.classList.add('dark')}else if(p==='light'){}else{var t=window.Telegram&&window.Telegram.WebApp;if(t&&t.colorScheme==='dark'){document.documentElement.classList.add('dark')}}}catch(e){}})()` }} />
       </head>
       <body>
         <SWRProvider>

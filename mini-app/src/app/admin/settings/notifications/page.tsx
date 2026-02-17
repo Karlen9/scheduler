@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { api } from "@/lib/api";
 import { useAdminNotifications } from "@/hooks/queries";
 import { invalidateAdminNotifications } from "@/hooks/mutations";
@@ -84,6 +85,11 @@ export default function AdminNotificationsPage() {
             </div>
           ))}
         </div>
+      </div>
+      {/* Theme */}
+      <div className="p-4 pt-0">
+        <h3 className="text-sm text-muted-foreground mb-3">Тема</h3>
+        <ThemeSelector />
       </div>
     </div>
   );

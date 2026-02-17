@@ -9,6 +9,7 @@ import { ServiceSelector } from "@/components/ServiceSelector";
 import { PhotoEditor } from "@/components/PhotoEditor";
 import { api, getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { useProfile, useSessionTypes } from "@/hooks/queries";
 import { invalidateProfile } from "@/hooks/mutations";
 
@@ -239,6 +240,12 @@ export default function ClientProfilePage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Theme */}
+      <div>
+        <h3 className="text-sm text-muted-foreground mb-3">Тема</h3>
+        <ThemeSelector />
       </div>
 
       {editorImage && (
