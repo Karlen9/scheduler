@@ -152,7 +152,7 @@ export default function AdminHomePage() {
   if (error) {
     return (
       <div className="p-4">
-        <div className="bg-red-900/20 text-red-400 p-4 rounded-xl text-center">
+        <div className="bg-action-danger-bg text-action-danger-text p-4 rounded-xl text-center">
           {error}
         </div>
       </div>

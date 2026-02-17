@@ -145,13 +145,13 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
 
   return (
       <div className="fixed bottom-0 left-0 right-0 pb-6 flex justify-center z-50">
-        <div className="relative bg-[#1c1c1e] rounded-full border border-[#3a3a3a] px-3 py-1.5 overflow-visible">
+        <div className="relative bg-tab-bar rounded-full border border-tab-bar-border px-3 py-1.5 overflow-visible">
           {showSubTabs ? (
             <>
               {/* Sliding indicator for sub-tabs */}
               {activeSubIndex >= 0 && subTabW > 0 && (
                 <div
-                  className="absolute top-1.5 bottom-1.5 rounded-full bg-[#2c2c2e]"
+                  className="absolute top-1.5 bottom-1.5 rounded-full bg-tab-bar-indicator"
                   style={{
                     width: `${subTabW}px`,
                     left: `${6 + activeSubIndex * subTabW}px`,
@@ -183,7 +183,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
               {/* Active indicator for side tabs */}
               {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
                 <div
-                  className="absolute top-1.5 bottom-1.5 rounded-full bg-[#2c2c2e]"
+                  className="absolute top-1.5 bottom-1.5 rounded-full bg-tab-bar-indicator"
                   style={{
                     width: `${sideTabW}px`,
                     left: activeSideIndex === 0

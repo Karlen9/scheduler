@@ -61,7 +61,7 @@ export function BookingCard({ booking, onCancel, onConfirm, onDecline }: Booking
           <p className="text-xs text-muted-foreground mb-2">Тренер записал вас на тренировку</p>
           <button
             onClick={() => onConfirm(booking)}
-            className="w-full py-2 px-4 rounded-lg bg-green-600 text-white text-sm font-medium transition-opacity active:opacity-70"
+            className="w-full py-2 px-4 rounded-lg bg-action-confirm-bg text-action-confirm-text text-sm font-medium transition-opacity active:opacity-70"
           >
             Подтвердить
           </button>

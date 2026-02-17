@@ -2,6 +2,7 @@ export interface TelegramWebApp {
   ready: () => void;
   expand: () => void;
   close: () => void;
+  colorScheme: "light" | "dark";
   MainButton: {
     text: string;
     show: () => void;
@@ -37,6 +38,8 @@ export interface TelegramWebApp {
       username?: string;
     };
   };
+  onEvent: (event: string, callback: () => void) => void;
+  offEvent: (event: string, callback: () => void) => void;
 }
 
 declare global {
@@ -54,12 +57,29 @@ export function getTelegramWebApp(): TelegramWebApp | null {
   return null;
 }
 
+export function applyTheme() {
+  if (typeof document === "undefined") return;
+
+  const webApp = getTelegramWebApp();
+  const isDark = webApp ? webApp.colorScheme === "dark" : false;
+
+  if (isDark) {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+}
+
 export function initTelegramApp() {
   const webApp = getTelegramWebApp();
   if (webApp) {
     webApp.ready();
     webApp.expand();
+
+    // Listen for theme changes (user switches dark/light mode)
+    webApp.onEvent("themeChanged", applyTheme);
   }
+  applyTheme();
 }
 
 export function getThemeParams() {

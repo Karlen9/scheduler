@@ -14,20 +14,20 @@ import { invalidateRecurring } from "@/hooks/mutations";
 // --- Status config ---
 
 const bookingStatusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Ожидает", color: "bg-yellow-900/30 text-yellow-400" },
-  confirmed: { label: "Подтверждено", color: "bg-green-900/30 text-green-400" },
-  rejected: { label: "Отклонено", color: "bg-red-900/30 text-red-400" },
-  cancelled: { label: "Отменено", color: "bg-gray-700/30 text-gray-400" },
-  completed: { label: "Завершено", color: "bg-blue-900/30 text-blue-400" },
-  cancel_requested: { label: "Отмена запрошена", color: "bg-orange-900/30 text-orange-400" },
-  reschedule_pending: { label: "Перенос", color: "bg-purple-900/30 text-purple-400" },
+  pending: { label: "Ожидает", color: "bg-status-pending-bg text-status-pending-text" },
+  confirmed: { label: "Подтверждено", color: "bg-status-confirmed-bg text-status-confirmed-text" },
+  rejected: { label: "Отклонено", color: "bg-status-rejected-bg text-status-rejected-text" },
+  cancelled: { label: "Отменено", color: "bg-status-cancelled-bg text-status-cancelled-text" },
+  completed: { label: "Завершено", color: "bg-status-completed-bg text-status-completed-text" },
+  cancel_requested: { label: "Отмена запрошена", color: "bg-status-warning-bg text-status-warning-text" },
+  reschedule_pending: { label: "Перенос", color: "bg-status-purple-bg text-status-purple-text" },
 };
 
 const scheduleStatusConfig: Record<string, { label: string; color: string; border: string }> = {
-  pending: { label: "Ожидает", color: "bg-yellow-900/30 text-yellow-400", border: "border-yellow-500" },
-  active: { label: "Активно", color: "bg-green-900/30 text-green-400", border: "border-green-500" },
-  declined: { label: "Отклонено", color: "bg-red-900/30 text-red-400", border: "border-red-500" },
-  cancelled: { label: "Отменено", color: "bg-gray-700/30 text-gray-400", border: "border-gray-500" },
+  pending: { label: "Ожидает", color: "bg-status-pending-bg text-status-pending-text", border: "border-status-pending-border" },
+  active: { label: "Активно", color: "bg-status-confirmed-bg text-status-confirmed-text", border: "border-status-confirmed-border" },
+  declined: { label: "Отклонено", color: "bg-status-rejected-bg text-status-rejected-text", border: "border-status-rejected-border" },
+  cancelled: { label: "Отменено", color: "bg-status-cancelled-bg text-status-cancelled-text", border: "border-status-cancelled-border" },
 };
 
 // --- Day / month names ---
@@ -284,8 +284,8 @@ export default function RecurringScheduleDetailPage() {
                     {isReschedulePending && (
                       <div className="pt-3 border-t border-border">
                         <div className="flex items-center gap-2 justify-center">
-                          <ArrowRight className="w-4 h-4 text-purple-400" />
-                          <span className="text-sm text-purple-400">
+                          <ArrowRight className="w-4 h-4 text-status-purple-text" />
+                          <span className="text-sm text-status-purple-text">
                             Ожидает подтверждения переноса
                           </span>
                         </div>

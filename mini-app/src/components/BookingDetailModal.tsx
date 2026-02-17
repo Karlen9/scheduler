@@ -102,13 +102,13 @@ export function BookingDetailModal({
         <div className="flex gap-3 mb-3">
           <button
             onClick={() => onAccept?.(booking)}
-            className="flex-1 py-3 px-4 rounded-[28px] bg-green-600 text-white text-sm font-medium transition-opacity active:opacity-80"
+            className="flex-1 py-3 px-4 rounded-[28px] bg-action-confirm-bg text-action-confirm-text text-sm font-medium transition-opacity active:opacity-80"
           >
             Подтвердить
           </button>
           <button
             onClick={() => onReject?.(booking)}
-            className="flex-1 py-3 px-4 rounded-[28px] bg-red-600 text-white text-sm font-medium transition-opacity active:opacity-80"
+            className="flex-1 py-3 px-4 rounded-[28px] bg-action-danger-bg text-action-danger-text text-sm font-medium transition-opacity active:opacity-80"
           >
             Отклонить
           </button>
@@ -126,7 +126,7 @@ export function BookingDetailModal({
           </button>
           <button
             onClick={() => onCancel?.(booking)}
-            className="flex-1 py-3 px-4 rounded-[28px] bg-red-900/30 text-red-400 text-sm font-medium transition-opacity active:opacity-80"
+            className="flex-1 py-3 px-4 rounded-[28px] bg-action-danger-bg text-action-danger-text text-sm font-medium transition-opacity active:opacity-80"
           >
             Отменить
           </button>

@@ -1,7 +1,146 @@
 @custom-variant dark (&:is(.dark *));
 
+/* ═══════════════════════════════════════════════ */
+/* Light theme (default)                           */
+/* ═══════════════════════════════════════════════ */
 :root {
-  /* Dark theme - always used */
+  /* Telegram SDK fallbacks – overridden by inline styles inside Telegram */
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2678b6;
+  --tg-theme-button-color: #2678b6;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #efeff4;
+  --tg-theme-header-bg-color: #ffffff;
+  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-subtitle-text-color: #999999;
+  --tg-theme-destructive-text-color: #e53935;
+
+  /* Semantic mapping from Telegram vars */
+  --app-text: var(--tg-theme-text-color);
+  --app-subtext: var(--tg-theme-hint-color);
+  --app-primary: var(--tg-theme-button-color);
+  --app-primary-text: var(--tg-theme-button-text-color);
+  --app-destructive: var(--tg-theme-destructive-text-color);
+  --app-divider: rgba(0, 0, 0, 0.06);
+
+  /* Light: page bg = secondary (gray), cards = primary (white) */
+  --background: var(--tg-theme-secondary-bg-color);
+  --foreground: var(--app-text);
+  --card: var(--tg-theme-bg-color);
+  --card-foreground: var(--app-text);
+  --popover: var(--card);
+  --popover-foreground: var(--app-text);
+  --primary: var(--app-primary);
+  --primary-foreground: var(--app-primary-text);
+  --secondary: var(--card);
+  --secondary-foreground: var(--app-text);
+  --muted: var(--card);
+  --muted-foreground: var(--app-subtext);
+  --accent: var(--card);
+  --accent-foreground: var(--app-text);
+  --destructive: var(--app-destructive);
+  --destructive-foreground: #ffffff;
+  --border: var(--app-divider);
+  --input: var(--card);
+  --input-background: var(--card);
+  --switch-background: #c7c7cc;
+  --ring: var(--app-primary);
+
+  /* Typography */
+  --font-size: 16px;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --radius: 0.75rem;
+
+  /* App surface variants (for interactive elements within cards) */
+  --surface: #f0f0f0;
+  --surface-hover: #e8e8e8;
+  --surface-border: #d5d5d5;
+  --brand: #5984d8;
+  --brand-hover: #4a75c9;
+
+  /* Status badge colors */
+  --status-pending-bg: #fef3c7;
+  --status-pending-text: #92400e;
+  --status-confirmed-bg: #dcfce7;
+  --status-confirmed-text: #166534;
+  --status-rejected-bg: #fee2e2;
+  --status-rejected-text: #991b1b;
+  --status-cancelled-bg: #f3f4f6;
+  --status-cancelled-text: #6b7280;
+  --status-completed-bg: #dbeafe;
+  --status-completed-text: #1e40af;
+  --status-warning-bg: #ffedd5;
+  --status-warning-text: #9a3412;
+  --status-purple-bg: #f3e8ff;
+  --status-purple-text: #7e22ce;
+
+  /* Status borders */
+  --status-pending-border: #f59e0b;
+  --status-confirmed-border: #22c55e;
+  --status-rejected-border: #ef4444;
+  --status-cancelled-border: #9ca3af;
+
+  /* Action button colors */
+  --action-success-bg: rgba(22, 163, 74, 0.1);
+  --action-success-text: #15803d;
+  --action-danger-bg: rgba(220, 38, 38, 0.08);
+  --action-danger-text: #dc2626;
+  --action-confirm-bg: #16a34a;
+  --action-confirm-text: #ffffff;
+
+  /* Calendar day-off */
+  --dayoff-bg: rgba(220, 38, 38, 0.08);
+  --dayoff-text: #dc2626;
+
+  /* Tab bar */
+  --tab-bar-bg: #ffffff;
+  --tab-bar-border: rgba(0, 0, 0, 0.08);
+  --tab-bar-indicator: #f0f0f0;
+
+  /* Timeline booking blocks */
+  --timeline-1-bg: #fef3e2;
+  --timeline-1-border: #f5a623;
+  --timeline-2-bg: #e8f0fc;
+  --timeline-2-border: #5984d8;
+  --timeline-3-bg: #e8f5e9;
+  --timeline-3-border: #4caf50;
+  --timeline-4-bg: #f3e5f5;
+  --timeline-4-border: #9c27b0;
+
+  /* Card outline (ring via box-shadow, doesn't conflict with border-l-4) */
+  --card-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+  /* Accent colors */
+  --warning: #d97706;
+  --success: #16a34a;
+  --error: #dc2626;
+
+  /* Chart colors */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* Sidebar */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.95 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+/* ═══════════════════════════════════════════════ */
+/* Dark theme overrides                            */
+/* ═══════════════════════════════════════════════ */
+:root.dark {
+  /* Telegram fallbacks for dark dev mode */
   --tg-theme-bg-color: #1e1e1e;
   --tg-theme-text-color: #ffffff;
   --tg-theme-hint-color: #999999;
@@ -14,54 +153,81 @@
   --tg-theme-subtitle-text-color: #999999;
   --tg-theme-destructive-text-color: #e53935;
 
-  /* Semantic tokens */
-  --app-bg: var(--tg-theme-bg-color);
-  --app-surface: var(--tg-theme-secondary-bg-color);
-  --app-text: var(--tg-theme-text-color);
-  --app-subtext: var(--tg-theme-hint-color);
-  --app-divider: rgba(255, 255, 255, 0.08);
-  --app-primary: var(--tg-theme-button-color);
-  --app-primary-text: var(--tg-theme-button-text-color);
-  --app-destructive: var(--tg-theme-destructive-text-color);
+  /* Dark: page bg = primary (dark), cards = secondary (slightly lighter) */
+  --background: var(--tg-theme-bg-color);
+  --card: var(--tg-theme-secondary-bg-color);
 
-  --font-size: 16px;
-  --background: var(--app-bg);
-  --foreground: var(--app-text);
-  --card: var(--app-surface);
-  --card-foreground: var(--app-text);
-  --popover: var(--app-surface);
-  --popover-foreground: var(--app-text);
-  --primary: var(--app-primary);
-  --primary-foreground: var(--app-primary-text);
-  --secondary: var(--app-surface);
-  --secondary-foreground: var(--app-text);
-  --muted: var(--app-surface);
-  --muted-foreground: var(--app-subtext);
-  --accent: var(--app-surface);
-  --accent-foreground: var(--app-text);
-  --destructive: var(--app-destructive);
-  --destructive-foreground: #ffffff;
-  --border: var(--app-divider);
-  --input: var(--app-surface);
-  --input-background: var(--app-surface);
+  --app-divider: rgba(255, 255, 255, 0.08);
   --switch-background: #4a4a4a;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: var(--app-primary);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --radius: 0.75rem;
+
+  /* App surface variants */
+  --surface: #2a2a2a;
+  --surface-hover: #3a3a3a;
+  --surface-border: #4a4a4a;
+
+  /* Status badge colors */
+  --status-pending-bg: rgba(113, 63, 18, 0.3);
+  --status-pending-text: #facc15;
+  --status-confirmed-bg: rgba(20, 83, 45, 0.3);
+  --status-confirmed-text: #4ade80;
+  --status-rejected-bg: rgba(127, 29, 29, 0.3);
+  --status-rejected-text: #f87171;
+  --status-cancelled-bg: rgba(55, 65, 81, 0.3);
+  --status-cancelled-text: #9ca3af;
+  --status-completed-bg: rgba(30, 58, 138, 0.3);
+  --status-completed-text: #60a5fa;
+  --status-warning-bg: rgba(124, 45, 18, 0.3);
+  --status-warning-text: #fb923c;
+  --status-purple-bg: rgba(88, 28, 135, 0.3);
+  --status-purple-text: #c084fc;
+
+  /* Status borders */
+  --status-pending-border: #eab308;
+  --status-confirmed-border: #22c55e;
+  --status-rejected-border: #ef4444;
+  --status-cancelled-border: #6b7280;
+
+  /* Action buttons */
+  --action-success-bg: rgba(34, 197, 94, 0.2);
+  --action-success-text: #4ade80;
+  --action-danger-bg: rgba(239, 68, 68, 0.2);
+  --action-danger-text: #f87171;
+  --action-confirm-bg: rgba(22, 163, 74, 0.25);
+  --action-confirm-text: #4ade80;
+
+  /* Calendar day-off */
+  --dayoff-bg: rgba(127, 29, 29, 0.3);
+  --dayoff-text: #f87171;
+
+  /* Tab bar */
+  --tab-bar-bg: #1c1c1e;
+  --tab-bar-border: #3a3a3a;
+  --tab-bar-indicator: #2c2c2e;
+
+  /* Timeline booking blocks */
+  --timeline-1-bg: rgba(245, 166, 35, 0.15);
+  --timeline-1-border: #f5a623;
+  --timeline-2-bg: rgba(89, 132, 216, 0.15);
+  --timeline-2-border: #5984d8;
+  --timeline-3-bg: rgba(76, 175, 80, 0.15);
+  --timeline-3-border: #4caf50;
+  --timeline-4-bg: rgba(156, 39, 176, 0.15);
+  --timeline-4-border: #9c27b0;
+
+  /* Card outline */
+  --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+
+  /* Accent colors */
+  --warning: #f5a623;
+  --success: #4ade80;
+  --error: #ef4444;
+
+  /* Sidebar */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
 }
 
 @theme inline {
@@ -105,19 +271,63 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   /* App-specific colors */
-  --color-surface: #2a2a2a;
-  --color-surface-hover: #3a3a3a;
-  --color-surface-border: #4a4a4a;
-  --color-brand: #5984d8;
-  --color-brand-hover: #4a75c9;
-  --color-warning: #f5a623;
-  --color-success: #4ade80;
-  --color-error: #ef4444;
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-border: var(--surface-border);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-error: var(--error);
+
+  /* Status badge colors */
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-pending-text: var(--status-pending-text);
+  --color-status-confirmed-bg: var(--status-confirmed-bg);
+  --color-status-confirmed-text: var(--status-confirmed-text);
+  --color-status-rejected-bg: var(--status-rejected-bg);
+  --color-status-rejected-text: var(--status-rejected-text);
+  --color-status-cancelled-bg: var(--status-cancelled-bg);
+  --color-status-cancelled-text: var(--status-cancelled-text);
+  --color-status-completed-bg: var(--status-completed-bg);
+  --color-status-completed-text: var(--status-completed-text);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-warning-text: var(--status-warning-text);
+  --color-status-purple-bg: var(--status-purple-bg);
+  --color-status-purple-text: var(--status-purple-text);
+
+  /* Status borders */
+  --color-status-pending-border: var(--status-pending-border);
+  --color-status-confirmed-border: var(--status-confirmed-border);
+  --color-status-rejected-border: var(--status-rejected-border);
+  --color-status-cancelled-border: var(--status-cancelled-border);
+
+  /* Action buttons */
+  --color-action-success-bg: var(--action-success-bg);
+  --color-action-success-text: var(--action-success-text);
+  --color-action-danger-bg: var(--action-danger-bg);
+  --color-action-danger-text: var(--action-danger-text);
+  --color-action-confirm-bg: var(--action-confirm-bg);
+  --color-action-confirm-text: var(--action-confirm-text);
+
+  /* Calendar day-off */
+  --color-dayoff-bg: var(--dayoff-bg);
+  --color-dayoff-text: var(--dayoff-text);
+
+  /* Tab bar */
+  --color-tab-bar: var(--tab-bar-bg);
+  --color-tab-bar-border: var(--tab-bar-border);
+  --color-tab-bar-indicator: var(--tab-bar-indicator);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /* Card containers: subtle outline ring for visual separation */
+  .bg-card:where([class*="rounded-"]):not(.animate-pulse) {
+    box-shadow: var(--card-shadow);
   }
 
   body {
