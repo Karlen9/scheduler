@@ -73,7 +73,7 @@ export default function AdminNotificationsPage() {
                 type="button"
                 onClick={() => handleToggle(item.key, !item.value)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  item.value ? "bg-brand" : "bg-muted"
+                  item.value ? "bg-brand" : "bg-switch-background"
                 }`}
               >
                 <span
