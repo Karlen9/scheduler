@@ -73,17 +73,96 @@ export function setThemePreference(pref: ThemePreference) {
   localStorage.setItem(THEME_STORAGE_KEY, pref);
 }
 
+// Telegram CSS variable names that the SDK sets as inline styles on <html>
+const tgVarNames = [
+  "--tg-theme-bg-color",
+  "--tg-theme-text-color",
+  "--tg-theme-hint-color",
+  "--tg-theme-link-color",
+  "--tg-theme-button-color",
+  "--tg-theme-button-text-color",
+  "--tg-theme-secondary-bg-color",
+  "--tg-theme-header-bg-color",
+  "--tg-theme-section-bg-color",
+  "--tg-theme-subtitle-text-color",
+  "--tg-theme-destructive-text-color",
+] as const;
+
+const darkThemeVars: Record<string, string> = {
+  "--tg-theme-bg-color": "#1e1e1e",
+  "--tg-theme-text-color": "#ffffff",
+  "--tg-theme-hint-color": "#999999",
+  "--tg-theme-link-color": "#6ab2f2",
+  "--tg-theme-button-color": "#5288c1",
+  "--tg-theme-button-text-color": "#ffffff",
+  "--tg-theme-secondary-bg-color": "#2a2a2a",
+  "--tg-theme-header-bg-color": "#1e1e1e",
+  "--tg-theme-section-bg-color": "#1e1e1e",
+  "--tg-theme-subtitle-text-color": "#999999",
+  "--tg-theme-destructive-text-color": "#e53935",
+};
+
+const lightThemeVars: Record<string, string> = {
+  "--tg-theme-bg-color": "#ffffff",
+  "--tg-theme-text-color": "#000000",
+  "--tg-theme-hint-color": "#999999",
+  "--tg-theme-link-color": "#2678b6",
+  "--tg-theme-button-color": "#2678b6",
+  "--tg-theme-button-text-color": "#ffffff",
+  "--tg-theme-secondary-bg-color": "#efeff4",
+  "--tg-theme-header-bg-color": "#ffffff",
+  "--tg-theme-section-bg-color": "#ffffff",
+  "--tg-theme-subtitle-text-color": "#999999",
+  "--tg-theme-destructive-text-color": "#e53935",
+};
+
+let savedTgVars: Record<string, string> | null = null;
+
+function saveTelegramVars() {
+  if (savedTgVars) return;
+  const root = document.documentElement;
+  savedTgVars = {};
+  for (const name of tgVarNames) {
+    const val = root.style.getPropertyValue(name);
+    if (val) savedTgVars[name] = val;
+  }
+}
+
+function setInlineThemeVars(vars: Record<string, string>) {
+  const root = document.documentElement;
+  for (const [name, value] of Object.entries(vars)) {
+    root.style.setProperty(name, value);
+  }
+}
+
+function restoreTelegramVars() {
+  if (!savedTgVars) return;
+  const root = document.documentElement;
+  for (const name of tgVarNames) {
+    if (savedTgVars[name]) {
+      root.style.setProperty(name, savedTgVars[name]);
+    } else {
+      root.style.removeProperty(name);
+    }
+  }
+}
+
 export function applyTheme() {
   if (typeof document === "undefined") return;
+
+  saveTelegramVars();
 
   const pref = getThemePreference();
   let isDark: boolean;
 
   if (pref === "light") {
     isDark = false;
+    setInlineThemeVars(lightThemeVars);
   } else if (pref === "dark") {
     isDark = true;
+    setInlineThemeVars(darkThemeVars);
   } else {
+    restoreTelegramVars();
     const webApp = getTelegramWebApp();
     isDark = webApp ? webApp.colorScheme === "dark" : false;
   }
