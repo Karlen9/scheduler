@@ -59,13 +59,19 @@ func (h *Handler) handleStart(msg *Message) {
 	if trainer.TelegramUserID == msg.From.ID {
 		adminURL := h.WebAppURL + "/admin?trainer=" + trainer.ID
 		clientURL := h.WebAppURL + "?trainer=" + trainer.ID
+
+		// Set persistent menu button for trainer (opens admin panel)
+		if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenAdmin, adminURL); err != nil {
+			log.Printf("Error setting trainer menu button: %v", err)
+		}
+
 		keyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
 				{{Text: BtnOpenAdmin, WebApp: &WebAppInfo{URL: adminURL}}},
 				{{Text: BtnOpenApp, WebApp: &WebAppInfo{URL: clientURL}}},
 			},
 		}
-		_, err = h.Bot.SendMessage(msg.Chat.ID, FormatWelcomeTrainer(h.Version, h.Changelog), keyboard)
+		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeTrainer(h.Version, h.Changelog, clientURL), keyboard)
 		if err != nil {
 			log.Printf("Error sending trainer start message: %v", err)
 		}
@@ -74,6 +80,12 @@ func (h *Handler) handleStart(msg *Message) {
 
 	// Regular client
 	webAppURL := h.WebAppURL + "?trainer=" + trainer.ID
+
+	// Set persistent menu button for client (opens booking app)
+	if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenApp, webAppURL); err != nil {
+		log.Printf("Error setting client menu button: %v", err)
+	}
+
 	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, FormatWelcome(h.Version, h.Changelog), webAppURL)
 	if err != nil {
 		log.Printf("Error sending start message: %v", err)

@@ -103,11 +103,13 @@ func FormatWelcome(version, changelog string) string {
 }
 
 // FormatWelcomeTrainer creates a trainer welcome message with version and changelog
-func FormatWelcomeTrainer(version, changelog string) string {
+func FormatWelcomeTrainer(version, changelog, miniAppURL string) string {
 	msg := `👋 С возвращением!
 
 🔧 Панель управления — настройки, расписание и записи клиентов.
 📅 Записаться — посмотреть как видят бота ваши клиенты.`
+
+	msg += fmt.Sprintf("\n\n⚙️ Ссылка для настройки Menu Button в @BotFather:\n<code>%s</code>", miniAppURL)
 
 	if version != "" {
 		msg += fmt.Sprintf("\n\n📌 Версия %s", version)
