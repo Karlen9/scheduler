@@ -75,7 +75,8 @@ export default function ServicesPage() {
 
     try {
       if (editingService) {
-        await api.admin.updateService(editingService.type, {
+        await api.admin.updateService(editingService.id, {
+          type: formData.type,
           name: formData.name,
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
@@ -167,22 +168,20 @@ export default function ServicesPage() {
             />
           </div>
 
-          {!editingService && (
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">
-                Тип услуги
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
-              >
-                <option value="personal">Персональная</option>
-                <option value="pair">Парная</option>
-                <option value="consultation">Консультация</option>
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">
+              Тип услуги
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+            >
+              <option value="personal">Персональная</option>
+              <option value="pair">Парная</option>
+              <option value="consultation">Консультация</option>
+            </select>
+          </div>
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">

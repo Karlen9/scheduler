@@ -106,8 +106,7 @@ func migrateSQLite() error {
 			duration_minutes INTEGER NOT NULL,
 			price INTEGER NOT NULL,
 			currency TEXT DEFAULT 'RUB',
-			is_active BOOLEAN DEFAULT 1,
-			UNIQUE(trainer_id, type)
+			is_active BOOLEAN DEFAULT 1
 		)`,
 		`CREATE TABLE IF NOT EXISTS working_hours (
 			id TEXT PRIMARY KEY,
@@ -237,6 +236,27 @@ func migrateSQLite() error {
 	// Create unique index on bot_token_hash (separate from alters since it's not ALTER TABLE)
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_trainers_bot_token_hash ON trainers(bot_token_hash)`)
 
+	// Drop UNIQUE(trainer_id, type) constraint on session_types for existing databases
+	// SQLite: must recreate table to remove constraint
+	DB.Exec(`CREATE TABLE IF NOT EXISTS session_types_new (
+		id TEXT PRIMARY KEY,
+		trainer_id TEXT NOT NULL REFERENCES trainers(id),
+		type TEXT NOT NULL,
+		name TEXT NOT NULL,
+		duration_minutes INTEGER NOT NULL,
+		price INTEGER NOT NULL,
+		currency TEXT DEFAULT 'RUB',
+		is_active BOOLEAN DEFAULT 1,
+		image_url TEXT DEFAULT ''
+	)`)
+	var stNewExists int
+	DB.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='session_types_new'`).Scan(&stNewExists)
+	if stNewExists > 0 {
+		DB.Exec(`INSERT OR IGNORE INTO session_types_new SELECT id, trainer_id, type, name, duration_minutes, price, currency, is_active, image_url FROM session_types`)
+		DB.Exec(`DROP TABLE session_types`)
+		DB.Exec(`ALTER TABLE session_types_new RENAME TO session_types`)
+	}
+
 	// Recreate recurring_schedules to update CHECK constraint for existing databases
 	// (new databases already have the correct CHECK from CREATE TABLE above)
 	DB.Exec(`CREATE TABLE IF NOT EXISTS recurring_schedules_new (
@@ -351,8 +371,7 @@ func migratePostgres() error {
 			duration_minutes INTEGER NOT NULL,
 			price INTEGER NOT NULL,
 			currency TEXT DEFAULT 'RUB',
-			is_active INTEGER DEFAULT 1,
-			UNIQUE(trainer_id, type)
+			is_active INTEGER DEFAULT 1
 		)`,
 		`CREATE TABLE IF NOT EXISTS working_hours (
 			id TEXT PRIMARY KEY,
@@ -485,6 +504,10 @@ func migratePostgres() error {
 
 	// Create unique index on bot_token_hash
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_trainers_bot_token_hash ON trainers(bot_token_hash)`)
+
+	// Drop UNIQUE(trainer_id, type) constraint on session_types for existing databases
+	DB.Exec(`ALTER TABLE session_types DROP CONSTRAINT IF EXISTS session_types_trainer_id_type_key`)
+	DB.Exec(`DROP INDEX IF EXISTS session_types_trainer_id_type_key`)
 
 	// Update CHECK constraint on recurring_schedules status for existing Postgres databases
 	DB.Exec(`ALTER TABLE recurring_schedules DROP CONSTRAINT IF EXISTS recurring_schedules_status_check`)

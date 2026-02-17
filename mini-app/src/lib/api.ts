@@ -238,17 +238,17 @@ export const api = {
     },
 
     async updateService(
-      type: string,
+      id: string,
       data: Partial<SessionType>,
     ): Promise<SessionType> {
-      return fetchAPI<SessionType>(`/api/admin/services/${type}`, {
+      return fetchAPI<SessionType>(`/api/admin/services/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
       });
     },
 
-    async deleteService(type: string): Promise<void> {
-      await fetchAPI<void>(`/api/admin/services/${type}`, {
+    async deleteService(id: string): Promise<void> {
+      await fetchAPI<void>(`/api/admin/services/${id}`, {
         method: "DELETE",
       });
     },

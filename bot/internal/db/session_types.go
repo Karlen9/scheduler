@@ -140,12 +140,12 @@ func GetAllSessionTypesByTrainerID(trainerID string) ([]models.SessionType, erro
 	return sessionTypes, rows.Err()
 }
 
-func UpdateSessionType(id, name string, durationMinutes, price int, currency, imageURL string, isActive bool) (*models.SessionType, error) {
+func UpdateSessionType(id, sessionType, name string, durationMinutes, price int, currency, imageURL string, isActive bool) (*models.SessionType, error) {
 	_, err := DB.Exec(Q(`
 		UPDATE session_types
-		SET name = ?, duration_minutes = ?, price = ?, currency = ?, image_url = ?, is_active = ?
+		SET type = ?, name = ?, duration_minutes = ?, price = ?, currency = ?, image_url = ?, is_active = ?
 		WHERE id = ?
-	`), name, durationMinutes, price, currency, imageURL, BoolVal(isActive), id)
+	`), sessionType, name, durationMinutes, price, currency, imageURL, BoolVal(isActive), id)
 	if err != nil {
 		return nil, err
 	}

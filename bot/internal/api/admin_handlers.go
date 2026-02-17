@@ -136,6 +136,7 @@ type CreateSessionTypeRequest struct {
 }
 
 type UpdateSessionTypeRequest struct {
+	Type            string  `json:"type,omitempty"`
 	Name            string  `json:"name,omitempty"`
 	DurationMinutes *int    `json:"durationMinutes,omitempty"`
 	Price           *int    `json:"price,omitempty"`
@@ -193,18 +194,6 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 		currency = "RUB"
 	}
 
-	// Check if type already exists
-	existing, err := db.GetSessionTypeByType(trainer.ID, req.Type)
-	if err != nil {
-		log.Printf("Error checking existing service: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
-		return
-	}
-	if existing != nil {
-		http.Error(w, "Услуга с таким типом уже существует", http.StatusConflict)
-		return
-	}
-
 	service, err := db.CreateSessionType(trainer.ID, req.Type, req.Name, req.DurationMinutes, req.Price, currency, req.ImageURL)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
@@ -223,19 +212,19 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionType := chi.URLParam(r, "type")
-	if sessionType == "" {
-		http.Error(w, "Укажите тип услуги", http.StatusBadRequest)
+	serviceID := chi.URLParam(r, "id")
+	if serviceID == "" {
+		http.Error(w, "Укажите ID услуги", http.StatusBadRequest)
 		return
 	}
 
-	existing, err := db.GetSessionTypeByType(trainer.ID, sessionType)
+	existing, err := db.GetSessionTypeByID(serviceID)
 	if err != nil {
 		log.Printf("Error getting service: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
-	if existing == nil {
+	if existing == nil || existing.TrainerID != trainer.ID {
 		http.Error(w, "Услуга не найдена", http.StatusNotFound)
 		return
 	}
@@ -252,6 +241,11 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Apply updates
+	sessionType := existing.Type
+	if req.Type != "" {
+		sessionType = req.Type
+	}
+
 	name := existing.Name
 	if req.Name != "" {
 		name = req.Name
@@ -282,7 +276,7 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		isActive = *req.IsActive
 	}
 
-	updated, err := db.UpdateSessionType(existing.ID, name, duration, price, currency, imageURL, isActive)
+	updated, err := db.UpdateSessionType(existing.ID, sessionType, name, duration, price, currency, imageURL, isActive)
 	if err != nil {
 		log.Printf("Error updating service: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
@@ -299,19 +293,19 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionType := chi.URLParam(r, "type")
-	if sessionType == "" {
-		http.Error(w, "Укажите тип услуги", http.StatusBadRequest)
+	serviceID := chi.URLParam(r, "id")
+	if serviceID == "" {
+		http.Error(w, "Укажите ID услуги", http.StatusBadRequest)
 		return
 	}
 
-	existing, err := db.GetSessionTypeByType(trainer.ID, sessionType)
+	existing, err := db.GetSessionTypeByID(serviceID)
 	if err != nil {
 		log.Printf("Error getting service: %v", err)
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
-	if existing == nil {
+	if existing == nil || existing.TrainerID != trainer.ID {
 		http.Error(w, "Услуга не найдена", http.StatusNotFound)
 		return
 	}
