@@ -3,6 +3,7 @@
 import { Users, User, DollarSign, Clock, Bell, HelpCircle, CalendarOff } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { SettingsMenuItem, SettingsGroup } from "@/components/SettingsMenuItem";
+import { ThemeSelector } from "@/components/ThemeSelector";
 
 export default function SettingsPage() {
   return (
@@ -60,6 +61,11 @@ export default function SettingsPage() {
             iconColor="bg-[#3b82f6]"
           />
         </SettingsGroup>
+
+        <div className="mt-2">
+          <h3 className="text-sm text-muted-foreground mb-3">Тема</h3>
+          <ThemeSelector />
+        </div>
       </div>
     </div>
   );
