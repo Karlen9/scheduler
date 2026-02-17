@@ -28,7 +28,7 @@ export function UpcomingBookingCard({ booking, onClick }: UpcomingBookingCardPro
   return (
     <button
       onClick={() => onClick?.(booking)}
-      className="w-full bg-card rounded-xl p-4 border-l-4 border-l-green-500 text-left transition-opacity active:opacity-80"
+      className="w-full bg-card rounded-xl p-4 border-l-4 border-l-status-confirmed-border text-left transition-opacity active:opacity-80"
     >
       <div className="flex items-center gap-3">
         <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} />

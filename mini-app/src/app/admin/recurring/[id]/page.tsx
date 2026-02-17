@@ -69,23 +69,23 @@ const scheduleStatusConfig: Record<
 > = {
   pending: {
     label: "Ожидает",
-    color: "bg-yellow-900/30 text-yellow-400",
-    border: "border-yellow-500",
+    color: "bg-status-pending-bg text-status-pending-text",
+    border: "border-status-pending-border",
   },
   active: {
     label: "Активно",
-    color: "bg-green-900/30 text-green-400",
-    border: "border-green-500",
+    color: "bg-status-confirmed-bg text-status-confirmed-text",
+    border: "border-status-confirmed-border",
   },
   declined: {
     label: "Отклонено",
-    color: "bg-red-900/30 text-red-400",
-    border: "border-red-500",
+    color: "bg-status-rejected-bg text-status-rejected-text",
+    border: "border-status-rejected-border",
   },
   cancelled: {
     label: "Отменено",
-    color: "bg-gray-700/30 text-gray-400",
-    border: "border-gray-500",
+    color: "bg-status-cancelled-bg text-status-cancelled-text",
+    border: "border-status-cancelled-border",
   },
 };
 
@@ -95,31 +95,31 @@ const bookingStatusConfig: Record<
 > = {
   pending: {
     label: "Ожидает",
-    color: "bg-yellow-900/30 text-yellow-400",
+    color: "bg-status-pending-bg text-status-pending-text",
   },
   confirmed: {
     label: "Подтверждено",
-    color: "bg-green-900/30 text-green-400",
+    color: "bg-status-confirmed-bg text-status-confirmed-text",
   },
   rejected: {
     label: "Отклонено",
-    color: "bg-red-900/30 text-red-400",
+    color: "bg-status-rejected-bg text-status-rejected-text",
   },
   cancelled: {
     label: "Отменено",
-    color: "bg-gray-700/30 text-gray-400",
+    color: "bg-status-cancelled-bg text-status-cancelled-text",
   },
   completed: {
     label: "Завершено",
-    color: "bg-blue-900/30 text-blue-400",
+    color: "bg-status-completed-bg text-status-completed-text",
   },
   cancel_requested: {
     label: "Отмена запрошена",
-    color: "bg-orange-900/30 text-orange-400",
+    color: "bg-status-warning-bg text-status-warning-text",
   },
   reschedule_pending: {
     label: "Перенос",
-    color: "bg-purple-900/30 text-purple-400",
+    color: "bg-status-purple-bg text-status-purple-text",
   },
 };
 
@@ -476,7 +476,7 @@ function BookingRow({
       {/* Reschedule pending: Approve/Decline with new time */}
       {isReschedulePending && (
         <div className="pt-3 border-t border-border space-y-2">
-          <div className="flex items-center gap-2 text-xs text-purple-400">
+          <div className="flex items-center gap-2 text-xs text-status-purple-text">
             <span>Запрос на перенос</span>
             <ArrowRight className="w-3 h-3" />
             <span className="font-medium">
@@ -487,7 +487,7 @@ function BookingRow({
             <button
               onClick={() => onApproveMoveBooking(booking)}
               disabled={isThisLoading}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-green-900/30 text-green-400 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-action-success-bg text-action-success-text text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40"
             >
               <Check className="w-4 h-4" />
               Подтвердить
@@ -495,7 +495,7 @@ function BookingRow({
             <button
               onClick={() => onDeclineMoveBooking(booking)}
               disabled={isThisLoading}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-red-900/30 text-red-400 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-action-danger-bg text-action-danger-text text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40"
             >
               <X className="w-4 h-4" />
               Отклонить

@@ -163,7 +163,7 @@ export function RecurringScheduleCard({
             {canApprove && (
               <button
                 onClick={() => onApprove(schedule)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-green-900/30 text-green-400 text-sm font-medium transition-opacity active:opacity-70"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-action-success-bg text-action-success-text text-sm font-medium transition-opacity active:opacity-70"
               >
                 <Check className="w-4 h-4" />
                 Подтвердить
@@ -172,7 +172,7 @@ export function RecurringScheduleCard({
             {canDecline && (
               <button
                 onClick={() => onDecline(schedule)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-red-900/30 text-red-400 text-sm font-medium transition-opacity active:opacity-70"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-action-danger-bg text-action-danger-text text-sm font-medium transition-opacity active:opacity-70"
               >
                 <X className="w-4 h-4" />
                 Отклонить

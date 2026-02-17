@@ -194,7 +194,7 @@ export function MonthGrid({
                     : booked && isCurrentMonth
                       ? "text-muted-foreground/50"
                       : dayOff && isCurrentMonth
-                        ? "bg-red-900/30 text-red-400"
+                        ? "bg-dayoff-bg text-dayoff-text"
                         : disabled && disablePast && isPast(date)
                           ? "text-muted-foreground opacity-40"
                           : nonWorking
@@ -222,7 +222,7 @@ export function MonthGrid({
       {showLegend && daysOff && daysOff.length > 0 && (
         <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-red-900/30" />
+            <span className="w-3 h-3 rounded bg-dayoff-bg" />
             <span className="text-xs text-muted-foreground">Выходной</span>
           </div>
         </div>
@@ -320,7 +320,7 @@ export function WeekStrip({
                   selected
                     ? "bg-brand text-white font-medium"
                     : dayOff
-                      ? "bg-red-900/30 text-red-400"
+                      ? "bg-dayoff-bg text-dayoff-text"
                       : nonWorking
                         ? "text-muted-foreground/30"
                         : isDayToday

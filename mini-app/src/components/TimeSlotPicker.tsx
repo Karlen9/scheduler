@@ -41,7 +41,7 @@ export function TimeSlotPicker({
     }
 
     if (isSelected) {
-      return "bg-brand border-2 border-[#5984d8] text-white";
+      return "bg-brand border-2 border-brand text-white";
     }
 
     return "bg-card border border-surface-border text-foreground";

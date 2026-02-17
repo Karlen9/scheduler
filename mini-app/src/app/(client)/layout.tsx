@@ -45,7 +45,7 @@ export default function ClientLayout({
       className="min-h-screen bg-background"
       style={{ maxWidth: "430px", margin: "0 auto" }}
     >
-      <div className={isBookPage ? "" : "pb-24 bg-card"}>{children}</div>
+      <div className={isBookPage ? "" : "pb-24"}>{children}</div>
       {!isBookPage && <BottomTabBar tabs={clientTabs} />}
     </div>
   );

@@ -14,7 +14,7 @@ export function ActivityTabs() {
 
   return (
     <div className="px-4 pt-4 pb-2">
-      <div className="flex bg-[#1c1c1e] rounded-full p-1">
+      <div className="flex bg-tab-bar rounded-full p-1">
         {tabs.map((tab) => {
           const isActive =
             pathname === tab.href || pathname.startsWith(tab.href + "/");
@@ -24,7 +24,7 @@ export function ActivityTabs() {
               href={tab.href}
               className={`flex-1 text-center py-2 text-sm font-medium rounded-full transition-colors ${
                 isActive
-                  ? "bg-[#2c2c2e] text-foreground"
+                  ? "bg-tab-bar-indicator text-foreground"
                   : "text-muted-foreground"
               }`}
             >

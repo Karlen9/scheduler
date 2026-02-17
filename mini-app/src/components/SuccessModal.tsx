@@ -23,7 +23,7 @@ export function SuccessModal({
       <div className="bg-background rounded-2xl p-6 w-full max-w-sm">
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-16 h-16 flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-16 h-16 text-green-500" />
+            <CheckCircle2 className="w-16 h-16 text-success" />
           </div>
           <h3 className="text-lg font-medium text-foreground mb-2">
             {title}

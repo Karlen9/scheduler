@@ -52,14 +52,14 @@ export function PendingBookingCard({ booking, onAccept, onReject }: PendingBooki
       <div className="flex gap-2 mt-3">
         <button
           onClick={() => onAccept(booking)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-green-600/20 text-green-500 text-sm font-medium transition-opacity active:opacity-70"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-action-success-bg text-action-success-text text-sm font-medium transition-opacity active:opacity-70"
         >
           <Check className="w-4 h-4" />
           Принять
         </button>
         <button
           onClick={() => onReject(booking)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-600/20 text-red-400 text-sm font-medium transition-opacity active:opacity-70"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-action-danger-bg text-action-danger-text text-sm font-medium transition-opacity active:opacity-70"
         >
           <X className="w-4 h-4" />
           Отклонить

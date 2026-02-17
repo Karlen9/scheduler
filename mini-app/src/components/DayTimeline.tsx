@@ -40,10 +40,10 @@ function getBookingGridPosition(
 
 // Background and border colors for bookings
 const BOOKING_COLORS = [
-  { bg: "#fef3e2", border: "#f5a623" },
-  { bg: "#e8f0fc", border: "#5984d8" },
-  { bg: "#e8f5e9", border: "#4caf50" },
-  { bg: "#f3e5f5", border: "#9c27b0" },
+  { bg: "var(--timeline-1-bg)", border: "var(--timeline-1-border)" },
+  { bg: "var(--timeline-2-bg)", border: "var(--timeline-2-border)" },
+  { bg: "var(--timeline-3-bg)", border: "var(--timeline-3-border)" },
+  { bg: "var(--timeline-4-bg)", border: "var(--timeline-4-border)" },
 ];
 
 export function DayTimeline({
