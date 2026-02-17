@@ -87,8 +87,8 @@ func NewRouter() http.Handler {
 			// Session types management
 			r.Get("/services", HandleAdminGetServices)
 			r.Post("/services", HandleCreateService)
-			r.Put("/services/{type}", HandleUpdateService)
-			r.Delete("/services/{type}", HandleDeleteService)
+			r.Put("/services/{id}", HandleUpdateService)
+			r.Delete("/services/{id}", HandleDeleteService)
 
 			// Working hours management
 			r.Get("/working-hours", HandleAdminGetWorkingHours)

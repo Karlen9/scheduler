@@ -15,7 +15,7 @@ export interface Trainer {
 
 export interface SessionType {
   id: string;
-  type: "personal" | "pair" | "consultation";
+  type: string;
   name: string;
   durationMinutes: number;
   price: number;
