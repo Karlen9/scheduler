@@ -261,6 +261,17 @@ func (b *Bot) GetWebhookInfo() (string, int, string) {
 	return result.Result.URL, result.Result.PendingUpdateCount, result.Result.LastErrorMessage
 }
 
+// SendMessageHTML sends a message with HTML parse mode
+func (b *Bot) SendMessageHTML(chatID int64, text string, replyMarkup *InlineKeyboardMarkup) (*Message, error) {
+	req := SendMessageRequest{
+		ChatID:      chatID,
+		Text:        text,
+		ParseMode:   "HTML",
+		ReplyMarkup: replyMarkup,
+	}
+	return b.sendMessageRequest(req)
+}
+
 // SendMessage sends a message
 func (b *Bot) SendMessage(chatID int64, text string, replyMarkup *InlineKeyboardMarkup) (*Message, error) {
 	req := SendMessageRequest{
@@ -268,7 +279,10 @@ func (b *Bot) SendMessage(chatID int64, text string, replyMarkup *InlineKeyboard
 		Text:        text,
 		ReplyMarkup: replyMarkup,
 	}
+	return b.sendMessageRequest(req)
+}
 
+func (b *Bot) sendMessageRequest(req SendMessageRequest) (*Message, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -294,6 +308,32 @@ func (b *Bot) SendMessage(chatID int64, text string, replyMarkup *InlineKeyboard
 	}
 
 	return &result.Result, nil
+}
+
+// SetChatMenuButton sets a web_app menu button for a specific user chat
+func (b *Bot) SetChatMenuButton(chatID int64, text, url string) error {
+	data := map[string]interface{}{
+		"chat_id": chatID,
+		"menu_button": map[string]interface{}{
+			"type":    "web_app",
+			"text":    text,
+			"web_app": map[string]string{"url": url},
+		},
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/setChatMenuButton",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
 }
 
 // EditMessageText edits a message's text
