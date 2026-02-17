@@ -11,6 +11,7 @@ export interface Trainer {
   photoUrl?: string;
   gymLatitude?: number;
   gymLongitude?: number;
+  isOwner?: boolean;
 }
 
 export interface SessionType {

@@ -34,18 +34,19 @@ var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) err
 
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Timezone        string `json:"timezone"`
-	CancelCutoffHrs int    `json:"cancelCutoffHours"`
-	BotUsername     string `json:"botUsername,omitempty"`
-	TelegramHandle  string `json:"telegramHandle,omitempty"`
-	Phone           string `json:"phone,omitempty"`
-	Specialization  string `json:"specialization,omitempty"`
+	ID              string  `json:"id"`
+	Name            string  `json:"name"`
+	Timezone        string  `json:"timezone"`
+	CancelCutoffHrs int     `json:"cancelCutoffHours"`
+	BotUsername     string  `json:"botUsername,omitempty"`
+	TelegramHandle  string  `json:"telegramHandle,omitempty"`
+	Phone           string  `json:"phone,omitempty"`
+	Specialization  string  `json:"specialization,omitempty"`
 	Bio             string  `json:"bio,omitempty"`
 	PhotoURL        string  `json:"photoUrl,omitempty"`
 	GymLatitude     float64 `json:"gymLatitude,omitempty"`
 	GymLongitude    float64 `json:"gymLongitude,omitempty"`
+	IsOwner         bool    `json:"isOwner"`
 }
 
 func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +55,9 @@ func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Тренер не найден", http.StatusNotFound)
 		return
 	}
+
+	client := GetClientFromContext(r)
+	isOwner := client != nil && client.TelegramUserID == trainer.TelegramUserID
 
 	resp := TrainerResponse{
 		ID:              trainer.ID,
@@ -68,6 +72,7 @@ func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 		PhotoURL:        trainer.PhotoURL,
 		GymLatitude:     trainer.GymLatitude,
 		GymLongitude:    trainer.GymLongitude,
+		IsOwner:         isOwner,
 	}
 
 	writeJSON(w, resp)

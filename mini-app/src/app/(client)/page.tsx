@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Phone, MessageCircle, Share2, Dumbbell } from "lucide-react";
 import { formatDuration } from "@/components/DurationSelector";
 import { getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
+import { getTrainerId } from "@/lib/telegram";
 import { useTrainer, useSessionTypes } from "@/hooks/queries";
 
 export default function HomePage() {
@@ -14,6 +15,14 @@ export default function HomePage() {
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const [bioExpanded, setBioExpanded] = useState(false);
   const [heroError, setHeroError] = useState(false);
+
+  // Redirect trainer to admin panel
+  useEffect(() => {
+    if (trainer?.isOwner) {
+      const trainerId = getTrainerId();
+      router.replace(`/admin${trainerId ? `?trainer=${trainerId}` : ""}`);
+    }
+  }, [trainer, router]);
 
   const isLoading = trainerLoading || servicesLoading;
 

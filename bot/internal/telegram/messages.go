@@ -120,19 +120,46 @@ func FormatWelcomeTrainer(version, changelog, miniAppURL string) string {
 	return msg
 }
 
-// MsgHelp is the help message
-const MsgHelp = `Используйте /start чтобы открыть приложение для записи.
+// MsgHelpClient is the help message for clients
+const MsgHelpClient = `Это бот для онлайн-записи к тренеру.
+
+Что можно делать:
+• Выбрать удобную дату и время
+• Записаться на тренировку
+• Посмотреть и отменить свои записи
+• Создать регулярное расписание
+
+Нажмите кнопку «Запись» внизу или /start чтобы открыть приложение.`
+
+// FormatHelpTrainer creates the help message for trainers
+func FormatHelpTrainer(clientURL string) string {
+	return fmt.Sprintf(`Вы — владелец этого бота.
+
+Как настроить:
+1. Откройте «Управление» — Профиль — заполните имя, фото, описание
+2. Услуги и цены — добавьте виды тренировок
+3. Расписание — укажите рабочие часы
+4. Выходные дни — отметьте нерабочие даты
+
+Как работает запись:
+• Клиент записывается — вы получаете уведомление
+• Подтвердите или отклоните прямо в чате
+• Все записи видны в панели управления
+
+Ссылка для клиентов (отправьте им):
+<code>%s</code>
 
 Команды:
 /start — Главное меню
-/admin — Панель управления (только для тренера)
-/help — Справка`
+/admin — Панель управления
+/help — Эта справка`, clientURL)
+}
 
 // BtnOpenApp is the button text for opening the mini-app
-const BtnOpenApp = "📅 Записаться"
+const BtnOpenApp = "Запись"
 
 // BtnOpenAdmin is the button text for opening admin panel
-const BtnOpenAdmin = "🔧 Панель управления"
+const BtnOpenAdmin = "Управление"
 
 // MsgOpenAppHint is the hint to open the app for actions
 const MsgOpenAppHint = "\n\nОткройте приложение для подтверждения или отклонения."

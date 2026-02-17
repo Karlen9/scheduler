@@ -110,14 +110,25 @@ func (h *Handler) handleAdmin(msg *Message) {
 
 	// Open admin panel with trainer ID
 	adminURL := h.WebAppURL + "/admin?trainer=" + trainer.ID
-	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, "🔧 Панель управления", adminURL)
+	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, "Открыть панель управления", adminURL)
 	if err != nil {
 		log.Printf("Error sending admin message: %v", err)
 	}
 }
 
 func (h *Handler) handleHelp(msg *Message) {
-	_, err := h.Bot.SendMessage(msg.Chat.ID, MsgHelp, nil)
+	trainer, err := db.GetTrainerByBotToken(h.Bot.Token)
+	if err != nil || trainer == nil {
+		_, _ = h.Bot.SendMessage(msg.Chat.ID, MsgHelpClient, nil)
+		return
+	}
+
+	if trainer.TelegramUserID == msg.From.ID {
+		clientURL := "https://t.me/" + h.Bot.Username
+		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpTrainer(clientURL), nil)
+	} else {
+		_, err = h.Bot.SendMessage(msg.Chat.ID, MsgHelpClient, nil)
+	}
 	if err != nil {
 		log.Printf("Error sending help message: %v", err)
 	}
