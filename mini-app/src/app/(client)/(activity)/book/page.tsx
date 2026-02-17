@@ -1,23 +1,31 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { BookingForm } from "@/components/BookingForm";
 import { api } from "@/lib/api";
 import { getUserName } from "@/lib/telegram";
-import { useWorkingHours, useDaysOff, useSessionTypes } from "@/hooks/queries";
+import { useWorkingHours, useDaysOff, useSessionTypes, useBookings } from "@/hooks/queries";
 
 function ClientBookContent() {
   const { data: workingHours, isLoading: whLoading } = useWorkingHours();
   const { data: daysOffData, isLoading: doLoading } = useDaysOff();
   const { data: services, isLoading: svcLoading } = useSessionTypes();
+  const { data: bookings } = useBookings();
 
   const daysOff = daysOffData.map((d) => d.date);
+
+  const bookedDates = useMemo(() => {
+    return bookings
+      .filter((b) => b.status === "pending" || b.status === "confirmed")
+      .map((b) => b.startsAt.slice(0, 10));
+  }, [bookings]);
 
   return (
     <BookingForm
       services={services}
       workingHours={workingHours}
       daysOff={daysOff}
+      bookedDates={bookedDates}
       isLoading={whLoading || doLoading || svcLoading}
       showRecurring={false}
       successRedirect="/bookings"

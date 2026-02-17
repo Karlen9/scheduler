@@ -235,6 +235,7 @@ export interface BookingFormProps {
   isLoading: boolean;
   clients?: ClientInfo[];
   showRecurring?: boolean;
+  bookedDates?: string[];
   onCreateBooking: (params: CreateBookingParams) => Promise<void>;
   onCreateRecurring: (params: CreateRecurringParams) => Promise<void>;
   onPreviewRecurring: (params: PreviewRecurringParams) => Promise<{ dates: string[] }>;
@@ -252,6 +253,7 @@ export function BookingForm({
   isLoading: isInitialLoading,
   clients,
   showRecurring = true,
+  bookedDates,
   onCreateBooking,
   onCreateRecurring,
   onPreviewRecurring,
@@ -878,6 +880,7 @@ export function BookingForm({
                           onSelectDate={handleSingleDateSelect}
                           nonWorkingDays={nonWorkingDays}
                           daysOff={daysOff}
+                          bookedDates={bookedDates}
                         />
                       ) : (
                         <CalendarView
@@ -886,6 +889,7 @@ export function BookingForm({
                           onSelectDate={handleMultiDateToggle}
                           nonWorkingDays={nonWorkingDays}
                           daysOff={daysOff}
+                          bookedDates={bookedDates}
                         />
                       )}
                     </div>

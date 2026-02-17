@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MonthGrid } from "@/components/Calendar";
 
 interface CalendarViewProps {
   selectedDate: Date | null;
   selectedDates?: Date[];
   onSelectDate: (date: Date) => void;
-  disabledDates?: Date[];
   nonWorkingDays?: number[];
   daysOff?: string[];
+  bookedDates?: string[];
 }
 
 export function CalendarView({
@@ -18,6 +18,7 @@ export function CalendarView({
   onSelectDate,
   nonWorkingDays,
   daysOff,
+  bookedDates,
 }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -29,6 +30,8 @@ export function CalendarView({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 
+  const bookedDatesSet = useMemo(() => bookedDates ? new Set(bookedDates) : undefined, [bookedDates]);
+
   return (
     <MonthGrid
       displayDate={currentMonth}
@@ -39,6 +42,7 @@ export function CalendarView({
       onNextMonth={nextMonth}
       nonWorkingDays={nonWorkingDays}
       daysOff={daysOff}
+      bookedDates={bookedDatesSet}
       disablePast
       card
       showLegend
