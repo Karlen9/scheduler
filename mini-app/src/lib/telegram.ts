@@ -218,8 +218,7 @@ export function getInitData(): string {
 export function getSpecialistId(): string | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  // Check new param first, fall back to old for backward compat
-  const fromURL = params.get('specialist') || params.get('trainer');
+  const fromURL = params.get('specialist');
   if (fromURL) {
     sessionStorage.setItem('specialistId', fromURL);
     return fromURL;

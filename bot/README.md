@@ -18,8 +18,8 @@
 
 ### Legacy (single-bot setup)
 - `TELEGRAM_BOT_TOKEN`
-- `TRAINER_TELEGRAM_ID`
-- `TRAINER_NAME` (default `Trainer`)
+- `SPECIALIST_TELEGRAM_ID`
+- `SPECIALIST_NAME` (default `Specialist`)
 
 ## Database
 
@@ -66,7 +66,7 @@ DATABASE_URL=postgres://scheduler:scheduler@localhost:5432/scheduler?sslmode=dis
 
 # Truncate all tables (pgloader will repopulate)
 psql postgres://scheduler:scheduler@localhost:5432/scheduler -c "
-  TRUNCATE recurring_schedules, waitlist, days_off, bookings, working_hours, session_types, clients, trainers CASCADE;
+  TRUNCATE recurring_schedules, waitlist, days_off, bookings, working_hours, session_types, clients, specialists CASCADE;
 "
 
 # Load data from SQLite
@@ -110,7 +110,7 @@ docker exec $(docker compose ps -q db) psql -U scheduler -c '\dt'
 
 # Check row counts
 docker exec $(docker compose ps -q db) psql -U scheduler -c "
-  SELECT 'trainers' as t, count(*) FROM trainers
+  SELECT 'specialists' as t, count(*) FROM specialists
   UNION ALL SELECT 'clients', count(*) FROM clients
   UNION ALL SELECT 'bookings', count(*) FROM bookings
   UNION ALL SELECT 'session_types', count(*) FROM session_types;
@@ -172,7 +172,7 @@ bot/
     db/
       db.go                # Dual Init (SQLite/Postgres), migrations
       compat.go            # Q(), BoolVal(), DateNow() driver helpers
-      trainers.go          # Trainer CRUD
+      specialists.go       # Specialist CRUD
       clients.go           # Client CRUD
       bookings.go          # Booking CRUD
       session_types.go     # Session type CRUD

@@ -19,7 +19,7 @@ func TestHealthEndpoint(t *testing.T) {
 }
 
 func TestGetSpecialist(t *testing.T) {
-	w := doAdminRequest(t, http.MethodGet, "/api/trainer", nil)
+	w := doAdminRequest(t, http.MethodGet, "/api/specialist", nil)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
@@ -37,7 +37,7 @@ func TestGetSpecialist(t *testing.T) {
 }
 
 func TestGetSpecialistAsClient(t *testing.T) {
-	w := doClientRequest(t, http.MethodGet, "/api/trainer", nil, 999999)
+	w := doClientRequest(t, http.MethodGet, "/api/specialist", nil, 999999)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())

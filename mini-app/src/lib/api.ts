@@ -62,7 +62,7 @@ export function getPhotoUrl(fileIdOrUrl: string): string {
 
 export const api = {
   async getSpecialist(): Promise<Specialist> {
-    return fetchAPI<Specialist>('/api/trainer');
+    return fetchAPI<Specialist>('/api/specialist');
   },
 
   async getSessionTypes(): Promise<SessionType[]> {

@@ -64,8 +64,8 @@ func (h *Handler) handleStart(msg *Message) {
 			lang = "ru"
 		}
 		loc := myI18n.NewLocalizer(lang)
-		adminURL := h.WebAppURL + "/admin?trainer=" + specialist.ID + "&lang=" + lang
-		clientURL := h.WebAppURL + "?trainer=" + specialist.ID + "&lang=" + lang
+		adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
+		clientURL := h.WebAppURL + "?specialist=" + specialist.ID + "&lang=" + lang
 
 		// Set persistent menu button for specialist (opens admin panel)
 		if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenAdmin(loc), adminURL); err != nil {
@@ -109,7 +109,7 @@ func (h *Handler) handleStart(msg *Message) {
 		lang = "ru"
 	}
 	loc := myI18n.NewLocalizer(lang)
-	webAppURL := h.WebAppURL + "?trainer=" + specialist.ID + "&lang=" + lang
+	webAppURL := h.WebAppURL + "?specialist=" + specialist.ID + "&lang=" + lang
 
 	// Set persistent menu button for client (opens booking app)
 	if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenApp(loc), webAppURL); err != nil {
@@ -153,7 +153,7 @@ func (h *Handler) handleAdmin(msg *Message) {
 	loc := myI18n.NewLocalizer(lang)
 
 	// Open admin panel with specialist ID
-	adminURL := h.WebAppURL + "/admin?trainer=" + specialist.ID + "&lang=" + lang
+	adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
 	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, myI18n.T(loc, "Handler.OpenAdmin"), adminURL, BtnOpenAdmin(loc))
 	if err != nil {
 		log.Printf("Error sending admin message: %v", err)
@@ -304,7 +304,7 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	}
 
 	loc := myI18n.NewLocalizer(lang)
-	webAppURL := h.WebAppURL + "?trainer=" + specialistID + "&lang=" + lang
+	webAppURL := h.WebAppURL + "?specialist=" + specialistID + "&lang=" + lang
 
 	if err := h.Bot.SetChatMenuButton(cq.From.ID, BtnOpenApp(loc), webAppURL); err != nil {
 		log.Printf("Error setting client menu button: %v", err)

@@ -50,18 +50,10 @@ func Load() *Config {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// Read SPECIALIST_TELEGRAM_ID first, fall back to TRAINER_TELEGRAM_ID
 	specialistIDStr := os.Getenv("SPECIALIST_TELEGRAM_ID")
-	if specialistIDStr == "" {
-		specialistIDStr = os.Getenv("TRAINER_TELEGRAM_ID")
-	}
 	specialistID, _ := strconv.ParseInt(specialistIDStr, 10, 64)
 
-	// Read SPECIALIST_NAME first, fall back to TRAINER_NAME
 	specialistName := os.Getenv("SPECIALIST_NAME")
-	if specialistName == "" {
-		specialistName = os.Getenv("TRAINER_NAME")
-	}
 
 	cfg := &Config{
 		WebAppURL:           os.Getenv("WEB_APP_URL"),
@@ -86,10 +78,6 @@ func Load() *Config {
 
 	if cfg.DatabasePath == "" {
 		cfg.DatabasePath = "./data/scheduler.db"
-	}
-
-	if cfg.Port == "" {
-		cfg.Port = os.Getenv("API_PORT")
 	}
 
 	if cfg.Port == "" {

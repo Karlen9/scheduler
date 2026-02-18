@@ -20,7 +20,7 @@ func NewRouter() http.Handler {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Dev-User-ID", "X-Specialist-ID", "X-Trainer-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Dev-User-ID", "X-Specialist-ID"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
 		MaxAge:           300,
@@ -32,7 +32,7 @@ func NewRouter() http.Handler {
 	})
 
 	// Super admin (list all specialists) - protect in production!
-	r.Get("/superadmin/trainers", HandleListAllSpecialists)
+	r.Get("/superadmin/specialists", HandleListAllSpecialists)
 
 	// API routes with auth
 	r.Route("/api", func(r chi.Router) {
@@ -43,7 +43,7 @@ func NewRouter() http.Handler {
 		// Photo proxy (works without auth — middleware passes through unauthenticated requests)
 		r.Get("/photo/{fileId}", HandleGetPhoto)
 
-		r.Get("/trainer", HandleGetSpecialist)
+		r.Get("/specialist", HandleGetSpecialist)
 		r.Get("/services", HandleGetServices)
 		r.Get("/working-hours", HandleGetWorkingHours)
 		r.Get("/availability", HandleGetAvailability)

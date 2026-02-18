@@ -158,11 +158,10 @@ ENCRYPTION_KEY=your-64-char-hex-string
 
 ```env
 TELEGRAM_BOT_TOKEN=your-dev-bot-token
-TRAINER_TELEGRAM_ID=your-telegram-id
-TRAINER_NAME=Your Name
+SPECIALIST_TELEGRAM_ID=your-telegram-id
+SPECIALIST_NAME=Your Name
 PUBLIC_BASE_URL=https://dev-sport-app.rainingman.online
 WEB_APP_URL=https://your-vercel-preview-url
-WEBHOOK_SECRET=dev-secret-123
 ```
 
 Generate secrets once and never change them:
