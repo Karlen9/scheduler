@@ -229,6 +229,7 @@ func migrateSQLite() error {
 		`ALTER TABLE clients ADD COLUMN is_ghost INTEGER DEFAULT 0`,
 		`ALTER TABLE trainers ADD COLUMN language TEXT DEFAULT 'ru'`,
 		`ALTER TABLE clients ADD COLUMN language TEXT DEFAULT 'ru'`,
+		`ALTER TABLE clients ADD COLUMN display_name TEXT DEFAULT ''`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -498,6 +499,7 @@ func migratePostgres() error {
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS is_ghost INTEGER DEFAULT 0`,
 		`ALTER TABLE trainers ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'ru'`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'ru'`,
+		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT ''`,
 	}
 
 	for _, migration := range alterMigrations {

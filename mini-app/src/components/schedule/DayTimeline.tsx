@@ -261,7 +261,9 @@ export function DayTimeline({
           >
             <div className="flex h-full items-center gap-2">
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-medium ${style.text} truncate`}>{booking.clientName}</p>
+                <p className={`text-sm font-medium ${style.text} truncate`}>
+                  {booking.clientDisplayName || booking.clientName}
+                </p>
                 {height >= 54 && (
                   <p className={`text-xs ${style.subtext} truncate`}>
                     {tc('workout')}
@@ -276,7 +278,11 @@ export function DayTimeline({
                   </p>
                 )}
               </div>
-              <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="sm" />
+              <ClientAvatar
+                name={booking.clientDisplayName || booking.clientName}
+                photoUrl={booking.clientPhotoUrl}
+                size="sm"
+              />
             </div>
           </button>
         );

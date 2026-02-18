@@ -224,7 +224,9 @@ export default function AdminHomePage() {
       <ConfirmDialog
         isOpen={showRejectDialog}
         title={t('rejectDialog')}
-        description={t('rejectDialogDescription', { name: rejectTarget?.clientName || '' })}
+        description={t('rejectDialogDescription', {
+          name: rejectTarget?.clientDisplayName || rejectTarget?.clientName || '',
+        })}
         confirmText={t('rejectConfirm')}
         cancelText={tc('back')}
         onConfirm={handleConfirmReject}
@@ -266,7 +268,9 @@ export default function AdminHomePage() {
       <ConfirmDialog
         isOpen={showCancelDialog}
         title={t('cancelDialog')}
-        description={t('cancelDialogDescription', { name: selectedBooking?.clientName || '' })}
+        description={t('cancelDialogDescription', {
+          name: selectedBooking?.clientDisplayName || selectedBooking?.clientName || '',
+        })}
         confirmText={t('cancelConfirm')}
         cancelText={tc('back')}
         onConfirm={handleConfirmCancel}

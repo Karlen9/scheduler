@@ -69,9 +69,15 @@ export function BookingDetailModal({
     <BottomSheet isOpen={isOpen} onClose={onClose} showClose>
       {/* Client info */}
       <div className="mb-4 flex items-center gap-4">
-        <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="lg" />
+        <ClientAvatar
+          name={booking.clientDisplayName || booking.clientName}
+          photoUrl={booking.clientPhotoUrl}
+          size="lg"
+        />
         <div>
-          <h3 className="text-foreground text-xl font-medium">{booking.clientName}</h3>
+          <h3 className="text-foreground text-xl font-medium">
+            {booking.clientDisplayName || booking.clientName}
+          </h3>
           <StatusBadge status={booking.status} className="inline-block px-2 py-0.5" />
         </div>
       </div>

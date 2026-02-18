@@ -37,6 +37,7 @@ export interface Booking {
   startsAt: string; // ISO datetime
   endsAt: string;
   clientName: string;
+  clientDisplayName?: string;
   clientPhotoUrl?: string;
   clientMessage?: string;
   status:
@@ -79,6 +80,7 @@ export interface ClientInfo {
   telegramUserId: number;
   trainerId: string;
   name: string;
+  displayName?: string;
   phone?: string;
   photoUrl?: string;
   isGhost?: boolean;
@@ -95,6 +97,7 @@ export interface DayOff {
 export interface RecurringSchedule {
   id: string;
   clientName: string;
+  clientDisplayName?: string;
   clientPhotoUrl?: string;
   dayOfWeek: number; // kept for backward compat
   time: string;

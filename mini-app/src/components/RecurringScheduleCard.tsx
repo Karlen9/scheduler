@@ -133,11 +133,13 @@ export function RecurringScheduleCard({
           {schedule.clientName && (
             <div className="mb-2 flex items-center gap-2">
               <ClientAvatar
-                name={schedule.clientName}
+                name={schedule.clientDisplayName || schedule.clientName}
                 photoUrl={schedule.clientPhotoUrl}
                 size="sm"
               />
-              <span className="text-foreground text-sm font-medium">{schedule.clientName}</span>
+              <span className="text-foreground text-sm font-medium">
+                {schedule.clientDisplayName || schedule.clientName}
+              </span>
             </div>
           )}
           {dayTimes ? (

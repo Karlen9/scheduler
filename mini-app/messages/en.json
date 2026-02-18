@@ -366,7 +366,10 @@
     "deleteDialogDescription": "Client \"{name}\" will be deleted. Deletion will fail if the client has existing bookings.",
     "deleteConfirm": "Delete",
     "deleteSuccess": "Client {name} deleted",
-    "deleteError": "Failed to delete client"
+    "deleteError": "Failed to delete client",
+    "renameDialog": "Rename client",
+    "renameSuccess": "Client name updated",
+    "renameError": "Failed to rename client"
   },
   "AdminHelp": {
     "title": "Help",

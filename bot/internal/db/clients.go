@@ -16,10 +16,10 @@ func scanClient(row interface {
 	var phone, photoURL sql.NullString
 	var preferredDuration sql.NullInt64
 	var isGhost sql.NullInt64
-	var language sql.NullString
+	var language, displayName sql.NullString
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
 	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &photoURL, &preferredDuration,
-		&isGhost, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language)
+		&isGhost, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName)
 	if err != nil {
 		return nil, err
 	}
@@ -41,12 +41,13 @@ func scanClient(row interface {
 	if c.Language == "" {
 		c.Language = "ru"
 	}
+	c.DisplayName = displayName.String
 	return &c, nil
 }
 
 func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
 		WHERE telegram_user_id = ? AND trainer_id = ?
 	`), telegramUserID, trainerID)
@@ -63,7 +64,7 @@ func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Clie
 
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
 		WHERE id = ?
 	`), id)
@@ -138,7 +139,7 @@ func UpdateTrainerPhoto(trainerID, fileID string) error {
 
 func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language
+		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
 		WHERE trainer_id = ?
 		ORDER BY name ASC
@@ -162,6 +163,30 @@ func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
 func DeleteClient(clientID string) error {
 	_, err := DB.Exec(Q(`DELETE FROM clients WHERE id = ?`), clientID)
 	return err
+}
+
+func UpdateClientDisplayName(clientID string, displayName string) error {
+	_, err := DB.Exec(Q(`UPDATE clients SET display_name = ? WHERE id = ?`), displayName, clientID)
+	return err
+}
+
+func UpdateGhostClientName(clientID string, name string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(Q(`UPDATE clients SET name = ? WHERE id = ?`), name, clientID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(Q(`UPDATE bookings SET client_name = ? WHERE client_id = ?`), name, clientID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(Q(`UPDATE recurring_schedules SET client_name = ? WHERE client_id = ?`), name, clientID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func UpdateClientLanguage(clientID, language string) error {
