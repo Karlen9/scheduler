@@ -1,0 +1,22 @@
+{
+  "private": true,
+  "devDependencies": {
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0"
+  },
+  "lint-staged": {
+    "mini-app/src/**/*.{ts,tsx}": [
+      "prettier --config mini-app/.prettierrc --write",
+      "eslint --config mini-app/eslint.config.mjs --fix"
+    ],
+    "mini-app/src/**/*.css": [
+      "prettier --config mini-app/.prettierrc --write"
+    ],
+    "bot/**/*.go": [
+      "gofmt -w"
+    ]
+  },
+  "scripts": {
+    "prepare": "husky"
+  }
+}
