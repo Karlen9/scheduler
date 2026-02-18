@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { Suspense, useMemo } from "react";
-import { useTranslations } from "next-intl";
-import { BookingForm } from "@/components/BookingForm";
-import { api } from "@/lib/api";
-import { getUserName } from "@/lib/telegram";
-import { useWorkingHours, useDaysOff, useSessionTypes, useBookings } from "@/hooks/queries";
+import { Suspense, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
+import { BookingForm } from '@/components/BookingForm';
+import { api } from '@/lib/api';
+import { getUserName } from '@/lib/telegram';
+import { useWorkingHours, useDaysOff, useSessionTypes, useBookings } from '@/hooks/queries';
 
 function ClientBookContent() {
-  const t = useTranslations("BookingForm");
-  const tc = useTranslations("Common");
+  const t = useTranslations('BookingForm');
+  const tc = useTranslations('Common');
   const { data: workingHours, isLoading: whLoading } = useWorkingHours();
   const { data: daysOffData, isLoading: doLoading } = useDaysOff();
   const { data: services, isLoading: svcLoading } = useSessionTypes();
@@ -19,7 +19,7 @@ function ClientBookContent() {
 
   const bookedDates = useMemo(() => {
     return bookings
-      .filter((b) => b.status === "pending" || b.status === "confirmed")
+      .filter((b) => b.status === 'pending' || b.status === 'confirmed')
       .map((b) => b.startsAt.slice(0, 10));
   }, [bookings]);
 
@@ -32,7 +32,7 @@ function ClientBookContent() {
       isLoading={whLoading || doLoading || svcLoading}
       showRecurring={false}
       successRedirect="/bookings"
-      title={t("title")}
+      title={t('title')}
       onCreateBooking={async (params) => {
         const name = getUserName();
         await api.createBooking(params.duration, params.date, params.time, name, params.message);
@@ -56,19 +56,17 @@ function ClientBookContent() {
 }
 
 function BookingFallback() {
-  const tc = useTranslations("Common");
+  const tc = useTranslations('Common');
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      {tc("loading")}
+    <div className="bg-background flex min-h-screen items-center justify-center">
+      {tc('loading')}
     </div>
   );
 }
 
 export default function BookingPage() {
   return (
-    <Suspense
-      fallback={<BookingFallback />}
-    >
+    <Suspense fallback={<BookingFallback />}>
       <ClientBookContent />
     </Suspense>
   );

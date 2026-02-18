@@ -9,21 +9,17 @@ interface SessionTypeSelectorProps {
   onChange: (id: string) => void;
 }
 
-export function SessionTypeSelector({
-  options,
-  selected,
-  onChange,
-}: SessionTypeSelectorProps) {
+export function SessionTypeSelector({ options, selected, onChange }: SessionTypeSelectorProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((option) => (
         <button
           key={option.id}
           onClick={() => onChange(option.id)}
-          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+          className={`rounded-full px-4 py-2 text-sm transition-colors ${
             selected === option.id
-              ? "bg-primary text-primary-foreground"
-              : "bg-card text-foreground"
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-card text-foreground'
           }`}
         >
           {option.label}

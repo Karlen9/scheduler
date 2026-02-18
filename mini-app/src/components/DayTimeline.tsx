@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useTranslations, useLocale } from "next-intl";
-import { Booking } from "@/lib/types";
-import { ClientAvatar } from "@/components/ClientAvatar";
+import { useTranslations, useLocale } from 'next-intl';
+import { Booking } from '@/lib/types';
+import { ClientAvatar } from '@/components/ClientAvatar';
 
 interface DayTimelineProps {
   date: Date;
@@ -13,7 +13,7 @@ interface DayTimelineProps {
 }
 
 function formatTime(hour: number): string {
-  return `${hour.toString().padStart(2, "0")}:00`;
+  return `${hour.toString().padStart(2, '0')}:00`;
 }
 
 // Convert time to grid row (1-based, 4 rows per hour)
@@ -27,7 +27,7 @@ function getGridRow(date: Date, startHour: number): number {
 
 function getBookingGridPosition(
   booking: Booking,
-  startHour: number
+  startHour: number,
 ): { rowStart: number; rowSpan: number } {
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
@@ -41,14 +41,27 @@ function getBookingGridPosition(
 
 // Background and border colors for bookings
 const BOOKING_COLORS = [
-  { bg: "var(--timeline-1-bg)", border: "var(--timeline-1-border)" },
-  { bg: "var(--timeline-2-bg)", border: "var(--timeline-2-border)" },
-  { bg: "var(--timeline-3-bg)", border: "var(--timeline-3-border)" },
-  { bg: "var(--timeline-4-bg)", border: "var(--timeline-4-border)" },
+  { bg: 'var(--timeline-1-bg)', border: 'var(--timeline-1-border)' },
+  { bg: 'var(--timeline-2-bg)', border: 'var(--timeline-2-border)' },
+  { bg: 'var(--timeline-3-bg)', border: 'var(--timeline-3-border)' },
+  { bg: 'var(--timeline-4-bg)', border: 'var(--timeline-4-border)' },
 ];
 
-const monthGenKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-const dayFullKeysJS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const monthGenKeys = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+];
+const dayFullKeysJS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 export function DayTimeline({
   date,
@@ -57,13 +70,10 @@ export function DayTimeline({
   endHour = 21,
   onBookingClick,
 }: DayTimelineProps) {
-  const tc = useTranslations("Common");
-  const td = useTranslations("Dates");
+  const tc = useTranslations('Common');
+  const td = useTranslations('Dates');
 
-  const hours = Array.from(
-    { length: endHour - startHour + 1 },
-    (_, i) => startHour + i
-  );
+  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
   const totalRows = hours.length * 4; // 4 rows per hour (15-min slots)
 
   // Filter bookings for this day
@@ -86,15 +96,13 @@ export function DayTimeline({
 
   return (
     <div>
-      <h3 className="text-base font-medium text-foreground mb-4">
-        {formatDateHeader(date)}
-      </h3>
+      <h3 className="text-foreground mb-4 text-base font-medium">{formatDateHeader(date)}</h3>
 
       {/* Grid: 2 columns (time labels + bookings), N rows (4 per hour) */}
       <div
         className="grid"
         style={{
-          gridTemplateColumns: "48px 1fr",
+          gridTemplateColumns: '48px 1fr',
           gridTemplateRows: `repeat(${totalRows}, 16px)`,
         }}
       >
@@ -102,7 +110,7 @@ export function DayTimeline({
         {hours.map((hour, hourIndex) => (
           <div
             key={hour}
-            className="text-xs text-muted-foreground pr-2 border-t border-border"
+            className="text-muted-foreground border-border border-t pr-2 text-xs"
             style={{
               gridColumn: 1,
               gridRow: `${hourIndex * 4 + 1} / span 4`,
@@ -116,7 +124,7 @@ export function DayTimeline({
         {hours.map((hour, hourIndex) => (
           <div
             key={`divider-${hour}`}
-            className="border-t border-border"
+            className="border-border border-t"
             style={{
               gridColumn: 2,
               gridRow: `${hourIndex * 4 + 1} / span 4`,
@@ -126,17 +134,14 @@ export function DayTimeline({
 
         {/* Bookings */}
         {dayBookings.map((booking, index) => {
-          const { rowStart, rowSpan } = getBookingGridPosition(
-            booking,
-            startHour
-          );
+          const { rowStart, rowSpan } = getBookingGridPosition(booking, startHour);
           const colors = BOOKING_COLORS[index % BOOKING_COLORS.length];
 
           return (
             <button
               key={booking.id}
               onClick={() => onBookingClick?.(booking)}
-              className="mx-1 rounded-lg p-2 text-left transition-opacity active:opacity-80 overflow-hidden z-10"
+              className="z-10 mx-1 overflow-hidden rounded-lg p-2 text-left transition-opacity active:opacity-80"
               style={{
                 gridColumn: 2,
                 gridRow: `${rowStart} / span ${rowSpan}`,
@@ -145,14 +150,16 @@ export function DayTimeline({
               }}
             >
               <div className="flex items-center gap-1.5">
-                <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="sm" />
-                <p className="text-sm font-medium text-foreground truncate">
-                  {booking.clientName}
-                </p>
+                <ClientAvatar
+                  name={booking.clientName}
+                  photoUrl={booking.clientPhotoUrl}
+                  size="sm"
+                />
+                <p className="text-foreground truncate text-sm font-medium">{booking.clientName}</p>
               </div>
               {rowSpan >= 2 && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {booking.sessionType?.name || tc("workout")}
+                <p className="text-muted-foreground truncate text-xs">
+                  {booking.sessionType?.name || tc('workout')}
                 </p>
               )}
             </button>

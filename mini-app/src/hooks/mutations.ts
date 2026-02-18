@@ -1,5 +1,5 @@
-import { mutate } from "swr";
-import { CACHE_KEYS } from "./cache-keys";
+import { mutate } from 'swr';
+import { CACHE_KEYS } from './cache-keys';
 
 export function invalidateBookings() {
   mutate(CACHE_KEYS.bookings);
@@ -37,9 +37,8 @@ export function invalidateRecurring() {
   // Invalidate all detail keys by matching prefix
   mutate(
     (key: string) =>
-      typeof key === "string" &&
-      (key.startsWith("recurringDetail:") ||
-        key.startsWith("adminRecurringDetail:")),
+      typeof key === 'string' &&
+      (key.startsWith('recurringDetail:') || key.startsWith('adminRecurringDetail:')),
     undefined,
     { revalidate: true },
   );

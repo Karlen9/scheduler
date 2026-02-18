@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useTranslations, useLocale } from "next-intl";
-import { Booking } from "@/lib/types";
-import { ClientAvatar } from "@/components/ClientAvatar";
+import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { Booking } from '@/lib/types';
+import { ClientAvatar } from '@/components/ClientAvatar';
 
 interface NextBookingBannerProps {
   booking: Booking | null;
@@ -13,69 +13,73 @@ interface NextBookingBannerProps {
 
 export function NextBookingBanner({ booking, onBookingClick }: NextBookingBannerProps) {
   const router = useRouter();
-  const t = useTranslations("NextBookingBanner");
-  const tc = useTranslations("Common");
-  const tu = useTranslations("TimeUnits");
+  const t = useTranslations('NextBookingBanner');
+  const tc = useTranslations('Common');
+  const tu = useTranslations('TimeUnits');
   const locale = useLocale();
 
   function formatTime(iso: string): string {
     const d = new Date(iso);
-    return d.toLocaleTimeString(locale === "en" ? "en-US" : "ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+    return d.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC',
+    });
   }
 
   function getTimeUntil(iso: string): string {
     const now = new Date();
     const start = new Date(iso);
     const diff = start.getTime() - now.getTime();
-    if (diff <= 0) return tu("now");
+    if (diff <= 0) return tu('now');
     const minutes = Math.floor(diff / 60000);
     if (minutes < 60) {
       const word = minuteWord(minutes);
-      return tu("inMinutes", { count: minutes, word });
+      return tu('inMinutes', { count: minutes, word });
     }
     const hours = Math.floor(minutes / 60);
     if (hours < 24) {
       const word = hourWord(hours);
-      return tu("inHours", { count: hours, word });
+      return tu('inHours', { count: hours, word });
     }
     const days = Math.floor(hours / 24);
     const word = dayWord(days);
-    return tu("inDays", { count: days, word });
+    return tu('inDays', { count: days, word });
   }
 
   function minuteWord(n: number): string {
-    if (n % 10 === 1 && n % 100 !== 11) return tu("minute1");
-    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return tu("minute234");
-    return tu("minute5");
+    if (n % 10 === 1 && n % 100 !== 11) return tu('minute1');
+    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return tu('minute234');
+    return tu('minute5');
   }
 
   function hourWord(n: number): string {
-    if (n % 10 === 1 && n % 100 !== 11) return tu("hour1");
-    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return tu("hour234");
-    return tu("hour5");
+    if (n % 10 === 1 && n % 100 !== 11) return tu('hour1');
+    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return tu('hour234');
+    return tu('hour5');
   }
 
   function dayWord(n: number): string {
-    if (n % 10 === 1 && n % 100 !== 11) return tu("day1");
-    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return tu("day234");
-    return tu("day5");
+    if (n % 10 === 1 && n % 100 !== 11) return tu('day1');
+    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return tu('day234');
+    return tu('day5');
   }
 
   if (!booking) {
     return (
       <div>
-        <h2 className="text-base font-medium text-foreground mb-3">{t("title")}</h2>
-        <div className="bg-card rounded-xl p-4 border-l-4 border-l-border">
+        <h2 className="text-foreground mb-3 text-base font-medium">{t('title')}</h2>
+        <div className="bg-card border-l-border rounded-xl border-l-4 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-muted-foreground">{t("noBookings")}</p>
-              <p className="text-sm text-muted-foreground/60 mt-0.5">{t("noUpcomingSessions")}</p>
+              <p className="text-muted-foreground font-medium">{t('noBookings')}</p>
+              <p className="text-muted-foreground/60 mt-0.5 text-sm">{t('noUpcomingSessions')}</p>
             </div>
             <button
-              onClick={() => router.push("/admin/book")}
-              className="w-10 h-10 rounded-full bg-brand flex items-center justify-center transition-opacity active:opacity-80"
+              onClick={() => router.push('/admin/book')}
+              className="bg-brand flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-80"
             >
-              <Plus className="w-5 h-5 text-white" />
+              <Plus className="h-5 w-5 text-white" />
             </button>
           </div>
         </div>
@@ -85,19 +89,20 @@ export function NextBookingBanner({ booking, onBookingClick }: NextBookingBanner
 
   return (
     <div>
-      <h2 className="text-base font-medium text-foreground mb-3">{t("title")}</h2>
+      <h2 className="text-foreground mb-3 text-base font-medium">{t('title')}</h2>
       <button
         onClick={() => onBookingClick?.(booking)}
-        className="w-full bg-card rounded-xl p-4 border-l-4 border-l-brand text-left transition-opacity active:opacity-80"
+        className="bg-card border-l-brand w-full rounded-xl border-l-4 p-4 text-left transition-opacity active:opacity-80"
       >
         <div className="flex items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-foreground truncate">{booking.clientName}</p>
-            <p className="text-sm text-muted-foreground">
-              {tc("workout")}{booking.durationMinutes ? ` \u00b7 ${booking.durationMinutes} ${tc("min")}` : ""}
+          <div className="min-w-0 flex-1">
+            <p className="text-foreground truncate font-medium">{booking.clientName}</p>
+            <p className="text-muted-foreground text-sm">
+              {tc('workout')}
+              {booking.durationMinutes ? ` \u00b7 ${booking.durationMinutes} ${tc('min')}` : ''}
             </p>
-            <p className="text-xs text-brand mt-1">{getTimeUntil(booking.startsAt)}</p>
-            <p className="text-sm text-foreground mt-0.5">
+            <p className="text-brand mt-1 text-xs">{getTimeUntil(booking.startsAt)}</p>
+            <p className="text-foreground mt-0.5 text-sm">
               {formatTime(booking.startsAt)} – {formatTime(booking.endsAt)}
             </p>
           </div>

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import { MonthGrid } from "@/components/Calendar";
+import { useMemo, useState } from 'react';
+import { MonthGrid } from '@/components/Calendar';
 
 interface CalendarViewProps {
   selectedDate: Date | null;
@@ -30,7 +30,10 @@ export function CalendarView({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 
-  const bookedDatesSet = useMemo(() => bookedDates ? new Set(bookedDates) : undefined, [bookedDates]);
+  const bookedDatesSet = useMemo(
+    () => (bookedDates ? new Set(bookedDates) : undefined),
+    [bookedDates],
+  );
 
   return (
     <MonthGrid

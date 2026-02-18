@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useTranslations } from "next-intl";
-import { Booking } from "@/lib/types";
+import { useTranslations } from 'next-intl';
+import { Booking } from '@/lib/types';
 
 interface WeekGridProps {
   startDate: Date;
@@ -33,11 +33,11 @@ function isSameDay(d1: Date, d2: Date): boolean {
   );
 }
 
-const dayShortKeysMon = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const dayShortKeysMon = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
-  const td = useTranslations("Dates");
-  const DAY_NAMES = dayShortKeysMon.map(k => td(`daysShort.${k}`));
+  const td = useTranslations('Dates');
+  const DAY_NAMES = dayShortKeysMon.map((k) => td(`daysShort.${k}`));
 
   const days = getWeekDays(startDate);
   const today = new Date();
@@ -51,9 +51,9 @@ export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="mb-2 grid grid-cols-7 gap-1">
         {DAY_NAMES.map((name, i) => (
-          <div key={i} className="text-center text-xs text-muted-foreground">
+          <div key={i} className="text-muted-foreground text-center text-xs">
             {name}
           </div>
         ))}
@@ -68,27 +68,25 @@ export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
             <button
               key={date.toISOString()}
               onClick={() => onDayClick?.(date)}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                isToday
-                  ? "bg-brand text-white"
-                  : "bg-card hover:bg-border"
+              className={`flex flex-col items-center rounded-lg p-2 transition-colors ${
+                isToday ? 'bg-brand text-white' : 'bg-card hover:bg-border'
               }`}
             >
-              <span className={`text-sm font-medium ${isToday ? "text-white" : "text-foreground"}`}>
+              <span className={`text-sm font-medium ${isToday ? 'text-white' : 'text-foreground'}`}>
                 {date.getDate()}
               </span>
               {dayBookings.length > 0 && (
-                <div className="flex gap-0.5 mt-1">
+                <div className="mt-1 flex gap-0.5">
                   {dayBookings.slice(0, 3).map((_, i) => (
                     <div
                       key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        isToday ? "bg-white/70" : "bg-brand"
-                      }`}
+                      className={`h-1.5 w-1.5 rounded-full ${isToday ? 'bg-white/70' : 'bg-brand'}`}
                     />
                   ))}
                   {dayBookings.length > 3 && (
-                    <span className={`text-[8px] ${isToday ? "text-white/70" : "text-muted-foreground"}`}>
+                    <span
+                      className={`text-[8px] ${isToday ? 'text-white/70' : 'text-muted-foreground'}`}
+                    >
                       +{dayBookings.length - 3}
                     </span>
                   )}

@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useRef } from "react";
-import { Plus, Camera, X } from "lucide-react";
-import { toast } from "sonner";
-import { useTranslations } from "next-intl";
-import { TopBar } from "@/components/TopBar";
-import { ServiceCard } from "@/components/ServiceCard";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { SessionType } from "@/lib/types";
-import { api, getPhotoUrl } from "@/lib/api";
-import { useAdminServices } from "@/hooks/queries";
-import { invalidateServices } from "@/hooks/mutations";
+import { useState, useRef } from 'react';
+import { Plus, Camera, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
+import { TopBar } from '@/components/TopBar';
+import { ServiceCard } from '@/components/ServiceCard';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { SessionType } from '@/lib/types';
+import { api, getPhotoUrl } from '@/lib/api';
+import { useAdminServices } from '@/hooks/queries';
+import { invalidateServices } from '@/hooks/mutations';
 
 interface ServiceFormData {
   type: string;
@@ -21,11 +21,11 @@ interface ServiceFormData {
 }
 
 export default function ServicesPage() {
-  const t = useTranslations("AdminServices");
-  const tc = useTranslations("Common");
-  const td = useTranslations("Duration");
-  const te = useTranslations("Errors");
-  const tsp = useTranslations("ServicesPage");
+  const t = useTranslations('AdminServices');
+  const tc = useTranslations('Common');
+  const td = useTranslations('Duration');
+  const te = useTranslations('Errors');
+  const tsp = useTranslations('ServicesPage');
   const { data: services, isLoading, mutate } = useAdminServices();
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<SessionType | null>(null);
@@ -33,16 +33,16 @@ export default function ServicesPage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<ServiceFormData>({
-    type: "personal",
-    name: "",
-    price: "",
-    duration: "60",
-    imageUrl: "",
+    type: 'personal',
+    name: '',
+    price: '',
+    duration: '60',
+    imageUrl: '',
   });
 
   const handleAddClick = () => {
     setEditingService(null);
-    setFormData({ type: "personal", name: "", price: "", duration: "60", imageUrl: "" });
+    setFormData({ type: 'personal', name: '', price: '', duration: '60', imageUrl: '' });
     setShowForm(true);
   };
 
@@ -53,7 +53,7 @@ export default function ServicesPage() {
       name: service.name,
       price: service.price.toString(),
       duration: service.durationMinutes.toString(),
-      imageUrl: service.imageUrl || "",
+      imageUrl: service.imageUrl || '',
     });
     setShowForm(true);
   };
@@ -67,8 +67,8 @@ export default function ServicesPage() {
       const result = await api.admin.uploadPhoto(file);
       setFormData((prev) => ({ ...prev, imageUrl: result.fileId }));
     } catch (err) {
-      console.error("Failed to upload image:", err);
-      toast.error(te("photoUploadFailed"));
+      console.error('Failed to upload image:', err);
+      toast.error(te('photoUploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -94,7 +94,7 @@ export default function ServicesPage() {
           name: formData.name,
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
-          currency: "RUB",
+          currency: 'RUB',
           imageUrl: formData.imageUrl,
         });
       }
@@ -104,8 +104,8 @@ export default function ServicesPage() {
       setShowForm(false);
       setEditingService(null);
     } catch (err) {
-      console.error("Failed to save service:", err);
-      toast.error(err instanceof Error ? err.message : te("saveFailed"));
+      console.error('Failed to save service:', err);
+      toast.error(err instanceof Error ? err.message : te('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -114,9 +114,9 @@ export default function ServicesPage() {
   if (isLoading) {
     return (
       <div>
-        <TopBar title={t("title")} showBack />
-        <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-muted-foreground">{tc("loading")}</div>
+        <TopBar title={t('title')} showBack />
+        <div className="flex min-h-[200px] items-center justify-center p-4">
+          <div className="text-muted-foreground">{tc('loading')}</div>
         </div>
       </div>
     );
@@ -126,43 +126,41 @@ export default function ServicesPage() {
     return (
       <div>
         <TopBar
-          title={editingService ? t("editTitle") : t("addTitle")}
+          title={editingService ? t('editTitle') : t('addTitle')}
           showBack
           onBack={() => setShowForm(false)}
         />
 
-        <div className="p-4 space-y-4">
+        <div className="space-y-4 p-4">
           {/* Image Upload */}
           <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t("servicePhoto")}
-            </label>
+            <label className="text-muted-foreground mb-1 block text-sm">{t('servicePhoto')}</label>
             <div className="flex items-center gap-3">
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-16 h-16 rounded-full bg-card border border-border flex items-center justify-center overflow-hidden cursor-pointer transition-opacity active:opacity-80"
+                className="bg-card border-border flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-opacity active:opacity-80"
               >
                 {formData.imageUrl ? (
                   <img
                     src={getPhotoUrl(formData.imageUrl)}
-                    alt={t("servicePhoto")}
-                    className="w-full h-full object-cover"
+                    alt={t('servicePhoto')}
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <Camera className="w-6 h-6 text-muted-foreground" />
+                  <Camera className="text-muted-foreground h-6 w-6" />
                 )}
               </div>
               {formData.imageUrl && (
                 <button
                   type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, imageUrl: "" }))}
-                  className="w-8 h-8 rounded-full bg-card flex items-center justify-center"
+                  onClick={() => setFormData((prev) => ({ ...prev, imageUrl: '' }))}
+                  className="bg-card flex h-8 w-8 items-center justify-center rounded-full"
                 >
-                  <X className="w-4 h-4 text-muted-foreground" />
+                  <X className="text-muted-foreground h-4 w-4" />
                 </button>
               )}
               {uploading && (
-                <span className="text-xs text-muted-foreground">{tc("uploading")}</span>
+                <span className="text-muted-foreground text-xs">{tc('uploading')}</span>
               )}
             </div>
             <input
@@ -175,68 +173,60 @@ export default function ServicesPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t("serviceType")}
-            </label>
+            <label className="text-muted-foreground mb-1 block text-sm">{t('serviceType')}</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
             >
-              <option value="personal">{t("typePersonal")}</option>
-              <option value="pair">{t("typePair")}</option>
-              <option value="consultation">{t("typeConsultation")}</option>
+              <option value="personal">{t('typePersonal')}</option>
+              <option value="pair">{t('typePair')}</option>
+              <option value="consultation">{t('typeConsultation')}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t("nameLabel")}
-            </label>
+            <label className="text-muted-foreground mb-1 block text-sm">{t('nameLabel')}</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               maxLength={100}
-              placeholder={t("namePlaceholder")}
-              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+              placeholder={t('namePlaceholder')}
+              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t("priceLabel")}
-            </label>
+            <label className="text-muted-foreground mb-1 block text-sm">{t('priceLabel')}</label>
             <input
               type="number"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder={t("pricePlaceholder")}
-              className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
+              placeholder={t('pricePlaceholder')}
+              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t("durationLabel")}
-            </label>
+            <label className="text-muted-foreground mb-1 block text-sm">{t('durationLabel')}</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: td("min30"), value: "30" },
-                { label: td("hour1"), value: "60" },
-                { label: td("hour1_5"), value: "90" },
-                { label: td("hour2"), value: "120" },
-                { label: td("hour2_5"), value: "150" },
-                { label: td("hour3"), value: "180" },
+                { label: td('min30'), value: '30' },
+                { label: td('hour1'), value: '60' },
+                { label: td('hour1_5'), value: '90' },
+                { label: td('hour2'), value: '120' },
+                { label: td('hour2_5'), value: '150' },
+                { label: td('hour3'), value: '180' },
               ].map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setFormData({ ...formData, duration: opt.value })}
-                  className={`py-3 rounded-lg text-sm font-medium transition-colors ${
+                  className={`rounded-lg py-3 text-sm font-medium transition-colors ${
                     formData.duration === opt.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-foreground"
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-foreground'
                   }`}
                 >
                   {opt.label}
@@ -246,7 +236,7 @@ export default function ServicesPage() {
           </div>
 
           <PrimaryButton onClick={handleSave} disabled={saving}>
-            {saving ? tc("saving") : editingService ? tc("save") : t("addButton")}
+            {saving ? tc('saving') : editingService ? tc('save') : t('addButton')}
           </PrimaryButton>
         </div>
       </div>
@@ -255,27 +245,23 @@ export default function ServicesPage() {
 
   return (
     <div>
-      <TopBar title={t("title")} showBack />
+      <TopBar title={t('title')} showBack />
 
-      <div className="p-4 space-y-4">
-        <p className="text-xs text-muted-foreground">
-          {tsp("durationDeterminesSlots")}
-        </p>
+      <div className="space-y-4 p-4">
+        <p className="text-muted-foreground text-xs">{tsp('durationDeterminesSlots')}</p>
 
         {/* Add Button */}
         <button
           onClick={handleAddClick}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors active:bg-card"
+          className="border-border text-muted-foreground active:bg-card flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition-colors"
         >
-          <Plus className="w-5 h-5" />
-          <span>{tsp("addService")}</span>
+          <Plus className="h-5 w-5" />
+          <span>{tsp('addService')}</span>
         </button>
 
         {/* Services List */}
         {services.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            {tsp("noServices")}
-          </div>
+          <div className="text-muted-foreground py-8 text-center">{tsp('noServices')}</div>
         ) : (
           services.map((service) => (
             <ServiceCard

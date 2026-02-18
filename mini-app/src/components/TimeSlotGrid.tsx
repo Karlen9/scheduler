@@ -17,12 +17,12 @@ export function TimeSlotGrid({ slots, selected, onSelect }: TimeSlotGridProps) {
           key={slot.time}
           onClick={() => slot.available && onSelect(slot.time)}
           disabled={!slot.available}
-          className={`py-3 rounded-lg text-sm transition-all ${
+          className={`rounded-lg py-3 text-sm transition-all ${
             selected === slot.time
-              ? "bg-primary text-primary-foreground"
+              ? 'bg-primary text-primary-foreground'
               : slot.available
-                ? "bg-card text-foreground hover:bg-border"
-                : "bg-error/15 text-error cursor-not-allowed"
+                ? 'bg-card text-foreground hover:bg-border'
+                : 'bg-error/15 text-error cursor-not-allowed'
           }`}
         >
           {slot.time}

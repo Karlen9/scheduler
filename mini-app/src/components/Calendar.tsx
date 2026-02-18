@@ -1,18 +1,35 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
-const monthNomKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-const dayShortKeysMon = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const monthNomKeys = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+];
+const dayShortKeysMon = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 function toISODate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getMonthGrid(year: number, month: number, fillOuter: boolean): (Date | null)[] {
@@ -95,9 +112,9 @@ export function MonthGrid({
   onTitleClick,
   disableNonWorking = true,
 }: MonthGridProps) {
-  const td = useTranslations("Dates");
-  const MONTH_NAMES = monthNomKeys.map(k => td(`monthsNom.${k}`));
-  const DAY_NAMES = dayShortKeysMon.map(k => td(`daysShort.${k}`));
+  const td = useTranslations('Dates');
+  const MONTH_NAMES = monthNomKeys.map((k) => td(`monthsNom.${k}`));
+  const DAY_NAMES = dayShortKeysMon.map((k) => td(`daysShort.${k}`));
 
   const today = useMemo(() => {
     const d = new Date();
@@ -109,7 +126,10 @@ export function MonthGrid({
 
   const month = displayDate.getMonth();
   const year = displayDate.getFullYear();
-  const grid = useMemo(() => getMonthGrid(year, month, fillOuterDays), [year, month, fillOuterDays]);
+  const grid = useMemo(
+    () => getMonthGrid(year, month, fillOuterDays),
+    [year, month, fillOuterDays],
+  );
 
   function isNonWorking(d: Date): boolean {
     if (nonWorkingSet.has(d.getDay())) return true;
@@ -141,40 +161,41 @@ export function MonthGrid({
   const content = (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={onPrevMonth} className="p-2 text-muted-foreground">
-          <ChevronLeft className="w-5 h-5" />
+      <div className="mb-3 flex items-center justify-between">
+        <button onClick={onPrevMonth} className="text-muted-foreground p-2">
+          <ChevronLeft className="h-5 w-5" />
         </button>
         <span
-          className={`text-sm font-medium text-foreground ${onTitleClick ? "cursor-pointer" : ""}`}
+          className={`text-foreground text-sm font-medium ${onTitleClick ? 'cursor-pointer' : ''}`}
           onClick={onTitleClick}
         >
           {MONTH_NAMES[month]} {year}
         </span>
-        <button onClick={onNextMonth} className="p-2 text-muted-foreground">
-          <ChevronRight className="w-5 h-5" />
+        <button onClick={onNextMonth} className="text-muted-foreground p-2">
+          <ChevronRight className="h-5 w-5" />
         </button>
       </div>
 
       {/* Day names */}
-      <div className="grid grid-cols-7 mb-1">
+      <div className="mb-1 grid grid-cols-7">
         {DAY_NAMES.map((name, i) => (
-          <div key={i} className="text-center text-[11px] text-muted-foreground py-1">
+          <div key={i} className="text-muted-foreground py-1 text-center text-[11px]">
             {name}
           </div>
         ))}
       </div>
 
       {/* Grid */}
-      <div className={`grid grid-cols-7 ${fillOuterDays ? "" : "gap-1"}`}>
+      <div className={`grid grid-cols-7 ${fillOuterDays ? '' : 'gap-1'}`}>
         {grid.map((date, i) => {
           if (!date) {
             return <div key={`e-${i}`} className="aspect-square" />;
           }
 
           const isCurrentMonth = date.getMonth() === month;
-          const selected = (selectedDate ? isSameDay(date, selectedDate) : false) ||
-            (selectedDates?.some(sd => isSameDay(date, sd)) ?? false);
+          const selected =
+            (selectedDate ? isSameDay(date, selectedDate) : false) ||
+            (selectedDates?.some((sd) => isSameDay(date, sd)) ?? false);
           const isDayToday = isSameDay(date, today);
           const disabled = isDisabled(date);
           const dayOff = isDayOffDate(date);
@@ -187,33 +208,35 @@ export function MonthGrid({
               key={i}
               onClick={() => !disabled && onSelectDate(date)}
               disabled={disabled}
-              className={`flex flex-col items-center ${fillOuterDays ? "py-1.5" : "aspect-square justify-center"}`}
+              className={`flex flex-col items-center ${fillOuterDays ? 'py-1.5' : 'aspect-square justify-center'}`}
             >
               <span
-                className={`w-9 h-9 flex items-center justify-center rounded-full text-sm transition-colors ${
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors ${
                   selected
-                    ? "bg-brand text-white font-medium"
+                    ? 'bg-brand font-medium text-white'
                     : booked && isCurrentMonth
-                      ? "text-muted-foreground/50"
+                      ? 'text-muted-foreground/50'
                       : dayOff && isCurrentMonth
-                        ? "bg-dayoff-bg text-dayoff-text"
+                        ? 'bg-dayoff-bg text-dayoff-text'
                         : disabled && disablePast && isPast(date)
-                          ? "text-muted-foreground opacity-40"
+                          ? 'text-muted-foreground opacity-40'
                           : nonWorking
-                            ? isCurrentMonth ? "text-muted-foreground/30" : "text-muted-foreground/20"
+                            ? isCurrentMonth
+                              ? 'text-muted-foreground/30'
+                              : 'text-muted-foreground/20'
                             : isDayToday
-                              ? "ring-1 ring-brand text-brand font-medium"
+                              ? 'ring-brand text-brand font-medium ring-1'
                               : isCurrentMonth
-                                ? "text-foreground"
-                                : "text-muted-foreground/40"
+                                ? 'text-foreground'
+                                : 'text-muted-foreground/40'
                 }`}
               >
                 {date.getDate()}
               </span>
               {booked && isCurrentMonth && !selected ? (
-                <div className="w-1.5 h-1.5 rounded-full bg-brand/60 mt-0.5" />
+                <div className="bg-brand/60 mt-0.5 h-1.5 w-1.5 rounded-full" />
               ) : hasDot ? (
-                <div className="w-1 h-1 rounded-full bg-brand mt-0.5" />
+                <div className="bg-brand mt-0.5 h-1 w-1 rounded-full" />
               ) : null}
             </button>
           );
@@ -222,10 +245,10 @@ export function MonthGrid({
 
       {/* Legend */}
       {showLegend && daysOff && daysOff.length > 0 && (
-        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
+        <div className="border-border mt-3 flex items-center gap-4 border-t pt-3">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-dayoff-bg" />
-            <span className="text-xs text-muted-foreground">{td("dayOff")}</span>
+            <span className="bg-dayoff-bg h-3 w-3 rounded" />
+            <span className="text-muted-foreground text-xs">{td('dayOff')}</span>
           </div>
         </div>
       )}
@@ -268,8 +291,8 @@ export function WeekStrip({
   daysOff,
   dotDates,
 }: WeekStripProps) {
-  const td = useTranslations("Dates");
-  const DAY_NAMES = dayShortKeysMon.map(k => td(`daysShort.${k}`));
+  const td = useTranslations('Dates');
+  const DAY_NAMES = dayShortKeysMon.map((k) => td(`daysShort.${k}`));
 
   const today = useMemo(() => {
     const d = new Date();
@@ -299,10 +322,10 @@ export function WeekStrip({
 
   return (
     <div className="flex items-center">
-      <button onClick={onPrevWeek} className="p-1 text-muted-foreground shrink-0">
-        <ChevronLeft className="w-5 h-5" />
+      <button onClick={onPrevWeek} className="text-muted-foreground shrink-0 p-1">
+        <ChevronLeft className="h-5 w-5" />
       </button>
-      <div className="flex-1 grid grid-cols-7 gap-0.5">
+      <div className="grid flex-1 grid-cols-7 gap-0.5">
         {weekDays.map((day, i) => {
           const selected = isSameDay(day, selectedDate);
           const isDayToday = isSameDay(day, today);
@@ -317,33 +340,33 @@ export function WeekStrip({
               disabled={nonWorking}
               className="flex flex-col items-center py-1.5"
             >
-              <span className={`text-[11px] mb-1 ${nonWorking ? "text-muted-foreground/40" : "text-muted-foreground"}`}>
+              <span
+                className={`mb-1 text-[11px] ${nonWorking ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}
+              >
                 {DAY_NAMES[i]}
               </span>
               <span
-                className={`w-9 h-9 flex items-center justify-center rounded-full text-sm transition-colors ${
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors ${
                   selected
-                    ? "bg-brand text-white font-medium"
+                    ? 'bg-brand font-medium text-white'
                     : dayOff
-                      ? "bg-dayoff-bg text-dayoff-text"
+                      ? 'bg-dayoff-bg text-dayoff-text'
                       : nonWorking
-                        ? "text-muted-foreground/30"
+                        ? 'text-muted-foreground/30'
                         : isDayToday
-                          ? "ring-1 ring-brand text-brand font-medium"
-                          : "text-foreground"
+                          ? 'ring-brand text-brand font-medium ring-1'
+                          : 'text-foreground'
                 }`}
               >
                 {day.getDate()}
               </span>
-              {hasDot && (
-                <div className="w-1 h-1 rounded-full bg-brand mt-1" />
-              )}
+              {hasDot && <div className="bg-brand mt-1 h-1 w-1 rounded-full" />}
             </button>
           );
         })}
       </div>
-      <button onClick={onNextWeek} className="p-1 text-muted-foreground shrink-0">
-        <ChevronRight className="w-5 h-5" />
+      <button onClick={onNextWeek} className="text-muted-foreground shrink-0 p-1">
+        <ChevronRight className="h-5 w-5" />
       </button>
     </div>
   );

@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations, useLocale } from "next-intl";
-import { Clock, Phone, MessageCircle, Share2, Dumbbell } from "lucide-react";
-import { formatDuration } from "@/components/DurationSelector";
-import { getPhotoUrl } from "@/lib/api";
-import { getAvatarColor } from "@/lib/colors";
-import { getTrainerId } from "@/lib/telegram";
-import { useTrainer, useSessionTypes } from "@/hooks/queries";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { Clock, Phone, MessageCircle, Share2, Dumbbell } from 'lucide-react';
+import { formatDuration } from '@/components/DurationSelector';
+import { getPhotoUrl } from '@/lib/api';
+import { getAvatarColor } from '@/lib/colors';
+import { getTrainerId } from '@/lib/telegram';
+import { useTrainer, useSessionTypes } from '@/hooks/queries';
 
 export default function HomePage() {
   const router = useRouter();
-  const t = useTranslations("HomePage");
-  const td = useTranslations("Duration");
+  const t = useTranslations('HomePage');
+  const td = useTranslations('Duration');
   const locale = useLocale();
   const { data: trainer, isLoading: trainerLoading } = useTrainer();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
@@ -24,7 +24,7 @@ export default function HomePage() {
   useEffect(() => {
     if (trainer?.isOwner) {
       const trainerId = getTrainerId();
-      router.replace(`/admin${trainerId ? `?trainer=${trainerId}` : ""}`);
+      router.replace(`/admin${trainerId ? `?trainer=${trainerId}` : ''}`);
     }
   }, [trainer, router]);
 
@@ -32,10 +32,10 @@ export default function HomePage() {
 
   const handleMessage = () => {
     if (trainer?.telegramHandle) {
-      const handle = trainer.telegramHandle.replace("@", "");
-      window.open(`https://t.me/${handle}`, "_blank");
+      const handle = trainer.telegramHandle.replace('@', '');
+      window.open(`https://t.me/${handle}`, '_blank');
     } else if (trainer?.botUsername) {
-      window.open(`https://t.me/${trainer.botUsername}`, "_blank");
+      window.open(`https://t.me/${trainer.botUsername}`, '_blank');
     }
   };
 
@@ -45,7 +45,7 @@ export default function HomePage() {
     const webApp = window.Telegram?.WebApp as any;
     if (webApp?.openTelegramLink) {
       webApp.openTelegramLink(
-        `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(trainer?.name || "")}`
+        `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(trainer?.name || '')}`,
       );
     } else if (navigator.share) {
       navigator.share({ title: trainer?.name, url });
@@ -56,21 +56,21 @@ export default function HomePage() {
     return (
       <div className="animate-pulse">
         {/* Hero skeleton */}
-        <div className="w-full h-[280px] bg-border" />
+        <div className="bg-border h-[280px] w-full" />
         {/* Card skeleton */}
-        <div className="bg-card rounded-t-2xl -mt-6 relative px-4 pt-6 pb-4 space-y-4">
-          <div className="h-7 bg-border rounded w-2/3" />
-          <div className="h-4 bg-border rounded w-1/2" />
-          <div className="h-3 bg-border rounded w-3/4" />
+        <div className="bg-card relative -mt-6 space-y-4 rounded-t-2xl px-4 pt-6 pb-4">
+          <div className="bg-border h-7 w-2/3 rounded" />
+          <div className="bg-border h-4 w-1/2 rounded" />
+          <div className="bg-border h-3 w-3/4 rounded" />
           <div className="flex gap-2 pt-2">
-            <div className="flex-1 h-12 bg-border rounded-[28px]" />
-            <div className="flex-1 h-12 bg-border rounded-[28px]" />
-            <div className="w-12 h-12 bg-border rounded-[28px]" />
+            <div className="bg-border h-12 flex-1 rounded-[28px]" />
+            <div className="bg-border h-12 flex-1 rounded-[28px]" />
+            <div className="bg-border h-12 w-12 rounded-[28px]" />
           </div>
           <div className="space-y-3 pt-4">
-            <div className="h-5 bg-border rounded w-24" />
-            <div className="h-16 bg-border rounded-xl" />
-            <div className="h-16 bg-border rounded-xl" />
+            <div className="bg-border h-5 w-24 rounded" />
+            <div className="bg-border h-16 rounded-xl" />
+            <div className="bg-border h-16 rounded-xl" />
           </div>
         </div>
       </div>
@@ -80,8 +80,8 @@ export default function HomePage() {
   if (!trainer) {
     return (
       <div className="px-4 pt-4">
-        <div className="bg-card rounded-xl p-4 text-center text-muted-foreground">
-          {t("trainerLoadError")}
+        <div className="bg-card text-muted-foreground rounded-xl p-4 text-center">
+          {t('trainerLoadError')}
         </div>
       </div>
     );
@@ -92,36 +92,34 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <div className="relative w-full h-[280px] overflow-hidden">
+      <div className="relative h-[280px] w-full overflow-hidden">
         {hasPhoto ? (
           <>
             <img
               src={getPhotoUrl(trainer.photoUrl!)}
               alt={trainer.name}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
               onError={() => setHeroError(true)}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           </>
         ) : (
-          <div className={`w-full h-full flex items-center justify-center text-7xl ${getAvatarColor(trainer.name)}`}>
+          <div
+            className={`flex h-full w-full items-center justify-center text-7xl ${getAvatarColor(trainer.name)}`}
+          >
             {trainer.name.charAt(0)}
           </div>
         )}
       </div>
 
       {/* Trainer Info Card */}
-      <div className="bg-card rounded-t-2xl -mt-6 relative z-10">
-        <div className="px-4 pt-6 pb-4 space-y-4">
+      <div className="bg-card relative z-10 -mt-6 rounded-t-2xl">
+        <div className="space-y-4 px-4 pt-6 pb-4">
           {/* Name & specialization */}
           <div>
-            <h1 className="text-2xl font-bold text-foreground leading-tight">
-              {trainer.name}
-            </h1>
+            <h1 className="text-foreground text-2xl leading-tight font-bold">{trainer.name}</h1>
             {trainer.specialization && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {trainer.specialization}
-              </p>
+              <p className="text-muted-foreground mt-1 text-sm">{trainer.specialization}</p>
             )}
           </div>
 
@@ -129,14 +127,17 @@ export default function HomePage() {
           {(trainer.phone || trainer.telegramHandle) && (
             <div className="flex items-center gap-4">
               {trainer.phone && (
-                <a href={`tel:${trainer.phone}`} className="flex items-center gap-1.5 text-muted-foreground">
-                  <Phone className="w-3.5 h-3.5" />
+                <a
+                  href={`tel:${trainer.phone}`}
+                  className="text-muted-foreground flex items-center gap-1.5"
+                >
+                  <Phone className="h-3.5 w-3.5" />
                   <span className="text-xs">{trainer.phone}</span>
                 </a>
               )}
               {trainer.telegramHandle && (
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <MessageCircle className="w-3.5 h-3.5" />
+                <div className="text-muted-foreground flex items-center gap-1.5">
+                  <MessageCircle className="h-3.5 w-3.5" />
                   <span className="text-xs">{trainer.telegramHandle}</span>
                 </div>
               )}
@@ -147,8 +148,8 @@ export default function HomePage() {
           {trainer.bio && (
             <div>
               <p
-                className={`text-sm text-muted-foreground leading-relaxed ${
-                  !bioExpanded ? "line-clamp-4" : ""
+                className={`text-muted-foreground text-sm leading-relaxed ${
+                  !bioExpanded ? 'line-clamp-4' : ''
                 }`}
               >
                 {trainer.bio}
@@ -156,9 +157,9 @@ export default function HomePage() {
               {trainer.bio.length > 200 && (
                 <button
                   onClick={() => setBioExpanded(!bioExpanded)}
-                  className="text-sm text-brand mt-1 font-medium"
+                  className="text-brand mt-1 text-sm font-medium"
                 >
-                  {bioExpanded ? t("showLess") : t("showMore")}
+                  {bioExpanded ? t('showLess') : t('showMore')}
                 </button>
               )}
             </div>
@@ -169,22 +170,22 @@ export default function HomePage() {
             {(trainer.telegramHandle || trainer.botUsername) && (
               <button
                 onClick={handleMessage}
-                className="flex-1 py-3 px-4 rounded-[28px] bg-brand text-white text-sm font-medium transition-opacity active:opacity-80"
+                className="bg-brand flex-1 rounded-[28px] px-4 py-3 text-sm font-medium text-white transition-opacity active:opacity-80"
               >
-                {t("messageButton")}
+                {t('messageButton')}
               </button>
             )}
             <button
-              onClick={() => router.push("/services")}
-              className="flex-1 py-3 px-4 rounded-[28px] bg-surface-hover border border-surface-border text-muted-foreground text-sm font-medium transition-opacity active:opacity-80"
+              onClick={() => router.push('/services')}
+              className="bg-surface-hover border-surface-border text-muted-foreground flex-1 rounded-[28px] border px-4 py-3 text-sm font-medium transition-opacity active:opacity-80"
             >
-              {t("servicesButton")}
+              {t('servicesButton')}
             </button>
             <button
               onClick={handleShare}
-              className="w-12 h-12 rounded-[28px] bg-surface-hover border border-surface-border flex items-center justify-center transition-opacity active:opacity-80"
+              className="bg-surface-hover border-surface-border flex h-12 w-12 items-center justify-center rounded-[28px] border transition-opacity active:opacity-80"
             >
-              <Share2 className="w-4 h-4 text-muted-foreground" />
+              <Share2 className="text-muted-foreground h-4 w-4" />
             </button>
           </div>
         </div>
@@ -192,38 +193,39 @@ export default function HomePage() {
         {/* Services Section */}
         {services.length > 0 && (
           <div className="px-4 pb-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">{t("servicesTitle")}</h3>
+            <h3 className="text-foreground mb-2 text-sm font-semibold">{t('servicesTitle')}</h3>
             <div className="space-y-2">
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="bg-background rounded-xl p-3 flex items-center gap-3"
+                  className="bg-background flex items-center gap-3 rounded-xl p-3"
                 >
                   {/* Service thumbnail */}
-                  <div className="w-10 h-10 rounded-full bg-border flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <div className="bg-border flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
                     {service.imageUrl ? (
                       <img
                         src={getPhotoUrl(service.imageUrl)}
                         alt={service.name}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <Dumbbell className="w-4 h-4 text-muted-foreground" />
+                      <Dumbbell className="text-muted-foreground h-4 w-4" />
                     )}
                   </div>
                   {/* Service info */}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">{service.name}</p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        {formatDuration(service.durationMinutes, td("hour"))}
+                    <p className="text-foreground text-sm font-medium">{service.name}</p>
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <Clock className="text-muted-foreground h-3 w-3" />
+                      <p className="text-muted-foreground text-xs">
+                        {formatDuration(service.durationMinutes, td('hour'))}
                       </p>
                     </div>
                   </div>
                   {service.price > 0 && (
-                    <p className="text-sm font-semibold text-foreground ml-2 flex-shrink-0">
-                      {service.price.toLocaleString(locale === "en" ? "en-US" : "ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
+                    <p className="text-foreground ml-2 flex-shrink-0 text-sm font-semibold">
+                      {service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')}{' '}
+                      {service.currency === 'RUB' ? '\u20BD' : service.currency}
                     </p>
                   )}
                 </div>
@@ -235,24 +237,23 @@ export default function HomePage() {
         {/* Location Section */}
         {trainer.gymLatitude && trainer.gymLongitude && (
           <div className="px-4 pb-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">{t("locationTitle")}</h3>
+            <h3 className="text-foreground mb-2 text-sm font-semibold">{t('locationTitle')}</h3>
             <a
               href={`https://yandex.ru/maps/?pt=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&l=map`}
               target="_blank"
               rel="noopener noreferrer"
-              className="block bg-background rounded-xl overflow-hidden"
+              className="bg-background block overflow-hidden rounded-xl"
             >
               <iframe
                 src={`https://yandex.ru/map-widget/v1/?ll=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&pt=${trainer.gymLongitude},${trainer.gymLatitude},pm2rdm`}
                 width="100%"
                 height="200"
-                style={{ border: "none", display: "block", pointerEvents: "none" }}
+                style={{ border: 'none', display: 'block', pointerEvents: 'none' }}
                 allowFullScreen
               />
             </a>
           </div>
         )}
-
       </div>
     </div>
   );

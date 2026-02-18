@@ -1,28 +1,38 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface WeekDatePickerProps {
   selectedDate: Date | null;
   onSelectDate: (date: Date) => void;
 }
 
-const monthNomKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-const dayShortKeysMon = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const monthNomKeys = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+];
+const dayShortKeysMon = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-export function WeekDatePicker({
-  selectedDate,
-  onSelectDate,
-}: WeekDatePickerProps) {
-  const td = useTranslations("Dates");
-  const tf = useTranslations("BookingForm");
+export function WeekDatePicker({ selectedDate, onSelectDate }: WeekDatePickerProps) {
+  const td = useTranslations('Dates');
+  const tf = useTranslations('BookingForm');
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const monthNames = monthNomKeys.map(k => td(`monthsNom.${k}`));
-  const dayNames = dayShortKeysMon.map(k => td(`daysShort.${k}`));
+  const monthNames = monthNomKeys.map((k) => td(`monthsNom.${k}`));
+  const dayNames = dayShortKeysMon.map((k) => td(`daysShort.${k}`));
 
   // Get the current week (7 days starting from the beginning of current month)
   const getCurrentWeek = () => {
@@ -66,46 +76,30 @@ export function WeekDatePicker({
   };
 
   const prevMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
-    );
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   };
 
   const nextMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
-    );
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-lg font-medium text-foreground">{tf("selectDay")}</h3>
+        <h3 className="text-foreground text-lg font-medium">{tf('selectDay')}</h3>
 
         <div className="flex items-center gap-4">
-          <button
-            onClick={prevMonth}
-            className="p-0.5 transition-opacity active:opacity-60"
-          >
-            <ChevronLeft
-              className="w-[11.4px] h-[11.4px] text-muted-foreground"
-              strokeWidth={2}
-            />
+          <button onClick={prevMonth} className="p-0.5 transition-opacity active:opacity-60">
+            <ChevronLeft className="text-muted-foreground h-[11.4px] w-[11.4px]" strokeWidth={2} />
           </button>
 
-          <span className="text-base font-medium text-muted-foreground min-w-[110px] text-center">
+          <span className="text-muted-foreground min-w-[110px] text-center text-base font-medium">
             {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </span>
 
-          <button
-            onClick={nextMonth}
-            className="p-0.5 transition-opacity active:opacity-60"
-          >
-            <ChevronRight
-              className="w-[11.4px] h-[11.4px] text-muted-foreground"
-              strokeWidth={2}
-            />
+          <button onClick={nextMonth} className="p-0.5 transition-opacity active:opacity-60">
+            <ChevronRight className="text-muted-foreground h-[11.4px] w-[11.4px]" strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -121,36 +115,24 @@ export function WeekDatePicker({
               key={index}
               onClick={() => !past && onSelectDate(date)}
               disabled={past}
-              className={`
-                relative flex flex-col items-center gap-3 py-3 rounded-[70px] transition-all
-                border border-surface-border bg-card
-                ${selected ? "outline outline-2 outline-brand" : ""}
-                ${past && !selected ? "bg-surface-hover opacity-100 cursor-not-allowed" : ""}
-                ${!past && !selected ? "active:opacity-70" : ""}
-              `}
+              className={`border-surface-border bg-card relative flex flex-col items-center gap-3 rounded-[70px] border py-3 transition-all ${selected ? 'outline-brand outline outline-2' : ''} ${past && !selected ? 'bg-surface-hover cursor-not-allowed opacity-100' : ''} ${!past && !selected ? 'active:opacity-70' : ''} `}
             >
               {/* Day Name */}
               <span
-                className={`text-sm font-medium leading-none ${selected ? "text-white" : past ? "text-muted-foreground opacity-30" : "text-muted-foreground"}`}
+                className={`text-sm leading-none font-medium ${selected ? 'text-white' : past ? 'text-muted-foreground opacity-30' : 'text-muted-foreground'}`}
               >
                 {dayNames[index]}
               </span>
 
               {/* Circle Background with Date */}
-              <div className="relative w-8 h-8 flex items-center justify-center">
+              <div className="relative flex h-8 w-8 items-center justify-center">
                 <div
-                  className={`
-                  absolute inset-0 rounded-full
-                  ${selected ? "bg-brand" : past ? "bg-surface-hover opacity-50" : "bg-surface-hover opacity-50"}
-                `}
+                  className={`absolute inset-0 rounded-full ${selected ? 'bg-brand' : past ? 'bg-surface-hover opacity-50' : 'bg-surface-hover opacity-50'} `}
                 />
 
                 {/* Date Number */}
                 <span
-                  className={`
-                  relative text-base font-medium leading-none z-10
-                  ${selected ? "text-white" : past ? "text-muted-foreground opacity-30" : "text-foreground"}
-                `}
+                  className={`relative z-10 text-base leading-none font-medium ${selected ? 'text-white' : past ? 'text-muted-foreground opacity-30' : 'text-foreground'} `}
                 >
                   {date.getDate()}
                 </span>

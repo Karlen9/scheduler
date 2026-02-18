@@ -1,36 +1,32 @@
-"use client";
+'use client';
 
-import { useTranslations } from "next-intl";
+import { useTranslations } from 'next-intl';
 
 interface ScheduleTabsProps {
-  activeTab: "day" | "week";
-  onChange: (tab: "day" | "week") => void;
+  activeTab: 'day' | 'week';
+  onChange: (tab: 'day' | 'week') => void;
 }
 
 export function ScheduleTabs({ activeTab, onChange }: ScheduleTabsProps) {
-  const t = useTranslations("ScheduleView");
+  const t = useTranslations('ScheduleView');
 
   return (
-    <div className="flex gap-2 mb-4">
+    <div className="mb-4 flex gap-2">
       <button
-        onClick={() => onChange("day")}
-        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-          activeTab === "day"
-            ? "bg-foreground text-white"
-            : "text-muted-foreground hover:bg-card"
+        onClick={() => onChange('day')}
+        className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          activeTab === 'day' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-card'
         }`}
       >
-        {t("day")}
+        {t('day')}
       </button>
       <button
-        onClick={() => onChange("week")}
-        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-          activeTab === "week"
-            ? "bg-foreground text-white"
-            : "text-muted-foreground hover:bg-card"
+        onClick={() => onChange('week')}
+        className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          activeTab === 'week' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-card'
         }`}
       >
-        {t("week")}
+        {t('week')}
       </button>
     </div>
   );

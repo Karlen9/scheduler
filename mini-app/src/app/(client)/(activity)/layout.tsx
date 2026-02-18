@@ -1,10 +1,6 @@
-import { ActivityBackButton } from "@/components/ActivityBackButton";
+import { ActivityBackButton } from '@/components/ActivityBackButton';
 
-export default function ActivityLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ActivityLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ActivityBackButton href="/" />

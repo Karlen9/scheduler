@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { MonthGrid } from "@/components/Calendar";
+import { MonthGrid } from '@/components/Calendar';
 
 interface MonthCalendarProps {
   selectedDate: Date;
@@ -10,7 +10,7 @@ interface MonthCalendarProps {
 }
 
 function toISODate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function MonthCalendar({

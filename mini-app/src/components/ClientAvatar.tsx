@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { getAvatarColor } from "@/lib/colors";
-import { getPhotoUrl } from "@/lib/api";
+import { useState } from 'react';
+import { getAvatarColor } from '@/lib/colors';
+import { getPhotoUrl } from '@/lib/api';
 
 interface ClientAvatarProps {
   name: string;
   photoUrl?: string;
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const sizeClasses = {
-  sm: "w-8 h-8 text-sm",
-  md: "w-10 h-10 text-base",
-  lg: "w-16 h-16 text-2xl",
+  sm: 'w-8 h-8 text-sm',
+  md: 'w-10 h-10 text-base',
+  lg: 'w-16 h-16 text-2xl',
 };
 
-export function ClientAvatar({ name, photoUrl, size = "md" }: ClientAvatarProps) {
+export function ClientAvatar({ name, photoUrl, size = 'md' }: ClientAvatarProps) {
   const [error, setError] = useState(false);
   const cls = sizeClasses[size];
 
@@ -25,14 +25,16 @@ export function ClientAvatar({ name, photoUrl, size = "md" }: ClientAvatarProps)
       <img
         src={getPhotoUrl(photoUrl)}
         alt={name}
-        className={`${cls} rounded-full object-cover shrink-0`}
+        className={`${cls} shrink-0 rounded-full object-cover`}
         onError={() => setError(true)}
       />
     );
   }
 
   return (
-    <div className={`${cls} rounded-full flex items-center justify-center font-medium shrink-0 ${getAvatarColor(name)}`}>
+    <div
+      className={`${cls} flex shrink-0 items-center justify-center rounded-full font-medium ${getAvatarColor(name)}`}
+    >
       {name.charAt(0)}
     </div>
   );

@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { setLocale } from "@/actions/locale";
-import { api } from "@/lib/api";
-import { invalidateProfile, invalidateTrainer } from "@/hooks/mutations";
+import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { setLocale } from '@/actions/locale';
+import { api } from '@/lib/api';
+import { invalidateProfile, invalidateTrainer } from '@/hooks/mutations';
 
 const options = [
-  { value: "ru", label: "RU" },
-  { value: "en", label: "EN" },
+  { value: 'ru', label: 'RU' },
+  { value: 'en', label: 'EN' },
 ];
 
 export function LanguageSelector({ isAdmin }: { isAdmin?: boolean }) {
   const locale = useLocale();
   const router = useRouter();
-  const te = useTranslations("Errors");
+  const te = useTranslations('Errors');
   const [loading, setLoading] = useState(false);
 
   const handleSelect = async (lang: string) => {
@@ -38,7 +38,7 @@ export function LanguageSelector({ isAdmin }: { isAdmin?: boolean }) {
       await setLocale(lang);
       router.refresh();
     } catch {
-      toast.error(te("saveFailed"));
+      toast.error(te('saveFailed'));
     } finally {
       setLoading(false);
     }
@@ -46,8 +46,8 @@ export function LanguageSelector({ isAdmin }: { isAdmin?: boolean }) {
 
   return (
     <div
-      className="flex gap-1 bg-card rounded-lg p-1"
-      style={loading ? { opacity: 0.5, pointerEvents: "none" } : undefined}
+      className="bg-card flex gap-1 rounded-lg p-1"
+      style={loading ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
     >
       {options.map((opt) => (
         <button
@@ -55,10 +55,8 @@ export function LanguageSelector({ isAdmin }: { isAdmin?: boolean }) {
           type="button"
           disabled={loading}
           onClick={() => handleSelect(opt.value)}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            locale === opt.value
-              ? "bg-brand text-white"
-              : "text-muted-foreground"
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            locale === opt.value ? 'bg-brand text-white' : 'text-muted-foreground'
           }`}
         >
           {opt.label}

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect } from "react";
-import Cropper, { Area } from "react-easy-crop";
-import { RotateCw, RotateCcw, X, Check } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useState, useCallback, useEffect } from 'react';
+import Cropper, { Area } from 'react-easy-crop';
+import { RotateCw, RotateCcw, X, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface PhotoEditorProps {
   imageSrc: string;
@@ -12,15 +12,17 @@ interface PhotoEditorProps {
 }
 
 export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps) {
-  const t = useTranslations("PhotoEditor");
+  const t = useTranslations('PhotoEditor');
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   const onCropComplete = useCallback((_: Area, croppedPixels: Area) => {
@@ -34,15 +36,18 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-background flex flex-col overflow-hidden" style={{ touchAction: "none" }}>
+    <div
+      className="bg-background fixed inset-0 z-[60] flex flex-col overflow-hidden"
+      style={{ touchAction: 'none' }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <button onClick={onCancel} className="p-2 -m-2 text-muted-foreground">
-          <X className="w-6 h-6" />
+      <div className="border-border flex items-center justify-between border-b px-4 py-3">
+        <button onClick={onCancel} className="text-muted-foreground -m-2 p-2">
+          <X className="h-6 w-6" />
         </button>
-        <span className="text-sm font-medium">{t("title")}</span>
-        <button onClick={handleConfirm} className="p-2 -m-2 text-brand">
-          <Check className="w-6 h-6" />
+        <span className="text-sm font-medium">{t('title')}</span>
+        <button onClick={handleConfirm} className="text-brand -m-2 p-2">
+          <Check className="h-6 w-6" />
         </button>
       </div>
 
@@ -64,10 +69,10 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
       </div>
 
       {/* Controls */}
-      <div className="px-4 py-4 space-y-4 border-t border-border bg-background">
+      <div className="border-border bg-background space-y-4 border-t px-4 py-4">
         {/* Zoom slider */}
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground w-14">{t("zoom")}</span>
+          <span className="text-muted-foreground w-14 text-xs">{t('zoom')}</span>
           <input
             type="range"
             min={1}
@@ -75,7 +80,7 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
             step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="flex-1 accent-brand"
+            className="accent-brand flex-1"
           />
         </div>
 
@@ -83,21 +88,21 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={() => setRotation((r) => r - 90)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-card text-sm text-foreground active:opacity-70"
+            className="bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="h-4 w-4" />
           </button>
           <button
             onClick={() => setRotation(0)}
-            className="px-4 py-2.5 rounded-lg bg-card text-sm text-muted-foreground active:opacity-70"
+            className="bg-card text-muted-foreground rounded-lg px-4 py-2.5 text-sm active:opacity-70"
           >
-            {rotation !== 0 ? `${rotation}°` : "0°"}
+            {rotation !== 0 ? `${rotation}°` : '0°'}
           </button>
           <button
             onClick={() => setRotation((r) => r + 90)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-card text-sm text-foreground active:opacity-70"
+            className="bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70"
           >
-            <RotateCw className="w-4 h-4" />
+            <RotateCw className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -106,14 +111,10 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
 }
 
 // Canvas-based crop + rotation
-async function getCroppedImg(
-  imageSrc: string,
-  crop: Area,
-  rotation: number,
-): Promise<Blob | null> {
+async function getCroppedImg(imageSrc: string, crop: Area, rotation: number): Promise<Blob | null> {
   const image = await createImage(imageSrc);
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
   const radians = (rotation * Math.PI) / 180;
@@ -138,19 +139,15 @@ async function getCroppedImg(
   ctx.putImageData(data, 0, 0);
 
   return new Promise((resolve) => {
-    canvas.toBlob(
-      (blob) => resolve(blob),
-      "image/jpeg",
-      0.92,
-    );
+    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
   });
 }
 
 function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.addEventListener("load", () => resolve(img));
-    img.addEventListener("error", reject);
+    img.addEventListener('load', () => resolve(img));
+    img.addEventListener('error', reject);
     img.src = url;
   });
 }

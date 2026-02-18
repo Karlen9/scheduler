@@ -39,11 +39,18 @@ export interface Booking {
   clientName: string;
   clientPhotoUrl?: string;
   clientMessage?: string;
-  status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed" | "cancel_requested" | "reschedule_pending";
+  status:
+    | 'pending'
+    | 'confirmed'
+    | 'rejected'
+    | 'cancelled'
+    | 'completed'
+    | 'cancel_requested'
+    | 'reschedule_pending';
   cancelReason?: string;
-  cancelledBy?: "client" | "trainer";
+  cancelledBy?: 'client' | 'trainer';
   durationMinutes?: number;
-  createdBy?: "client" | "trainer";
+  createdBy?: 'client' | 'trainer';
   recurringScheduleId?: string;
   replacesBookingId?: string;
 }
@@ -89,19 +96,19 @@ export interface RecurringSchedule {
   id: string;
   clientName: string;
   clientPhotoUrl?: string;
-  dayOfWeek: number;           // kept for backward compat
+  dayOfWeek: number; // kept for backward compat
   time: string;
   durationMinutes: number;
-  status: "pending" | "active" | "declined" | "cancelled";
-  createdBy: "client" | "trainer";
+  status: 'pending' | 'active' | 'declined' | 'cancelled';
+  createdBy: 'client' | 'trainer';
   createdAt: string;
   // Phase 2 fields
   sessionTypeId?: string;
   sessionType?: SessionType;
-  daysOfWeek?: string;          // comma-separated: "1,3,5"
-  startDate?: string;           // "2026-02-17"
-  endDate?: string;             // "2026-05-17"
-  dayTimes?: string;            // JSON: '{"1":"09:00","3":"10:30"}'
+  daysOfWeek?: string; // comma-separated: "1,3,5"
+  startDate?: string; // "2026-02-17"
+  endDate?: string; // "2026-05-17"
+  dayTimes?: string; // JSON: '{"1":"09:00","3":"10:30"}'
   bookings?: Booking[];
 }
 

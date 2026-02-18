@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
-import { Clock, Dumbbell } from "lucide-react";
-import { useTranslations, useLocale } from "next-intl";
-import { TopBar } from "@/components/TopBar";
-import { SessionType } from "@/lib/types";
-import { formatDuration } from "@/components/DurationSelector";
-import { getPhotoUrl } from "@/lib/api";
-import { useSessionTypes } from "@/hooks/queries";
+import { Clock, Dumbbell } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
+import { TopBar } from '@/components/TopBar';
+import { SessionType } from '@/lib/types';
+import { formatDuration } from '@/components/DurationSelector';
+import { getPhotoUrl } from '@/lib/api';
+import { useSessionTypes } from '@/hooks/queries';
 
 export default function ServicesPage() {
-  const t = useTranslations("ServicesPage");
-  const td = useTranslations("Duration");
+  const t = useTranslations('ServicesPage');
+  const td = useTranslations('Duration');
   const locale = useLocale();
   const { data: services, isLoading: loading } = useSessionTypes();
 
   if (loading) {
     return (
       <div>
-        <TopBar title={t("title")} showBack />
-        <div className="p-4 space-y-3 animate-pulse">
+        <TopBar title={t('title')} showBack />
+        <div className="animate-pulse space-y-3 p-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-border flex-shrink-0" />
+            <div key={i} className="bg-card flex items-center gap-3 rounded-xl p-4">
+              <div className="bg-border h-10 w-10 flex-shrink-0 rounded-full" />
               <div className="flex-1">
-                <div className="h-5 bg-border rounded w-2/3 mb-2" />
-                <div className="h-4 bg-border rounded w-1/3" />
+                <div className="bg-border mb-2 h-5 w-2/3 rounded" />
+                <div className="bg-border h-4 w-1/3 rounded" />
               </div>
             </div>
           ))}
@@ -35,45 +35,39 @@ export default function ServicesPage() {
 
   return (
     <div>
-      <TopBar title={t("title")} showBack />
+      <TopBar title={t('title')} showBack />
 
-      <div className="p-4 space-y-3">
+      <div className="space-y-3 p-4">
         {services.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            {t("empty")}
-          </div>
+          <div className="text-muted-foreground py-8 text-center">{t('empty')}</div>
         ) : (
           services.map((service: SessionType) => (
-            <div
-              key={service.id}
-              className="bg-card rounded-xl p-4 flex items-center gap-3"
-            >
+            <div key={service.id} className="bg-card flex items-center gap-3 rounded-xl p-4">
               {/* Service thumbnail */}
-              <div className="w-10 h-10 rounded-full bg-border flex-shrink-0 overflow-hidden flex items-center justify-center">
+              <div className="bg-border flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
                 {service.imageUrl ? (
                   <img
                     src={getPhotoUrl(service.imageUrl)}
                     alt={service.name}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <Dumbbell className="w-4 h-4 text-muted-foreground" />
+                  <Dumbbell className="text-muted-foreground h-4 w-4" />
                 )}
               </div>
               {/* Service info */}
               <div className="min-w-0 flex-1">
-                <h3 className="text-base font-medium text-foreground mb-1">
-                  {service.name}
-                </h3>
+                <h3 className="text-foreground mb-1 text-base font-medium">{service.name}</h3>
                 <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {formatDuration(service.durationMinutes, td("hour"))}
+                  <Clock className="text-muted-foreground h-3 w-3" />
+                  <span className="text-muted-foreground text-sm">
+                    {formatDuration(service.durationMinutes, td('hour'))}
                   </span>
                 </div>
               </div>
-              <span className="text-base font-semibold text-foreground flex-shrink-0">
-                {service.price.toLocaleString(locale === "en" ? "en-US" : "ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
+              <span className="text-foreground flex-shrink-0 text-base font-semibold">
+                {service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')}{' '}
+                {service.currency === 'RUB' ? '\u20BD' : service.currency}
               </span>
             </div>
           ))

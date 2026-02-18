@@ -1,6 +1,6 @@
-import useSWR, { SWRConfiguration } from "swr";
-import { api } from "@/lib/api";
-import { CACHE_KEYS } from "./cache-keys";
+import useSWR, { SWRConfiguration } from 'swr';
+import { api } from '@/lib/api';
+import { CACHE_KEYS } from './cache-keys';
 import type {
   Trainer,
   SessionType,
@@ -10,7 +10,7 @@ import type {
   DayOff,
   RecurringSchedule,
   ClientInfo,
-} from "@/lib/types";
+} from '@/lib/types';
 
 // ========== Static data hooks (cached aggressively) ==========
 
@@ -86,9 +86,8 @@ export function useClients() {
 // ========== Dynamic data hooks ==========
 
 export function useBookings() {
-  const { data, isLoading, error, mutate } = useSWR<Booking[]>(
-    CACHE_KEYS.bookings,
-    () => api.getBookings(),
+  const { data, isLoading, error, mutate } = useSWR<Booking[]>(CACHE_KEYS.bookings, () =>
+    api.getBookings(),
   );
   return { data: data ?? [], isLoading, error, mutate };
 }
@@ -176,10 +175,6 @@ export function useAdminNotifications() {
   const { data, isLoading, error, mutate } = useSWR<{
     notifyNewBookings: boolean;
     notifyCancellations: boolean;
-  }>(
-    CACHE_KEYS.adminNotifications,
-    () => api.admin.getNotificationPrefs(),
-    staticConfig,
-  );
+  }>(CACHE_KEYS.adminNotifications, () => api.admin.getNotificationPrefs(), staticConfig);
   return { data: data ?? null, isLoading, error, mutate };
 }

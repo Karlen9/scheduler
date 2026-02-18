@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useTranslations } from "next-intl";
-import { BookingForm } from "@/components/BookingForm";
-import { ActivityBackButton } from "@/components/ActivityBackButton";
-import { api } from "@/lib/api";
-import { useClients, useAdminServices, useWorkingHours, useDaysOff } from "@/hooks/queries";
-import { invalidateClients } from "@/hooks/mutations";
+import { useTranslations } from 'next-intl';
+import { BookingForm } from '@/components/BookingForm';
+import { ActivityBackButton } from '@/components/ActivityBackButton';
+import { api } from '@/lib/api';
+import { useClients, useAdminServices, useWorkingHours, useDaysOff } from '@/hooks/queries';
+import { invalidateClients } from '@/hooks/mutations';
 
 export default function AdminBookPage() {
-  const t = useTranslations("BookingForm");
+  const t = useTranslations('BookingForm');
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: services, isLoading: svcLoading } = useAdminServices();
   const { data: workingHours, isLoading: whLoading } = useWorkingHours();
@@ -18,46 +18,46 @@ export default function AdminBookPage() {
 
   return (
     <>
-    <ActivityBackButton href="/admin" />
-    <BookingForm
-      services={services}
-      workingHours={workingHours}
-      daysOff={daysOff}
-      isLoading={clientsLoading || svcLoading || whLoading || doLoading}
-      clients={clients}
-      showRecurring={false}
-      successRedirect="/admin"
-      title={t("adminTitle")}
-      onCreateGhostClient={async (name) => {
-        const client = await api.admin.createGhostClient(name);
-        invalidateClients();
-        return client;
-      }}
-      onCreateBooking={async (params) => {
-        await api.admin.createBooking({
-          clientId: params.clientId!,
-          duration: params.duration,
-          date: params.date,
-          time: params.time,
-          message: params.message,
-        });
-      }}
-      onCreateRecurring={async (params) => {
-        await api.admin.createRecurringSchedule({
-          clientId: params.clientId!,
-          sessionTypeId: params.sessionTypeId,
-          dayTimes: params.dayTimes,
-          period: params.period,
-        });
-      }}
-      onPreviewRecurring={async (params) => {
-        return api.admin.previewRecurringSchedule({
-          sessionTypeId: params.sessionTypeId,
-          dayTimes: params.dayTimes,
-          period: params.period,
-        });
-      }}
-    />
+      <ActivityBackButton href="/admin" />
+      <BookingForm
+        services={services}
+        workingHours={workingHours}
+        daysOff={daysOff}
+        isLoading={clientsLoading || svcLoading || whLoading || doLoading}
+        clients={clients}
+        showRecurring={false}
+        successRedirect="/admin"
+        title={t('adminTitle')}
+        onCreateGhostClient={async (name) => {
+          const client = await api.admin.createGhostClient(name);
+          invalidateClients();
+          return client;
+        }}
+        onCreateBooking={async (params) => {
+          await api.admin.createBooking({
+            clientId: params.clientId!,
+            duration: params.duration,
+            date: params.date,
+            time: params.time,
+            message: params.message,
+          });
+        }}
+        onCreateRecurring={async (params) => {
+          await api.admin.createRecurringSchedule({
+            clientId: params.clientId!,
+            sessionTypeId: params.sessionTypeId,
+            dayTimes: params.dayTimes,
+            period: params.period,
+          });
+        }}
+        onPreviewRecurring={async (params) => {
+          return api.admin.previewRecurringSchedule({
+            sessionTypeId: params.sessionTypeId,
+            dayTimes: params.dayTimes,
+            period: params.period,
+          });
+        }}
+      />
     </>
   );
 }
