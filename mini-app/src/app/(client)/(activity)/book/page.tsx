@@ -9,7 +9,6 @@ import { useWorkingHours, useDaysOff, useSessionTypes, useBookings } from '@/hoo
 
 function ClientBookContent() {
   const t = useTranslations('BookingForm');
-  const tc = useTranslations('Common');
   const { data: workingHours, isLoading: whLoading } = useWorkingHours();
   const { data: daysOffData, isLoading: doLoading } = useDaysOff();
   const { data: services, isLoading: svcLoading } = useSessionTypes();

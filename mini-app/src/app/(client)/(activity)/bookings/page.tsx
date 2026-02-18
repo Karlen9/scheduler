@@ -15,7 +15,6 @@ import { invalidateBookings } from '@/hooks/mutations';
 
 export default function BookingsPage() {
   const t = useTranslations('BookingsPage');
-  const tc = useTranslations('Common');
   const te = useTranslations('Errors');
   const ts = useTranslations('Success');
   const { data: bookings, isLoading, error } = useBookings();
