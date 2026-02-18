@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BookingForm } from "@/components/BookingForm";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { api } from "@/lib/api";
@@ -7,6 +8,7 @@ import { useClients, useAdminServices, useWorkingHours, useDaysOff } from "@/hoo
 import { invalidateClients } from "@/hooks/mutations";
 
 export default function AdminBookPage() {
+  const t = useTranslations("BookingForm");
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: services, isLoading: svcLoading } = useAdminServices();
   const { data: workingHours, isLoading: whLoading } = useWorkingHours();
@@ -25,7 +27,7 @@ export default function AdminBookPage() {
       clients={clients}
       showRecurring={false}
       successRedirect="/admin"
-      title="Записать клиента"
+      title={t("adminTitle")}
       onCreateGhostClient={async (name) => {
         const client = await api.admin.createGhostClient(name);
         invalidateClients();

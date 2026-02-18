@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Booking } from "@/lib/types";
 
 interface WeekGridProps {
@@ -32,9 +33,12 @@ function isSameDay(d1: Date, d2: Date): boolean {
   );
 }
 
-const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const dayShortKeysMon = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
+  const td = useTranslations("Dates");
+  const DAY_NAMES = dayShortKeysMon.map(k => td(`daysShort.${k}`));
+
   const days = getWeekDays(startDate);
   const today = new Date();
 
@@ -48,8 +52,8 @@ export function WeekGrid({ startDate, bookings, onDayClick }: WeekGridProps) {
   return (
     <div>
       <div className="grid grid-cols-7 gap-1 mb-2">
-        {DAY_NAMES.map((name) => (
-          <div key={name} className="text-center text-xs text-muted-foreground">
+        {DAY_NAMES.map((name, i) => (
+          <div key={i} className="text-center text-xs text-muted-foreground">
             {name}
           </div>
         ))}

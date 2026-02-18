@@ -18,6 +18,7 @@ import (
 	"scheduler-bot/internal/config"
 	"scheduler-bot/internal/crypto"
 	"scheduler-bot/internal/db"
+	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
 	"scheduler-bot/internal/telegram"
 )
@@ -56,7 +57,6 @@ func (m *BotManager) RegisterBot(trainer *models.Trainer) error {
 
 	handler := telegram.NewHandler(bot, m.webAppURL)
 	handler.Version = Version
-	handler.Changelog = Changelog
 
 	// Clear any stale webhook/pending updates before setting new one
 	if err := bot.DeleteWebhook(true); err != nil {
@@ -135,6 +135,11 @@ func main() {
 	// Initialize encryption
 	if err := crypto.Init(cfg.EncryptionKey); err != nil {
 		log.Fatalf("Failed to initialize encryption: %v", err)
+	}
+
+	// Initialize i18n translations
+	if err := myI18n.Init(); err != nil {
+		log.Fatalf("Failed to load translations: %v", err)
 	}
 
 	// Initialize database (Postgres if DATABASE_URL is set, otherwise SQLite)
@@ -247,7 +252,7 @@ func main() {
 		if handler == nil {
 			return nil
 		}
-		return handler.UpdateBookingNotificationMessage(chatID, messageID, booking)
+		return handler.UpdateBookingNotificationMessageByIDs(chatID, messageID, booking)
 	}
 
 	// Set up notification callback for trainer-initiated bookings (notify client)
@@ -590,7 +595,8 @@ func sendReminders() {
 			continue
 		}
 
-		text := telegram.FormatReminderClient(&booking)
+		loc := myI18n.NewLocalizer(client.Language)
+		text := telegram.FormatReminderClient(loc, &booking)
 		if _, err := bot.SendMessage(client.TelegramUserID, text, nil); err != nil {
 			log.Printf("Reminder: error sending to client %s: %v", client.Name, err)
 			continue
@@ -633,15 +639,16 @@ func seedLegacyData(cfg *config.Config) error {
 	}
 	log.Printf("Created trainer: %s (@%s)", trainer.Name, trainer.BotUsername)
 
+	loc := myI18n.Default()
 	sessionTypes := []struct {
 		typeCode string
 		name     string
 		duration int
 		price    int
 	}{
-		{"personal", "Персональная тренировка", 60, 3000},
-		{"pair", "Парная тренировка", 60, 4500},
-		{"consultation", "Консультация", 30, 1500},
+		{"personal", myI18n.T(loc, "Seed.Personal"), 60, 3000},
+		{"pair", myI18n.T(loc, "Seed.Pair"), 60, 4500},
+		{"consultation", myI18n.T(loc, "Seed.Consultation"), 30, 1500},
 	}
 
 	for _, st := range sessionTypes {

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Plus } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { Booking, WorkingHours } from "@/lib/types";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
@@ -30,11 +31,6 @@ function formatMinutes(totalMin: number): string {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-}
-
 function getCardStyle(status: string): { bg: string; text: string; subtext: string } {
   switch (status) {
     case "confirmed":
@@ -60,8 +56,17 @@ function parseTimeToMin(time: string): number {
 }
 
 export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEmptySlotClick }: DayTimelineProps) {
+  const t = useTranslations("DayTimeline");
+  const tc = useTranslations("Common");
+  const locale = useLocale();
+
   const today = useMemo(() => new Date(), []);
   const isToday = isSameDay(date, today);
+
+  function formatTime(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleTimeString(locale === "en" ? "en-US" : "ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  }
 
   // Get working hours for this day of week
   const dayWH = useMemo(() => {
@@ -111,7 +116,7 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
     return gaps;
   }, [bookings, dayWH]);
 
-  // Determine hour range — extend to working hours if available
+  // Determine hour range -- extend to working hours if available
   const { minHour, maxHour } = useMemo(() => {
     let min = 23;
     let max = 0;
@@ -132,16 +137,16 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
     return { minHour: min, maxHour: max };
   }, [bookings, dayWH]);
 
-  // No working hours and no bookings — show simple empty
+  // No working hours and no bookings -- show simple empty
   if (bookings.length === 0 && !dayWH) {
     return (
       <div className="py-12 text-center text-muted-foreground text-sm">
-        Нет записей на этот день
+        {t("noBookings")}
       </div>
     );
   }
 
-  // No bookings but is a working day — show empty slot without timeline grid
+  // No bookings but is a working day -- show empty slot without timeline grid
   if (bookings.length === 0 && dayWH) {
     return (
       <div className="space-y-2">
@@ -151,8 +156,8 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-sm text-muted-foreground">Пустой слот</p>
-              <p className="text-xs text-muted-foreground/60">Время не занято</p>
+              <p className="font-medium text-sm text-muted-foreground">{t("emptySlot")}</p>
+              <p className="text-xs text-muted-foreground/60">{t("timeNotOccupied")}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {dayWH.startTime} – {dayWH.endTime}
               </p>
@@ -213,9 +218,9 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
           >
             <div className="flex items-center justify-between h-full">
               <div className="min-w-0">
-                <p className="font-medium text-sm text-muted-foreground">Пустой слот</p>
+                <p className="font-medium text-sm text-muted-foreground">{t("emptySlot")}</p>
                 {height >= 54 && (
-                  <p className="text-xs text-muted-foreground/60">Время не занято</p>
+                  <p className="text-xs text-muted-foreground/60">{t("timeNotOccupied")}</p>
                 )}
                 {height >= 68 && (
                   <p className="text-xs text-muted-foreground/60">
@@ -255,7 +260,7 @@ export function DayTimeline({ bookings, date, onBookingClick, workingHours, onEm
                 </p>
                 {height >= 54 && (
                   <p className={`text-xs ${style.subtext} truncate`}>
-                    Тренировка{booking.durationMinutes ? ` \u00b7 ${booking.durationMinutes} мин` : ""}
+                    {tc("workout")}{booking.durationMinutes ? ` \u00b7 ${booking.durationMinutes} ${tc("min")}` : ""}
                   </p>
                 )}
                 {height >= 68 && (

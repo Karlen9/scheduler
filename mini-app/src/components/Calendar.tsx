@@ -2,12 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-const MONTH_NAMES = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
-];
-const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const monthNomKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const dayShortKeysMon = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -97,6 +95,10 @@ export function MonthGrid({
   onTitleClick,
   disableNonWorking = true,
 }: MonthGridProps) {
+  const td = useTranslations("Dates");
+  const MONTH_NAMES = monthNomKeys.map(k => td(`monthsNom.${k}`));
+  const DAY_NAMES = dayShortKeysMon.map(k => td(`daysShort.${k}`));
+
   const today = useMemo(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -156,8 +158,8 @@ export function MonthGrid({
 
       {/* Day names */}
       <div className="grid grid-cols-7 mb-1">
-        {DAY_NAMES.map((name) => (
-          <div key={name} className="text-center text-[11px] text-muted-foreground py-1">
+        {DAY_NAMES.map((name, i) => (
+          <div key={i} className="text-center text-[11px] text-muted-foreground py-1">
             {name}
           </div>
         ))}
@@ -223,7 +225,7 @@ export function MonthGrid({
         <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-dayoff-bg" />
-            <span className="text-xs text-muted-foreground">Выходной</span>
+            <span className="text-xs text-muted-foreground">{td("dayOff")}</span>
           </div>
         </div>
       )}
@@ -266,6 +268,9 @@ export function WeekStrip({
   daysOff,
   dotDates,
 }: WeekStripProps) {
+  const td = useTranslations("Dates");
+  const DAY_NAMES = dayShortKeysMon.map(k => td(`daysShort.${k}`));
+
   const today = useMemo(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());

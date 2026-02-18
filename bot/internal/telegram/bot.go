@@ -75,10 +75,11 @@ type Chat struct {
 
 // User represents a Telegram user
 type User struct {
-	ID        int64  `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name,omitempty"`
-	Username  string `json:"username,omitempty"`
+	ID           int64  `json:"id"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name,omitempty"`
+	Username     string `json:"username,omitempty"`
+	LanguageCode string `json:"language_code,omitempty"`
 }
 
 // CallbackQuery represents a callback query
@@ -400,11 +401,15 @@ func (b *Bot) SendNotification(chatID int64, text string) (*Message, error) {
 }
 
 // SendWebAppButton sends a message with web app button
-func (b *Bot) SendWebAppButton(chatID int64, text, webAppURL string) (*Message, error) {
+func (b *Bot) SendWebAppButton(chatID int64, text, webAppURL string, buttonLabel ...string) (*Message, error) {
+	label := "📅"
+	if len(buttonLabel) > 0 && buttonLabel[0] != "" {
+		label = buttonLabel[0]
+	}
 	keyboard := &InlineKeyboardMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
 			{
-				{Text: BtnOpenApp, WebApp: &WebAppInfo{URL: webAppURL}},
+				{Text: label, WebApp: &WebAppInfo{URL: webAppURL}},
 			},
 		},
 	}

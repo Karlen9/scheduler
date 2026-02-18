@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PhotoEditor } from "@/components/PhotoEditor";
@@ -12,6 +13,10 @@ import { useAdminProfile } from "@/hooks/queries";
 import { invalidateTrainer } from "@/hooks/mutations";
 
 export default function ProfilePage() {
+  const t = useTranslations("AdminProfile");
+  const tc = useTranslations("Common");
+  const te = useTranslations("Errors");
+  const ts = useTranslations("Success");
   const { data: profile, isLoading } = useAdminProfile();
   const [name, setName] = useState("");
   const [specialization, setSpecialization] = useState("");
@@ -59,10 +64,10 @@ export default function ProfilePage() {
       setPhotoUrl(result.fileId);
       setPhotoError(false);
       invalidateTrainer();
-      toast.success("Фото обновлено");
+      toast.success(ts("photoUpdated"));
     } catch (err) {
       console.error("Failed to upload photo:", err);
-      toast.error("Ошибка загрузки фото");
+      toast.error(te("photoUploadFailed"));
     } finally {
       setIsUploading(false);
     }
@@ -90,10 +95,10 @@ export default function ProfilePage() {
         gymLongitude,
       });
       invalidateTrainer();
-      toast.success("Профиль сохранен");
+      toast.success(ts("profileSaved"));
     } catch (err) {
       console.error("Failed to save profile:", err);
-      toast.error("Ошибка сохранения");
+      toast.error(te("saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -102,7 +107,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div>
-        <TopBar title="Профиль" showBack />
+        <TopBar title={t("title")} showBack />
         <div className="p-4 space-y-6 animate-pulse">
           <div className="flex justify-center">
             <div className="w-24 h-24 rounded-full bg-card" />
@@ -123,7 +128,7 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <TopBar title="Профиль" showBack />
+      <TopBar title={t("title")} showBack />
 
       <div className="p-4 space-y-6">
         {/* Avatar */}
@@ -162,7 +167,7 @@ export default function ProfilePage() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Имя
+              {t("nameLabel")}
             </label>
             <input
               type="text"
@@ -175,7 +180,7 @@ export default function ProfilePage() {
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Специализация
+              {t("specializationLabel")}
             </label>
             <input
               type="text"
@@ -188,14 +193,14 @@ export default function ProfilePage() {
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              О себе
+              {t("bioLabel")}
             </label>
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               maxLength={500}
               rows={4}
-              placeholder="Расскажите о своем опыте и подходе к тренировкам..."
+              placeholder={t("bioPlaceholder")}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand resize-none"
             />
             <p className="text-xs text-muted-foreground mt-1 text-right">{bio.length}/500</p>
@@ -203,7 +208,7 @@ export default function ProfilePage() {
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Телефон
+              {t("phoneLabel")}
             </label>
             <input
               type="tel"
@@ -216,14 +221,14 @@ export default function ProfilePage() {
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Telegram
+              {t("telegramLabel")}
             </label>
             <input
               type="text"
               value={telegram}
               onChange={(e) => setTelegram(e.target.value)}
               maxLength={50}
-              placeholder="@username"
+              placeholder={t("telegramPlaceholder")}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
@@ -231,24 +236,24 @@ export default function ProfilePage() {
           {/* Location */}
           <div className="pt-2">
             <label className="block text-sm text-muted-foreground mb-1">
-              Координаты зала
+              {t("gymCoordsLabel")}
             </label>
             <input
               type="text"
               value={gymCoords}
               onChange={(e) => setGymCoords(e.target.value)}
-              placeholder="55.753207, 37.618493"
+              placeholder={t("gymCoordsPlaceholder")}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
-              Откройте Яндекс Карты, нажмите на здание на карте (не на организацию) и скопируйте координаты
+              {t("gymCoordsHint")}
             </p>
           </div>
         </div>
 
         {/* Save Button */}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Сохранение..." : "Сохранить"}
+          {isSaving ? tc("saving") : tc("save")}
         </PrimaryButton>
       </div>
 

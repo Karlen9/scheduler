@@ -3,6 +3,7 @@
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ClipboardList, Plus, User } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { BottomTabBar } from "./BottomTabBar";
 import { getTelegramWebApp } from "@/lib/telegram";
 
@@ -10,17 +11,18 @@ interface AdminLayoutProps {
   children: ReactNode;
 }
 
-const adminTabs = [
-  { key: "home", label: "Записи", icon: ClipboardList, href: "/admin", matchPaths: ["/admin/recurring"] },
-  { key: "book", label: "", icon: Plus, href: "/admin/book", isCenter: true },
-  { key: "profile", label: "Профиль", icon: User, href: "/admin/settings" },
-];
-
 export function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const tn = useTranslations("Navigation");
   const isHome = pathname === "/admin" || pathname === "/admin/";
   const isBookPage = pathname === "/admin/book";
+
+  const adminTabs = [
+    { key: "home", label: tn("bookings"), icon: ClipboardList, href: "/admin", matchPaths: ["/admin/recurring"] },
+    { key: "book", label: "", icon: Plus, href: "/admin/book", isCenter: true },
+    { key: "profile", label: tn("profile"), icon: User, href: "/admin/settings" },
+  ];
 
   useEffect(() => {
     const webApp = getTelegramWebApp();

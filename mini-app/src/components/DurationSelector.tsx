@@ -1,15 +1,19 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 interface DurationSelectorProps {
   durations: number[];
   selected: number;
   onChange: (duration: number) => void;
 }
 
-export function formatDuration(minutes: number): string {
+export function formatDuration(minutes: number, hourLabel = "h"): string {
   const hours = minutes / 60;
   if (hours === Math.floor(hours)) {
-    return `${Math.floor(hours)} ч`;
+    return `${Math.floor(hours)} ${hourLabel}`;
   }
-  return `${hours.toFixed(1).replace(".0", "")} ч`;
+  return `${hours.toFixed(1).replace(".0", "")} ${hourLabel}`;
 }
 
 export function DurationSelector({
@@ -17,6 +21,8 @@ export function DurationSelector({
   selected,
   onChange,
 }: DurationSelectorProps) {
+  const td = useTranslations("Duration");
+
   return (
     <div className="flex flex-wrap gap-2">
       {durations.map((duration) => (
@@ -29,7 +35,7 @@ export function DurationSelector({
               : "bg-card text-foreground"
           }`}
         >
-          {formatDuration(duration)}
+          {formatDuration(duration, td("hour"))}
         </button>
       ))}
     </div>

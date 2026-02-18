@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Plus, Camera, X } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { TopBar } from "@/components/TopBar";
 import { ServiceCard } from "@/components/ServiceCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -20,6 +21,11 @@ interface ServiceFormData {
 }
 
 export default function ServicesPage() {
+  const t = useTranslations("AdminServices");
+  const tc = useTranslations("Common");
+  const td = useTranslations("Duration");
+  const te = useTranslations("Errors");
+  const tsp = useTranslations("ServicesPage");
   const { data: services, isLoading, mutate } = useAdminServices();
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<SessionType | null>(null);
@@ -62,7 +68,7 @@ export default function ServicesPage() {
       setFormData((prev) => ({ ...prev, imageUrl: result.fileId }));
     } catch (err) {
       console.error("Failed to upload image:", err);
-      toast.error("Ошибка загрузки фото");
+      toast.error(te("photoUploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -99,7 +105,7 @@ export default function ServicesPage() {
       setEditingService(null);
     } catch (err) {
       console.error("Failed to save service:", err);
-      toast.error(err instanceof Error ? err.message : "Ошибка сохранения");
+      toast.error(err instanceof Error ? err.message : te("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -108,9 +114,9 @@ export default function ServicesPage() {
   if (isLoading) {
     return (
       <div>
-        <TopBar title="Услуги и цены" showBack />
+        <TopBar title={t("title")} showBack />
         <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-muted-foreground">Загрузка...</div>
+          <div className="text-muted-foreground">{tc("loading")}</div>
         </div>
       </div>
     );
@@ -120,7 +126,7 @@ export default function ServicesPage() {
     return (
       <div>
         <TopBar
-          title={editingService ? "Редактирование" : "Добавление услуги"}
+          title={editingService ? t("editTitle") : t("addTitle")}
           showBack
           onBack={() => setShowForm(false)}
         />
@@ -129,7 +135,7 @@ export default function ServicesPage() {
           {/* Image Upload */}
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Фото услуги
+              {t("servicePhoto")}
             </label>
             <div className="flex items-center gap-3">
               <div
@@ -139,7 +145,7 @@ export default function ServicesPage() {
                 {formData.imageUrl ? (
                   <img
                     src={getPhotoUrl(formData.imageUrl)}
-                    alt="Фото услуги"
+                    alt={t("servicePhoto")}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -156,7 +162,7 @@ export default function ServicesPage() {
                 </button>
               )}
               {uploading && (
-                <span className="text-xs text-muted-foreground">Загрузка...</span>
+                <span className="text-xs text-muted-foreground">{tc("uploading")}</span>
               )}
             </div>
             <input
@@ -170,58 +176,58 @@ export default function ServicesPage() {
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Тип услуги
+              {t("serviceType")}
             </label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             >
-              <option value="personal">Персональная</option>
-              <option value="pair">Парная</option>
-              <option value="consultation">Консультация</option>
+              <option value="personal">{t("typePersonal")}</option>
+              <option value="pair">{t("typePair")}</option>
+              <option value="consultation">{t("typeConsultation")}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Название
+              {t("nameLabel")}
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               maxLength={100}
-              placeholder="Парная тренировка"
+              placeholder={t("namePlaceholder")}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Цена
+              {t("priceLabel")}
             </label>
             <input
               type="number"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder="2500"
+              placeholder={t("pricePlaceholder")}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Длительность
+              {t("durationLabel")}
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: "30 мин", value: "30" },
-                { label: "1 час", value: "60" },
-                { label: "1.5 часа", value: "90" },
-                { label: "2 часа", value: "120" },
-                { label: "2.5 часа", value: "150" },
-                { label: "3 часа", value: "180" },
+                { label: td("min30"), value: "30" },
+                { label: td("hour1"), value: "60" },
+                { label: td("hour1_5"), value: "90" },
+                { label: td("hour2"), value: "120" },
+                { label: td("hour2_5"), value: "150" },
+                { label: td("hour3"), value: "180" },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -240,7 +246,7 @@ export default function ServicesPage() {
           </div>
 
           <PrimaryButton onClick={handleSave} disabled={saving}>
-            {saving ? "Сохранение..." : editingService ? "Сохранить" : "Добавить услугу"}
+            {saving ? tc("saving") : editingService ? tc("save") : t("addButton")}
           </PrimaryButton>
         </div>
       </div>
@@ -249,11 +255,11 @@ export default function ServicesPage() {
 
   return (
     <div>
-      <TopBar title="Услуги и цены" showBack />
+      <TopBar title={t("title")} showBack />
 
       <div className="p-4 space-y-4">
         <p className="text-xs text-muted-foreground">
-          Длительность услуги определяет доступные варианты при записи
+          {tsp("durationDeterminesSlots")}
         </p>
 
         {/* Add Button */}
@@ -262,13 +268,13 @@ export default function ServicesPage() {
           className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors active:bg-card"
         >
           <Plus className="w-5 h-5" />
-          <span>Добавить услугу</span>
+          <span>{tsp("addService")}</span>
         </button>
 
         {/* Services List */}
         {services.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            Нет добавленных услуг
+            {tsp("noServices")}
           </div>
         ) : (
           services.map((service) => (

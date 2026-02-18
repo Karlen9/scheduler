@@ -227,6 +227,8 @@ func migrateSQLite() error {
 		`ALTER TABLE recurring_schedules ADD COLUMN day_times TEXT`,
 		`ALTER TABLE session_types ADD COLUMN image_url TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN is_ghost INTEGER DEFAULT 0`,
+		`ALTER TABLE trainers ADD COLUMN language TEXT DEFAULT 'ru'`,
+		`ALTER TABLE clients ADD COLUMN language TEXT DEFAULT 'ru'`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -494,6 +496,8 @@ func migratePostgres() error {
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS day_times TEXT`,
 		`ALTER TABLE session_types ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS is_ghost INTEGER DEFAULT 0`,
+		`ALTER TABLE trainers ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'ru'`,
+		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'ru'`,
 	}
 
 	for _, migration := range alterMigrations {

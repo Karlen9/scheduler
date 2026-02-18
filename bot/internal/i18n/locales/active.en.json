@@ -1,0 +1,480 @@
+{
+  "Welcome.Client": {
+    "other": "Welcome! Press the button below to open the booking app."
+  },
+  "Welcome.Trainer": {
+    "other": "👋 Welcome back!\n\n🔧 Admin panel — settings, schedule and client bookings.\n📅 Book — see how your clients view the bot."
+  },
+  "Help.Client": {
+    "other": "This is a bot for online booking with a trainer.\n\nWhat you can do:\n• Choose a convenient date and time\n• Book a workout\n• View and cancel your bookings\n• Create a recurring schedule\n\nPress the \"Book\" button below or /start to open the app."
+  },
+  "Help.Trainer": {
+    "other": "You are the owner of this bot.\n\nHow to set up:\n1. Open \"Manage\" — Profile — fill in name, photo, description\n2. Services and prices — add workout types\n3. Schedule — set working hours\n4. Days off — mark non-working dates\n\nHow booking works:\n• A client books — you get a notification\n• Confirm or decline right in the chat\n• All bookings are visible in the admin panel\n\nLink for clients (send it to them):\n<code>%s</code>\n\nCommands:\n/start — Main menu\n/admin — Admin panel\n/help — This help"
+  },
+  "Btn.OpenApp": {
+    "other": "Book"
+  },
+  "Btn.OpenAdmin": {
+    "other": "Manage"
+  },
+  "Btn.Confirm": {
+    "other": "✅ Confirm"
+  },
+  "Btn.Reject": {
+    "other": "❌ Reject"
+  },
+  "Booking.New": {
+    "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+  },
+  "Booking.ConfirmedTrainer": {
+    "other": "✅ Booking confirmed\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+  },
+  "Booking.RejectedTrainer": {
+    "other": "❌ Booking rejected\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+  },
+  "Booking.ConfirmedClient": {
+    "other": "✅ Your booking is confirmed!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.RejectedClient": {
+    "other": "❌ Unfortunately, your booking request was declined"
+  },
+  "Booking.RejectedClientRetry": {
+    "other": "\n\nPlease try choosing another time."
+  },
+  "Booking.CancelledByTrainerClient": {
+    "other": "❌ Your booking was cancelled by the trainer\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.CancelledByTrainerClientRetry": {
+    "other": "\n\nYou can book another time."
+  },
+  "Booking.PendingClient": {
+    "other": "⏳ Your request has been sent!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nWaiting for trainer confirmation."
+  },
+  "Booking.ReminderClient": {
+    "other": "🔔 Reminder: your workout is in 1 hour!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nHave a great workout! 💪"
+  },
+  "Booking.CancelledForTrainer": {
+    "other": "❌ Client cancelled the booking\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.CancelledForClient": {
+    "other": "❌ The trainer cancelled your booking\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.CancelReason": {
+    "other": "\n💬 Reason: {{.Reason}}"
+  },
+  "Booking.TrainerCreatedClient": {
+    "other": "📅 The trainer booked a workout for you\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.ClientAcceptedTrainer": {
+    "other": "✅ Client confirmed the booking\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.ClientDeclinedTrainer": {
+    "other": "❌ Client declined the booking\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.ClientMessage": {
+    "other": "\n💬 Message: {{.Message}}"
+  },
+  "Move.RequestForTrainer": {
+    "other": "🔄 Reschedule request\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Was: {{.OldDateTime}}\n🕐 New: {{.NewDateTime}}"
+  },
+  "Move.RequestForClient": {
+    "other": "🔄 The trainer suggests rescheduling\n\n📋 {{.Service}}\n🕐 Was: {{.OldDateTime}}\n🕐 New: {{.NewDateTime}}"
+  },
+  "Move.Approved": {
+    "other": "✅ Reschedule confirmed\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Was: {{.OldDateTime}}\n🕐 New: {{.NewDateTime}}"
+  },
+  "Move.Declined": {
+    "other": "↩️ Reschedule declined\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nThe workout remains in the schedule."
+  },
+  "Recurring.Request": {
+    "other": "🔄 New schedule\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.RequestForClient": {
+    "other": "📅 The trainer suggests a recurring schedule\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.Approved": {
+    "other": "✅ Schedule confirmed\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} bookings created"
+  },
+  "Recurring.ApprovedClient": {
+    "other": "✅ Your schedule is confirmed!\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} bookings created"
+  },
+  "Recurring.Declined": {
+    "other": "❌ Schedule declined\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.DeclinedClient": {
+    "other": "❌ Unfortunately, your schedule was declined\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.WorkoutCount": {
+    "one": "\n📊 {{.Count}} workout",
+    "other": "\n📊 {{.Count}} workouts"
+  },
+  "Hint.OpenApp": {
+    "other": "\n\nOpen the app to confirm or decline."
+  },
+  "Hint.DefaultWorkout": {
+    "other": "Workout"
+  },
+  "Label.Message": {
+    "other": "Message"
+  },
+  "Callback.UseApp": {
+    "other": "Use the app"
+  },
+  "Callback.NotFound": {
+    "other": "Booking not found"
+  },
+  "Callback.AlreadyProcessed": {
+    "other": "Already processed"
+  },
+  "Callback.Error": {
+    "other": "Error, please try via the app"
+  },
+  "Callback.Confirmed": {
+    "other": "✅ Booking confirmed"
+  },
+  "Callback.Rejected": {
+    "other": "❌ Booking rejected"
+  },
+  "Handler.ConfigError": {
+    "other": "Bot configuration error"
+  },
+  "Handler.TrainerOnly": {
+    "other": "⛔ This command is available to the trainer only."
+  },
+  "Handler.OpenAdmin": {
+    "other": "Open admin panel"
+  },
+  "Booking.CancelledTrainerView": {
+    "other": "❌ Booking cancelled\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+  },
+  "Booking.RejectedClientWithReason": {
+    "other": "❌ Unfortunately, your booking request was declined\n\n💬 Reason: {{.Reason}}"
+  },
+  "Date.Sun": {
+    "other": "Sun"
+  },
+  "Date.Mon": {
+    "other": "Mon"
+  },
+  "Date.Tue": {
+    "other": "Tue"
+  },
+  "Date.Wed": {
+    "other": "Wed"
+  },
+  "Date.Thu": {
+    "other": "Thu"
+  },
+  "Date.Fri": {
+    "other": "Fri"
+  },
+  "Date.Sat": {
+    "other": "Sat"
+  },
+  "Date.Jan": {
+    "other": "Jan"
+  },
+  "Date.Feb": {
+    "other": "Feb"
+  },
+  "Date.Mar": {
+    "other": "Mar"
+  },
+  "Date.Apr": {
+    "other": "Apr"
+  },
+  "Date.May": {
+    "other": "May"
+  },
+  "Date.Jun": {
+    "other": "Jun"
+  },
+  "Date.Jul": {
+    "other": "Jul"
+  },
+  "Date.Aug": {
+    "other": "Aug"
+  },
+  "Date.Sep": {
+    "other": "Sep"
+  },
+  "Date.Oct": {
+    "other": "Oct"
+  },
+  "Date.Nov": {
+    "other": "Nov"
+  },
+  "Date.Dec": {
+    "other": "Dec"
+  },
+  "Duration.Hour": {
+    "other": "h"
+  },
+  "Version": {
+    "other": "📌 Version {{.Version}}"
+  },
+  "Changelog": {
+    "other": "🆕 What's new:\n{{.Changelog}}"
+  },
+  "BotFatherLink": {
+    "other": "⚙️ Link for Menu Button setup in @BotFather:\n<code>{{.URL}}</code>"
+  },
+  "Lang.Choose": {
+    "other": "🌐 Выберите язык / Choose language:"
+  },
+  "Lang.Russian": {
+    "other": "🇷🇺 Русский"
+  },
+  "Lang.English": {
+    "other": "🇬🇧 English"
+  },
+  "Error.NotFound": {
+    "other": "Not found"
+  },
+  "Error.Unauthorized": {
+    "other": "Authorization required"
+  },
+  "Error.TelegramAuth": {
+    "other": "Telegram authorization error"
+  },
+  "Error.Forbidden": {
+    "other": "Access denied"
+  },
+  "Error.Internal": {
+    "other": "Internal server error"
+  },
+  "Error.BadRequest": {
+    "other": "Invalid request format"
+  },
+  "Error.BadDate": {
+    "other": "Invalid date format"
+  },
+  "Error.FieldTooLong": {
+    "other": "Field exceeds maximum length"
+  },
+  "Error.BookingNotFound": {
+    "other": "Booking not found"
+  },
+  "Error.BookingConflict": {
+    "other": "This time slot is already taken"
+  },
+  "Error.BookingDuplicate": {
+    "other": "You already have a booking on this day"
+  },
+  "Error.BookingCannotCancel": {
+    "other": "This booking cannot be cancelled"
+  },
+  "Error.BookingCannotReject": {
+    "other": "This booking cannot be rejected"
+  },
+  "Error.BookingCannotConfirm": {
+    "other": "This booking cannot be confirmed"
+  },
+  "Error.BookingCannotReschedule": {
+    "other": "This booking cannot be rescheduled"
+  },
+  "Error.ClientNotFound": {
+    "other": "Client not found"
+  },
+  "Error.ClientSelect": {
+    "other": "Please select a client"
+  },
+  "Error.TrainerNotFound": {
+    "other": "Trainer not found"
+  },
+  "Error.TrainerNotConfigured": {
+    "other": "Trainer is not configured"
+  },
+  "Error.ServiceNotFound": {
+    "other": "Service not found"
+  },
+  "Error.NoServices": {
+    "other": "No services configured"
+  },
+  "Error.ScheduleNotFound": {
+    "other": "Schedule not found"
+  },
+  "Error.ScheduleProcessed": {
+    "other": "Schedule has already been processed"
+  },
+  "Error.ScheduleCancelled": {
+    "other": "Schedule has already been cancelled"
+  },
+  "Error.ScheduleCannotCancel": {
+    "other": "This schedule cannot be cancelled"
+  },
+  "Error.DayOffDuplicate": {
+    "other": "A day off for this date already exists"
+  },
+  "Error.NoMoveRequest": {
+    "other": "No reschedule request found"
+  },
+  "Error.DeleteClientBookings": {
+    "other": "Cannot delete client. They may have existing bookings."
+  },
+  "Error.BookingCannotModify": {
+    "other": "This booking cannot be modified"
+  },
+  "Error.MissingDate": {
+    "other": "Please specify a date"
+  },
+  "Error.MissingDateTime": {
+    "other": "Please specify date and time"
+  },
+  "Error.MissingTimeRange": {
+    "other": "Please specify start and end time"
+  },
+  "Error.MissingDuration": {
+    "other": "Please specify duration"
+  },
+  "Error.MissingClientName": {
+    "other": "Please specify client name"
+  },
+  "Error.InvalidDuration": {
+    "other": "Invalid duration"
+  },
+  "Error.InvalidDayOfWeek": {
+    "other": "Invalid day of week"
+  },
+  "Error.InvalidBookingID": {
+    "other": "Invalid booking ID"
+  },
+  "Error.InvalidStatus": {
+    "other": "Invalid status"
+  },
+  "Error.DayOfWeekRange": {
+    "other": "Day of week must be between 0 and 6"
+  },
+  "Error.MissingFields": {
+    "other": "Please fill in all required fields"
+  },
+  "Error.InvalidServiceType": {
+    "other": "Invalid service type"
+  },
+  "Error.NameTooLong": {
+    "other": "Name exceeds maximum length"
+  },
+  "Error.MissingServiceID": {
+    "other": "Please specify service ID"
+  },
+  "Error.MissingBookingID": {
+    "other": "Please specify booking ID"
+  },
+  "Error.MissingClientID": {
+    "other": "Please specify client ID"
+  },
+  "Error.MissingDayOffID": {
+    "other": "Please specify day off ID"
+  },
+  "Error.InvalidDate": {
+    "other": "Invalid date"
+  },
+  "Error.TimeSlotTaken": {
+    "other": "Time slot is taken"
+  },
+  "Error.SelectService": {
+    "other": "Please select a service"
+  },
+  "Error.SelectDaysOfWeek": {
+    "other": "Please select days of week"
+  },
+  "Error.SelectTime": {
+    "other": "Please select a time"
+  },
+  "Error.InvalidPeriod": {
+    "other": "Invalid period"
+  },
+  "Error.PhotoFileIDRequired": {
+    "other": "File ID required"
+  },
+  "Error.PhotoFetchFailed": {
+    "other": "Failed to fetch photo"
+  },
+  "Error.PhotoUploadFailed": {
+    "other": "Failed to upload photo"
+  },
+  "Error.PhotoSaveFailed": {
+    "other": "Failed to save photo"
+  },
+  "Error.PhotoTooLarge": {
+    "other": "File too large (max 5MB)"
+  },
+  "Error.PhotoFieldRequired": {
+    "other": "Photo field required"
+  },
+  "Error.PhotoReadFailed": {
+    "other": "Failed to read photo"
+  },
+  "Error.PhotoOnlyImages": {
+    "other": "Only image files allowed"
+  },
+  "Master.Welcome": {
+    "other": "👋 Hello! I'll help you create a bot for online booking of your clients.\n\n🎯 What you'll get:\n• A personal bot with your name (@your_name_bot)\n• Clients book themselves — you just confirm\n• Calendar, services and prices — everything is customizable\n• Notifications about new bookings right in Telegram\n\n⏱ Setup takes 2 minutes.\n\n📝 First step — create a bot in Telegram:\n\n1. Open @BotFather (click the link)\n2. Send the /newbot command\n3. Enter a name (e.g. \"Trainer John\")\n4. Enter a username (e.g. trainer_john_bot)\n5. Copy the token — a long string of numbers and letters\n\nSend me your bot token:"
+  },
+  "Master.Help": {
+    "other": "🤖 This bot helps you create a booking bot for your clients.\n\nCommands:\n/start - Start creating a bot\n/cancel - Cancel current operation\n\nIf you already have a bot, send /start to check status."
+  },
+  "Master.HelpAdmin": {
+    "other": "🤖 This bot helps you create a booking bot for your clients.\n\nCommands:\n/start - Start creating a bot\n/cancel - Cancel current operation\n\n👑 Admin commands:\n/trainers - List all trainers\n/stats - Statistics"
+  },
+  "Master.Unknown": {
+    "other": "I don't understand. Use /start to begin or /help for help."
+  },
+  "Master.Error": {
+    "other": "❌ An error occurred. Please try again later."
+  },
+  "Master.Cancelled": {
+    "other": "❌ Cancelled. Send /start to start over."
+  },
+  "Master.InvalidToken": {
+    "other": "❌ Invalid token. Make sure you copied the token completely from the BotFather message.\n\nThe token looks something like:\n123456789:ABCdefGHIjklMNOpqrsTUVwxyz\n\nTry again:"
+  },
+  "Master.TokenAlreadyUsed": {
+    "other": "❌ This bot is already registered. If it's your bot, please contact support."
+  },
+  "Master.TokenAccepted": {
+    "other": "✅ Bot @%s found.\n\n⚠️ Registration is not complete yet! For the bot to work, enter your name (as clients will see you):"
+  },
+  "Master.NameTooShort": {
+    "other": "❌ Name is too short. Enter your full name:"
+  },
+  "Master.Success": {
+    "other": "🎉 Congratulations, %s!\n\nYour bot @%s is ready.\n\n🚀 What to do next:\n\n1️⃣ Open @%s → send /start\n2️⃣ Set up services and schedule\n3️⃣ Send the link t.me/%s to your clients\n\nClients will be able to choose a time and book, and you'll receive a notification with \"Confirm\" or \"Reject\" buttons.\n\nGood luck! 💪"
+  },
+  "Master.AlreadyRegistered": {
+    "other": "✅ You already have a bot: @%s\n\nOpen it and send /start to use it."
+  },
+  "Master.RegistrationFailed": {
+    "other": "⚠️ Bot @%s was created, but message handling could not be started.\n\nTry sending /start again — the system will try to reconnect the bot. If that doesn't help — contact support."
+  },
+  "Master.NoTrainers": {
+    "other": "📋 No registered trainers"
+  },
+  "Master.TrainersList": {
+    "other": "📋 Trainers ({{.Count}}):\n\n"
+  },
+  "Master.TrainerItem": {
+    "other": "{{.Num}}. {{.Name}}\n   @{{.BotUsername}}\n   ID: {{.TelegramID}}\n   Created: {{.CreatedAt}}\n\n"
+  },
+  "Master.Stats": {
+    "other": "📊 Statistics"
+  },
+  "Master.TrainerCount": {
+    "other": "\n\n👥 Trainers: {{.Count}}"
+  },
+  "Seed.Personal": {
+    "other": "Personal training"
+  },
+  "Seed.Pair": {
+    "other": "Pair training"
+  },
+  "Seed.Consultation": {
+    "other": "Consultation"
+  },
+  "ChangelogContent": {
+    "other": "— Schedule: day, week, month — convenient overview of bookings\n— Upcoming booking: card for next workout\n— Individual time for each day in recurring schedules\n— Auto-confirm bookings created by trainer\n— Client photo automatically from Telegram avatar\n— Photo editor with crop and rotate"
+  },
+  "CancelReason.Rescheduled": {
+    "other": "Rescheduled"
+  }
+}

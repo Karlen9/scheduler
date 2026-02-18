@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const tabs = [
-  { label: "Записи", href: "/bookings" },
-  { label: "Запись", href: "/book" },
-  { label: "Расписание", href: "/recurring" },
-];
+import { useTranslations } from "next-intl";
 
 export function ActivityTabs() {
   const pathname = usePathname();
+  const t = useTranslations("ActivityTabs");
+
+  const tabs = [
+    { label: t("bookings"), href: "/bookings" },
+    { label: t("book"), href: "/book" },
+    { label: t("schedule"), href: "/recurring" },
+  ];
 
   return (
     <div className="px-4 pt-4 pb-2">

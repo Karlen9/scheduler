@@ -1,0 +1,482 @@
+{
+  "Welcome.Client": {
+    "other": "Добро пожаловать! Нажмите кнопку ниже, чтобы открыть приложение для записи."
+  },
+  "Welcome.Trainer": {
+    "other": "👋 С возвращением!\n\n🔧 Панель управления — настройки, расписание и записи клиентов.\n📅 Записаться — посмотреть как видят бота ваши клиенты."
+  },
+  "Help.Client": {
+    "other": "Это бот для онлайн-записи к тренеру.\n\nЧто можно делать:\n• Выбрать удобную дату и время\n• Записаться на тренировку\n• Посмотреть и отменить свои записи\n• Создать регулярное расписание\n\nНажмите кнопку «Запись» внизу или /start чтобы открыть приложение."
+  },
+  "Help.Trainer": {
+    "other": "Вы — владелец этого бота.\n\nКак настроить:\n1. Откройте «Управление» — Профиль — заполните имя, фото, описание\n2. Услуги и цены — добавьте виды тренировок\n3. Расписание — укажите рабочие часы\n4. Выходные дни — отметьте нерабочие даты\n\nКак работает запись:\n• Клиент записывается — вы получаете уведомление\n• Подтвердите или отклоните прямо в чате\n• Все записи видны в панели управления\n\nСсылка для клиентов (отправьте им):\n<code>%s</code>\n\nКоманды:\n/start — Главное меню\n/admin — Панель управления\n/help — Эта справка"
+  },
+  "Btn.OpenApp": {
+    "other": "Запись"
+  },
+  "Btn.OpenAdmin": {
+    "other": "Управление"
+  },
+  "Btn.Confirm": {
+    "other": "✅ Подтвердить"
+  },
+  "Btn.Reject": {
+    "other": "❌ Отклонить"
+  },
+  "Booking.New": {
+    "other": "📅 Новая заявка на запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+  },
+  "Booking.ConfirmedTrainer": {
+    "other": "✅ Запись подтверждена\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+  },
+  "Booking.RejectedTrainer": {
+    "other": "❌ Запись отклонена\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+  },
+  "Booking.ConfirmedClient": {
+    "other": "✅ Ваша запись подтверждена!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.RejectedClient": {
+    "other": "❌ К сожалению, ваша заявка отклонена"
+  },
+  "Booking.RejectedClientRetry": {
+    "other": "\n\nПопробуйте выбрать другое время."
+  },
+  "Booking.CancelledByTrainerClient": {
+    "other": "❌ Ваша запись отменена тренером\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.CancelledByTrainerClientRetry": {
+    "other": "\n\nВы можете записаться на другое время."
+  },
+  "Booking.PendingClient": {
+    "other": "⏳ Ваша заявка отправлена!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nОжидайте подтверждения от тренера."
+  },
+  "Booking.ReminderClient": {
+    "other": "🔔 Напоминание: через 1 час у вас тренировка!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nХорошей тренировки! 💪"
+  },
+  "Booking.CancelledForTrainer": {
+    "other": "❌ Клиент отменил запись\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.CancelledForClient": {
+    "other": "❌ Тренер отменил вашу запись\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.CancelReason": {
+    "other": "\n💬 Причина: {{.Reason}}"
+  },
+  "Booking.TrainerCreatedClient": {
+    "other": "📅 Тренер записал вас на тренировку\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.ClientAcceptedTrainer": {
+    "other": "✅ Клиент подтвердил запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.ClientDeclinedTrainer": {
+    "other": "❌ Клиент отклонил запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.ClientMessage": {
+    "other": "\n💬 Сообщение: {{.Message}}"
+  },
+  "Move.RequestForTrainer": {
+    "other": "🔄 Запрос на перенос\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Было: {{.OldDateTime}}\n🕐 Новое: {{.NewDateTime}}"
+  },
+  "Move.RequestForClient": {
+    "other": "🔄 Тренер предлагает перенести тренировку\n\n📋 {{.Service}}\n🕐 Было: {{.OldDateTime}}\n🕐 Новое: {{.NewDateTime}}"
+  },
+  "Move.Approved": {
+    "other": "✅ Перенос подтверждён\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Было: {{.OldDateTime}}\n🕐 Новое: {{.NewDateTime}}"
+  },
+  "Move.Declined": {
+    "other": "↩️ Перенос отклонён\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nТренировка остаётся в расписании."
+  },
+  "Recurring.Request": {
+    "other": "🔄 Новое расписание\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.RequestForClient": {
+    "other": "📅 Тренер предлагает регулярное расписание\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.Approved": {
+    "other": "✅ Расписание подтверждено\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} записей создано"
+  },
+  "Recurring.ApprovedClient": {
+    "other": "✅ Ваше расписание подтверждено!\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} записей создано"
+  },
+  "Recurring.Declined": {
+    "other": "❌ Расписание отклонено\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.DeclinedClient": {
+    "other": "❌ К сожалению, ваше расписание отклонено\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+  },
+  "Recurring.WorkoutCount": {
+    "one": "\n📊 {{.Count}} тренировка",
+    "few": "\n📊 {{.Count}} тренировки",
+    "many": "\n📊 {{.Count}} тренировок",
+    "other": "\n📊 {{.Count}} тренировок"
+  },
+  "Hint.OpenApp": {
+    "other": "\n\nОткройте приложение для подтверждения или отклонения."
+  },
+  "Hint.DefaultWorkout": {
+    "other": "Тренировка"
+  },
+  "Label.Message": {
+    "other": "Сообщение"
+  },
+  "Callback.UseApp": {
+    "other": "Используйте приложение"
+  },
+  "Callback.NotFound": {
+    "other": "Запись не найдена"
+  },
+  "Callback.AlreadyProcessed": {
+    "other": "Заявка уже обработана"
+  },
+  "Callback.Error": {
+    "other": "Ошибка, попробуйте через приложение"
+  },
+  "Callback.Confirmed": {
+    "other": "✅ Запись подтверждена"
+  },
+  "Callback.Rejected": {
+    "other": "❌ Запись отклонена"
+  },
+  "Handler.ConfigError": {
+    "other": "Ошибка конфигурации бота"
+  },
+  "Handler.TrainerOnly": {
+    "other": "⛔ Эта команда доступна только тренеру."
+  },
+  "Handler.OpenAdmin": {
+    "other": "Открыть панель управления"
+  },
+  "Booking.CancelledTrainerView": {
+    "other": "❌ Запись отменена\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+  },
+  "Booking.RejectedClientWithReason": {
+    "other": "❌ К сожалению, ваша заявка отклонена\n\n💬 Причина: {{.Reason}}"
+  },
+  "Date.Sun": {
+    "other": "Вс"
+  },
+  "Date.Mon": {
+    "other": "Пн"
+  },
+  "Date.Tue": {
+    "other": "Вт"
+  },
+  "Date.Wed": {
+    "other": "Ср"
+  },
+  "Date.Thu": {
+    "other": "Чт"
+  },
+  "Date.Fri": {
+    "other": "Пт"
+  },
+  "Date.Sat": {
+    "other": "Сб"
+  },
+  "Date.Jan": {
+    "other": "янв"
+  },
+  "Date.Feb": {
+    "other": "фев"
+  },
+  "Date.Mar": {
+    "other": "мар"
+  },
+  "Date.Apr": {
+    "other": "апр"
+  },
+  "Date.May": {
+    "other": "мая"
+  },
+  "Date.Jun": {
+    "other": "июн"
+  },
+  "Date.Jul": {
+    "other": "июл"
+  },
+  "Date.Aug": {
+    "other": "авг"
+  },
+  "Date.Sep": {
+    "other": "сен"
+  },
+  "Date.Oct": {
+    "other": "окт"
+  },
+  "Date.Nov": {
+    "other": "ноя"
+  },
+  "Date.Dec": {
+    "other": "дек"
+  },
+  "Duration.Hour": {
+    "other": "ч"
+  },
+  "Version": {
+    "other": "📌 Версия {{.Version}}"
+  },
+  "Changelog": {
+    "other": "🆕 Что нового:\n{{.Changelog}}"
+  },
+  "BotFatherLink": {
+    "other": "⚙️ Ссылка для настройки Menu Button в @BotFather:\n<code>{{.URL}}</code>"
+  },
+  "Lang.Choose": {
+    "other": "🌐 Выберите язык / Choose language:"
+  },
+  "Lang.Russian": {
+    "other": "🇷🇺 Русский"
+  },
+  "Lang.English": {
+    "other": "🇬🇧 English"
+  },
+  "Error.NotFound": {
+    "other": "Не найдено"
+  },
+  "Error.Unauthorized": {
+    "other": "Необходима авторизация"
+  },
+  "Error.TelegramAuth": {
+    "other": "Ошибка авторизации Telegram"
+  },
+  "Error.Forbidden": {
+    "other": "Нет доступа"
+  },
+  "Error.Internal": {
+    "other": "Внутренняя ошибка сервера"
+  },
+  "Error.BadRequest": {
+    "other": "Неверный формат запроса"
+  },
+  "Error.BadDate": {
+    "other": "Неверный формат даты"
+  },
+  "Error.FieldTooLong": {
+    "other": "Превышена максимальная длина поля"
+  },
+  "Error.BookingNotFound": {
+    "other": "Запись не найдена"
+  },
+  "Error.BookingConflict": {
+    "other": "Это время уже занято"
+  },
+  "Error.BookingDuplicate": {
+    "other": "У вас уже есть запись на этот день"
+  },
+  "Error.BookingCannotCancel": {
+    "other": "Запись не может быть отменена"
+  },
+  "Error.BookingCannotReject": {
+    "other": "Запись не может быть отклонена"
+  },
+  "Error.BookingCannotConfirm": {
+    "other": "Запись не может быть подтверждена"
+  },
+  "Error.BookingCannotReschedule": {
+    "other": "Запись не может быть перенесена"
+  },
+  "Error.ClientNotFound": {
+    "other": "Клиент не найден"
+  },
+  "Error.ClientSelect": {
+    "other": "Выберите клиента"
+  },
+  "Error.TrainerNotFound": {
+    "other": "Тренер не найден"
+  },
+  "Error.TrainerNotConfigured": {
+    "other": "Тренер не настроен"
+  },
+  "Error.ServiceNotFound": {
+    "other": "Услуга не найдена"
+  },
+  "Error.NoServices": {
+    "other": "Нет настроенных услуг"
+  },
+  "Error.ScheduleNotFound": {
+    "other": "Расписание не найдено"
+  },
+  "Error.ScheduleProcessed": {
+    "other": "Расписание уже обработано"
+  },
+  "Error.ScheduleCancelled": {
+    "other": "Расписание уже отменено"
+  },
+  "Error.ScheduleCannotCancel": {
+    "other": "Расписание не может быть отменено"
+  },
+  "Error.DayOffDuplicate": {
+    "other": "Выходной на эту дату уже добавлен"
+  },
+  "Error.NoMoveRequest": {
+    "other": "Нет запроса на перенос"
+  },
+  "Error.DeleteClientBookings": {
+    "other": "Не удалось удалить клиента. Возможно, у него есть записи."
+  },
+  "Error.BookingCannotModify": {
+    "other": "Нельзя изменить эту запись"
+  },
+  "Error.MissingDate": {
+    "other": "Укажите дату"
+  },
+  "Error.MissingDateTime": {
+    "other": "Укажите дату и время"
+  },
+  "Error.MissingTimeRange": {
+    "other": "Укажите время начала и окончания"
+  },
+  "Error.MissingDuration": {
+    "other": "Укажите длительность"
+  },
+  "Error.MissingClientName": {
+    "other": "Укажите имя клиента"
+  },
+  "Error.InvalidDuration": {
+    "other": "Неверная длительность"
+  },
+  "Error.InvalidDayOfWeek": {
+    "other": "Неверный день недели"
+  },
+  "Error.InvalidBookingID": {
+    "other": "Неверный ID записи"
+  },
+  "Error.InvalidStatus": {
+    "other": "Неверный статус"
+  },
+  "Error.DayOfWeekRange": {
+    "other": "День недели должен быть от 0 до 6"
+  },
+  "Error.MissingFields": {
+    "other": "Заполните все обязательные поля"
+  },
+  "Error.InvalidServiceType": {
+    "other": "Неверный тип услуги"
+  },
+  "Error.NameTooLong": {
+    "other": "Превышена максимальная длина названия"
+  },
+  "Error.MissingServiceID": {
+    "other": "Укажите ID услуги"
+  },
+  "Error.MissingBookingID": {
+    "other": "Укажите ID записи"
+  },
+  "Error.MissingClientID": {
+    "other": "Укажите ID клиента"
+  },
+  "Error.MissingDayOffID": {
+    "other": "Укажите ID выходного"
+  },
+  "Error.InvalidDate": {
+    "other": "Неверная дата"
+  },
+  "Error.TimeSlotTaken": {
+    "other": "Время занято"
+  },
+  "Error.SelectService": {
+    "other": "Выберите услугу"
+  },
+  "Error.SelectDaysOfWeek": {
+    "other": "Выберите дни недели"
+  },
+  "Error.SelectTime": {
+    "other": "Выберите время"
+  },
+  "Error.InvalidPeriod": {
+    "other": "Неверный период"
+  },
+  "Error.PhotoFileIDRequired": {
+    "other": "Требуется ID файла"
+  },
+  "Error.PhotoFetchFailed": {
+    "other": "Не удалось загрузить фото"
+  },
+  "Error.PhotoUploadFailed": {
+    "other": "Не удалось загрузить фото"
+  },
+  "Error.PhotoSaveFailed": {
+    "other": "Не удалось сохранить фото"
+  },
+  "Error.PhotoTooLarge": {
+    "other": "Файл слишком большой (макс. 5МБ)"
+  },
+  "Error.PhotoFieldRequired": {
+    "other": "Поле фото обязательно"
+  },
+  "Error.PhotoReadFailed": {
+    "other": "Не удалось прочитать фото"
+  },
+  "Error.PhotoOnlyImages": {
+    "other": "Разрешены только изображения"
+  },
+  "Master.Welcome": {
+    "other": "👋 Привет! Я помогу создать бота для онлайн-записи ваших клиентов.\n\n🎯 Что вы получите:\n• Личный бот с вашим именем (@vashe_imya_bot)\n• Клиенты записываются сами — вы только подтверждаете\n• Календарь, услуги и цены — всё настраивается\n• Уведомления о новых записях прямо в Telegram\n\n⏱ Настройка займёт 2 минуты.\n\n📝 Первый шаг — создать бота в Telegram:\n\n1. Откройте @BotFather (нажмите на ссылку)\n2. Отправьте команду /newbot\n3. Введите название (например: \"Тренер Иван\")\n4. Введите username (например: trener_ivan_bot)\n5. Скопируйте токен — длинную строку с цифрами и буквами\n\nОтправьте мне токен вашего бота:"
+  },
+  "Master.Help": {
+    "other": "🤖 Этот бот помогает создать бота для записи клиентов.\n\nКоманды:\n/start - Начать создание бота\n/cancel - Отменить текущую операцию\n\nЕсли у вас уже есть бот, отправьте /start чтобы проверить статус."
+  },
+  "Master.HelpAdmin": {
+    "other": "🤖 Этот бот помогает создать бота для записи клиентов.\n\nКоманды:\n/start - Начать создание бота\n/cancel - Отменить текущую операцию\n\n👑 Админ-команды:\n/trainers - Список всех тренеров\n/stats - Статистика"
+  },
+  "Master.Unknown": {
+    "other": "Не понимаю. Используйте /start чтобы начать или /help для справки."
+  },
+  "Master.Error": {
+    "other": "❌ Произошла ошибка. Попробуйте позже."
+  },
+  "Master.Cancelled": {
+    "other": "❌ Отменено. Отправьте /start чтобы начать заново."
+  },
+  "Master.InvalidToken": {
+    "other": "❌ Неверный токен. Убедитесь, что вы скопировали токен полностью из сообщения BotFather.\n\nТокен выглядит примерно так:\n123456789:ABCdefGHIjklMNOpqrsTUVwxyz\n\nПопробуйте ещё раз:"
+  },
+  "Master.TokenAlreadyUsed": {
+    "other": "❌ Этот бот уже зарегистрирован. Если это ваш бот, обратитесь в поддержку."
+  },
+  "Master.TokenAccepted": {
+    "other": "✅ Бот @%s найден.\n\n⚠️ Регистрация ещё не завершена! Чтобы бот заработал, введите ваше имя (как вас будут видеть клиенты):"
+  },
+  "Master.NameTooShort": {
+    "other": "❌ Имя слишком короткое. Введите ваше полное имя:"
+  },
+  "Master.Success": {
+    "other": "🎉 Поздравляем, %s!\n\nВаш бот @%s готов к работе.\n\n🚀 Что делать дальше:\n\n1️⃣ Откройте @%s → отправьте /start\n2️⃣ Настройте услуги и расписание под себя\n3️⃣ Отправьте ссылку t.me/%s клиентам\n\nКлиенты смогут выбрать время и записаться, а вы получите уведомление с кнопками \"Подтвердить\" или \"Отклонить\".\n\nУдачи! 💪"
+  },
+  "Master.AlreadyRegistered": {
+    "other": "✅ У вас уже есть бот: @%s\n\nОткройте его и отправьте /start чтобы использовать."
+  },
+  "Master.RegistrationFailed": {
+    "other": "⚠️ Бот @%s создан, но не удалось запустить обработку сообщений.\n\nПопробуйте отправить /start ещё раз — система попробует подключить бота повторно. Если не поможет — напишите в поддержку."
+  },
+  "Master.NoTrainers": {
+    "other": "📋 Нет зарегистрированных тренеров"
+  },
+  "Master.TrainersList": {
+    "other": "📋 Тренеры ({{.Count}}):\n\n"
+  },
+  "Master.TrainerItem": {
+    "other": "{{.Num}}. {{.Name}}\n   @{{.BotUsername}}\n   ID: {{.TelegramID}}\n   Создан: {{.CreatedAt}}\n\n"
+  },
+  "Master.Stats": {
+    "other": "📊 Статистика"
+  },
+  "Master.TrainerCount": {
+    "other": "\n\n👥 Тренеров: {{.Count}}"
+  },
+  "Seed.Personal": {
+    "other": "Персональная тренировка"
+  },
+  "Seed.Pair": {
+    "other": "Парная тренировка"
+  },
+  "Seed.Consultation": {
+    "other": "Консультация"
+  },
+  "ChangelogContent": {
+    "other": "— Расписание: день, неделя, месяц — удобный обзор записей\n— Ближайшая запись: карточка следующей тренировки\n— Индивидуальное время для каждого дня в регулярных расписаниях\n— Автоподтверждение записей, созданных тренером\n— Фото клиента автоматически из Telegram-аватара\n— Редактор фото с обрезкой и поворотом"
+  },
+  "CancelReason.Rescheduled": {
+    "other": "Перенесена"
+  }
+}

@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import { RotateCw, RotateCcw, X, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface PhotoEditorProps {
   imageSrc: string;
@@ -11,6 +12,7 @@ interface PhotoEditorProps {
 }
 
 export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps) {
+  const t = useTranslations("PhotoEditor");
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -38,7 +40,7 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
         <button onClick={onCancel} className="p-2 -m-2 text-muted-foreground">
           <X className="w-6 h-6" />
         </button>
-        <span className="text-sm font-medium">Редактирование фото</span>
+        <span className="text-sm font-medium">{t("title")}</span>
         <button onClick={handleConfirm} className="p-2 -m-2 text-brand">
           <Check className="w-6 h-6" />
         </button>
@@ -65,7 +67,7 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
       <div className="px-4 py-4 space-y-4 border-t border-border bg-background">
         {/* Zoom slider */}
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground w-14">Масштаб</span>
+          <span className="text-xs text-muted-foreground w-14">{t("zoom")}</span>
           <input
             type="range"
             min={1}

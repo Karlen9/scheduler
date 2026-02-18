@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PrimaryButton } from "@/components/PrimaryButton";
 
 interface SuccessModalProps {
@@ -16,6 +17,8 @@ export function SuccessModal({
   title,
   description,
 }: SuccessModalProps) {
+  const tc = useTranslations("Common");
+
   if (!isOpen) return null;
 
   return (
@@ -32,7 +35,7 @@ export function SuccessModal({
             <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </div>
-        <PrimaryButton onClick={onClose}>Отлично</PrimaryButton>
+        <PrimaryButton onClick={onClose}>{tc("great")}</PrimaryButton>
       </div>
     </div>
   );

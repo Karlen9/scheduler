@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Repeat } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RecurringScheduleCard } from "@/components/RecurringScheduleCard";
@@ -12,6 +13,10 @@ import { useRecurringSchedules, useSessionTypes } from "@/hooks/queries";
 import { invalidateRecurring } from "@/hooks/mutations";
 
 export default function ClientRecurringPage() {
+  const t = useTranslations("RecurringPage");
+  const tc = useTranslations("Common");
+  const te = useTranslations("Errors");
+  const ts = useTranslations("Success");
   const { data: schedules, isLoading: schedulesLoading } = useRecurringSchedules();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
 
@@ -23,11 +28,11 @@ export default function ClientRecurringPage() {
     if (!cancelTarget) return;
     try {
       await api.cancelRecurringSchedule(cancelTarget.id);
-      toast.success("Расписание отменено");
+      toast.success(ts("scheduleCancelled"));
       setCancelTarget(null);
       invalidateRecurring();
     } catch {
-      toast.error("Не удалось отменить расписание");
+      toast.error(te("scheduleCancelFailed"));
     }
   };
 
@@ -56,15 +61,15 @@ export default function ClientRecurringPage() {
         {!hasSchedules ? (
           <EmptyState
             icon={<Repeat className="w-16 h-16" />}
-            title="Нет регулярных записей"
-            description="Создайте расписание через кнопку +"
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
           />
         ) : (
           <>
             {pendingSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Ожидают подтверждения
+                  {t("pendingSection")}
                 </h3>
                 <div className="space-y-3">
                   {pendingSchedules.map((schedule) => (
@@ -83,7 +88,7 @@ export default function ClientRecurringPage() {
             {activeSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Активные расписания
+                  {t("activeSection")}
                 </h3>
                 <div className="space-y-3">
                   {activeSchedules.map((schedule) => (
@@ -102,7 +107,7 @@ export default function ClientRecurringPage() {
             {declinedSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Отклоненные
+                  {t("declinedSection")}
                 </h3>
                 <div className="space-y-3">
                   {declinedSchedules.map((schedule) => (
@@ -119,7 +124,7 @@ export default function ClientRecurringPage() {
             {cancelledSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Отмененные ({cancelledSchedules.length})
+                  {t("cancelledSection")} ({cancelledSchedules.length})
                 </h3>
                 <div className="space-y-3">
                   {cancelledSchedules.map((schedule) => (
@@ -140,9 +145,9 @@ export default function ClientRecurringPage() {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={handleCancel}
-        title="Отменить расписание?"
-        description="Регулярные тренировки по этому расписанию больше не будут создаваться автоматически."
-        confirmText="Отменить"
+        title={t("cancelDialog")}
+        description={t("cancelDialogDescription")}
+        confirmText={tc("cancelVerb")}
         destructive
       />
     </div>

@@ -20,7 +20,7 @@ func generateWebhookSecret() string {
 
 func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	var t models.Trainer
-	var telegramHandle, phone, specialization, bio, photoURL, gymAddress, availableDurations sql.NullString
+	var telegramHandle, phone, specialization, bio, photoURL, gymAddress, availableDurations, language sql.NullString
 	var notifyNewBookings, notifyCancellations sql.NullInt64
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
@@ -30,6 +30,7 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 		&availableDurations,
 		&notifyNewBookings, &notifyCancellations,
 		&t.IsActive, &t.CreatedAt,
+		&language,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -45,6 +46,10 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	t.AvailableDurations = availableDurations.String
 	t.NotifyNewBookings = !notifyNewBookings.Valid || notifyNewBookings.Int64 == 1
 	t.NotifyCancellations = !notifyCancellations.Valid || notifyCancellations.Int64 == 1
+	t.Language = language.String
+	if t.Language == "" {
+		t.Language = "ru"
+	}
 
 	// Decrypt bot token (passthrough for plain text)
 	t.BotToken, err = crypto.Decrypt(t.BotToken)
@@ -55,7 +60,7 @@ func scanTrainer(row interface{ Scan(...any) error }) (*models.Trainer, error) {
 	return &t, nil
 }
 
-const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, gym_latitude, gym_longitude, gym_address, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at`
+const trainerColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, gym_latitude, gym_longitude, gym_address, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language`
 
 func GetTrainerByTelegramID(telegramUserID int64) (*models.Trainer, error) {
 	row := DB.QueryRow(Q(`
@@ -189,6 +194,11 @@ func UpdateTrainerNotificationPrefs(id string, notifyNewBookings, notifyCancella
 		nc = 1
 	}
 	_, err := DB.Exec(Q(`UPDATE trainers SET notify_new_bookings = ?, notify_cancellations = ? WHERE id = ?`), nb, nc, id)
+	return err
+}
+
+func UpdateTrainerLanguage(trainerID, language string) error {
+	_, err := DB.Exec(Q(`UPDATE trainers SET language = ? WHERE id = ?`), language, trainerID)
 	return err
 }
 

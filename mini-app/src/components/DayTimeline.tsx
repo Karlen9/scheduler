@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations, useLocale } from "next-intl";
 import { Booking } from "@/lib/types";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
@@ -46,6 +47,9 @@ const BOOKING_COLORS = [
   { bg: "var(--timeline-4-bg)", border: "var(--timeline-4-border)" },
 ];
 
+const monthGenKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const dayFullKeysJS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
 export function DayTimeline({
   date,
   bookings,
@@ -53,6 +57,9 @@ export function DayTimeline({
   endHour = 21,
   onBookingClick,
 }: DayTimelineProps) {
+  const tc = useTranslations("Common");
+  const td = useTranslations("Dates");
+
   const hours = Array.from(
     { length: endHour - startHour + 1 },
     (_, i) => startHour + i
@@ -71,30 +78,10 @@ export function DayTimeline({
   });
 
   const formatDateHeader = (d: Date) => {
-    const days = [
-      "Воскресенье",
-      "Понедельник",
-      "Вторник",
-      "Среда",
-      "Четверг",
-      "Пятница",
-      "Суббота",
-    ];
-    const months = [
-      "Января",
-      "Февраля",
-      "Марта",
-      "Апреля",
-      "Мая",
-      "Июня",
-      "Июля",
-      "Августа",
-      "Сентября",
-      "Октября",
-      "Ноября",
-      "Декабря",
-    ];
-    return `${d.getDate()} ${months[d.getMonth()]}, ${days[d.getDay()]}`;
+    const dayKey = dayFullKeysJS[d.getDay()];
+    const monthKey = monthGenKeys[d.getMonth()];
+    const monthGen = td(`monthsGen.${monthKey}`);
+    return `${d.getDate()} ${monthGen.charAt(0).toUpperCase() + monthGen.slice(1)}, ${td(`daysFull.${dayKey}`)}`;
   };
 
   return (
@@ -165,7 +152,7 @@ export function DayTimeline({
               </div>
               {rowSpan >= 2 && (
                 <p className="text-xs text-muted-foreground truncate">
-                  {booking.sessionType?.name || "Тренировка"}
+                  {booking.sessionType?.name || tc("workout")}
                 </p>
               )}
             </button>

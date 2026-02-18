@@ -1,6 +1,7 @@
 "use client";
 
 import { Clock, Dumbbell } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { TopBar } from "@/components/TopBar";
 import { SessionType } from "@/lib/types";
 import { formatDuration } from "@/components/DurationSelector";
@@ -8,12 +9,15 @@ import { getPhotoUrl } from "@/lib/api";
 import { useSessionTypes } from "@/hooks/queries";
 
 export default function ServicesPage() {
+  const t = useTranslations("ServicesPage");
+  const td = useTranslations("Duration");
+  const locale = useLocale();
   const { data: services, isLoading: loading } = useSessionTypes();
 
   if (loading) {
     return (
       <div>
-        <TopBar title="Услуги и цены" showBack />
+        <TopBar title={t("title")} showBack />
         <div className="p-4 space-y-3 animate-pulse">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-card rounded-xl p-4 flex items-center gap-3">
@@ -31,12 +35,12 @@ export default function ServicesPage() {
 
   return (
     <div>
-      <TopBar title="Услуги и цены" showBack />
+      <TopBar title={t("title")} showBack />
 
       <div className="p-4 space-y-3">
         {services.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            Нет доступных услуг
+            {t("empty")}
           </div>
         ) : (
           services.map((service: SessionType) => (
@@ -64,12 +68,12 @@ export default function ServicesPage() {
                 <div className="flex items-center gap-1">
                   <Clock className="w-3 h-3 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    {formatDuration(service.durationMinutes)}
+                    {formatDuration(service.durationMinutes, td("hour"))}
                   </span>
                 </div>
               </div>
               <span className="text-base font-semibold text-foreground flex-shrink-0">
-                {service.price.toLocaleString("ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
+                {service.price.toLocaleString(locale === "en" ? "en-US" : "ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
               </span>
             </div>
           ))

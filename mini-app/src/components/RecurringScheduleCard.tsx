@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Clock, Repeat, Calendar, Check, X, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { formatDuration } from "@/components/DurationSelector";
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { StatusBadge, statusBorders } from "@/components/StatusBadge";
@@ -16,64 +17,10 @@ interface RecurringScheduleCardProps {
   detailPath?: string; // e.g. "/recurring" or "/admin/recurring"
 }
 
-const DAY_NAMES: Record<number, string> = {
-  0: "Вс",
-  1: "Пн",
-  2: "Вт",
-  3: "Ср",
-  4: "Чт",
-  5: "Пт",
-  6: "Сб",
+const dayShortKeysMap: Record<number, string> = {
+  0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat",
 };
-
-function formatDaysOfWeek(schedule: RecurringSchedule): string {
-  if (schedule.daysOfWeek) {
-    return schedule.daysOfWeek
-      .split(",")
-      .map((d) => DAY_NAMES[parseInt(d)] || "?")
-      .join(", ");
-  }
-  return DAY_NAMES[schedule.dayOfWeek] || "?";
-}
-
-function parseDayTimes(dayTimesJSON?: string): Record<string, string> | null {
-  if (!dayTimesJSON) return null;
-  try {
-    return JSON.parse(dayTimesJSON);
-  } catch {
-    return null;
-  }
-}
-
-function formatDayTimesDisplay(dayTimes: Record<string, string>): string {
-  const entries = Object.entries(dayTimes)
-    .map(([d, t]) => ({ day: parseInt(d), time: t }))
-    .sort((a, b) => a.day - b.day);
-  return entries.map((e) => `${DAY_NAMES[e.day] || "?"} ${e.time}`).join(", ");
-}
-
-function formatDateRange(startDate?: string, endDate?: string): string | null {
-  if (!startDate || !endDate) return null;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const months = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
-  return `${start.getDate()} ${months[start.getMonth()]} — ${end.getDate()} ${months[end.getMonth()]}`;
-}
-
-function getServiceName(schedule: RecurringSchedule, services?: SessionType[]): string {
-  if (schedule.sessionType?.name) {
-    return schedule.sessionType.name;
-  }
-  if (services && services.length > 0 && schedule.sessionTypeId) {
-    const match = services.find((s) => s.id === schedule.sessionTypeId);
-    if (match) return match.name;
-  }
-  if (services && services.length > 0) {
-    const match = services.find((s) => s.durationMinutes === schedule.durationMinutes);
-    if (match) return match.name;
-  }
-  return formatDuration(schedule.durationMinutes);
-}
+const monthShortKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 export function RecurringScheduleCard({
   schedule,
@@ -84,6 +31,63 @@ export function RecurringScheduleCard({
   detailPath,
 }: RecurringScheduleCardProps) {
   const router = useRouter();
+  const tc = useTranslations("Common");
+  const td = useTranslations("Dates");
+  const tdu = useTranslations("Duration");
+
+  function getDayName(dayNum: number): string {
+    const key = dayShortKeysMap[dayNum];
+    return key ? td(`daysShort.${key}`) : "?";
+  }
+
+  function formatDaysOfWeek(sched: RecurringSchedule): string {
+    if (sched.daysOfWeek) {
+      return sched.daysOfWeek
+        .split(",")
+        .map((d) => getDayName(parseInt(d)))
+        .join(", ");
+    }
+    return getDayName(sched.dayOfWeek);
+  }
+
+  function parseDayTimes(dayTimesJSON?: string): Record<string, string> | null {
+    if (!dayTimesJSON) return null;
+    try {
+      return JSON.parse(dayTimesJSON);
+    } catch {
+      return null;
+    }
+  }
+
+  function formatDayTimesDisplay(dayTimes: Record<string, string>): string {
+    const entries = Object.entries(dayTimes)
+      .map(([d, t]) => ({ day: parseInt(d), time: t }))
+      .sort((a, b) => a.day - b.day);
+    return entries.map((e) => `${getDayName(e.day)} ${e.time}`).join(", ");
+  }
+
+  function formatDateRange(startDate?: string, endDate?: string): string | null {
+    if (!startDate || !endDate) return null;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return `${start.getDate()} ${td(`monthsShort.${monthShortKeys[start.getMonth()]}`)} — ${end.getDate()} ${td(`monthsShort.${monthShortKeys[end.getMonth()]}`)}`;
+  }
+
+  function getServiceName(sched: RecurringSchedule, svcs?: SessionType[]): string {
+    if (sched.sessionType?.name) {
+      return sched.sessionType.name;
+    }
+    if (svcs && svcs.length > 0 && sched.sessionTypeId) {
+      const match = svcs.find((s) => s.id === sched.sessionTypeId);
+      if (match) return match.name;
+    }
+    if (svcs && svcs.length > 0) {
+      const match = svcs.find((s) => s.durationMinutes === sched.durationMinutes);
+      if (match) return match.name;
+    }
+    return formatDuration(sched.durationMinutes, tdu("hour"));
+  }
+
   const border = statusBorders[schedule.status] || statusBorders.pending;
   const dayTimes = parseDayTimes(schedule.dayTimes);
   const daysLabel = dayTimes ? formatDayTimesDisplay(dayTimes) : formatDaysOfWeek(schedule);
@@ -166,7 +170,7 @@ export function RecurringScheduleCard({
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-action-success-bg text-action-success-text text-sm font-medium transition-opacity active:opacity-70"
               >
                 <Check className="w-4 h-4" />
-                Подтвердить
+                {tc("confirm")}
               </button>
             )}
             {canDecline && (
@@ -175,7 +179,7 @@ export function RecurringScheduleCard({
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-action-danger-bg text-action-danger-text text-sm font-medium transition-opacity active:opacity-70"
               >
                 <X className="w-4 h-4" />
-                Отклонить
+                {tc("cancelVerb")}
               </button>
             )}
             {canCancel && (
@@ -184,7 +188,7 @@ export function RecurringScheduleCard({
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg bg-background text-destructive text-sm font-medium transition-opacity active:opacity-70"
               >
                 <X className="w-4 h-4" />
-                Отменить
+                {tc("cancelVerb")}
               </button>
             )}
           </div>
