@@ -21,6 +21,7 @@ type Trainer struct {
 	PhotoURL            string    `json:"photoUrl"`
 	GymLatitude         float64   `json:"gymLatitude"`
 	GymLongitude        float64   `json:"gymLongitude"`
+	Language            string    `json:"language,omitempty"`
 	AvailableDurations  string    `json:"availableDurations,omitempty"`
 	NotifyNewBookings   bool      `json:"notifyNewBookings"`
 	NotifyCancellations bool      `json:"notifyCancellations"`
@@ -36,6 +37,7 @@ type Client struct {
 	Phone               string    `json:"phone,omitempty"`
 	PhotoURL            string    `json:"photoUrl,omitempty"`
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
+	Language            string    `json:"language,omitempty"`
 	IsGhost             bool      `json:"isGhost,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`

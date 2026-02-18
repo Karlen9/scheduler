@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { Sun, Moon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type ThemePreference, getThemePreference, setThemePreference, applyTheme } from "@/lib/telegram";
 
-const options: { value: ThemePreference; label: string; icon?: typeof Sun }[] = [
-  { value: "auto", label: "Авто" },
-  { value: "light", label: "Светлая", icon: Sun },
-  { value: "dark", label: "Тёмная", icon: Moon },
-];
-
 export function ThemeSelector() {
+  const t = useTranslations("ThemeSelector");
   const [current, setCurrent] = useState<ThemePreference>(getThemePreference);
+
+  const options: { value: ThemePreference; label: string; icon?: typeof Sun }[] = [
+    { value: "auto", label: t("auto") },
+    { value: "light", label: t("light"), icon: Sun },
+    { value: "dark", label: t("dark"), icon: Moon },
+  ];
 
   const handleSelect = (pref: ThemePreference) => {
     setCurrent(pref);

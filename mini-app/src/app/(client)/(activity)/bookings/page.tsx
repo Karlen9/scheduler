@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CalendarX, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { BookingCard } from "@/components/BookingCard";
 import { EmptyState } from "@/components/EmptyState";
 import { BookingCardSkeleton } from "@/components/LoadingSkeleton";
@@ -13,6 +14,10 @@ import { useBookings } from "@/hooks/queries";
 import { invalidateBookings } from "@/hooks/mutations";
 
 export default function BookingsPage() {
+  const t = useTranslations("BookingsPage");
+  const tc = useTranslations("Common");
+  const te = useTranslations("Errors");
+  const ts = useTranslations("Success");
   const { data: bookings, isLoading, error } = useBookings();
   const [cancelBookingTarget, setCancelBookingTarget] = useState<Booking | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -28,40 +33,40 @@ export default function BookingsPage() {
   const handleCancelBooking = async () => {
     if (!cancelBookingTarget) return;
     try {
-      await api.cancelBooking(cancelBookingTarget.id, cancelReason || "Отменено клиентом");
-      toast.success("Запись отменена");
+      await api.cancelBooking(cancelBookingTarget.id, cancelReason || t("cancelDefaultReason"));
+      toast.success(ts("bookingCancelled"));
       setCancelBookingTarget(null);
       setCancelReason("");
       invalidateBookings();
     } catch {
-      toast.error("Не удалось отменить запись");
+      toast.error(te("bookingCancelFailed"));
     }
   };
 
   const handleConfirm = async (booking: Booking) => {
     try {
       await api.confirmBooking(booking.id);
-      toast.success("Запись подтверждена");
+      toast.success(ts("bookingConfirmed"));
       invalidateBookings();
     } catch {
-      toast.error("Не удалось подтвердить запись");
+      toast.error(te("bookingConfirmFailed"));
     }
   };
 
   const handleDecline = async (booking: Booking) => {
     try {
       await api.declineBooking(booking.id);
-      toast.success("Запись отклонена");
+      toast.success(ts("bookingDeclined"));
       invalidateBookings();
     } catch {
-      toast.error("Не удалось отклонить запись");
+      toast.error(te("bookingDeclineFailed"));
     }
   };
 
   if (isLoading) {
     return (
       <div className="p-4 space-y-4">
-        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+        <h2 className="text-lg font-semibold px-1">{t("title")}</h2>
         <div className="h-4 bg-card rounded w-28 mb-3 animate-pulse" />
         <div className="space-y-3">
           <BookingCardSkeleton />
@@ -74,11 +79,11 @@ export default function BookingsPage() {
   if (error) {
     return (
       <div className="p-4 space-y-4">
-        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+        <h2 className="text-lg font-semibold px-1">{t("title")}</h2>
         <EmptyState
           icon={<CalendarX className="w-16 h-16" />}
-          title="Ошибка загрузки"
-          description="Не удалось загрузить записи"
+          title={t("loadError")}
+          description={t("loadErrorDescription")}
         />
       </div>
     );
@@ -87,11 +92,11 @@ export default function BookingsPage() {
   if (bookings.length === 0) {
     return (
       <div className="p-4 space-y-4">
-        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+        <h2 className="text-lg font-semibold px-1">{t("title")}</h2>
         <EmptyState
           icon={<CalendarX className="w-16 h-16" />}
-          title="У вас пока нет записей"
-          description="Выберите удобное время и запишитесь на тренировку"
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       </div>
     );
@@ -100,12 +105,12 @@ export default function BookingsPage() {
   return (
     <div>
       <div className="p-4 space-y-4">
-        <h2 className="text-lg font-semibold px-1">Мои записи</h2>
+        <h2 className="text-lg font-semibold px-1">{t("title")}</h2>
 
         {activeBookings.length > 0 && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">
-              Активные записи
+              {t("activeBookings")}
             </h3>
             <div className="space-y-3">
               {activeBookings.map((booking) => (
@@ -128,7 +133,7 @@ export default function BookingsPage() {
               className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3"
             >
               <ChevronDown className={`w-4 h-4 transition-transform ${showPast ? "rotate-0" : "-rotate-90"}`} />
-              Прошедшие записи ({pastBookings.length})
+              {t("pastBookings")} ({pastBookings.length})
             </button>
             {showPast && (
               <div className="space-y-3">
@@ -145,12 +150,12 @@ export default function BookingsPage() {
         isOpen={!!cancelBookingTarget}
         onClose={() => { setCancelBookingTarget(null); setCancelReason(""); }}
         onConfirm={handleCancelBooking}
-        title="Отменить запись?"
-        description="Вы уверены, что хотите отменить эту запись? Это действие нельзя отменить."
-        confirmText="Отменить запись"
+        title={t("cancelDialog")}
+        description={t("cancelConfirmMessage")}
+        confirmText={t("cancelConfirmButton")}
         destructive
         showInput
-        inputPlaceholder="Причина отмены (необязательно)"
+        inputPlaceholder={t("cancelReasonPlaceholder")}
         inputValue={cancelReason}
         onInputChange={setCancelReason}
       />

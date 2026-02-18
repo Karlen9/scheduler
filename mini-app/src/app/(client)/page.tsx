@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { Clock, Phone, MessageCircle, Share2, Dumbbell } from "lucide-react";
 import { formatDuration } from "@/components/DurationSelector";
 import { getPhotoUrl } from "@/lib/api";
@@ -11,6 +12,9 @@ import { useTrainer, useSessionTypes } from "@/hooks/queries";
 
 export default function HomePage() {
   const router = useRouter();
+  const t = useTranslations("HomePage");
+  const td = useTranslations("Duration");
+  const locale = useLocale();
   const { data: trainer, isLoading: trainerLoading } = useTrainer();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -77,7 +81,7 @@ export default function HomePage() {
     return (
       <div className="px-4 pt-4">
         <div className="bg-card rounded-xl p-4 text-center text-muted-foreground">
-          Не удалось загрузить информацию о тренере
+          {t("trainerLoadError")}
         </div>
       </div>
     );
@@ -154,7 +158,7 @@ export default function HomePage() {
                   onClick={() => setBioExpanded(!bioExpanded)}
                   className="text-sm text-brand mt-1 font-medium"
                 >
-                  {bioExpanded ? "Скрыть" : "Показать больше"}
+                  {bioExpanded ? t("showLess") : t("showMore")}
                 </button>
               )}
             </div>
@@ -167,14 +171,14 @@ export default function HomePage() {
                 onClick={handleMessage}
                 className="flex-1 py-3 px-4 rounded-[28px] bg-brand text-white text-sm font-medium transition-opacity active:opacity-80"
               >
-                Написать
+                {t("messageButton")}
               </button>
             )}
             <button
               onClick={() => router.push("/services")}
               className="flex-1 py-3 px-4 rounded-[28px] bg-surface-hover border border-surface-border text-muted-foreground text-sm font-medium transition-opacity active:opacity-80"
             >
-              Услуги и цены
+              {t("servicesButton")}
             </button>
             <button
               onClick={handleShare}
@@ -188,7 +192,7 @@ export default function HomePage() {
         {/* Services Section */}
         {services.length > 0 && (
           <div className="px-4 pb-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Услуги:</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">{t("servicesTitle")}</h3>
             <div className="space-y-2">
               {services.map((service) => (
                 <div
@@ -213,13 +217,13 @@ export default function HomePage() {
                     <div className="flex items-center gap-1 mt-0.5">
                       <Clock className="w-3 h-3 text-muted-foreground" />
                       <p className="text-xs text-muted-foreground">
-                        {formatDuration(service.durationMinutes)}
+                        {formatDuration(service.durationMinutes, td("hour"))}
                       </p>
                     </div>
                   </div>
                   {service.price > 0 && (
                     <p className="text-sm font-semibold text-foreground ml-2 flex-shrink-0">
-                      {service.price.toLocaleString("ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
+                      {service.price.toLocaleString(locale === "en" ? "en-US" : "ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
                     </p>
                   )}
                 </div>
@@ -231,7 +235,7 @@ export default function HomePage() {
         {/* Location Section */}
         {trainer.gymLatitude && trainer.gymLongitude && (
           <div className="px-4 pb-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Локация:</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">{t("locationTitle")}</h3>
             <a
               href={`https://yandex.ru/maps/?pt=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&l=map`}
               target="_blank"

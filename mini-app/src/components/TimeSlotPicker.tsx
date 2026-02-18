@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface TimeSlotPickerProps {
   selectedTime: string | null;
   onSelectTime: (time: string) => void;
@@ -33,6 +35,8 @@ export function TimeSlotPicker({
   selectedTime,
   onSelectTime,
 }: TimeSlotPickerProps) {
+  const t = useTranslations("BookingForm");
+
   const getSlotClassName = (slot: TimeSlot) => {
     const isSelected = selectedTime === slot.time;
 
@@ -57,10 +61,10 @@ export function TimeSlotPicker({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-foreground text-base font-semibold font-['Inter']">
-          Выберите время
+          {t("selectTime")}
         </h3>
         <p className="text-muted-foreground text-xs font-medium font-['Inter']">
-          Рабочие часы с 9:00 до 23:00
+          {/* Working hours info */}
         </p>
       </div>
 
@@ -69,13 +73,13 @@ export function TimeSlotPicker({
         <div className="flex items-center gap-2">
           <div className="w-[21px] h-[22px] bg-card border border-surface-border rounded-full" />
           <span className="text-muted-foreground text-sm font-medium font-['Inter']">
-            Свободно
+            {t("available")}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-[21px] h-[22px] bg-surface-hover border border-surface-border rounded-full" />
           <span className="text-muted-foreground text-sm font-medium font-['Inter']">
-            Занято
+            {t("occupied")}
           </span>
         </div>
       </div>

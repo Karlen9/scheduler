@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Repeat } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -13,6 +14,10 @@ import { useAdminRecurringSchedules, useAdminServices } from "@/hooks/queries";
 import { invalidateRecurring } from "@/hooks/mutations";
 
 export default function AdminRecurringPage() {
+  const t = useTranslations("RecurringPage");
+  const tc = useTranslations("Common");
+  const te = useTranslations("Errors");
+  const ts = useTranslations("Success");
   const { data: schedules, isLoading: schedulesLoading } = useAdminRecurringSchedules();
   const { data: services, isLoading: servicesLoading } = useAdminServices();
 
@@ -23,20 +28,20 @@ export default function AdminRecurringPage() {
   const handleApprove = async (schedule: RecurringSchedule) => {
     try {
       await api.admin.approveRecurringSchedule(schedule.id);
-      toast.success("Расписание подтверждено");
+      toast.success(ts("scheduleConfirmed"));
       invalidateRecurring();
     } catch {
-      toast.error("Не удалось подтвердить расписание");
+      toast.error(te("scheduleConfirmFailed"));
     }
   };
 
   const handleDecline = async (schedule: RecurringSchedule) => {
     try {
       await api.admin.declineRecurringSchedule(schedule.id);
-      toast.success("Расписание отклонено");
+      toast.success(ts("scheduleDeclined"));
       invalidateRecurring();
     } catch {
-      toast.error("Не удалось отклонить расписание");
+      toast.error(te("scheduleDeclineFailed"));
     }
   };
 
@@ -44,11 +49,11 @@ export default function AdminRecurringPage() {
     if (!cancelTarget) return;
     try {
       await api.admin.cancelRecurringSchedule(cancelTarget.id);
-      toast.success("Расписание отменено");
+      toast.success(ts("scheduleCancelled"));
       setCancelTarget(null);
       invalidateRecurring();
     } catch {
-      toast.error("Не удалось отменить расписание");
+      toast.error(te("scheduleCancelFailed"));
     }
   };
 
@@ -82,15 +87,15 @@ export default function AdminRecurringPage() {
         {!hasSchedules ? (
           <EmptyState
             icon={<Repeat className="w-16 h-16" />}
-            title="Нет регулярных записей"
-            description="Создайте расписание через кнопку +"
+            title={t("emptyTitle")}
+            description={t("emptyDescription")}
           />
         ) : (
           <>
             {pendingSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Ожидают подтверждения
+                  {t("pendingSection")}
                 </h3>
                 <div className="space-y-3">
                   {pendingSchedules.map((schedule) => (
@@ -111,7 +116,7 @@ export default function AdminRecurringPage() {
             {activeSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Активные расписания
+                  {t("activeSection")}
                 </h3>
                 <div className="space-y-3">
                   {activeSchedules.map((schedule) => (
@@ -130,7 +135,7 @@ export default function AdminRecurringPage() {
             {declinedSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Отклоненные
+                  {t("declinedSection")}
                 </h3>
                 <div className="space-y-3">
                   {declinedSchedules.map((schedule) => (
@@ -147,7 +152,7 @@ export default function AdminRecurringPage() {
             {cancelledSchedules.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Отмененные ({cancelledSchedules.length})
+                  {t("cancelledSection")} ({cancelledSchedules.length})
                 </h3>
                 <div className="space-y-3">
                   {cancelledSchedules.map((schedule) => (
@@ -168,9 +173,9 @@ export default function AdminRecurringPage() {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={handleCancel}
-        title="Отменить расписание?"
-        description="Регулярные тренировки по этому расписанию больше не будут создаваться автоматически."
-        confirmText="Отменить"
+        title={t("cancelDialog")}
+        description={t("cancelDialogDescription")}
+        confirmText={tc("cancelVerb")}
         destructive
       />
     </div>

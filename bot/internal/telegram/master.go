@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
 )
@@ -76,7 +78,7 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 
 	// Handle commands
 	if strings.HasPrefix(text, "/") {
-		h.handleCommand(chatID, userID, text)
+		h.handleCommand(chatID, userID, text, msg.From.LanguageCode)
 		return
 	}
 
@@ -84,38 +86,42 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 	session := h.getSession(userID)
 	if session == nil {
 		// No active session, prompt to start
-		h.bot.SendMessage(chatID, MasterMsgUnknown, nil)
+		loc := myI18n.NewLocalizer(msg.From.LanguageCode)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 		return
 	}
 
+	loc := myI18n.NewLocalizer(msg.From.LanguageCode)
+
 	switch session.State {
 	case StateAwaitingToken:
-		h.handleTokenInput(chatID, userID, text, session)
+		h.handleTokenInput(chatID, userID, text, session, loc)
 	case StateAwaitingName:
-		h.handleNameInput(chatID, userID, text, session, msg.From.Username)
+		h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
 	}
 }
 
-func (h *MasterHandler) handleCommand(chatID, userID int64, text string) {
+func (h *MasterHandler) handleCommand(chatID, userID int64, text string, langCode string) {
 	cmd := strings.Split(text, " ")[0]
+	loc := myI18n.NewLocalizer(langCode)
 
 	switch cmd {
 	case "/start":
-		h.handleStart(chatID, userID)
+		h.handleStart(chatID, userID, loc)
 	case "/cancel":
-		h.handleCancel(chatID, userID)
+		h.handleCancel(chatID, userID, loc)
 	case "/help":
 		if h.isAdmin(userID) {
-			h.bot.SendMessage(chatID, MasterMsgHelpAdmin, nil)
+			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.HelpAdmin"), nil)
 		} else {
-			h.bot.SendMessage(chatID, MasterMsgHelp, nil)
+			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Help"), nil)
 		}
 	case "/trainers":
-		h.handleAdminTrainers(chatID, userID)
+		h.handleAdminTrainers(chatID, userID, loc)
 	case "/stats":
-		h.handleAdminStats(chatID, userID)
+		h.handleAdminStats(chatID, userID, loc)
 	default:
-		h.bot.SendMessage(chatID, MasterMsgUnknown, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 	}
 }
 
@@ -128,64 +134,63 @@ func (h *MasterHandler) isAdmin(userID int64) bool {
 	return false
 }
 
-func (h *MasterHandler) handleAdminTrainers(chatID, userID int64) {
+func (h *MasterHandler) handleAdminTrainers(chatID, userID int64, loc *localizerType) {
 	if !h.isAdmin(userID) {
-		h.bot.SendMessage(chatID, MasterMsgUnknown, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 		return
 	}
 
 	trainers, err := db.GetAllActiveTrainers()
 	if err != nil {
 		log.Printf("Error getting trainers: %v", err)
-		h.bot.SendMessage(chatID, MasterMsgError, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
 	if len(trainers) == 0 {
-		h.bot.SendMessage(chatID, "📋 Нет зарегистрированных тренеров", nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.NoTrainers"), nil)
 		return
 	}
 
-	msg := fmt.Sprintf("📋 Тренеры (%d):\n\n", len(trainers))
+	msg := myI18n.Tf(loc, "Master.TrainersList", map[string]interface{}{"Count": len(trainers)})
 	for i, t := range trainers {
-		msg += fmt.Sprintf("%d. %s\n   @%s\n   ID: %d\n   Создан: %s\n\n",
-			i+1,
-			t.Name,
-			t.BotUsername,
-			t.TelegramUserID,
-			t.CreatedAt.Format("02.01.2006 15:04"),
-		)
+		msg += myI18n.Tf(loc, "Master.TrainerItem", map[string]interface{}{
+			"Num":         i + 1,
+			"Name":        t.Name,
+			"BotUsername":  t.BotUsername,
+			"TelegramID":  t.TelegramUserID,
+			"CreatedAt":   t.CreatedAt.Format("02.01.2006 15:04"),
+		})
 	}
 
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
-func (h *MasterHandler) handleAdminStats(chatID, userID int64) {
+func (h *MasterHandler) handleAdminStats(chatID, userID int64, loc *localizerType) {
 	if !h.isAdmin(userID) {
-		h.bot.SendMessage(chatID, MasterMsgUnknown, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 		return
 	}
 
 	trainers, err := db.GetAllActiveTrainers()
 	if err != nil {
 		log.Printf("Error getting trainers: %v", err)
-		h.bot.SendMessage(chatID, MasterMsgError, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
-	msg := fmt.Sprintf(`📊 Статистика
-
-👥 Тренеров: %d`, len(trainers))
+	msg := myI18n.T(loc, "Master.Stats")
+	msg += myI18n.Tf(loc, "Master.TrainerCount", map[string]interface{}{"Count": len(trainers)})
 
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
-func (h *MasterHandler) handleStart(chatID, userID int64) {
+func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 	// Check if already registered
 	existing, err := db.GetTrainerByTelegramID(userID)
 	if err != nil {
 		log.Printf("Error checking existing trainer: %v", err)
-		h.bot.SendMessage(chatID, MasterMsgError, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
@@ -195,29 +200,29 @@ func (h *MasterHandler) handleStart(chatID, userID int64) {
 		if OnTrainerCreated != nil {
 			if err := OnTrainerCreated(existing); err != nil {
 				log.Printf("Error re-registering bot for @%s: %v", existing.BotUsername, err)
-				h.bot.SendMessage(chatID, fmt.Sprintf(MasterMsgRegistrationFailed, existing.BotUsername), nil)
+				h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), existing.BotUsername), nil)
 				return
 			}
 		}
-		msg := fmt.Sprintf(MasterMsgAlreadyRegistered, existing.BotUsername)
+		msg := fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername)
 		h.bot.SendMessage(chatID, msg, nil)
 		return
 	}
 
 	// Start onboarding
 	h.setSession(userID, &OnboardingSession{State: StateAwaitingToken})
-	h.bot.SendMessage(chatID, MasterMsgWelcome, nil)
+	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Welcome"), nil)
 }
 
-func (h *MasterHandler) handleCancel(chatID, userID int64) {
+func (h *MasterHandler) handleCancel(chatID, userID int64, loc *localizerType) {
 	h.setSession(userID, nil)
-	h.bot.SendMessage(chatID, MasterMsgCancelled, nil)
+	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Cancelled"), nil)
 }
 
-func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, session *OnboardingSession) {
+func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, session *OnboardingSession, loc *localizerType) {
 	// Validate token format (basic check)
 	if !strings.Contains(text, ":") {
-		h.bot.SendMessage(chatID, MasterMsgInvalidToken, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.InvalidToken"), nil)
 		return
 	}
 
@@ -225,7 +230,7 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 	existing, err := db.GetTrainerByBotToken(text)
 	if err != nil {
 		log.Printf("Error checking existing bot: %v", err)
-		h.bot.SendMessage(chatID, MasterMsgError, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 	if existing != nil {
@@ -235,16 +240,16 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 			if OnTrainerCreated != nil {
 				if err := OnTrainerCreated(existing); err != nil {
 					log.Printf("Error re-registering bot for @%s: %v", existing.BotUsername, err)
-					h.bot.SendMessage(chatID, fmt.Sprintf(MasterMsgRegistrationFailed, existing.BotUsername), nil)
+					h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), existing.BotUsername), nil)
 					h.setSession(userID, nil)
 					return
 				}
 			}
-			msg := fmt.Sprintf(MasterMsgAlreadyRegistered, existing.BotUsername)
+			msg := fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername)
 			h.bot.SendMessage(chatID, msg, nil)
 			h.setSession(userID, nil)
 		} else {
-			h.bot.SendMessage(chatID, MasterMsgTokenAlreadyUsed, nil)
+			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.TokenAlreadyUsed"), nil)
 		}
 		return
 	}
@@ -253,7 +258,7 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 	bot, err := NewBot(text)
 	if err != nil {
 		log.Printf("Invalid bot token: %v", err)
-		h.bot.SendMessage(chatID, MasterMsgInvalidToken, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.InvalidToken"), nil)
 		return
 	}
 
@@ -263,14 +268,14 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 	session.State = StateAwaitingName
 	h.setSession(userID, session)
 
-	msg := fmt.Sprintf(MasterMsgTokenAccepted, bot.Username)
+	msg := fmt.Sprintf(myI18n.T(loc, "Master.TokenAccepted"), bot.Username)
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
-func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, session *OnboardingSession, username string) {
+func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, session *OnboardingSession, username string, loc *localizerType) {
 	name := strings.TrimSpace(text)
 	if len(name) < 2 {
-		h.bot.SendMessage(chatID, MasterMsgNameTooShort, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.NameTooShort"), nil)
 		return
 	}
 
@@ -285,7 +290,7 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	)
 	if err != nil {
 		log.Printf("Error creating trainer: %v", err)
-		h.bot.SendMessage(chatID, MasterMsgError, nil)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
@@ -297,13 +302,13 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	}
 
 	// Seed default data
-	h.seedDefaults(trainer.ID)
+	h.seedDefaults(trainer.ID, loc)
 
 	// Register bot handler + webhook via main.go callback
 	if OnTrainerCreated != nil {
 		if err := OnTrainerCreated(trainer); err != nil {
 			log.Printf("Error registering bot for @%s: %v", session.BotUsername, err)
-			h.bot.SendMessage(chatID, fmt.Sprintf(MasterMsgRegistrationFailed, session.BotUsername), nil)
+			h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), session.BotUsername), nil)
 			h.setSession(userID, nil)
 			return
 		}
@@ -313,13 +318,13 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	h.setSession(userID, nil)
 
 	// Send success message
-	msg := fmt.Sprintf(MasterMsgSuccess, name, session.BotUsername, session.BotUsername, session.BotUsername)
+	msg := fmt.Sprintf(myI18n.T(loc, "Master.Success"), name, session.BotUsername, session.BotUsername, session.BotUsername)
 	h.bot.SendMessage(chatID, msg, nil)
 
 	log.Printf("New trainer registered: %s (@%s)", name, session.BotUsername)
 }
 
-func (h *MasterHandler) seedDefaults(trainerID string) {
+func (h *MasterHandler) seedDefaults(trainerID string, loc *localizerType) {
 	// Session types
 	sessionTypes := []struct {
 		typeCode string
@@ -327,9 +332,9 @@ func (h *MasterHandler) seedDefaults(trainerID string) {
 		duration int
 		price    int
 	}{
-		{"personal", "Персональная тренировка", 60, 3000},
-		{"pair", "Парная тренировка", 60, 4500},
-		{"consultation", "Консультация", 30, 1500},
+		{"personal", myI18n.T(loc, "Seed.Personal"), 60, 3000},
+		{"pair", myI18n.T(loc, "Seed.Pair"), 60, 4500},
+		{"consultation", myI18n.T(loc, "Seed.Consultation"), 30, 1500},
 	}
 
 	for _, st := range sessionTypes {
@@ -358,3 +363,6 @@ func (h *MasterHandler) seedDefaults(trainerID string) {
 // OnTrainerCreated is called when a new trainer is created or re-registered.
 // Set by main.go to register the new bot dynamically. Returns error if registration fails.
 var OnTrainerCreated func(trainer *models.Trainer) error
+
+// localizerType is an alias for the go-i18n Localizer type used in master handler signatures
+type localizerType = i18n.Localizer

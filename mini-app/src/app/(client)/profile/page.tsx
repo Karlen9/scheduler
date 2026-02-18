@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
+import { setLocale } from "@/actions/locale";
 import { ActivityBackButton } from "@/components/ActivityBackButton";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ServiceSelector } from "@/components/ServiceSelector";
@@ -10,10 +13,18 @@ import { PhotoEditor } from "@/components/PhotoEditor";
 import { api, getPhotoUrl } from "@/lib/api";
 import { getAvatarColor } from "@/lib/colors";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { useProfile, useSessionTypes } from "@/hooks/queries";
 import { invalidateProfile } from "@/hooks/mutations";
 
 export default function ClientProfilePage() {
+  const t = useTranslations("ProfilePage");
+  const tc = useTranslations("Common");
+  const te = useTranslations("Errors");
+  const ts = useTranslations("Success");
+  const tl = useTranslations("LanguageSelector");
+  const locale = useLocale();
+  const router = useRouter();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const loading = profileLoading || servicesLoading;
@@ -45,6 +56,15 @@ export default function ClientProfilePage() {
     }
   }, [profile, services]);
 
+  // Cross-device language sync
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (profile?.language && profile.language !== locale && !syncedRef.current) {
+      syncedRef.current = true;
+      setLocale(profile.language).then(() => router.refresh());
+    }
+  }, [profile?.language, locale, router]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -62,10 +82,10 @@ export default function ClientProfilePage() {
       setPhotoUrl(result.fileId);
       setPhotoError(false);
       invalidateProfile();
-      toast.success("Фото обновлено");
+      toast.success(ts("photoUpdated"));
     } catch (err) {
       console.error("Failed to upload photo:", err);
-      toast.error("Ошибка загрузки фото");
+      toast.error(te("photoUploadFailed"));
     } finally {
       setIsUploading(false);
     }
@@ -76,10 +96,10 @@ export default function ClientProfilePage() {
     try {
       await api.updateProfile({ name, phone, preferredDuration });
       invalidateProfile();
-      toast.success("Профиль сохранен");
+      toast.success(ts("profileSaved"));
     } catch (err) {
       console.error("Failed to save profile:", err);
-      toast.error("Ошибка сохранения");
+      toast.error(te("saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -100,7 +120,7 @@ export default function ClientProfilePage() {
       await api.updateNotificationPrefs({ [key]: value });
     } catch {
       setters[key](!value);
-      toast.error("Ошибка сохранения настроек");
+      toast.error(te("saveSettingsFailed"));
     }
   };
 
@@ -165,7 +185,7 @@ export default function ClientProfilePage() {
       <div className="space-y-4">
         <div>
           <label className="block text-sm text-muted-foreground mb-1">
-            Имя
+            {t("nameLabel")}
           </label>
           <input
             type="text"
@@ -178,14 +198,14 @@ export default function ClientProfilePage() {
 
         <div>
           <label className="block text-sm text-muted-foreground mb-1">
-            Телефон
+            {t("phoneLabel")}
           </label>
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             maxLength={20}
-            placeholder="+7 (999) 123-45-67"
+            placeholder={t("phonePlaceholder")}
             className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
@@ -193,7 +213,7 @@ export default function ClientProfilePage() {
         {services.length > 1 && (
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Основной вид занятия
+              {t("preferredService")}
             </label>
             <ServiceSelector
               services={services}
@@ -206,18 +226,18 @@ export default function ClientProfilePage() {
 
       {/* Save Button */}
       <PrimaryButton onClick={handleSave} disabled={isSaving}>
-        {isSaving ? "Сохранение..." : "Сохранить"}
+        {isSaving ? tc("saving") : tc("save")}
       </PrimaryButton>
 
       {/* Notification Preferences */}
       <div>
-        <h3 className="text-sm text-muted-foreground mb-3">Уведомления</h3>
+        <h3 className="text-sm text-muted-foreground mb-3">{t("notifications")}</h3>
         <div className="bg-card rounded-lg divide-y divide-border">
           {[
-            { key: "notifyBookingStatus" as const, label: "Статус записи", desc: "Подтверждение и отклонение записей", value: notifyBookingStatus },
-            { key: "notifyCancellations" as const, label: "Отмена записей", desc: "Уведомления об отмене записей тренером", value: notifyCancellations },
-            { key: "notifyReminders" as const, label: "Напоминания", desc: "За час до тренировки", value: notifyReminders },
-            { key: "notifyDaysOff" as const, label: "Выходные тренера", desc: "Новые выходные дни", value: notifyDaysOff },
+            { key: "notifyBookingStatus" as const, label: t("notifyBookingStatus"), desc: t("notifyBookingStatusDesc"), value: notifyBookingStatus },
+            { key: "notifyCancellations" as const, label: t("notifyCancellations"), desc: t("notifyCancellationsDesc"), value: notifyCancellations },
+            { key: "notifyReminders" as const, label: t("notifyReminders"), desc: t("notifyRemindersDesc"), value: notifyReminders },
+            { key: "notifyDaysOff" as const, label: t("notifyDaysOff"), desc: t("notifyDaysOffDesc"), value: notifyDaysOff },
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between px-4 py-3">
               <div>
@@ -244,8 +264,14 @@ export default function ClientProfilePage() {
 
       {/* Theme */}
       <div>
-        <h3 className="text-sm text-muted-foreground mb-3">Тема</h3>
+        <h3 className="text-sm text-muted-foreground mb-3">{t("theme")}</h3>
         <ThemeSelector />
+      </div>
+
+      {/* Language */}
+      <div>
+        <h3 className="text-sm text-muted-foreground mb-3">{tl("language")}</h3>
+        <LanguageSelector />
       </div>
 
       {editorImage && (

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Bell, Users } from "lucide-react";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { BottomSheet } from "@/components/BottomSheet";
@@ -19,6 +20,10 @@ import { invalidateBookings } from "@/hooks/mutations";
 
 export default function AdminHomePage() {
   const router = useRouter();
+  const t = useTranslations("AdminDashboard");
+  const tc = useTranslations("Common");
+  const te = useTranslations("Errors");
+  const ts = useTranslations("Success");
   const { data: bookings, isLoading, error: fetchError } = useAdminBookings({ refreshInterval: 15000 });
   const { data: workingHoursData } = useAdminWorkingHours();
   const { data: daysOffData } = useAdminDaysOff();
@@ -43,7 +48,7 @@ export default function AdminHomePage() {
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
   const [showPendingSheet, setShowPendingSheet] = useState(false);
 
-  const error = fetchError ? (fetchError instanceof Error ? fetchError.message : "Ошибка загрузки") : null;
+  const error = fetchError ? (fetchError instanceof Error ? fetchError.message : t("loadError")) : null;
 
   const pendingBookings = useMemo(
     () => bookings.filter((b) => b.status === "pending" && b.createdBy !== "trainer")
@@ -70,11 +75,11 @@ export default function AdminHomePage() {
   const handleAccept = async (booking: Booking) => {
     try {
       await api.admin.updateBookingStatus(booking.id, "confirmed");
-      toast.success("Запись подтверждена");
+      toast.success(ts("bookingConfirmed"));
       setSelectedBooking(null);
       await invalidateBookings();
     } catch {
-      toast.error("Не удалось подтвердить запись");
+      toast.error(te("bookingConfirmFailed"));
     }
   };
 
@@ -88,10 +93,10 @@ export default function AdminHomePage() {
     if (!rejectTarget) return;
     try {
       await api.admin.updateBookingStatus(rejectTarget.id, "rejected", rejectReason || undefined);
-      toast.success("Запись отклонена");
+      toast.success(ts("bookingRejected"));
       await invalidateBookings();
     } catch {
-      toast.error("Не удалось отклонить запись");
+      toast.error(te("bookingRejectFailed"));
     }
     setShowRejectDialog(false);
     setRejectTarget(null);
@@ -115,10 +120,10 @@ export default function AdminHomePage() {
     if (!selectedBooking) return;
     try {
       await api.admin.updateBookingStatus(selectedBooking.id, "cancelled", cancelReason || undefined);
-      toast.success("Запись отменена");
+      toast.success(ts("bookingCancelled"));
       await invalidateBookings();
     } catch {
-      toast.error("Не удалось отменить запись");
+      toast.error(te("bookingCancelFailed"));
     }
     setShowCancelDialog(false);
     setSelectedBooking(null);
@@ -172,7 +177,7 @@ export default function AdminHomePage() {
             iconColor="text-warning"
             iconBg="bg-warning/20"
             value={pendingCount}
-            label="Новые заявки"
+            label={t("newRequests")}
             onClick={pendingCount > 0 ? () => setShowPendingSheet(true) : undefined}
           />
           <StatCard
@@ -180,7 +185,7 @@ export default function AdminHomePage() {
             iconColor="text-brand"
             iconBg="bg-brand/20"
             value={clients.length}
-            label="Все клиенты"
+            label={t("allClients")}
             onClick={() => router.push("/admin/clients")}
           />
         </div>
@@ -199,10 +204,10 @@ export default function AdminHomePage() {
       {/* Reject dialog */}
       <ConfirmDialog
         isOpen={showRejectDialog}
-        title="Отклонить заявку?"
-        description={`Вы уверены, что хотите отклонить заявку клиента ${rejectTarget?.clientName}?`}
-        confirmText="Отклонить"
-        cancelText="Назад"
+        title={t("rejectDialog")}
+        description={t("rejectDialogDescription", { name: rejectTarget?.clientName || "" })}
+        confirmText={t("rejectConfirm")}
+        cancelText={tc("back")}
         onConfirm={handleConfirmReject}
         onClose={() => {
           setShowRejectDialog(false);
@@ -211,7 +216,7 @@ export default function AdminHomePage() {
         }}
         destructive
         showInput
-        inputPlaceholder="Причина отклонения (необязательно)"
+        inputPlaceholder={t("rejectReasonPlaceholder")}
         inputValue={rejectReason}
         onInputChange={setRejectReason}
       />
@@ -233,7 +238,7 @@ export default function AdminHomePage() {
         isOpen={!!rescheduleBooking}
         onClose={() => setRescheduleBooking(null)}
         onSuccess={() => {
-          toast.success("Запись перенесена");
+          toast.success(ts("bookingRescheduled"));
           invalidateBookings();
         }}
       />
@@ -241,10 +246,10 @@ export default function AdminHomePage() {
       {/* Cancel dialog */}
       <ConfirmDialog
         isOpen={showCancelDialog}
-        title="Отменить запись?"
-        description={`Вы уверены, что хотите отменить запись клиента ${selectedBooking?.clientName}?`}
-        confirmText="Отменить запись"
-        cancelText="Назад"
+        title={t("cancelDialog")}
+        description={t("cancelDialogDescription", { name: selectedBooking?.clientName || "" })}
+        confirmText={t("cancelConfirm")}
+        cancelText={tc("back")}
         onConfirm={handleConfirmCancel}
         onClose={() => {
           setShowCancelDialog(false);
@@ -252,7 +257,7 @@ export default function AdminHomePage() {
         }}
         destructive
         showInput
-        inputPlaceholder="Причина отмены (необязательно)"
+        inputPlaceholder={t("cancelReasonPlaceholder")}
         inputValue={cancelReason}
         onInputChange={setCancelReason}
       />
@@ -261,7 +266,7 @@ export default function AdminHomePage() {
       <BottomSheet
         isOpen={showPendingSheet}
         onClose={() => setShowPendingSheet(false)}
-        title="Новые заявки"
+        title={t("newRequests")}
         className="max-h-[70vh] overflow-y-auto"
       >
         <div className="space-y-3">

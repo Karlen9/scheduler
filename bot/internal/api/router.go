@@ -38,6 +38,7 @@ func NewRouter() http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Use(TelegramAuthMiddleware("")) // botToken not used, we look it up per trainer
 		r.Use(DevAuthMiddleware(0))       // Fallback for dev
+		r.Use(I18nMiddleware)             // Set localizer from user's language pref
 
 		// Photo proxy (works without auth — middleware passes through unauthenticated requests)
 		r.Get("/photo/{fileId}", HandleGetPhoto)

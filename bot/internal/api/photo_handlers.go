@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -27,7 +26,7 @@ const maxPhotoSize = 5 << 20 // 5 MB
 func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	fileID := chi.URLParam(r, "fileId")
 	if fileID == "" {
-		http.Error(w, "file ID required", http.StatusBadRequest)
+		httpError(w, r, "Error.PhotoFileIDRequired", http.StatusBadRequest)
 		return
 	}
 
@@ -36,14 +35,14 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	if trainerID != "" {
 		trainer, err := db.GetTrainerByID(trainerID)
 		if err != nil || trainer == nil {
-			http.Error(w, "trainer not found", http.StatusNotFound)
+			httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 			return
 		}
 		bot := &telegram.Bot{Token: trainer.BotToken}
 		data, contentType, err := bot.GetFile(fileID)
 		if err != nil {
 			log.Printf("GetFile error: %v", err)
-			http.Error(w, "failed to fetch photo", http.StatusBadGateway)
+			httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
 			return
 		}
 		w.Header().Set("Content-Type", contentType)
@@ -55,7 +54,7 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	// No trainer specified — try all active trainers (file_ids are bot-scoped)
 	trainers, err := db.GetAllActiveTrainers()
 	if err != nil || len(trainers) == 0 {
-		http.Error(w, "no trainer configured", http.StatusInternalServerError)
+		httpError(w, r, "Error.TrainerNotConfigured", http.StatusInternalServerError)
 		return
 	}
 
@@ -71,7 +70,7 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("GetFile error: no trainer's bot could resolve file_id %s", fileID[:20])
-	http.Error(w, "failed to fetch photo", http.StatusBadGateway)
+	httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
 }
 
 // HandleUploadPhoto handles photo upload for clients.
@@ -80,14 +79,13 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "trainer not found", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
-	photoData, filename, err := readUploadedPhoto(r)
-	if err != nil {
-		log.Printf("Upload read error: %v", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	photoData, filename, errMsgID := readUploadedPhoto(r)
+	if errMsgID != "" {
+		httpError(w, r, errMsgID, http.StatusBadRequest)
 		return
 	}
 
@@ -97,14 +95,14 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	fileID, _, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
-		http.Error(w, "failed to upload photo", http.StatusInternalServerError)
+		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
 		return
 	}
 
 	if client != nil {
 		if err := db.UpdateClientPhoto(client.ID, fileID); err != nil {
 			log.Printf("UpdateClientPhoto error: %v", err)
-			http.Error(w, "failed to save photo", http.StatusInternalServerError)
+			httpError(w, r, "Error.PhotoSaveFailed", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -117,14 +115,13 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "trainer not found", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
-	photoData, filename, err := readUploadedPhoto(r)
-	if err != nil {
-		log.Printf("Upload read error: %v", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	photoData, filename, errMsgID := readUploadedPhoto(r)
+	if errMsgID != "" {
+		httpError(w, r, errMsgID, http.StatusBadRequest)
 		return
 	}
 
@@ -133,13 +130,13 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	fileID, _, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
-		http.Error(w, "failed to upload photo", http.StatusInternalServerError)
+		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
 		return
 	}
 
 	if err := db.UpdateTrainerPhoto(trainer.ID, fileID); err != nil {
 		log.Printf("UpdateTrainerPhoto error: %v", err)
-		http.Error(w, "failed to save photo", http.StatusInternalServerError)
+		httpError(w, r, "Error.PhotoSaveFailed", http.StatusInternalServerError)
 		return
 	}
 
@@ -147,27 +144,29 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 }
 
 // readUploadedPhoto reads and validates the uploaded photo from a multipart request.
-func readUploadedPhoto(r *http.Request) ([]byte, string, error) {
+// On error, it returns an empty slice, empty filename, and an i18n message ID string.
+// On success, the third return value is an empty string.
+func readUploadedPhoto(r *http.Request) ([]byte, string, string) {
 	r.Body = http.MaxBytesReader(nil, r.Body, maxPhotoSize+1<<20) // 6MB total for multipart overhead
 	if err := r.ParseMultipartForm(maxPhotoSize); err != nil {
-		return nil, "", fmt.Errorf("file too large (max 5MB)")
+		return nil, "", "Error.PhotoTooLarge"
 	}
 
 	file, header, err := r.FormFile("photo")
 	if err != nil {
-		return nil, "", fmt.Errorf("photo field required")
+		return nil, "", "Error.PhotoFieldRequired"
 	}
 	defer file.Close()
 
 	photoData, err := io.ReadAll(file)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to read photo")
+		return nil, "", "Error.PhotoReadFailed"
 	}
 
 	// Detect content type from actual file bytes
 	ct := http.DetectContentType(photoData)
 	if !strings.HasPrefix(ct, "image/") {
-		return nil, "", fmt.Errorf("only image files allowed")
+		return nil, "", "Error.PhotoOnlyImages"
 	}
 
 	// Re-encode as JPEG to ensure unique bytes on every upload.
@@ -177,10 +176,10 @@ func readUploadedPhoto(r *http.Request) ([]byte, string, error) {
 	reencoded, err := reencodAsJPEG(photoData)
 	if err != nil {
 		log.Printf("Image re-encode failed, using original: %v", err)
-		return photoData, header.Filename, nil
+		return photoData, header.Filename, ""
 	}
 
-	return reencoded, "photo.jpg", nil
+	return reencoded, "photo.jpg", ""
 }
 
 // reencodAsJPEG decodes an image and re-encodes it as JPEG with a random

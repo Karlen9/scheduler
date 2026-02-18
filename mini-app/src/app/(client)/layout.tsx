@@ -2,15 +2,10 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Plus, User, ClipboardList } from "lucide-react";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { initTelegramApp, getTelegramWebApp } from "@/lib/telegram";
-
-const clientTabs = [
-  { key: "bookings", label: "Записи", icon: ClipboardList, href: "/bookings", matchPaths: ["/bookings", "/recurring"] },
-  { key: "book", label: "", icon: Plus, href: "/book", isCenter: true },
-  { key: "profile", label: "Профиль", icon: User, href: "/profile" },
-];
 
 export default function ClientLayout({
   children,
@@ -19,8 +14,15 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const tn = useTranslations("Navigation");
   const isHome = pathname === "/" || pathname === "";
   const isBookPage = pathname === "/book";
+
+  const clientTabs = [
+    { key: "bookings", label: tn("bookings"), icon: ClipboardList, href: "/bookings", matchPaths: ["/bookings", "/recurring"] },
+    { key: "book", label: "", icon: Plus, href: "/book", isCenter: true },
+    { key: "profile", label: tn("profile"), icon: User, href: "/profile" },
+  ];
 
   useEffect(() => {
     initTelegramApp();

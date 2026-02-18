@@ -128,7 +128,7 @@ export const api = {
     return fetchAPI<ClientProfile>("/api/profile");
   },
 
-  async updateProfile(data: { name?: string; phone?: string; preferredDuration?: number }): Promise<ClientProfile> {
+  async updateProfile(data: { name?: string; phone?: string; preferredDuration?: number; language?: string }): Promise<ClientProfile> {
     return fetchAPI<ClientProfile>("/api/profile", {
       method: "PUT",
       body: JSON.stringify(data),

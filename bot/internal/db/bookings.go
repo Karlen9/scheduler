@@ -370,7 +370,7 @@ func ApproveRescheduleBooking(newBookingID string) error {
 
 	// Cancel the old booking
 	if newBooking.ReplacesBookingID != "" {
-		DB.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancel_reason = 'Перенесена' WHERE id = ?`), newBooking.ReplacesBookingID)
+		DB.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancel_reason = 'rescheduled' WHERE id = ?`), newBooking.ReplacesBookingID)
 	}
 
 	// Confirm the new booking

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Booking, TimeSlot } from "@/lib/types";
 import { BottomSheet } from "@/components/BottomSheet";
 import { CalendarView } from "@/components/CalendarView";
@@ -21,6 +22,9 @@ function formatDateISO(date: Date) {
 }
 
 export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: RescheduleSheetProps) {
+  const t = useTranslations("RescheduleSheet");
+  const tc = useTranslations("Common");
+  const te = useTranslations("Errors");
   const { data: workingHoursData } = useWorkingHours();
   const { data: daysOffData } = useDaysOff();
 
@@ -79,7 +83,7 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
       onSuccess();
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось перенести запись");
+      setError(err instanceof Error ? err.message : te("bookingRescheduleFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -96,7 +100,7 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
   const hasAvailableSlots = timeSlots.some((s) => s.available);
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={handleClose} title="Перенос записи" className="max-h-[85vh] overflow-y-auto">
+    <BottomSheet isOpen={isOpen} onClose={handleClose} title={t("title")} className="max-h-[85vh] overflow-y-auto">
       <div className="space-y-4">
         <CalendarView
           selectedDate={selectedDate}
@@ -117,12 +121,12 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
 
         {selectedDate && !isLoadingSlots && timeSlots.length > 0 && (
           <>
-            <h4 className="text-sm font-medium text-muted-foreground">Выберите время</h4>
+            <h4 className="text-sm font-medium text-muted-foreground">{t("selectTime")}</h4>
             {hasAvailableSlots ? (
               <TimeSlotGrid slots={timeSlots} selected={selectedTime} onSelect={setSelectedTime} />
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Нет доступных слотов на эту дату
+                {t("noSlots")}
               </p>
             )}
           </>
@@ -134,7 +138,7 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
 
         {selectedTime && (
           <PrimaryButton onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Сохранение..." : "Перенести"}
+            {isSubmitting ? tc("saving") : t("submitButton")}
           </PrimaryButton>
         )}
       </div>

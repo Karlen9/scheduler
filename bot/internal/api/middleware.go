@@ -14,8 +14,20 @@ import (
 	"strings"
 
 	"scheduler-bot/internal/db"
+	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
+
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
+
+// localizerFromRequest creates a localizer from the request's lang query parameter.
+// Used in auth middlewares that run before I18nMiddleware sets the localizer in context.
+func localizerFromRequest(r *http.Request) *i18n.Localizer {
+	if lang := r.URL.Query().Get("lang"); lang == "en" || lang == "ru" {
+		return myI18n.NewLocalizer(lang)
+	}
+	return myI18n.Default()
+}
 
 type contextKey string
 
@@ -53,11 +65,11 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 			if err != nil {
 				log.Printf("Error getting trainer: %v", err)
-				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
 				return
 			}
 			if trainer == nil {
-				http.Error(w, "Тренер не найден", http.StatusNotFound)
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TrainerNotFound"), http.StatusNotFound)
 				return
 			}
 
@@ -72,7 +84,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			// Validate initData using the trainer's bot token
 			user, ok := validateInitData(initData, trainer.BotToken)
 			if !ok {
-				http.Error(w, "Ошибка авторизации Telegram", http.StatusUnauthorized)
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TelegramAuth"), http.StatusUnauthorized)
 				return
 			}
 
@@ -84,7 +96,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			client, err := db.GetOrCreateClient(user.ID, trainer.ID, name)
 			if err != nil {
 				log.Printf("Error getting/creating client: %v", err)
-				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
 				return
 			}
 
@@ -175,13 +187,13 @@ func AdminAuthMiddleware(next http.Handler) http.Handler {
 		trainer := GetTrainerFromContext(r)
 
 		if client == nil || trainer == nil {
-			http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+			httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		// Check if client's telegram ID matches trainer's telegram ID
 		if client.TelegramUserID != trainer.TelegramUserID {
-			http.Error(w, "Нет доступа", http.StatusForbidden)
+			httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 			return
 		}
 
@@ -207,7 +219,7 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 				trainer, err = db.GetFirstTrainer()
 				if err != nil || trainer == nil {
 					log.Printf("Error getting trainer: %v", err)
-					http.Error(w, "Тренер не настроен", http.StatusInternalServerError)
+					http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TrainerNotConfigured"), http.StatusInternalServerError)
 					return
 				}
 			}
@@ -229,7 +241,7 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 			client, err := db.GetOrCreateClient(userID, trainer.ID, "Dev User")
 			if err != nil {
 				log.Printf("Error creating dev client: %v", err)
-				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
 				return
 			}
 
@@ -238,4 +250,20 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// I18nMiddleware determines the user's language from client/trainer profile
+// and stores a localizer in context. Must run AFTER auth middleware.
+func I18nMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lang := "ru"
+		if client := GetClientFromContext(r); client != nil && client.Language != "" {
+			lang = client.Language
+		} else if trainer := GetTrainerFromContext(r); trainer != nil && trainer.Language != "" {
+			lang = trainer.Language
+		}
+		loc := myI18n.NewLocalizer(lang)
+		ctx := myI18n.WithLocalizer(r.Context(), loc)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

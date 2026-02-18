@@ -1,15 +1,29 @@
-const statusStyles: Record<string, { label: string; color: string }> = {
-  // Booking statuses
-  pending: { label: "Ожидает", color: "bg-status-pending-bg text-status-pending-text" },
-  confirmed: { label: "Подтверждено", color: "bg-status-confirmed-bg text-status-confirmed-text" },
-  rejected: { label: "Отклонено", color: "bg-status-rejected-bg text-status-rejected-text" },
-  cancelled: { label: "Отменено", color: "bg-status-cancelled-bg text-status-cancelled-text" },
-  completed: { label: "Завершено", color: "bg-status-completed-bg text-status-completed-text" },
-  cancel_requested: { label: "Отмена запрошена", color: "bg-status-warning-bg text-status-warning-text" },
-  reschedule_pending: { label: "Перенос", color: "bg-status-purple-bg text-status-purple-text" },
-  // Recurring schedule statuses
-  active: { label: "Активно", color: "bg-status-confirmed-bg text-status-confirmed-text" },
-  declined: { label: "Отклонено", color: "bg-status-rejected-bg text-status-rejected-text" },
+"use client";
+
+import { useTranslations } from "next-intl";
+
+const statusColors: Record<string, string> = {
+  pending: "bg-status-pending-bg text-status-pending-text",
+  confirmed: "bg-status-confirmed-bg text-status-confirmed-text",
+  rejected: "bg-status-rejected-bg text-status-rejected-text",
+  cancelled: "bg-status-cancelled-bg text-status-cancelled-text",
+  completed: "bg-status-completed-bg text-status-completed-text",
+  cancel_requested: "bg-status-warning-bg text-status-warning-text",
+  reschedule_pending: "bg-status-purple-bg text-status-purple-text",
+  active: "bg-status-confirmed-bg text-status-confirmed-text",
+  declined: "bg-status-rejected-bg text-status-rejected-text",
+};
+
+const statusKeyMap: Record<string, string> = {
+  pending: "pending",
+  confirmed: "confirmed",
+  rejected: "rejected",
+  cancelled: "cancelled",
+  completed: "completed",
+  cancel_requested: "cancelRequested",
+  reschedule_pending: "reschedulePending",
+  active: "active",
+  declined: "declined",
 };
 
 export const statusBorders: Record<string, string> = {
@@ -19,8 +33,8 @@ export const statusBorders: Record<string, string> = {
   cancelled: "border-status-cancelled-border",
 };
 
-export function getStatusStyle(status: string) {
-  return statusStyles[status] || statusStyles.pending;
+export function getStatusColor(status: string) {
+  return statusColors[status] || statusColors.pending;
 }
 
 interface StatusBadgeProps {
@@ -29,10 +43,12 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
-  const style = getStatusStyle(status);
+  const ts = useTranslations("Status");
+  const color = statusColors[status] || statusColors.pending;
+  const key = statusKeyMap[status] || "pending";
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${style.color} ${className}`}>
-      {style.label}
+    <span className={`px-3 py-1 rounded-full text-xs font-medium ${color} ${className}`}>
+      {ts(key)}
     </span>
   );
 }

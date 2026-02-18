@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { PrimaryButton } from "@/components/PrimaryButton";
 
 interface ConfirmDialogProps {
@@ -23,15 +24,20 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
-  confirmText = "Подтвердить",
-  cancelText = "Отмена",
+  confirmText,
+  cancelText,
   destructive = false,
   showInput = false,
   inputPlaceholder,
   inputValue,
   onInputChange,
 }: ConfirmDialogProps) {
+  const tc = useTranslations("Common");
+
   if (!isOpen) return null;
+
+  const resolvedConfirmText = confirmText ?? tc("confirm");
+  const resolvedCancelText = cancelText ?? tc("cancel");
 
   const handleConfirm = () => {
     onConfirm();
@@ -63,19 +69,19 @@ export function ConfirmDialog({
             onClick={onClose}
             className="flex-1 py-3 px-4 rounded-xl bg-card text-foreground font-medium text-base transition-opacity active:opacity-70"
           >
-            {cancelText}
+            {resolvedCancelText}
           </button>
           {destructive ? (
             <button
               onClick={handleConfirm}
               className="flex-1 py-3 px-4 rounded-xl bg-destructive text-white font-medium text-base transition-opacity active:opacity-70"
             >
-              {confirmText}
+              {resolvedConfirmText}
             </button>
           ) : (
             <div className="flex-1">
               <PrimaryButton onClick={handleConfirm}>
-                {confirmText}
+                {resolvedConfirmText}
               </PrimaryButton>
             </div>
           )}

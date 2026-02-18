@@ -1,11 +1,15 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface ScheduleTabsProps {
   activeTab: "day" | "week";
   onChange: (tab: "day" | "week") => void;
 }
 
 export function ScheduleTabs({ activeTab, onChange }: ScheduleTabsProps) {
+  const t = useTranslations("ScheduleView");
+
   return (
     <div className="flex gap-2 mb-4">
       <button
@@ -16,7 +20,7 @@ export function ScheduleTabs({ activeTab, onChange }: ScheduleTabsProps) {
             : "text-muted-foreground hover:bg-card"
         }`}
       >
-        День
+        {t("day")}
       </button>
       <button
         onClick={() => onChange("week")}
@@ -26,7 +30,7 @@ export function ScheduleTabs({ activeTab, onChange }: ScheduleTabsProps) {
             : "text-muted-foreground hover:bg-card"
         }`}
       >
-        Неделя
+        {t("week")}
       </button>
     </div>
   );

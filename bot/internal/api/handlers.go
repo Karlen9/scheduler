@@ -10,8 +10,15 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"scheduler-bot/internal/db"
+	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
 )
+
+// httpError writes a localized error message using the localizer from request context.
+func httpError(w http.ResponseWriter, r *http.Request, msgID string, code int) {
+	loc := myI18n.L(r.Context())
+	http.Error(w, myI18n.T(loc, msgID), code)
+}
 
 // NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin panel
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
@@ -47,12 +54,13 @@ type TrainerResponse struct {
 	GymLatitude     float64 `json:"gymLatitude,omitempty"`
 	GymLongitude    float64 `json:"gymLongitude,omitempty"`
 	IsOwner         bool    `json:"isOwner"`
+	Language        string  `json:"language,omitempty"`
 }
 
 func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -73,6 +81,7 @@ func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 		GymLatitude:     trainer.GymLatitude,
 		GymLongitude:    trainer.GymLongitude,
 		IsOwner:         isOwner,
+		Language:        trainer.Language,
 	}
 
 	writeJSON(w, resp)
@@ -81,14 +90,14 @@ func HandleGetTrainer(w http.ResponseWriter, r *http.Request) {
 func HandleGetServices(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	services, err := db.GetSessionTypesByTrainerID(trainer.ID)
 	if err != nil {
 		log.Printf("Error getting services: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -102,14 +111,14 @@ func HandleGetServices(w http.ResponseWriter, r *http.Request) {
 func HandleGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	hours, err := db.GetWorkingHoursByTrainerID(trainer.ID)
 	if err != nil {
 		log.Printf("Error getting working hours: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -123,7 +132,7 @@ func HandleGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -134,7 +143,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	sessionTypeParam := r.URL.Query().Get("sessionType")
 
 	if dateStr == "" {
-		http.Error(w, "Укажите дату", http.StatusBadRequest)
+		httpError(w, r, "Error.MissingDate", http.StatusBadRequest)
 		return
 	}
 
@@ -143,25 +152,25 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		var err error
 		duration, err = strconv.Atoi(durationParam)
 		if err != nil || duration <= 0 {
-			http.Error(w, "Неверная длительность", http.StatusBadRequest)
+			httpError(w, r, "Error.InvalidDuration", http.StatusBadRequest)
 			return
 		}
 	} else if sessionTypeParam != "" {
 		// Legacy: look up duration from session type
 		sessionType, err := db.GetSessionTypeByType(trainer.ID, sessionTypeParam)
 		if err != nil || sessionType == nil {
-			http.Error(w, "Неверный тип услуги", http.StatusBadRequest)
+			httpError(w, r, "Error.InvalidServiceType", http.StatusBadRequest)
 			return
 		}
 		duration = sessionType.DurationMinutes
 	} else {
-		http.Error(w, "Укажите длительность", http.StatusBadRequest)
+		httpError(w, r, "Error.MissingDuration", http.StatusBadRequest)
 		return
 	}
 
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		http.Error(w, "Неверный формат даты", http.StatusBadRequest)
+		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
 		return
 	}
 
@@ -169,7 +178,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	isDayOff, err := db.IsDayOff(trainer.ID, date)
 	if err != nil {
 		log.Printf("Error checking day off: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if isDayOff {
@@ -181,7 +190,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	hours, err := db.GetWorkingHoursByTrainerID(trainer.ID)
 	if err != nil {
 		log.Printf("Error getting working hours: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -205,7 +214,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	bookings, err := db.GetBookingsByTrainerIDAndDateRange(trainer.ID, startOfDay, endOfDay)
 	if err != nil {
 		log.Printf("Error getting bookings: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -274,14 +283,14 @@ func formatTime(hour, min int) string {
 func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	bookings, err := db.GetBookingsByClientID(client.ID)
 	if err != nil {
 		log.Printf("Error getting bookings: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -300,36 +309,36 @@ type CancelBookingRequest struct {
 func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	bookingID := chi.URLParam(r, "id")
 	if bookingID == "" {
-		http.Error(w, "Неверный ID записи", http.StatusBadRequest)
+		httpError(w, r, "Error.InvalidBookingID", http.StatusBadRequest)
 		return
 	}
 
 	booking, err := db.GetBookingByID(bookingID)
 	if err != nil {
 		log.Printf("Error getting booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if booking == nil {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 
 	// Verify booking belongs to client
 	if booking.ClientID != client.ID {
-		http.Error(w, "Нет доступа", http.StatusForbidden)
+		httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 		return
 	}
 
 	// Check if booking can be cancelled
 	if booking.Status != models.BookingStatusPending && booking.Status != models.BookingStatusConfirmed {
-		http.Error(w, "Запись не может быть отменена", http.StatusBadRequest)
+		httpError(w, r, "Error.BookingCannotCancel", http.StatusBadRequest)
 		return
 	}
 
@@ -338,7 +347,7 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.CancelBooking(bookingID, req.Reason, models.CancelledByClient); err != nil {
 		log.Printf("Error cancelling booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -372,31 +381,31 @@ type CreateBookingRequest struct {
 func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	var req CreateBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
 	if req.Duration <= 0 || req.Date == "" || req.Time == "" {
-		http.Error(w, "Заполните все обязательные поля", http.StatusBadRequest)
+		httpError(w, r, "Error.MissingFields", http.StatusBadRequest)
 		return
 	}
 
 	// Parse date and time
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
-		http.Error(w, "Неверный формат даты", http.StatusBadRequest)
+		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
 		return
 	}
 
@@ -404,11 +413,11 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	hasBooking, err := db.ClientHasBookingOnDate(client.ID, date)
 	if err != nil {
 		log.Printf("Error checking existing bookings: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if hasBooking {
-		http.Error(w, "У вас уже есть запись на этот день", http.StatusConflict)
+		httpError(w, r, "Error.BookingDuplicate", http.StatusConflict)
 		return
 	}
 
@@ -420,18 +429,18 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	hasConflict, err := db.HasConflictingBooking(trainer.ID, startsAt, endsAt, "")
 	if err != nil {
 		log.Printf("Error checking conflicts: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if hasConflict {
-		http.Error(w, "Это время уже занято", http.StatusConflict)
+		httpError(w, r, "Error.BookingConflict", http.StatusConflict)
 		return
 	}
 
 	// Find session type by duration
 	services, err := db.GetSessionTypesByTrainerID(trainer.ID)
 	if err != nil || len(services) == 0 {
-		http.Error(w, "Нет настроенных услуг", http.StatusBadRequest)
+		httpError(w, r, "Error.NoServices", http.StatusBadRequest)
 		return
 	}
 	sessionTypeID := services[0].ID
@@ -451,7 +460,7 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	booking, err := db.CreateBooking(trainer.ID, client.ID, sessionTypeID, startsAt, endsAt, clientName, req.Message, req.Duration)
 	if err != nil {
 		log.Printf("Error creating booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -477,14 +486,14 @@ type PublicDayOff struct {
 func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	daysOff, err := db.GetDaysOffByTrainerID(trainer.ID)
 	if err != nil {
 		log.Printf("Error getting days off: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -506,6 +515,7 @@ type ClientProfileResponse struct {
 	Phone               string `json:"phone,omitempty"`
 	PhotoURL            string `json:"photoUrl,omitempty"`
 	PreferredDuration   int    `json:"preferredDuration,omitempty"`
+	Language            string `json:"language"`
 	NotifyBookingStatus bool   `json:"notifyBookingStatus"`
 	NotifyReminders     bool   `json:"notifyReminders"`
 	NotifyDaysOff       bool   `json:"notifyDaysOff"`
@@ -516,12 +526,13 @@ type UpdateClientProfileRequest struct {
 	Name              string `json:"name,omitempty"`
 	Phone             string `json:"phone,omitempty"`
 	PreferredDuration *int   `json:"preferredDuration,omitempty"`
+	Language          string `json:"language,omitempty"`
 }
 
 func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -531,6 +542,7 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 		Phone:               client.Phone,
 		PhotoURL:            client.PhotoURL,
 		PreferredDuration:   client.PreferredDuration,
+		Language:            client.Language,
 		NotifyBookingStatus: client.NotifyBookingStatus,
 		NotifyReminders:     client.NotifyReminders,
 		NotifyDaysOff:       client.NotifyDaysOff,
@@ -543,18 +555,18 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var req UpdateClientProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
 	if len(req.Name) > 50 || len(req.Phone) > 20 {
-		http.Error(w, "Превышена максимальная длина поля", http.StatusBadRequest)
+		httpError(w, r, "Error.FieldTooLong", http.StatusBadRequest)
 		return
 	}
 
@@ -575,13 +587,18 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.UpdateClientProfile(client.ID, name, phone, preferredDuration); err != nil {
 		log.Printf("Error updating client profile: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
+	}
+
+	// Update language if valid
+	if req.Language == "ru" || req.Language == "en" {
+		db.UpdateClientLanguage(client.ID, req.Language)
 	}
 
 	updated, err := db.GetClientByID(client.ID)
 	if err != nil || updated == nil {
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -591,6 +608,7 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		Phone:               updated.Phone,
 		PhotoURL:            updated.PhotoURL,
 		PreferredDuration:   updated.PreferredDuration,
+		Language:            updated.Language,
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
@@ -612,13 +630,13 @@ type UpdateClientNotificationPrefsRequest struct {
 func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var req UpdateClientNotificationPrefsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
@@ -641,13 +659,13 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 
 	if err := db.UpdateClientNotificationPrefs(client.ID, notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations); err != nil {
 		log.Printf("Error updating notification prefs: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
 	updated, _ := db.GetClientByID(client.ID)
 	if updated == nil {
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -657,6 +675,7 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 		Phone:               updated.Phone,
 		PhotoURL:            updated.PhotoURL,
 		PreferredDuration:   updated.PreferredDuration,
+		Language:            updated.Language,
 		NotifyBookingStatus: updated.NotifyBookingStatus,
 		NotifyReminders:     updated.NotifyReminders,
 		NotifyDaysOff:       updated.NotifyDaysOff,
@@ -669,38 +688,38 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	bookingID := chi.URLParam(r, "id")
 	if bookingID == "" {
-		http.Error(w, "Неверный ID записи", http.StatusBadRequest)
+		httpError(w, r, "Error.InvalidBookingID", http.StatusBadRequest)
 		return
 	}
 
 	booking, err := db.GetBookingByID(bookingID)
 	if err != nil {
 		log.Printf("Error getting booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if booking == nil {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.ClientID != client.ID {
-		http.Error(w, "Нет доступа", http.StatusForbidden)
+		httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 		return
 	}
 	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "trainer" {
-		http.Error(w, "Запись не может быть подтверждена", http.StatusBadRequest)
+		httpError(w, r, "Error.BookingCannotConfirm", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.UpdateBookingStatus(bookingID, models.BookingStatusConfirmed); err != nil {
 		log.Printf("Error confirming booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -719,38 +738,38 @@ func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	bookingID := chi.URLParam(r, "id")
 	if bookingID == "" {
-		http.Error(w, "Неверный ID записи", http.StatusBadRequest)
+		httpError(w, r, "Error.InvalidBookingID", http.StatusBadRequest)
 		return
 	}
 
 	booking, err := db.GetBookingByID(bookingID)
 	if err != nil {
 		log.Printf("Error getting booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if booking == nil {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.ClientID != client.ID {
-		http.Error(w, "Нет доступа", http.StatusForbidden)
+		httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 		return
 	}
 	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "trainer" {
-		http.Error(w, "Запись не может быть отклонена", http.StatusBadRequest)
+		httpError(w, r, "Error.BookingCannotReject", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.CancelBooking(bookingID, "", models.CancelledByClient); err != nil {
 		log.Printf("Error declining booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 

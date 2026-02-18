@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { TimePickerModal } from "@/components/TimePickerModal";
@@ -10,7 +11,7 @@ import { api } from "@/lib/api";
 import { useAdminWorkingHours } from "@/hooks/queries";
 import { invalidateWorkingHours } from "@/hooks/mutations";
 
-const DAY_NAMES = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 interface DaySchedule {
   enabled: boolean;
@@ -29,6 +30,11 @@ const defaultSchedule: Record<number, DaySchedule> = {
 };
 
 export default function SchedulePage() {
+  const t = useTranslations("AdminSchedule");
+  const tc = useTranslations("Common");
+  const tdat = useTranslations("Dates");
+  const te = useTranslations("Errors");
+  const ts = useTranslations("Success");
   const { data: workingHours, isLoading } = useAdminWorkingHours();
   const [schedule, setSchedule] = useState<Record<number, DaySchedule>>(defaultSchedule);
   const [initialized, setInitialized] = useState(false);
@@ -106,10 +112,10 @@ export default function SchedulePage() {
 
       await api.admin.updateWorkingHours(hours);
       invalidateWorkingHours();
-      toast.success("Расписание сохранено");
+      toast.success(ts("scheduleSaved"));
     } catch (err) {
       console.error("Failed to save working hours:", err);
-      toast.error("Ошибка сохранения");
+      toast.error(te("saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -118,9 +124,9 @@ export default function SchedulePage() {
   if (isLoading) {
     return (
       <div>
-        <TopBar title="Расписание" showBack />
+        <TopBar title={t("title")} showBack />
         <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-muted-foreground">Загрузка...</div>
+          <div className="text-muted-foreground">{tc("loading")}</div>
         </div>
       </div>
     );
@@ -128,12 +134,12 @@ export default function SchedulePage() {
 
   return (
     <div>
-      <TopBar title="Расписание" showBack />
+      <TopBar title={t("title")} showBack />
 
       <div className="p-4 space-y-6">
         {/* Working Hours per Day */}
         <div>
-          <h3 className="text-sm text-muted-foreground mb-3">Рабочие дни</h3>
+          <h3 className="text-sm text-muted-foreground mb-3">{t("workingDays")}</h3>
           <div className="space-y-2">
             {[1, 2, 3, 4, 5, 6, 0].map((day) => (
               <div
@@ -147,7 +153,7 @@ export default function SchedulePage() {
                   className="w-5 h-5 rounded border-border text-brand focus:ring-brand"
                 />
                 <span className="w-8 text-foreground font-medium">
-                  {DAY_NAMES[day]}
+                  {tdat(`daysShort.${dayKeys[day]}`)}
                 </span>
                 {schedule[day].enabled && (
                   <div className="flex-1 flex items-center gap-2 text-sm">
@@ -173,7 +179,7 @@ export default function SchedulePage() {
 
         {/* Save Button */}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Сохранение..." : "Сохранить изменения"}
+          {isSaving ? tc("saving") : tc("saveChanges")}
         </PrimaryButton>
       </div>
 
@@ -187,7 +193,7 @@ export default function SchedulePage() {
             ? schedule[pickerDay][pickerType === "start" ? "startTime" : "endTime"]
             : "09:00"
         }
-        title={pickerType === "start" ? "Начало работы" : "Конец работы"}
+        title={pickerType === "start" ? t("startTime") : t("endTime")}
       />
     </div>
   );

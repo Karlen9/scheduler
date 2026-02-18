@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"scheduler-bot/internal/db"
+	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
 )
 
@@ -130,35 +131,35 @@ func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, du
 
 func validateRecurringRequest(sessionTypeID string, daysOfWeek []int, timeStr, period string, dayTimes map[string]string) error {
 	if sessionTypeID == "" {
-		return fmt.Errorf("Выберите услугу")
+		return fmt.Errorf("Error.SelectService")
 	}
 	hasDayTimes := len(dayTimes) > 0
 	if !hasDayTimes {
 		if len(daysOfWeek) == 0 {
-			return fmt.Errorf("Выберите дни недели")
+			return fmt.Errorf("Error.SelectDaysOfWeek")
 		}
 		for _, d := range daysOfWeek {
 			if d < 0 || d > 6 {
-				return fmt.Errorf("Неверный день недели")
+				return fmt.Errorf("Error.InvalidDayOfWeek")
 			}
 		}
 		if timeStr == "" || len(timeStr) < 5 {
-			return fmt.Errorf("Выберите время")
+			return fmt.Errorf("Error.SelectTime")
 		}
 	} else {
 		for dayStr, t := range dayTimes {
 			d, err := strconv.Atoi(dayStr)
 			if err != nil || d < 0 || d > 6 {
-				return fmt.Errorf("Неверный день недели")
+				return fmt.Errorf("Error.InvalidDayOfWeek")
 			}
 			if t == "" || len(t) < 5 {
-				return fmt.Errorf("Выберите время")
+				return fmt.Errorf("Error.SelectTime")
 			}
 		}
 	}
 	validPeriods := map[string]bool{"1week": true, "1month": true, "3months": true}
 	if !validPeriods[period] {
-		return fmt.Errorf("Неверный период")
+		return fmt.Errorf("Error.InvalidPeriod")
 	}
 	return nil
 }
@@ -195,19 +196,27 @@ func dayTimesToJSON(dayTimes map[string]string) string {
 	return string(b)
 }
 
+// handleValidationError sends a localized error from validateRecurringRequest.
+// The error message is an i18n key like "Error.SelectService".
+func handleValidationError(w http.ResponseWriter, r *http.Request, err error) {
+	loc := myI18n.L(r.Context())
+	msgID := err.Error()
+	http.Error(w, myI18n.T(loc, msgID), http.StatusBadRequest)
+}
+
 // ========== Client Recurring Endpoints ==========
 
 func HandleGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	schedules, err := db.GetRecurringSchedulesByClientID(client.ID)
 	if err != nil {
 		log.Printf("Error getting recurring schedules: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -221,7 +230,7 @@ func HandleGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 func HandleGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -229,11 +238,11 @@ func HandleGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
 	schedule, err := db.GetRecurringScheduleWithBookings(id)
 	if err != nil {
 		log.Printf("Error getting recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if schedule == nil || schedule.ClientID != client.ID {
-		http.Error(w, "Расписание не найдено", http.StatusNotFound)
+		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -243,19 +252,19 @@ func HandleGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
 func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	var req CreateRecurringScheduleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
@@ -269,19 +278,19 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
 	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
 	if err != nil || sessionType == nil {
-		http.Error(w, "Услуга не найдена", http.StatusBadRequest)
+		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
 		return
 	}
 
 	startDate, endDate, err := calculateDateRange(req.Period)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
@@ -298,7 +307,7 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		log.Printf("Error creating recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -321,19 +330,19 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	var req PreviewRecurringScheduleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
@@ -346,26 +355,26 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
 	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
 	if err != nil || sessionType == nil {
-		http.Error(w, "Услуга не найдена", http.StatusBadRequest)
+		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
 		return
 	}
 
 	startDate, endDate, err := calculateDateRange(req.Period)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
 	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -379,7 +388,7 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -387,22 +396,22 @@ func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	schedule, err := db.GetRecurringScheduleByID(id)
 	if err != nil {
 		log.Printf("Error getting recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if schedule == nil || schedule.ClientID != client.ID {
-		http.Error(w, "Расписание не найдено", http.StatusNotFound)
+		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
 
 	if schedule.Status != models.RecurringScheduleStatusPending && schedule.Status != models.RecurringScheduleStatusActive {
-		http.Error(w, "Расписание не может быть отменено", http.StatusBadRequest)
+		httpError(w, r, "Error.ScheduleCannotCancel", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.UpdateRecurringScheduleStatus(id, models.RecurringScheduleStatusCancelled); err != nil {
 		log.Printf("Error cancelling recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -415,14 +424,14 @@ func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 func HandleAdminGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	schedules, err := db.GetRecurringSchedulesByTrainerID(trainer.ID)
 	if err != nil {
 		log.Printf("Error getting recurring schedules: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -436,7 +445,7 @@ func HandleAdminGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -444,11 +453,11 @@ func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Reques
 	schedule, err := db.GetRecurringScheduleWithBookings(id)
 	if err != nil {
 		log.Printf("Error getting recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if schedule == nil || schedule.TrainerID != trainer.ID {
-		http.Error(w, "Расписание не найдено", http.StatusNotFound)
+		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -458,18 +467,18 @@ func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Reques
 func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	var req AdminCreateRecurringScheduleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
 	if req.ClientID == "" {
-		http.Error(w, "Выберите клиента", http.StatusBadRequest)
+		httpError(w, r, "Error.ClientSelect", http.StatusBadRequest)
 		return
 	}
 
@@ -483,30 +492,30 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
 	client, err := db.GetClientByID(req.ClientID)
 	if err != nil {
 		log.Printf("Error getting client: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if client == nil || client.TrainerID != trainer.ID {
-		http.Error(w, "Клиент не найден", http.StatusNotFound)
+		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
 
 	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
 	if err != nil || sessionType == nil {
-		http.Error(w, "Услуга не найдена", http.StatusBadRequest)
+		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
 		return
 	}
 
 	startDate, endDate, err := calculateDateRange(req.Period)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
@@ -523,7 +532,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	)
 	if err != nil {
 		log.Printf("Error creating recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -553,13 +562,13 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
 	var req PreviewRecurringScheduleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
@@ -572,26 +581,26 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := validateRecurringRequest(req.SessionTypeID, req.DaysOfWeek, req.Time, req.Period, req.DayTimes); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
 	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
 	if err != nil || sessionType == nil {
-		http.Error(w, "Услуга не найдена", http.StatusBadRequest)
+		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
 		return
 	}
 
 	startDate, endDate, err := calculateDateRange(req.Period)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
 	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -605,7 +614,7 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -613,22 +622,22 @@ func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	schedule, err := db.GetRecurringScheduleByID(id)
 	if err != nil {
 		log.Printf("Error getting recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if schedule == nil || schedule.TrainerID != trainer.ID {
-		http.Error(w, "Расписание не найдено", http.StatusNotFound)
+		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
 	if schedule.Status != models.RecurringScheduleStatusPending {
-		http.Error(w, "Расписание уже обработано", http.StatusBadRequest)
+		httpError(w, r, "Error.ScheduleProcessed", http.StatusBadRequest)
 		return
 	}
 
 	count, err := db.ApproveAndGenerateBookings(id)
 	if err != nil {
 		log.Printf("Error approving recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -641,7 +650,7 @@ func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request)
 func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -649,21 +658,21 @@ func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	schedule, err := db.GetRecurringScheduleByID(id)
 	if err != nil {
 		log.Printf("Error getting recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if schedule == nil || schedule.TrainerID != trainer.ID {
-		http.Error(w, "Расписание не найдено", http.StatusNotFound)
+		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
 	if schedule.Status != models.RecurringScheduleStatusPending {
-		http.Error(w, "Расписание уже обработано", http.StatusBadRequest)
+		httpError(w, r, "Error.ScheduleProcessed", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.UpdateRecurringScheduleStatus(id, models.RecurringScheduleStatusDeclined); err != nil {
 		log.Printf("Error declining recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -688,11 +697,11 @@ func getScheduleBooking(w http.ResponseWriter, r *http.Request) (*models.Booking
 	booking, err := db.GetBookingByID(bookingID)
 	if err != nil {
 		log.Printf("Error getting booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return nil, ""
 	}
 	if booking == nil || booking.RecurringScheduleID != scheduleID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return nil, ""
 	}
 	return booking, scheduleID
@@ -703,7 +712,7 @@ func getScheduleBooking(w http.ResponseWriter, r *http.Request) (*models.Booking
 func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -712,17 +721,17 @@ func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if booking.ClientID != client.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.Status != models.BookingStatusConfirmed {
-		http.Error(w, "Запись не может быть отменена", http.StatusBadRequest)
+		httpError(w, r, "Error.BookingCannotCancel", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.CancelBooking(booking.ID, "", models.CancelledByClient); err != nil {
 		log.Printf("Error cancelling booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -744,7 +753,7 @@ func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
-		http.Error(w, "Необходима авторизация", http.StatusUnauthorized)
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -753,23 +762,23 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if booking.ClientID != client.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.Status != models.BookingStatusConfirmed {
-		http.Error(w, "Запись не может быть перенесена", http.StatusBadRequest)
+		httpError(w, r, "Error.BookingCannotReschedule", http.StatusBadRequest)
 		return
 	}
 
 	var req MoveBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
-	newBooking, err := createMoveBooking(booking, scheduleID, req)
+	newBooking, err := createMoveBooking(r, booking, scheduleID, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
@@ -789,7 +798,7 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -798,17 +807,17 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if booking.TrainerID != trainer.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.Status != models.BookingStatusConfirmed {
-		http.Error(w, "Запись не может быть отменена", http.StatusBadRequest)
+		httpError(w, r, "Error.BookingCannotCancel", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.CancelBooking(booking.ID, "", models.CancelledByTrainer); err != nil {
 		log.Printf("Error cancelling booking: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -830,7 +839,7 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -839,23 +848,23 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if booking.TrainerID != trainer.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.Status != models.BookingStatusConfirmed {
-		http.Error(w, "Запись не может быть перенесена", http.StatusBadRequest)
+		httpError(w, r, "Error.BookingCannotReschedule", http.StatusBadRequest)
 		return
 	}
 
 	var req MoveBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
-	newBooking, err := createMoveBooking(booking, scheduleID, req)
+	newBooking, err := createMoveBooking(r, booking, scheduleID, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		handleValidationError(w, r, err)
 		return
 	}
 
@@ -875,7 +884,7 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -884,17 +893,17 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if booking.TrainerID != trainer.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.Status != models.BookingStatusReschedulePending {
-		http.Error(w, "Нет запроса на перенос", http.StatusBadRequest)
+		httpError(w, r, "Error.NoMoveRequest", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.ApproveRescheduleBooking(booking.ID); err != nil {
 		log.Printf("Error approving move: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -906,7 +915,7 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -915,17 +924,17 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if booking.TrainerID != trainer.ID {
-		http.Error(w, "Запись не найдена", http.StatusNotFound)
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
 	if booking.Status != models.BookingStatusReschedulePending {
-		http.Error(w, "Нет запроса на перенос", http.StatusBadRequest)
+		httpError(w, r, "Error.NoMoveRequest", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.DeclineRescheduleBooking(booking.ID); err != nil {
 		log.Printf("Error declining move: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
@@ -933,15 +942,16 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// createMoveBooking is a shared helper for creating a reschedule booking
-func createMoveBooking(booking *models.Booking, scheduleID string, req MoveBookingRequest) (*models.Booking, error) {
+// createMoveBooking is a shared helper for creating a reschedule booking.
+// Errors returned are i18n message IDs suitable for handleValidationError.
+func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID string, req MoveBookingRequest) (*models.Booking, error) {
 	if req.Date == "" || req.Time == "" {
-		return nil, fmt.Errorf("Укажите дату и время")
+		return nil, fmt.Errorf("Error.MissingDateTime")
 	}
 
 	newDate, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
-		return nil, fmt.Errorf("Неверная дата")
+		return nil, fmt.Errorf("Error.InvalidDate")
 	}
 
 	timeParts := parseTime(req.Time)
@@ -951,7 +961,7 @@ func createMoveBooking(booking *models.Booking, scheduleID string, req MoveBooki
 	// Check conflicts
 	hasConflict, _ := db.HasConflictingBooking(booking.TrainerID, startsAt, endsAt, booking.ID)
 	if hasConflict {
-		return nil, fmt.Errorf("Время занято")
+		return nil, fmt.Errorf("Error.TimeSlotTaken")
 	}
 
 	newBooking, err := db.CreateRescheduleBooking(
@@ -960,7 +970,7 @@ func createMoveBooking(booking *models.Booking, scheduleID string, req MoveBooki
 		scheduleID, booking.ID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Внутренняя ошибка сервера")
+		return nil, fmt.Errorf("Error.Internal")
 	}
 	return newBooking, nil
 }
@@ -968,7 +978,7 @@ func createMoveBooking(booking *models.Booking, scheduleID string, req MoveBooki
 func HandleAdminCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {
-		http.Error(w, "Тренер не найден", http.StatusNotFound)
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -976,21 +986,21 @@ func HandleAdminCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	schedule, err := db.GetRecurringScheduleByID(id)
 	if err != nil {
 		log.Printf("Error getting recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 	if schedule == nil || schedule.TrainerID != trainer.ID {
-		http.Error(w, "Расписание не найдено", http.StatusNotFound)
+		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
 	if schedule.Status == models.RecurringScheduleStatusCancelled {
-		http.Error(w, "Расписание уже отменено", http.StatusBadRequest)
+		httpError(w, r, "Error.ScheduleCancelled", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.UpdateRecurringScheduleStatus(id, models.RecurringScheduleStatusCancelled); err != nil {
 		log.Printf("Error cancelling recurring schedule: %v", err)
-		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 

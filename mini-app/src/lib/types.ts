@@ -12,6 +12,7 @@ export interface Trainer {
   gymLatitude?: number;
   gymLongitude?: number;
   isOwner?: boolean;
+  language?: string;
 }
 
 export interface SessionType {
@@ -63,6 +64,7 @@ export interface ClientProfile {
   notifyReminders?: boolean;
   notifyDaysOff?: boolean;
   notifyCancellations?: boolean;
+  language?: string;
 }
 
 export interface ClientInfo {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Share2, Phone, MessageCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { getAvatarColor } from "@/lib/colors";
 import { getPhotoUrl } from "@/lib/api";
 
@@ -28,7 +29,9 @@ export function TrainerCard({
   onServices,
   onShare,
 }: TrainerCardProps) {
+  const t = useTranslations("HomePage");
   const [photoError, setPhotoError] = useState(false);
+
   const handleMessage = () => {
     if (telegram) {
       const handle = telegram.replace("@", "");
@@ -91,7 +94,7 @@ export function TrainerCard({
         <div className="bg-background rounded-xl p-4 mb-4">
           <div className="text-center">
             <p className="text-lg font-bold text-foreground">{servicesCount}</p>
-            <p className="text-xs text-muted-foreground">Услуг</p>
+            <p className="text-xs text-muted-foreground">{t("servicesTitle").replace(":", "")}</p>
           </div>
         </div>
       )}
@@ -103,14 +106,14 @@ export function TrainerCard({
             onClick={handleMessage}
             className="flex-1 py-3 px-4 rounded-[28px] bg-brand text-white text-sm font-medium transition-opacity active:opacity-80"
           >
-            Написать
+            {t("messageButton")}
           </button>
         )}
         <button
           onClick={onServices}
           className="flex-1 py-3 px-4 rounded-[28px] bg-surface-hover border border-surface-border text-muted-foreground text-sm font-medium transition-opacity active:opacity-80"
         >
-          Услуги и цены
+          {t("servicesButton")}
         </button>
         <button
           onClick={onShare}

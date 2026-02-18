@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { Booking, WorkingHours } from "@/lib/types";
 import { MonthGrid, WeekStrip } from "@/components/Calendar";
 import { DayTimeline } from "./DayTimeline";
@@ -17,14 +18,8 @@ interface ScheduleViewProps {
   onEmptySlotClick?: (date: Date, time: string) => void;
 }
 
-const monthNamesGen = [
-  "января", "февраля", "марта", "апреля", "мая", "июня",
-  "июля", "августа", "сентября", "октября", "ноября", "декабря",
-];
-const dayNamesLong = [
-  "Воскресенье", "Понедельник", "Вторник", "Среда",
-  "Четверг", "Пятница", "Суббота",
-];
+const monthGenKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const dayFullKeysJS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -38,16 +33,23 @@ function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function formatDateHeader(date: Date): string {
-  const day = date.getDate();
-  const month = monthNamesGen[date.getMonth()];
-  const weekday = dayNamesLong[date.getDay()];
-  return `${day} ${month.charAt(0).toUpperCase() + month.slice(1)}, ${weekday}`;
-}
-
 export function ScheduleView({ bookings, onBookingClick, nonWorkingDays, daysOff, workingHours, onEmptySlotClick }: ScheduleViewProps) {
+  const t = useTranslations("ScheduleView");
+  const td = useTranslations("Dates");
+  const locale = useLocale();
+
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = useState(() => toLocalDate(new Date()));
+
+  function formatDateHeader(date: Date): string {
+    const day = date.getDate();
+    const monthKey = monthGenKeys[date.getMonth()];
+    const month = td(`monthsGen.${monthKey}`);
+    const weekdayKey = dayFullKeysJS[date.getDay()];
+    const weekday = td(`daysFull.${weekdayKey}`);
+    const displayMonth = locale === "en" ? month.charAt(0).toUpperCase() + month.slice(1) : month;
+    return `${day} ${displayMonth}, ${weekday}`;
+  }
 
   // Filter bookings for the selected date
   const dayBookings = useMemo(() => {
@@ -87,7 +89,7 @@ export function ScheduleView({ bookings, onBookingClick, nonWorkingDays, daysOff
 
   return (
     <div>
-      <h2 className="text-base font-medium text-foreground mb-3">Расписание</h2>
+      <h2 className="text-base font-medium text-foreground mb-3">{t("title")}</h2>
 
       {/* Tabs */}
       <div className="flex border-b border-border mb-4">
@@ -101,7 +103,7 @@ export function ScheduleView({ bookings, onBookingClick, nonWorkingDays, daysOff
                 : "text-muted-foreground"
             }`}
           >
-            {mode === "day" ? "День" : mode === "week" ? "Неделя" : "Месяц"}
+            {t(mode)}
             {viewMode === mode && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand rounded-full" />
             )}

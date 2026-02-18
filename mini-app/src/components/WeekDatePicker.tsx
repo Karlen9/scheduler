@@ -2,34 +2,27 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface WeekDatePickerProps {
   selectedDate: Date | null;
   onSelectDate: (date: Date) => void;
 }
 
+const monthNomKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const dayShortKeysMon = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
 export function WeekDatePicker({
   selectedDate,
   onSelectDate,
 }: WeekDatePickerProps) {
+  const td = useTranslations("Dates");
+  const tf = useTranslations("BookingForm");
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const monthNames = [
-    "Январь",
-    "Февраль",
-    "Март",
-    "Апрель",
-    "Май",
-    "Июнь",
-    "Июль",
-    "Август",
-    "Сентябрь",
-    "Октябрь",
-    "Ноябрь",
-    "Декабрь",
-  ];
-
-  const dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const monthNames = monthNomKeys.map(k => td(`monthsNom.${k}`));
+  const dayNames = dayShortKeysMon.map(k => td(`daysShort.${k}`));
 
   // Get the current week (7 days starting from the beginning of current month)
   const getCurrentWeek = () => {
@@ -88,13 +81,12 @@ export function WeekDatePicker({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-lg font-medium text-foreground">Выберите дату</h3>
+        <h3 className="text-lg font-medium text-foreground">{tf("selectDay")}</h3>
 
         <div className="flex items-center gap-4">
           <button
             onClick={prevMonth}
             className="p-0.5 transition-opacity active:opacity-60"
-            aria-label="Предыдущий месяц"
           >
             <ChevronLeft
               className="w-[11.4px] h-[11.4px] text-muted-foreground"
@@ -109,7 +101,6 @@ export function WeekDatePicker({
           <button
             onClick={nextMonth}
             className="p-0.5 transition-opacity active:opacity-60"
-            aria-label="Следующий месяц"
           >
             <ChevronRight
               className="w-[11.4px] h-[11.4px] text-muted-foreground"

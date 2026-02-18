@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, X, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { TopBar } from "@/components/TopBar";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { MonthCalendar } from "@/components/MonthCalendar";
@@ -10,14 +11,8 @@ import { api } from "@/lib/api";
 import { useAdminDaysOff } from "@/hooks/queries";
 import { invalidateDaysOff } from "@/hooks/mutations";
 
-const formatDate = (date: Date): string => {
-  const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  const months = [
-    "января", "февраля", "марта", "апреля", "мая", "июня",
-    "июля", "августа", "сентября", "октября", "ноября", "декабря"
-  ];
-  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
-};
+const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const monthGenKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"] as const;
 
 const formatDateISO = (date: Date): string => {
   const year = date.getFullYear();
@@ -33,6 +28,17 @@ const parseLocalDate = (dateStr: string): Date => {
 };
 
 export default function DaysOffPage() {
+  const t = useTranslations("AdminDaysOff");
+  const tc = useTranslations("Common");
+  const tdat = useTranslations("Dates");
+  const te = useTranslations("Errors");
+
+  const formatDate = (date: Date): string => {
+    const dayName = tdat(`daysShort.${dayKeys[date.getDay()]}`);
+    const monthName = tdat(`monthsGen.${monthGenKeys[date.getMonth()]}`);
+    return `${dayName}, ${date.getDate()} ${monthName}`;
+  };
+
   const { data: daysOff, isLoading, mutate } = useAdminDaysOff();
   const [saving, setSaving] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -56,7 +62,7 @@ export default function DaysOffPage() {
       setReason("");
     } catch (err) {
       console.error("Failed to add day off:", err);
-      toast.error(err instanceof Error ? err.message : "Ошибка добавления");
+      toast.error(err instanceof Error ? err.message : te("addDayOffFailed"));
     } finally {
       setSaving(false);
     }
@@ -75,7 +81,7 @@ export default function DaysOffPage() {
       invalidateDaysOff();
     } catch (err) {
       console.error("Failed to delete day off:", err);
-      toast.error("Ошибка удаления");
+      toast.error(te("deleteDayOffFailed"));
       // Rollback on error
       mutate(previousDaysOff, false);
     }
@@ -92,9 +98,9 @@ export default function DaysOffPage() {
   if (isLoading) {
     return (
       <div>
-        <TopBar title="Выходные дни" showBack />
+        <TopBar title={t("title")} showBack />
         <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-muted-foreground">Загрузка...</div>
+          <div className="text-muted-foreground">{tc("loading")}</div>
         </div>
       </div>
     );
@@ -103,7 +109,7 @@ export default function DaysOffPage() {
   if (showCalendar) {
     return (
       <div>
-        <TopBar title="Выберите дату" showBack onBack={() => setShowCalendar(false)} />
+        <TopBar title={t("selectDate")} showBack onBack={() => setShowCalendar(false)} />
 
         <div className="p-4 space-y-4">
           <MonthCalendar
@@ -114,13 +120,13 @@ export default function DaysOffPage() {
 
           <div>
             <label className="block text-sm text-muted-foreground mb-1">
-              Причина (необязательно)
+              {t("reasonLabel")}
             </label>
             <input
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Отпуск, болезнь, праздник..."
+              placeholder={t("reasonPlaceholder")}
               className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
@@ -129,7 +135,7 @@ export default function DaysOffPage() {
             onClick={handleAddDayOff}
             disabled={isDayOff(selectedDate) || saving}
           >
-            {saving ? "Сохранение..." : isDayOff(selectedDate) ? "Уже выходной" : "Добавить выходной"}
+            {saving ? tc("saving") : isDayOff(selectedDate) ? t("alreadyDayOff") : t("addDayOff")}
           </PrimaryButton>
         </div>
       </div>
@@ -138,7 +144,7 @@ export default function DaysOffPage() {
 
   return (
     <div>
-      <TopBar title="Выходные дни" showBack />
+      <TopBar title={t("title")} showBack />
 
       <div className="p-4 space-y-4">
 
@@ -148,14 +154,14 @@ export default function DaysOffPage() {
           className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors active:bg-card"
         >
           <Plus className="w-5 h-5" />
-          <span>Добавить выходной</span>
+          <span>{t("addDayOff")}</span>
         </button>
 
         {/* Days Off List */}
         {daysOff.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>Нет запланированных выходных</p>
+            <p>{t("empty")}</p>
           </div>
         ) : (
           <div className="space-y-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, X } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { Booking } from "@/lib/types";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
@@ -10,22 +11,27 @@ interface PendingBookingCardProps {
   onReject: (booking: Booking) => void;
 }
 
-function formatDate(date: Date): string {
-  const months = [
-    "янв", "фев", "мар", "апр", "мая", "июн",
-    "июл", "авг", "сен", "окт", "ноя", "дек",
-  ];
-  const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  return `${days[date.getUTCDay()]}, ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-}
+const monthShortKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const dayShortKeysJS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 export function PendingBookingCard({ booking, onAccept, onReject }: PendingBookingCardProps) {
+  const t = useTranslations("PendingBookingCard");
+  const tc = useTranslations("Common");
+  const td = useTranslations("Dates");
+  const locale = useLocale();
+
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
+
+  function formatDate(date: Date): string {
+    const dayKey = dayShortKeysJS[date.getUTCDay()];
+    const monthKey = monthShortKeys[date.getUTCMonth()];
+    return `${td(`daysShort.${dayKey}`)}, ${date.getUTCDate()} ${td(`monthsShort.${monthKey}`)}`;
+  }
+
+  function formatTime(date: Date): string {
+    return date.toLocaleTimeString(locale === "en" ? "en-US" : "ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  }
 
   return (
     <div className="bg-card rounded-xl p-4 border-l-4 border-l-warning">
@@ -36,7 +42,7 @@ export function PendingBookingCard({ booking, onAccept, onReject }: PendingBooki
             {booking.clientName}
           </p>
           <p className="text-sm text-muted-foreground">
-            Тренировка{booking.durationMinutes ? ` · ${booking.durationMinutes} мин` : booking.sessionType?.durationMinutes ? ` · ${booking.sessionType.durationMinutes} мин` : ""}
+            {tc("workout")}{booking.durationMinutes ? ` · ${booking.durationMinutes} ${tc("min")}` : booking.sessionType?.durationMinutes ? ` · ${booking.sessionType.durationMinutes} ${tc("min")}` : ""}
           </p>
           <p className="text-sm text-foreground mt-1">
             {formatDate(startsAt)}, {formatTime(startsAt)} – {formatTime(endsAt)}
@@ -55,14 +61,14 @@ export function PendingBookingCard({ booking, onAccept, onReject }: PendingBooki
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-action-success-bg text-action-success-text text-sm font-medium transition-opacity active:opacity-70"
         >
           <Check className="w-4 h-4" />
-          Принять
+          {t("accept")}
         </button>
         <button
           onClick={() => onReject(booking)}
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-action-danger-bg text-action-danger-text text-sm font-medium transition-opacity active:opacity-70"
         >
           <X className="w-4 h-4" />
-          Отклонить
+          {t("reject")}
         </button>
       </div>
     </div>

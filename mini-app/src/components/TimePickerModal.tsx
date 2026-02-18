@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BottomSheet } from "@/components/BottomSheet";
 
 interface TimePickerModalProps {
@@ -19,10 +20,13 @@ export function TimePickerModal({
   onClose,
   onSelect,
   selectedTime,
-  title = "Выберите время",
+  title,
 }: TimePickerModalProps) {
+  const t = useTranslations("TimePickerModal");
+  const resolvedTitle = title ?? t("title");
+
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title={title} className="max-h-[80vh] overflow-auto">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title={resolvedTitle} className="max-h-[80vh] overflow-auto">
       <div className="grid grid-cols-4 gap-2">
         {HOURS.map((time) => (
           <button
