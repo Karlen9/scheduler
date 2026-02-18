@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { setLocale } from "@/actions/locale";
 import { api } from "@/lib/api";
+import { invalidateProfile, invalidateTrainer } from "@/hooks/mutations";
 
 const options = [
   { value: "ru", label: "RU" },
@@ -26,6 +27,13 @@ export function LanguageSelector({ isAdmin }: { isAdmin?: boolean }) {
         await api.admin.updateProfile({ language: lang });
       } else {
         await api.updateProfile({ language: lang });
+      }
+      // Invalidate SWR profile cache BEFORE refresh to prevent
+      // cross-device sync from reading stale language and bouncing back
+      if (isAdmin) {
+        invalidateTrainer();
+      } else {
+        invalidateProfile();
       }
       await setLocale(lang);
       router.refresh();
