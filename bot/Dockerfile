@@ -19,6 +19,12 @@ COPY . .
 # Lint: fail if any Go file is not gofmt-formatted
 RUN if [ -n "$(gofmt -l .)" ]; then echo "Go files not formatted:"; gofmt -l .; exit 1; fi
 
+# Vet: static analysis
+RUN go vet ./...
+
+# Test: run all tests
+RUN CGO_ENABLED=1 go test ./...
+
 # Build binary with version injected
 RUN CGO_ENABLED=1 GOOS=linux go build -ldflags "-X main.Version=${VERSION}" -o scheduler-bot .
 
