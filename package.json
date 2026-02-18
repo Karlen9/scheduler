@@ -2,12 +2,14 @@
   "private": true,
   "devDependencies": {
     "husky": "^9.0.0",
-    "lint-staged": "^15.0.0"
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2"
   },
   "lint-staged": {
     "mini-app/src/**/*.{ts,tsx}": [
       "prettier --config mini-app/.prettierrc --write",
-      "eslint --config mini-app/eslint.config.mjs --fix"
+      "mini-app/node_modules/.bin/eslint --config mini-app/eslint.config.mjs --fix"
     ],
     "mini-app/src/**/*.css": [
       "prettier --config mini-app/.prettierrc --write"
