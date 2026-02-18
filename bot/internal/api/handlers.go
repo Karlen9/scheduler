@@ -38,7 +38,6 @@ var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool)
 // cancelledBy is "client" or "trainer".
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
 
-
 // TrainerResponse is the API response for trainer info
 type TrainerResponse struct {
 	ID              string  `json:"id"`

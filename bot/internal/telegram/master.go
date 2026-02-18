@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/db"
+	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
 )
 
@@ -157,7 +157,7 @@ func (h *MasterHandler) handleAdminTrainers(chatID, userID int64, loc *localizer
 		msg += myI18n.Tf(loc, "Master.TrainerItem", map[string]interface{}{
 			"Num":         i + 1,
 			"Name":        t.Name,
-			"BotUsername":  t.BotUsername,
+			"BotUsername": t.BotUsername,
 			"TelegramID":  t.TelegramUserID,
 			"CreatedAt":   t.CreatedAt.Format("02.01.2006 15:04"),
 		})

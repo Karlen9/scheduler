@@ -250,10 +250,10 @@ func (b *Bot) GetWebhookInfo() (string, int, string) {
 	var result struct {
 		OK     bool `json:"ok"`
 		Result struct {
-			URL                  string `json:"url"`
-			PendingUpdateCount   int    `json:"pending_update_count"`
-			LastErrorMessage     string `json:"last_error_message"`
-			LastErrorDate        int    `json:"last_error_date"`
+			URL                string `json:"url"`
+			PendingUpdateCount int    `json:"pending_update_count"`
+			LastErrorMessage   string `json:"last_error_message"`
+			LastErrorDate      int    `json:"last_error_date"`
 		} `json:"result"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

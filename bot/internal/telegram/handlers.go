@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/db"
+	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
 )
 

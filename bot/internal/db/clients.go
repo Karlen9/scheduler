@@ -9,7 +9,9 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-func scanClient(row interface{ Scan(dest ...interface{}) error }) (*models.Client, error) {
+func scanClient(row interface {
+	Scan(dest ...interface{}) error
+}) (*models.Client, error) {
 	var c models.Client
 	var phone, photoURL sql.NullString
 	var preferredDuration sql.NullInt64
