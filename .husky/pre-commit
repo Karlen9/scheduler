@@ -1,1 +1,13 @@
 bunx lint-staged
+
+# Run Go tests if any .go files are staged
+if git diff --cached --name-only | grep -q '\.go$'; then
+  echo "Running Go tests..."
+  cd bot && go test ./... && cd ..
+fi
+
+# Run frontend tests related to staged files
+if git diff --cached --name-only | grep -q 'mini-app/src/.*\.\(ts\|tsx\)$'; then
+  echo "Running frontend tests..."
+  cd mini-app && bunx vitest related $(git diff --cached --name-only -- 'src/**/*.ts' 'src/**/*.tsx' | sed 's|^mini-app/||') --run 2>/dev/null || bunx vitest run && cd ..
+fi
