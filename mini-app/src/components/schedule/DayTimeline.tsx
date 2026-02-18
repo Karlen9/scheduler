@@ -188,7 +188,7 @@ export function DayTimeline({
   let nowTop: number | null = null;
   if (isToday) {
     const now = new Date();
-    const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
     if (nowMinutes >= minHour * 60 && nowMinutes <= maxHour * 60) {
       nowTop = ((nowMinutes - minHour * 60) / 60) * HOUR_HEIGHT;
     }
