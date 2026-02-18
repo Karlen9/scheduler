@@ -28,7 +28,8 @@ go run .          # Run server (webhook + API)
 go build -o scheduler-bot  # Build binary
 ```
 
-Required env vars: `TELEGRAM_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`, `WEBHOOK_SECRET`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST_NAME`
+Required env vars (master bot): `MASTER_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`, `ADMIN_IDS`
+Optional legacy (single-bot): `TELEGRAM_BOT_TOKEN`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST_NAME`
 
 ### Deployment
 ```bash
@@ -65,7 +66,8 @@ bunx vercel       # Deploy to Vercel
 
 ### Webhook Setup
 Bot uses Telegram webhooks (not long polling):
-- Webhook URL: `{PUBLIC_BASE_URL}/tg/webhook/{WEBHOOK_SECRET}`
+- Master bot: `{PUBLIC_BASE_URL}/master/{MASTER_WEBHOOK_SECRET}/webhook`
+- Per-specialist bots: `{PUBLIC_BASE_URL}/specialist/{id}/{secret}/webhook`
 - Secret token validated via `X-Telegram-Bot-Api-Secret-Token` header
 - For local dev, use ngrok: `ngrok http 8080` and set `PUBLIC_BASE_URL`
 

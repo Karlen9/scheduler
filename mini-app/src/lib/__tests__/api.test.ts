@@ -34,7 +34,7 @@ describe('api.getSpecialist', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toBe('http://localhost:8080/api/trainer');
+    expect(url).toBe('http://localhost:8080/api/specialist');
     expect(options.headers['Content-Type']).toBe('application/json');
     expect(options.headers['X-Telegram-Init-Data']).toBe('mock-init-data');
     expect(options.headers['X-Specialist-ID']).toBe('mock-specialist-id');
