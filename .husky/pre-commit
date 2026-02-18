@@ -7,7 +7,9 @@ if git diff --cached --name-only | grep -q '\.go$'; then
 fi
 
 # Run frontend tests related to staged files
-if git diff --cached --name-only | grep -q 'mini-app/src/.*\.\(ts\|tsx\)$'; then
+STAGED_TS=$(git diff --cached --name-only | grep 'mini-app/src/.*\.\(ts\|tsx\)$' | sed 's|^mini-app/||')
+if [ -n "$STAGED_TS" ]; then
   echo "Running frontend tests..."
-  cd mini-app && bunx vitest related $(git diff --cached --name-only -- 'src/**/*.ts' 'src/**/*.tsx' | sed 's|^mini-app/||') --run 2>/dev/null || bunx vitest run && cd ..
+  cd mini-app && bunx vitest related $STAGED_TS --run || exit 1
+  cd ..
 fi
