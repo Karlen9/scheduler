@@ -27,14 +27,14 @@ func parseAdminIDs(s string) []int64 {
 
 type Config struct {
 	// Required
-	WebAppURL          string
-	DatabasePath       string
-	DatabaseURL        string // postgres:// connection string; if set, uses Postgres instead of SQLite
-	Port               string
-	PublicBaseURL      string
-	MasterBotToken     string  // Master bot for trainer onboarding
-	MasterWebhookSecret string // Fixed webhook secret for master bot
-	AdminIDs           []int64 // Telegram IDs with admin access
+	WebAppURL           string
+	DatabasePath        string
+	DatabaseURL         string // postgres:// connection string; if set, uses Postgres instead of SQLite
+	Port                string
+	PublicBaseURL       string
+	MasterBotToken      string  // Master bot for trainer onboarding
+	MasterWebhookSecret string  // Fixed webhook secret for master bot
+	AdminIDs            []int64 // Telegram IDs with admin access
 
 	// Encryption
 	EncryptionKey string // Hex-encoded 32-byte AES key for encrypting tokens at rest
@@ -53,15 +53,15 @@ func Load() *Config {
 	trainerID, _ := strconv.ParseInt(os.Getenv("TRAINER_TELEGRAM_ID"), 10, 64)
 
 	cfg := &Config{
-		WebAppURL:      os.Getenv("WEB_APP_URL"),
-		DatabasePath:   os.Getenv("DATABASE_PATH"),
-		DatabaseURL:    os.Getenv("DATABASE_URL"),
-		Port:           os.Getenv("PORT"),
-		PublicBaseURL:  os.Getenv("PUBLIC_BASE_URL"),
-		MasterBotToken:     os.Getenv("MASTER_BOT_TOKEN"),
+		WebAppURL:           os.Getenv("WEB_APP_URL"),
+		DatabasePath:        os.Getenv("DATABASE_PATH"),
+		DatabaseURL:         os.Getenv("DATABASE_URL"),
+		Port:                os.Getenv("PORT"),
+		PublicBaseURL:       os.Getenv("PUBLIC_BASE_URL"),
+		MasterBotToken:      os.Getenv("MASTER_BOT_TOKEN"),
 		MasterWebhookSecret: os.Getenv("MASTER_WEBHOOK_SECRET"),
-		AdminIDs:       parseAdminIDs(os.Getenv("ADMIN_IDS")),
-		EncryptionKey:  os.Getenv("ENCRYPTION_KEY"),
+		AdminIDs:            parseAdminIDs(os.Getenv("ADMIN_IDS")),
+		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
 
 		// Legacy single-bot setup
 		TelegramBotToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),

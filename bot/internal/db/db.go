@@ -542,9 +542,9 @@ func MigrateEncryptTokens() error {
 	defer rows.Close()
 
 	type row struct {
-		id       string
-		token    string
-		hash     sql.NullString
+		id    string
+		token string
+		hash  sql.NullString
 	}
 	var toMigrate []row
 	for rows.Next() {

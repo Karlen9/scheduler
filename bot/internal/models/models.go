@@ -41,9 +41,9 @@ type Client struct {
 	IsGhost             bool      `json:"isGhost,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`
-	NotifyDaysOff          bool      `json:"notifyDaysOff"`
-	NotifyCancellations    bool      `json:"notifyCancellations"`
-	CreatedAt              time.Time `json:"createdAt"`
+	NotifyDaysOff       bool      `json:"notifyDaysOff"`
+	NotifyCancellations bool      `json:"notifyCancellations"`
+	CreatedAt           time.Time `json:"createdAt"`
 }
 
 type SessionType struct {
@@ -69,13 +69,13 @@ type WorkingHours struct {
 type BookingStatus string
 
 const (
-	BookingStatusPending            BookingStatus = "pending"
-	BookingStatusConfirmed          BookingStatus = "confirmed"
-	BookingStatusRejected           BookingStatus = "rejected"
-	BookingStatusCancelled          BookingStatus = "cancelled"
-	BookingStatusCompleted          BookingStatus = "completed"
-	BookingStatusCancelRequested    BookingStatus = "cancel_requested"
-	BookingStatusReschedulePending  BookingStatus = "reschedule_pending"
+	BookingStatusPending           BookingStatus = "pending"
+	BookingStatusConfirmed         BookingStatus = "confirmed"
+	BookingStatusRejected          BookingStatus = "rejected"
+	BookingStatusCancelled         BookingStatus = "cancelled"
+	BookingStatusCompleted         BookingStatus = "completed"
+	BookingStatusCancelRequested   BookingStatus = "cancel_requested"
+	BookingStatusReschedulePending BookingStatus = "reschedule_pending"
 )
 
 type CancelledBy string
@@ -86,22 +86,22 @@ const (
 )
 
 type Booking struct {
-	ID                   string        `json:"id"`
-	TrainerID            string        `json:"-"`
-	ClientID             string        `json:"-"`
-	SessionTypeID        string        `json:"-"`
-	StartsAt             time.Time     `json:"startsAt"`
-	EndsAt               time.Time     `json:"endsAt"`
-	ClientName           string        `json:"clientName"`
-	ClientMessage        string        `json:"clientMessage,omitempty"`
-	Status               BookingStatus `json:"status"`
-	CancelReason         string        `json:"cancelReason,omitempty"`
-	CancelledBy          CancelledBy   `json:"cancelledBy,omitempty"`
-	CreatedAt            time.Time     `json:"createdAt"`
-	DurationMinutes      int           `json:"durationMinutes,omitempty"`
-	CreatedBy            string        `json:"createdBy,omitempty"`
-	RecurringScheduleID  string        `json:"recurringScheduleId,omitempty"`
-	ReplacesBookingID    string        `json:"replacesBookingId,omitempty"`
+	ID                  string        `json:"id"`
+	TrainerID           string        `json:"-"`
+	ClientID            string        `json:"-"`
+	SessionTypeID       string        `json:"-"`
+	StartsAt            time.Time     `json:"startsAt"`
+	EndsAt              time.Time     `json:"endsAt"`
+	ClientName          string        `json:"clientName"`
+	ClientMessage       string        `json:"clientMessage,omitempty"`
+	Status              BookingStatus `json:"status"`
+	CancelReason        string        `json:"cancelReason,omitempty"`
+	CancelledBy         CancelledBy   `json:"cancelledBy,omitempty"`
+	CreatedAt           time.Time     `json:"createdAt"`
+	DurationMinutes     int           `json:"durationMinutes,omitempty"`
+	CreatedBy           string        `json:"createdBy,omitempty"`
+	RecurringScheduleID string        `json:"recurringScheduleId,omitempty"`
+	ReplacesBookingID   string        `json:"replacesBookingId,omitempty"`
 
 	// Joined fields for API responses
 	SessionType    *SessionType `json:"sessionType,omitempty"`
@@ -132,11 +132,11 @@ type RecurringSchedule struct {
 	CreatedBy       string                  `json:"createdBy"`
 	CreatedAt       time.Time               `json:"createdAt"`
 	// Phase 2 fields
-	SessionTypeID string       `json:"sessionTypeId,omitempty"`
-	DaysOfWeek    string       `json:"daysOfWeek,omitempty"`
-	StartDate     string       `json:"startDate,omitempty"`
-	EndDate       string       `json:"endDate,omitempty"`
-	DayTimes      string       `json:"dayTimes,omitempty"`
+	SessionTypeID string `json:"sessionTypeId,omitempty"`
+	DaysOfWeek    string `json:"daysOfWeek,omitempty"`
+	StartDate     string `json:"startDate,omitempty"`
+	EndDate       string `json:"endDate,omitempty"`
+	DayTimes      string `json:"dayTimes,omitempty"`
 	// Joined fields
 	SessionType    *SessionType `json:"sessionType,omitempty"`
 	ClientPhotoURL string       `json:"clientPhotoUrl,omitempty"`

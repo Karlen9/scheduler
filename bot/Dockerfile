@@ -16,6 +16,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Lint: fail if any Go file is not gofmt-formatted
+RUN if [ -n "$(gofmt -l .)" ]; then echo "Go files not formatted:"; gofmt -l .; exit 1; fi
+
 # Build binary with version injected
 RUN CGO_ENABLED=1 GOOS=linux go build -ldflags "-X main.Version=${VERSION}" -o scheduler-bot .
 
