@@ -48,28 +48,28 @@ func (h *Handler) handleMessage(msg *Message) {
 }
 
 func (h *Handler) handleStart(msg *Message) {
-	// Get trainer by bot token to include trainer ID in URL
-	trainer, err := db.GetTrainerByBotToken(h.Bot.Token)
-	if err != nil || trainer == nil {
-		log.Printf("Error getting trainer for bot: %v", err)
+	// Get specialist by bot token to include specialist ID in URL
+	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
+	if err != nil || specialist == nil {
+		log.Printf("Error getting specialist for bot: %v", err)
 		loc := myI18n.Default()
 		_, _ = h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Handler.ConfigError"), nil)
 		return
 	}
 
-	// Check if the user is the trainer (owner of this bot)
-	if trainer.TelegramUserID == msg.From.ID {
-		lang := trainer.Language
+	// Check if the user is the specialist (owner of this bot)
+	if specialist.TelegramUserID == msg.From.ID {
+		lang := specialist.Language
 		if lang == "" {
 			lang = "ru"
 		}
 		loc := myI18n.NewLocalizer(lang)
-		adminURL := h.WebAppURL + "/admin?trainer=" + trainer.ID + "&lang=" + lang
-		clientURL := h.WebAppURL + "?trainer=" + trainer.ID + "&lang=" + lang
+		adminURL := h.WebAppURL + "/admin?trainer=" + specialist.ID + "&lang=" + lang
+		clientURL := h.WebAppURL + "?trainer=" + specialist.ID + "&lang=" + lang
 
-		// Set persistent menu button for trainer (opens admin panel)
+		// Set persistent menu button for specialist (opens admin panel)
 		if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenAdmin(loc), adminURL); err != nil {
-			log.Printf("Error setting trainer menu button: %v", err)
+			log.Printf("Error setting specialist menu button: %v", err)
 		}
 
 		keyboard := &InlineKeyboardMarkup{
@@ -78,15 +78,15 @@ func (h *Handler) handleStart(msg *Message) {
 				{{Text: BtnOpenApp(loc), WebApp: &WebAppInfo{URL: clientURL}}},
 			},
 		}
-		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeTrainer(loc, h.Version, clientURL), keyboard)
+		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), keyboard)
 		if err != nil {
-			log.Printf("Error sending trainer start message: %v", err)
+			log.Printf("Error sending specialist start message: %v", err)
 		}
 		return
 	}
 
 	// Check if client exists
-	client, _ := db.GetClientByTelegramID(msg.From.ID, trainer.ID)
+	client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
 	if client == nil {
 		// New user — show language selection (using Default() since language is not yet chosen;
 		// Lang.* keys are bilingual and identical in both locales)
@@ -94,8 +94,8 @@ func (h *Handler) handleStart(msg *Message) {
 		keyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
 				{
-					{Text: myI18n.T(defLoc, "Lang.Russian"), CallbackData: "lang:ru:" + trainer.ID},
-					{Text: myI18n.T(defLoc, "Lang.English"), CallbackData: "lang:en:" + trainer.ID},
+					{Text: myI18n.T(defLoc, "Lang.Russian"), CallbackData: "lang:ru:" + specialist.ID},
+					{Text: myI18n.T(defLoc, "Lang.English"), CallbackData: "lang:en:" + specialist.ID},
 				},
 			},
 		}
@@ -109,7 +109,7 @@ func (h *Handler) handleStart(msg *Message) {
 		lang = "ru"
 	}
 	loc := myI18n.NewLocalizer(lang)
-	webAppURL := h.WebAppURL + "?trainer=" + trainer.ID + "&lang=" + lang
+	webAppURL := h.WebAppURL + "?trainer=" + specialist.ID + "&lang=" + lang
 
 	// Set persistent menu button for client (opens booking app)
 	if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenApp(loc), webAppURL); err != nil {
@@ -123,37 +123,37 @@ func (h *Handler) handleStart(msg *Message) {
 }
 
 func (h *Handler) handleAdmin(msg *Message) {
-	// Check if user is the trainer (owner of this bot)
-	trainer, err := db.GetTrainerByBotToken(h.Bot.Token)
+	// Check if user is the specialist (owner of this bot)
+	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
 	if err != nil {
-		log.Printf("Error getting trainer: %v", err)
+		log.Printf("Error getting specialist: %v", err)
 		return
 	}
 
-	if trainer == nil || trainer.TelegramUserID != msg.From.ID {
+	if specialist == nil || specialist.TelegramUserID != msg.From.ID {
 		loc := myI18n.Default()
-		if trainer != nil {
+		if specialist != nil {
 			// Try to get client language
-			client, _ := db.GetClientByTelegramID(msg.From.ID, trainer.ID)
+			client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
 			if client != nil {
 				loc = myI18n.NewLocalizer(client.Language)
 			}
 		}
-		_, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Handler.TrainerOnly"), nil)
+		_, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Handler.SpecialistOnly"), nil)
 		if err != nil {
 			log.Printf("Error sending admin denied message: %v", err)
 		}
 		return
 	}
 
-	lang := trainer.Language
+	lang := specialist.Language
 	if lang == "" {
 		lang = "ru"
 	}
 	loc := myI18n.NewLocalizer(lang)
 
-	// Open admin panel with trainer ID
-	adminURL := h.WebAppURL + "/admin?trainer=" + trainer.ID + "&lang=" + lang
+	// Open admin panel with specialist ID
+	adminURL := h.WebAppURL + "/admin?trainer=" + specialist.ID + "&lang=" + lang
 	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, myI18n.T(loc, "Handler.OpenAdmin"), adminURL, BtnOpenAdmin(loc))
 	if err != nil {
 		log.Printf("Error sending admin message: %v", err)
@@ -161,20 +161,20 @@ func (h *Handler) handleAdmin(msg *Message) {
 }
 
 func (h *Handler) handleHelp(msg *Message) {
-	trainer, err := db.GetTrainerByBotToken(h.Bot.Token)
-	if err != nil || trainer == nil {
+	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
+	if err != nil || specialist == nil {
 		loc := myI18n.Default()
 		_, _ = h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Help.Client"), nil)
 		return
 	}
 
-	if trainer.TelegramUserID == msg.From.ID {
-		loc := myI18n.NewLocalizer(trainer.Language)
+	if specialist.TelegramUserID == msg.From.ID {
+		loc := myI18n.NewLocalizer(specialist.Language)
 		clientURL := "https://t.me/" + h.Bot.Username
-		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpTrainer(loc, clientURL), nil)
+		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL), nil)
 	} else {
 		loc := myI18n.Default()
-		client, _ := db.GetClientByTelegramID(msg.From.ID, trainer.ID)
+		client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
 		if client != nil {
 			loc = myI18n.NewLocalizer(client.Language)
 		}
@@ -207,11 +207,11 @@ func (h *Handler) handleCallbackQuery(update Update) {
 		return
 	}
 
-	// Get trainer for localizer
-	trainer, _ := db.GetTrainerByBotToken(h.Bot.Token)
+	// Get specialist for localizer
+	specialist, _ := db.GetSpecialistByBotToken(h.Bot.Token)
 	loc := myI18n.Default()
-	if trainer != nil {
-		loc = myI18n.NewLocalizer(trainer.Language)
+	if specialist != nil {
+		loc = myI18n.NewLocalizer(specialist.Language)
 	}
 
 	booking, err := db.GetBookingByID(bookingID)
@@ -253,7 +253,7 @@ func (h *Handler) handleCallbackQuery(update Update) {
 		return
 	}
 
-	// Edit the trainer's message to remove buttons and show new status
+	// Edit the specialist's message to remove buttons and show new status
 	if cq.Message != nil {
 		h.UpdateBookingNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, booking)
 	}
@@ -272,7 +272,7 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	}
 
 	lang := parts[1]
-	trainerID := parts[2]
+	specialistID := parts[2]
 
 	// Validate lang
 	if lang != "ru" && lang != "en" {
@@ -285,7 +285,7 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	}
 
 	// Create or get client
-	client, err := db.GetOrCreateClient(cq.From.ID, trainerID, firstName)
+	client, err := db.GetOrCreateClient(cq.From.ID, specialistID, firstName)
 	if err != nil {
 		log.Printf("Error creating client: %v", err)
 		return
@@ -297,14 +297,14 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	// Answer callback
 	h.Bot.AnswerCallbackQuery(cq.ID, "")
 
-	// Get trainer for URL
-	trainer, _ := db.GetTrainerByID(trainerID)
-	if trainer == nil {
+	// Get specialist for URL
+	specialist, _ := db.GetSpecialistByID(specialistID)
+	if specialist == nil {
 		return
 	}
 
 	loc := myI18n.NewLocalizer(lang)
-	webAppURL := h.WebAppURL + "?trainer=" + trainerID + "&lang=" + lang
+	webAppURL := h.WebAppURL + "?trainer=" + specialistID + "&lang=" + lang
 
 	if err := h.Bot.SetChatMenuButton(cq.From.ID, BtnOpenApp(loc), webAppURL); err != nil {
 		log.Printf("Error setting client menu button: %v", err)
@@ -322,13 +322,13 @@ func localizerForClient(clientID string) *i18n.Localizer {
 	return myI18n.NewLocalizer(client.Language)
 }
 
-// localizerForTrainer returns a localizer for the trainer's language
-func localizerForTrainer(trainerID string) *i18n.Localizer {
-	trainer, err := db.GetTrainerByID(trainerID)
-	if err != nil || trainer == nil {
+// localizerForSpecialist returns a localizer for the specialist's language
+func localizerForSpecialist(specialistID string) *i18n.Localizer {
+	specialist, err := db.GetSpecialistByID(specialistID)
+	if err != nil || specialist == nil {
 		return myI18n.Default()
 	}
-	return myI18n.NewLocalizer(trainer.Language)
+	return myI18n.NewLocalizer(specialist.Language)
 }
 
 // NotifyClientStatusChange sends a notification to client when booking status changes via admin panel
@@ -347,7 +347,7 @@ func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus st
 	case models.BookingStatusRejected:
 		text = FormatBookingRejectedClient(loc, booking)
 	case models.BookingStatusCancelled:
-		text = FormatBookingCancelledByTrainerClient(loc, booking)
+		text = FormatBookingCancelledBySpecialistClient(loc, booking)
 	default:
 		return nil
 	}
@@ -356,14 +356,14 @@ func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus st
 	return err
 }
 
-// NotifyTrainerNewBooking sends a notification to trainer about a new booking
-func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
-	trainer, err := db.GetTrainerByID(booking.TrainerID)
-	if err != nil || trainer == nil {
+// NotifySpecialistNewBooking sends a notification to specialist about a new booking
+func (h *Handler) NotifySpecialistNewBooking(booking *models.Booking) error {
+	specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+	if err != nil || specialist == nil {
 		return err
 	}
 
-	loc := myI18n.NewLocalizer(trainer.Language)
+	loc := myI18n.NewLocalizer(specialist.Language)
 
 	text := FormatNewBookingMessage(loc, booking)
 	keyboard := &InlineKeyboardMarkup{
@@ -374,29 +374,29 @@ func (h *Handler) NotifyTrainerNewBooking(booking *models.Booking) error {
 			},
 		},
 	}
-	msg, err := h.Bot.SendMessage(trainer.TelegramUserID, text, keyboard)
+	msg, err := h.Bot.SendMessage(specialist.TelegramUserID, text, keyboard)
 	if err != nil {
 		return err
 	}
 
 	// Save message info so admin panel can edit it later
 	if msg != nil {
-		db.SaveBookingNotificationInfo(booking.ID, trainer.TelegramUserID, msg.MessageID)
+		db.SaveBookingNotificationInfo(booking.ID, specialist.TelegramUserID, msg.MessageID)
 	}
 	return nil
 }
 
-// UpdateBookingNotificationMessage edits the trainer's original booking notification
+// UpdateBookingNotificationMessage edits the specialist's original booking notification
 // to reflect the new status (removes inline buttons)
 func (h *Handler) UpdateBookingNotificationMessage(loc *i18n.Localizer, chatID int64, messageID int, booking *models.Booking) error {
 	var text string
 	switch booking.Status {
 	case models.BookingStatusConfirmed:
-		text = FormatBookingAcceptedTrainer(loc, booking)
+		text = FormatBookingAcceptedSpecialist(loc, booking)
 	case models.BookingStatusRejected:
-		text = FormatBookingRejectedTrainer(loc, booking)
+		text = FormatBookingRejectedSpecialist(loc, booking)
 	case models.BookingStatusCancelled:
-		text = myI18n.Tf(loc, "Booking.CancelledTrainerView", map[string]interface{}{
+		text = myI18n.Tf(loc, "Booking.CancelledSpecialistView", map[string]interface{}{
 			"ClientName": booking.ClientName,
 			"Service":    bookingServiceDisplay(loc, booking),
 			"DateTime":   formatDateTime(loc, booking.StartsAt),
@@ -407,21 +407,21 @@ func (h *Handler) UpdateBookingNotificationMessage(loc *i18n.Localizer, chatID i
 	return h.Bot.EditMessageText(chatID, messageID, text, nil)
 }
 
-// UpdateBookingNotificationMessageByIDs looks up trainer language and edits the notification
+// UpdateBookingNotificationMessageByIDs looks up specialist language and edits the notification
 func (h *Handler) UpdateBookingNotificationMessageByIDs(chatID int64, messageID int, booking *models.Booking) error {
-	loc := localizerForTrainer(booking.TrainerID)
+	loc := localizerForSpecialist(booking.SpecialistID)
 	return h.UpdateBookingNotificationMessage(loc, chatID, messageID, booking)
 }
 
-// NotifyTrainerRecurringSchedule sends a recurring schedule approval request to trainer
-func (h *Handler) NotifyTrainerRecurringSchedule(schedule *models.RecurringSchedule, previewCount int) error {
-	trainer, err := db.GetTrainerByID(schedule.TrainerID)
-	if err != nil || trainer == nil {
-		return fmt.Errorf("error getting trainer: %v", err)
+// NotifySpecialistRecurringSchedule sends a recurring schedule approval request to specialist
+func (h *Handler) NotifySpecialistRecurringSchedule(schedule *models.RecurringSchedule, previewCount int) error {
+	specialist, err := db.GetSpecialistByID(schedule.SpecialistID)
+	if err != nil || specialist == nil {
+		return fmt.Errorf("error getting specialist: %v", err)
 	}
-	loc := myI18n.NewLocalizer(trainer.Language)
+	loc := myI18n.NewLocalizer(specialist.Language)
 	text := FormatRecurringScheduleRequest(loc, schedule, previewCount)
-	_, err = h.Bot.SendNotification(trainer.TelegramUserID, text)
+	_, err = h.Bot.SendNotification(specialist.TelegramUserID, text)
 	return err
 }
 
@@ -437,30 +437,30 @@ func (h *Handler) NotifyClientRecurringSchedule(schedule *models.RecurringSchedu
 	return err
 }
 
-// ========== Trainer-Initiated Booking Handlers ==========
+// ========== Specialist-Initiated Booking Handlers ==========
 
-// NotifyClientTrainerBooking sends a trainer-created booking confirmation request to client
-func (h *Handler) NotifyClientTrainerBooking(booking *models.Booking) error {
+// NotifyClientSpecialistBooking sends a specialist-created booking confirmation request to client
+func (h *Handler) NotifyClientSpecialistBooking(booking *models.Booking) error {
 	client, err := db.GetClientByID(booking.ClientID)
 	if err != nil || client == nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
 
 	loc := myI18n.NewLocalizer(client.Language)
-	text := FormatTrainerCreatedBookingClient(loc, booking)
+	text := FormatSpecialistCreatedBookingClient(loc, booking)
 	_, err = h.Bot.SendNotification(client.TelegramUserID, text)
 	return err
 }
 
-// NotifyTrainerBookingCancelled sends a cancellation notification to the trainer
-func (h *Handler) NotifyTrainerBookingCancelled(booking *models.Booking) error {
-	trainer, err := db.GetTrainerByID(booking.TrainerID)
-	if err != nil || trainer == nil {
-		return fmt.Errorf("trainer not found")
+// NotifySpecialistBookingCancelled sends a cancellation notification to the specialist
+func (h *Handler) NotifySpecialistBookingCancelled(booking *models.Booking) error {
+	specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+	if err != nil || specialist == nil {
+		return fmt.Errorf("specialist not found")
 	}
-	loc := myI18n.NewLocalizer(trainer.Language)
-	text := FormatBookingCancelledForTrainer(loc, booking)
-	_, err = h.Bot.SendMessage(trainer.TelegramUserID, text, nil)
+	loc := myI18n.NewLocalizer(specialist.Language)
+	text := FormatBookingCancelledForSpecialist(loc, booking)
+	_, err = h.Bot.SendMessage(specialist.TelegramUserID, text, nil)
 	return err
 }
 
@@ -479,14 +479,14 @@ func (h *Handler) NotifyClientBookingCancelled(booking *models.Booking) error {
 // NotifyMoveRequest sends a move request notification with approval buttons
 func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requestedBy string) error {
 	if requestedBy == "client" {
-		// Notify trainer
-		trainer, err := db.GetTrainerByID(oldBooking.TrainerID)
-		if err != nil || trainer == nil {
-			return fmt.Errorf("trainer not found")
+		// Notify specialist
+		specialist, err := db.GetSpecialistByID(oldBooking.SpecialistID)
+		if err != nil || specialist == nil {
+			return fmt.Errorf("specialist not found")
 		}
-		loc := myI18n.NewLocalizer(trainer.Language)
-		text := FormatMoveRequestForTrainer(loc, newBooking, oldBooking)
-		_, err = h.Bot.SendNotification(trainer.TelegramUserID, text)
+		loc := myI18n.NewLocalizer(specialist.Language)
+		text := FormatMoveRequestForSpecialist(loc, newBooking, oldBooking)
+		_, err = h.Bot.SendNotification(specialist.TelegramUserID, text)
 		return err
 	}
 	// Notify client
@@ -500,31 +500,31 @@ func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requ
 	return err
 }
 
-// NotifyTrainerClientBookingResponse is the public API for notifying the trainer
-// when a client confirms or declines a trainer-created booking via the REST API.
-func (h *Handler) NotifyTrainerClientBookingResponse(booking *models.Booking, accepted bool) error {
-	h.notifyTrainerClientResponse(booking, accepted)
+// NotifySpecialistClientBookingResponse is the public API for notifying the specialist
+// when a client confirms or declines a specialist-created booking via the REST API.
+func (h *Handler) NotifySpecialistClientBookingResponse(booking *models.Booking, accepted bool) error {
+	h.notifySpecialistClientResponse(booking, accepted)
 	return nil
 }
 
-func (h *Handler) notifyTrainerClientResponse(booking *models.Booking, accepted bool) {
-	trainer, err := db.GetTrainerByID(booking.TrainerID)
-	if err != nil || trainer == nil {
-		log.Printf("Error getting trainer: %v", err)
+func (h *Handler) notifySpecialistClientResponse(booking *models.Booking, accepted bool) {
+	specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+	if err != nil || specialist == nil {
+		log.Printf("Error getting specialist: %v", err)
 		return
 	}
 
-	loc := myI18n.NewLocalizer(trainer.Language)
+	loc := myI18n.NewLocalizer(specialist.Language)
 
 	var text string
 	if accepted {
-		text = FormatClientAcceptedBookingTrainer(loc, booking)
+		text = FormatClientAcceptedBookingSpecialist(loc, booking)
 	} else {
-		text = FormatClientDeclinedBookingTrainer(loc, booking)
+		text = FormatClientDeclinedBookingSpecialist(loc, booking)
 	}
 
-	_, err = h.Bot.SendMessage(trainer.TelegramUserID, text, nil)
+	_, err = h.Bot.SendMessage(specialist.TelegramUserID, text, nil)
 	if err != nil {
-		log.Printf("Error notifying trainer: %v", err)
+		log.Printf("Error notifying specialist: %v", err)
 	}
 }

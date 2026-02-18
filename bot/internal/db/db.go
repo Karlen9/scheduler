@@ -323,6 +323,25 @@ func migrateSQLite() error {
 		DB.Exec(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`)
 	}
 
+	// Rename migrations: trainers -> specialists, gym_* -> location_*, trainer_id -> specialist_id
+	renameMigrations := []string{
+		`ALTER TABLE trainers RENAME TO specialists`,
+		`ALTER TABLE specialists RENAME COLUMN gym_latitude TO location_latitude`,
+		`ALTER TABLE specialists RENAME COLUMN gym_longitude TO location_longitude`,
+		`ALTER TABLE specialists RENAME COLUMN gym_address TO location_address`,
+		`ALTER TABLE bookings RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE clients RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE working_hours RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE session_types RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE days_off RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE recurring_schedules RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE waitlist RENAME COLUMN trainer_id TO specialist_id`,
+	}
+
+	for _, migration := range renameMigrations {
+		DB.Exec(migration) // Ignore errors (already renamed)
+	}
+
 	return nil
 }
 
@@ -524,6 +543,25 @@ func migratePostgres() error {
 	DB.Exec(`ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check`)
 	DB.Exec(`ALTER TABLE bookings ADD CONSTRAINT bookings_status_check CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending'))`)
 
+	// Rename migrations: trainers -> specialists, gym_* -> location_*, trainer_id -> specialist_id
+	renameMigrations := []string{
+		`ALTER TABLE IF EXISTS trainers RENAME TO specialists`,
+		`ALTER TABLE IF EXISTS specialists RENAME COLUMN gym_latitude TO location_latitude`,
+		`ALTER TABLE IF EXISTS specialists RENAME COLUMN gym_longitude TO location_longitude`,
+		`ALTER TABLE IF EXISTS specialists RENAME COLUMN gym_address TO location_address`,
+		`ALTER TABLE IF EXISTS bookings RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE IF EXISTS clients RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE IF EXISTS working_hours RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE IF EXISTS session_types RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE IF EXISTS days_off RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE IF EXISTS recurring_schedules RENAME COLUMN trainer_id TO specialist_id`,
+		`ALTER TABLE IF EXISTS waitlist RENAME COLUMN trainer_id TO specialist_id`,
+	}
+
+	for _, migration := range renameMigrations {
+		DB.Exec(migration) // Ignore errors (already renamed)
+	}
+
 	return nil
 }
 
@@ -537,7 +575,7 @@ func Close() error {
 // MigrateEncryptTokens encrypts any plain-text bot tokens and populates bot_token_hash.
 // Idempotent: skips rows that are already encrypted with a correct hash.
 func MigrateEncryptTokens() error {
-	rows, err := DB.Query(`SELECT id, bot_token, bot_token_hash FROM trainers`)
+	rows, err := DB.Query(`SELECT id, bot_token, bot_token_hash FROM specialists`)
 	if err != nil {
 		return err
 	}
@@ -582,7 +620,7 @@ func MigrateEncryptTokens() error {
 		}
 
 		if _, err := DB.Exec(
-			Q(`UPDATE trainers SET bot_token = ?, bot_token_hash = ? WHERE id = ?`),
+			Q(`UPDATE specialists SET bot_token = ?, bot_token_hash = ? WHERE id = ?`),
 			encrypted, expectedHash, r.id,
 		); err != nil {
 			return err
@@ -591,7 +629,7 @@ func MigrateEncryptTokens() error {
 	}
 
 	if migrated > 0 {
-		log.Printf("Migrated %d trainer token(s) (encrypted + hashed)", migrated)
+		log.Printf("Migrated %d specialist token(s) (encrypted + hashed)", migrated)
 	}
 	return nil
 }

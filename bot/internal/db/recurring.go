@@ -14,7 +14,7 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-const recurringColumns = `id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at, session_type_id, days_of_week, start_date, end_date, day_times,
+const recurringColumns = `id, specialist_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at, session_type_id, days_of_week, start_date, end_date, day_times,
 	COALESCE((SELECT photo_url FROM clients WHERE id = recurring_schedules.client_id), ''),
 	COALESCE((SELECT display_name FROM clients WHERE id = recurring_schedules.client_id), '')`
 
@@ -22,7 +22,7 @@ func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models
 	var s models.RecurringSchedule
 	var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
 
-	err := row.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL, &s.ClientDisplayName)
+	err := row.Scan(&s.ID, &s.SpecialistID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL, &s.ClientDisplayName)
 	if err != nil {
 		return nil, err
 	}
@@ -46,13 +46,13 @@ func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models
 	return &s, nil
 }
 
-func CreateRecurringSchedule(trainerID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string) (*models.RecurringSchedule, error) {
+func CreateRecurringSchedule(specialistID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string) (*models.RecurringSchedule, error) {
 	id := uuid.New().String()
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO recurring_schedules (id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by)
+		INSERT INTO recurring_schedules (id, specialist_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by)
 		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-	`), id, trainerID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy)
+	`), id, specialistID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,13 +61,13 @@ func CreateRecurringSchedule(trainerID, clientID, clientName string, dayOfWeek i
 }
 
 // CreateRecurringScheduleFull creates a recurring schedule with all Phase 2 fields
-func CreateRecurringScheduleFull(trainerID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string, sessionTypeID string, daysOfWeek string, startDate string, endDate string, dayTimes string) (*models.RecurringSchedule, error) {
+func CreateRecurringScheduleFull(specialistID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string, sessionTypeID string, daysOfWeek string, startDate string, endDate string, dayTimes string) (*models.RecurringSchedule, error) {
 	id := uuid.New().String()
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO recurring_schedules (id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, session_type_id, days_of_week, start_date, end_date, day_times)
+		INSERT INTO recurring_schedules (id, specialist_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, session_type_id, days_of_week, start_date, end_date, day_times)
 		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
-	`), id, trainerID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy, sessionTypeID, daysOfWeek, startDate, endDate, dayTimes)
+	`), id, specialistID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy, sessionTypeID, daysOfWeek, startDate, endDate, dayTimes)
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +105,13 @@ func GetActiveRecurringSchedules() ([]models.RecurringSchedule, error) {
 	return scanRecurringSchedules(rows)
 }
 
-func GetRecurringSchedulesByTrainerID(trainerID string) ([]models.RecurringSchedule, error) {
+func GetRecurringSchedulesBySpecialistID(specialistID string) ([]models.RecurringSchedule, error) {
 	rows, err := DB.Query(Q(`
 		SELECT `+recurringColumns+`
 		FROM recurring_schedules
-		WHERE trainer_id = ?
+		WHERE specialist_id = ?
 		ORDER BY created_at DESC
-	`), trainerID)
+	`), specialistID)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 	sessionTypeID := schedule.SessionTypeID
 	if sessionTypeID == "" {
 		// Fallback: find first session type for trainer
-		services, _ := GetSessionTypesByTrainerID(schedule.TrainerID)
+		services, _ := GetSessionTypesBySpecialistID(schedule.SpecialistID)
 		if len(services) > 0 {
 			sessionTypeID = services[0].ID
 		}
@@ -217,8 +217,8 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 	fallbackTimeParts := parseTimeStr(schedule.Time)
 
 	// Get working hours and days off for filtering
-	workingHours, _ := GetWorkingHoursByTrainerID(schedule.TrainerID)
-	daysOff, _ := GetDaysOffByTrainerID(schedule.TrainerID)
+	workingHours, _ := GetWorkingHoursBySpecialistID(schedule.SpecialistID)
+	daysOff, _ := GetDaysOffBySpecialistID(schedule.SpecialistID)
 
 	dayOffSet := make(map[string]bool)
 	for _, d := range daysOff {
@@ -257,12 +257,12 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 		endsAt := startsAt.Add(time.Duration(schedule.DurationMinutes) * time.Minute)
 
 		// Check conflicts
-		hasConflict, _ := HasConflictingBooking(schedule.TrainerID, startsAt, endsAt, "")
+		hasConflict, _ := HasConflictingBooking(schedule.SpecialistID, startsAt, endsAt, "")
 		if hasConflict {
 			continue
 		}
 
-		_, err := CreateRecurringBooking(schedule.TrainerID, schedule.ClientID, sessionTypeID, startsAt, endsAt, schedule.ClientName, schedule.DurationMinutes, scheduleID)
+		_, err := CreateRecurringBooking(schedule.SpecialistID, schedule.ClientID, sessionTypeID, startsAt, endsAt, schedule.ClientName, schedule.DurationMinutes, scheduleID)
 		if err != nil {
 			log.Printf("Error creating recurring booking for schedule %s on %s: %v", scheduleID, d.Format("2006-01-02"), err)
 			continue
@@ -282,7 +282,7 @@ func scanRecurringSchedules(rows *sql.Rows) ([]models.RecurringSchedule, error) 
 		var s models.RecurringSchedule
 		var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
 
-		if err := rows.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL); err != nil {
+		if err := rows.Scan(&s.ID, &s.SpecialistID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL); err != nil {
 			return nil, err
 		}
 

@@ -7,48 +7,48 @@ import { Clock, Phone, MessageCircle, Share2, Dumbbell } from 'lucide-react';
 import { formatDuration } from '@/components/DurationSelector';
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
-import { getTrainerId } from '@/lib/telegram';
-import { useTrainer, useSessionTypes } from '@/hooks/queries';
+import { getSpecialistId } from '@/lib/telegram';
+import { useSpecialist, useSessionTypes } from '@/hooks/queries';
 
 export default function HomePage() {
   const router = useRouter();
   const t = useTranslations('HomePage');
   const td = useTranslations('Duration');
   const locale = useLocale();
-  const { data: trainer, isLoading: trainerLoading } = useTrainer();
+  const { data: specialist, isLoading: specialistLoading } = useSpecialist();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const [bioExpanded, setBioExpanded] = useState(false);
   const [heroError, setHeroError] = useState(false);
 
-  // Redirect trainer to admin panel
+  // Redirect specialist to admin panel
   useEffect(() => {
-    if (trainer?.isOwner) {
-      const trainerId = getTrainerId();
-      router.replace(`/admin${trainerId ? `?trainer=${trainerId}` : ''}`);
+    if (specialist?.isOwner) {
+      const specialistId = getSpecialistId();
+      router.replace(`/admin${specialistId ? `?specialist=${specialistId}` : ''}`);
     }
-  }, [trainer, router]);
+  }, [specialist, router]);
 
-  const isLoading = trainerLoading || servicesLoading;
+  const isLoading = specialistLoading || servicesLoading;
 
   const handleMessage = () => {
-    if (trainer?.telegramHandle) {
-      const handle = trainer.telegramHandle.replace('@', '');
+    if (specialist?.telegramHandle) {
+      const handle = specialist.telegramHandle.replace('@', '');
       window.open(`https://t.me/${handle}`, '_blank');
-    } else if (trainer?.botUsername) {
-      window.open(`https://t.me/${trainer.botUsername}`, '_blank');
+    } else if (specialist?.botUsername) {
+      window.open(`https://t.me/${specialist.botUsername}`, '_blank');
     }
   };
 
   const handleShare = () => {
-    const url = `https://t.me/${trainer?.botUsername}`;
+    const url = `https://t.me/${specialist?.botUsername}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const webApp = window.Telegram?.WebApp as any;
     if (webApp?.openTelegramLink) {
       webApp.openTelegramLink(
-        `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(trainer?.name || '')}`,
+        `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(specialist?.name || '')}`,
       );
     } else if (navigator.share) {
-      navigator.share({ title: trainer?.name, url });
+      navigator.share({ title: specialist?.name, url });
     }
   };
 
@@ -77,7 +77,7 @@ export default function HomePage() {
     );
   }
 
-  if (!trainer) {
+  if (!specialist) {
     return (
       <div className="px-4 pt-4">
         <div className="bg-card text-muted-foreground rounded-xl p-4 text-center">
@@ -87,7 +87,7 @@ export default function HomePage() {
     );
   }
 
-  const hasPhoto = trainer.photoUrl && !heroError;
+  const hasPhoto = specialist.photoUrl && !heroError;
 
   return (
     <div>
@@ -96,8 +96,8 @@ export default function HomePage() {
         {hasPhoto ? (
           <>
             <img
-              src={getPhotoUrl(trainer.photoUrl!)}
-              alt={trainer.name}
+              src={getPhotoUrl(specialist.photoUrl!)}
+              alt={specialist.name}
               className="h-full w-full object-cover"
               onError={() => setHeroError(true)}
             />
@@ -105,56 +105,56 @@ export default function HomePage() {
           </>
         ) : (
           <div
-            className={`flex h-full w-full items-center justify-center text-7xl ${getAvatarColor(trainer.name)}`}
+            className={`flex h-full w-full items-center justify-center text-7xl ${getAvatarColor(specialist.name)}`}
           >
-            {trainer.name.charAt(0)}
+            {specialist.name.charAt(0)}
           </div>
         )}
       </div>
 
-      {/* Trainer Info Card */}
+      {/* Specialist Info Card */}
       <div className="bg-card relative z-10 -mt-6 rounded-t-2xl">
         <div className="space-y-4 px-4 pt-6 pb-4">
           {/* Name & specialization */}
           <div>
-            <h1 className="text-foreground text-2xl leading-tight font-bold">{trainer.name}</h1>
-            {trainer.specialization && (
-              <p className="text-muted-foreground mt-1 text-sm">{trainer.specialization}</p>
+            <h1 className="text-foreground text-2xl leading-tight font-bold">{specialist.name}</h1>
+            {specialist.specialization && (
+              <p className="text-muted-foreground mt-1 text-sm">{specialist.specialization}</p>
             )}
           </div>
 
           {/* Contact row */}
-          {(trainer.phone || trainer.telegramHandle) && (
+          {(specialist.phone || specialist.telegramHandle) && (
             <div className="flex items-center gap-4">
-              {trainer.phone && (
+              {specialist.phone && (
                 <a
-                  href={`tel:${trainer.phone}`}
+                  href={`tel:${specialist.phone}`}
                   className="text-muted-foreground flex items-center gap-1.5"
                 >
                   <Phone className="h-3.5 w-3.5" />
-                  <span className="text-xs">{trainer.phone}</span>
+                  <span className="text-xs">{specialist.phone}</span>
                 </a>
               )}
-              {trainer.telegramHandle && (
+              {specialist.telegramHandle && (
                 <div className="text-muted-foreground flex items-center gap-1.5">
                   <MessageCircle className="h-3.5 w-3.5" />
-                  <span className="text-xs">{trainer.telegramHandle}</span>
+                  <span className="text-xs">{specialist.telegramHandle}</span>
                 </div>
               )}
             </div>
           )}
 
           {/* Bio Section */}
-          {trainer.bio && (
+          {specialist.bio && (
             <div>
               <p
                 className={`text-muted-foreground text-sm leading-relaxed ${
                   !bioExpanded ? 'line-clamp-4' : ''
                 }`}
               >
-                {trainer.bio}
+                {specialist.bio}
               </p>
-              {trainer.bio.length > 200 && (
+              {specialist.bio.length > 200 && (
                 <button
                   onClick={() => setBioExpanded(!bioExpanded)}
                   className="text-brand mt-1 text-sm font-medium"
@@ -167,7 +167,7 @@ export default function HomePage() {
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            {(trainer.telegramHandle || trainer.botUsername) && (
+            {(specialist.telegramHandle || specialist.botUsername) && (
               <button
                 onClick={handleMessage}
                 className="bg-brand flex-1 rounded-[28px] px-4 py-3 text-sm font-medium text-white transition-opacity active:opacity-80"
@@ -235,17 +235,17 @@ export default function HomePage() {
         )}
 
         {/* Location Section */}
-        {trainer.gymLatitude && trainer.gymLongitude && (
+        {specialist.locationLatitude && specialist.locationLongitude && (
           <div className="px-4 pb-4">
             <h3 className="text-foreground mb-2 text-sm font-semibold">{t('locationTitle')}</h3>
             <a
-              href={`https://yandex.ru/maps/?pt=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&l=map`}
+              href={`https://yandex.ru/maps/?pt=${specialist.locationLongitude},${specialist.locationLatitude}&z=15&l=map`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-background block overflow-hidden rounded-xl"
             >
               <iframe
-                src={`https://yandex.ru/map-widget/v1/?ll=${trainer.gymLongitude},${trainer.gymLatitude}&z=15&pt=${trainer.gymLongitude},${trainer.gymLatitude},pm2rdm`}
+                src={`https://yandex.ru/map-widget/v1/?ll=${specialist.locationLongitude},${specialist.locationLatitude}&z=15&pt=${specialist.locationLongitude},${specialist.locationLatitude},pm2rdm`}
                 width="100%"
                 height="200"
                 style={{ border: 'none', display: 'block', pointerEvents: 'none' }}

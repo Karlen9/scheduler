@@ -1,5 +1,5 @@
 export { TopBar } from './TopBar';
-export { TrainerCard } from './TrainerCard';
+export { SpecialistCard } from './SpecialistCard';
 export { PrimaryButton } from './PrimaryButton';
 export { BottomSafeArea } from './BottomSafeArea';
 export { WeekDatePicker } from './WeekDatePicker';

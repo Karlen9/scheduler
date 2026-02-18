@@ -1,4 +1,4 @@
-export interface Trainer {
+export interface Specialist {
   id: string;
   name: string;
   timezone: string;
@@ -9,8 +9,8 @@ export interface Trainer {
   specialization?: string;
   bio?: string;
   photoUrl?: string;
-  gymLatitude?: number;
-  gymLongitude?: number;
+  locationLatitude?: number;
+  locationLongitude?: number;
   isOwner?: boolean;
   language?: string;
 }
@@ -78,7 +78,7 @@ export interface ClientProfile {
 export interface ClientInfo {
   id: string;
   telegramUserId: number;
-  trainerId: string;
+  specialistId: string;
   name: string;
   displayName?: string;
   phone?: string;

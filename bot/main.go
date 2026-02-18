@@ -41,16 +41,16 @@ func NewBotManager(webAppURL, baseURL string) *BotManager {
 	}
 }
 
-func (m *BotManager) RegisterBot(trainer *models.Trainer) error {
+func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	// Skip if already registered
-	if _, exists := m.bots[trainer.WebhookSecret]; exists {
+	if _, exists := m.bots[specialist.WebhookSecret]; exists {
 		return nil
 	}
 
-	bot, err := telegram.NewBot(trainer.BotToken)
+	bot, err := telegram.NewBot(specialist.BotToken)
 	if err != nil {
 		return err
 	}
@@ -64,9 +64,9 @@ func (m *BotManager) RegisterBot(trainer *models.Trainer) error {
 	}
 
 	// Set webhook with retry
-	webhookURL := strings.TrimRight(m.baseURL, "/") + "/tg/" + trainer.WebhookSecret + "/webhook"
+	webhookURL := strings.TrimRight(m.baseURL, "/") + "/tg/" + specialist.WebhookSecret + "/webhook"
 	for attempt := 1; attempt <= 3; attempt++ {
-		if err := bot.SetWebhook(webhookURL, trainer.WebhookSecret); err != nil {
+		if err := bot.SetWebhook(webhookURL, specialist.WebhookSecret); err != nil {
 			log.Printf("Failed to set webhook for @%s (attempt %d): %v", bot.Username, attempt, err)
 			if attempt < 3 {
 				time.Sleep(time.Duration(attempt) * 2 * time.Second)
@@ -77,8 +77,8 @@ func (m *BotManager) RegisterBot(trainer *models.Trainer) error {
 		}
 	}
 
-	m.bots[trainer.WebhookSecret] = bot
-	m.handlers[trainer.WebhookSecret] = handler
+	m.bots[specialist.WebhookSecret] = bot
+	m.handlers[specialist.WebhookSecret] = handler
 
 	// Log webhook info for debugging
 	url, pending, lastErr := bot.GetWebhookInfo()
@@ -101,19 +101,19 @@ func (m *BotManager) GetOrLoadHandler(webhookSecret string) *telegram.Handler {
 		return h
 	}
 
-	// Slow path: look up trainer in DB and register on-the-fly
-	trainer, err := db.GetTrainerByWebhookSecret(webhookSecret)
+	// Slow path: look up specialist in DB and register on-the-fly
+	specialist, err := db.GetSpecialistByWebhookSecret(webhookSecret)
 	if err != nil {
 		log.Printf("Lazy-load DB error for secret %s...: %v", webhookSecret[:8], err)
 		return nil
 	}
-	if trainer == nil {
+	if specialist == nil {
 		return nil
 	}
 
-	log.Printf("Lazy-loading bot for trainer %s (webhook handler was missing)", trainer.Name)
-	if err := m.RegisterBot(trainer); err != nil {
-		log.Printf("Failed to lazy-load bot for trainer %s: %v", trainer.Name, err)
+	log.Printf("Lazy-loading bot for specialist %s (webhook handler was missing)", specialist.Name)
+	if err := m.RegisterBot(specialist); err != nil {
+		log.Printf("Failed to lazy-load bot for specialist %s: %v", specialist.Name, err)
 		return nil
 	}
 
@@ -160,62 +160,62 @@ func main() {
 	// Create bot manager
 	botManager = NewBotManager(cfg.WebAppURL, cfg.PublicBaseURL)
 
-	// Set up callback for when new trainers are created via master bot
-	telegram.OnTrainerCreated = func(trainer *models.Trainer) error {
-		if err := botManager.RegisterBot(trainer); err != nil {
+	// Set up callback for when new specialists are created via master bot
+	telegram.OnSpecialistCreated = func(specialist *models.Specialist) error {
+		if err := botManager.RegisterBot(specialist); err != nil {
 			log.Printf("Failed to register new bot: %v", err)
 			return err
 		}
 		return nil
 	}
 
-	// Legacy: seed initial data if single-bot env vars are set and no trainers exist
-	if cfg.TelegramBotToken != "" && cfg.TrainerTelegramID != 0 {
+	// Legacy: seed initial data if single-bot env vars are set and no specialists exist
+	if cfg.TelegramBotToken != "" && cfg.SpecialistTelegramID != 0 {
 		if err := seedLegacyData(cfg); err != nil {
 			log.Printf("Warning: Failed to seed legacy data: %v", err)
 		}
 	}
 
-	// Load all active trainers and register their bots
-	trainers, err := db.GetAllActiveTrainers()
+	// Load all active specialists and register their bots
+	specialists, err := db.GetAllActiveSpecialists()
 	if err != nil {
-		log.Fatalf("Failed to load trainers: %v", err)
+		log.Fatalf("Failed to load specialists: %v", err)
 	}
 
-	for i, trainer := range trainers {
-		if err := botManager.RegisterBot(&trainer); err != nil {
-			log.Printf("Failed to register bot for trainer %s: %v", trainer.Name, err)
+	for i, specialist := range specialists {
+		if err := botManager.RegisterBot(&specialist); err != nil {
+			log.Printf("Failed to register bot for specialist %s: %v", specialist.Name, err)
 		}
 		// Avoid Telegram rate limits when registering multiple bots
-		if i < len(trainers)-1 {
+		if i < len(specialists)-1 {
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
 
-	log.Printf("Loaded %d trainer bot(s)", len(trainers))
+	log.Printf("Loaded %d specialist bot(s)", len(specialists))
 
-	// Set up notification callback for client-created bookings (notify trainer)
+	// Set up notification callback for client-created bookings (notify specialist)
 	api.NotifyBookingFunc = func(booking *models.Booking) error {
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
 			return err
 		}
-		if !trainer.NotifyNewBookings {
-			log.Printf("Skipping new booking notification for trainer %s (disabled)", trainer.Name)
+		if !specialist.NotifyNewBookings {
+			log.Printf("Skipping new booking notification for specialist %s (disabled)", specialist.Name)
 			return nil
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
+			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
-		return handler.NotifyTrainerNewBooking(booking)
+		return handler.NotifySpecialistNewBooking(booking)
 	}
 
-	// Set up notification callback for admin status changes - finds correct bot by trainer
+	// Set up notification callback for admin status changes - finds correct bot by specialist
 	api.NotifyStatusChangeFunc = func(booking *models.Booking, newStatus string) error {
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
 			return err
 		}
 		// Check client notification preferences
@@ -230,33 +230,33 @@ func main() {
 			log.Printf("Skipping status change notification for client %s (disabled)", client.Name)
 			return nil
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
+			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
 		return handler.NotifyClientStatusChange(booking, newStatus)
 	}
 
-	// Set up callback to edit trainer's Telegram message when admin panel changes booking status
-	api.UpdateTrainerMessageFunc = func(booking *models.Booking) error {
+	// Set up callback to edit specialist's Telegram message when admin panel changes booking status
+	api.UpdateSpecialistMessageFunc = func(booking *models.Booking) error {
 		chatID, messageID, err := db.GetBookingNotificationInfo(booking.ID)
 		if err != nil || messageID == 0 {
 			return nil // No message to edit
 		}
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
 			return nil
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
 			return nil
 		}
 		return handler.UpdateBookingNotificationMessageByIDs(chatID, messageID, booking)
 	}
 
-	// Set up notification callback for trainer-initiated bookings (notify client)
-	api.NotifyTrainerBookingFunc = func(booking *models.Booking) error {
+	// Set up notification callback for specialist-initiated bookings (notify client)
+	api.NotifySpecialistBookingFunc = func(booking *models.Booking) error {
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			return err
@@ -265,55 +265,55 @@ func main() {
 			return nil
 		}
 		if !client.NotifyBookingStatus {
-			log.Printf("Skipping trainer booking notification for client %s (disabled)", client.Name)
+			log.Printf("Skipping specialist booking notification for client %s (disabled)", client.Name)
 			return nil
 		}
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
 			return err
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
+			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
-		return handler.NotifyClientTrainerBooking(booking)
+		return handler.NotifyClientSpecialistBooking(booking)
 	}
 
-	// Set up notification callback for client confirm/decline of trainer-created bookings
+	// Set up notification callback for client confirm/decline of specialist-created bookings
 	api.NotifyClientBookingResponseFunc = func(booking *models.Booking, accepted bool) error {
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
 			return err
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
+			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
-		return handler.NotifyTrainerClientBookingResponse(booking, accepted)
+		return handler.NotifySpecialistClientBookingResponse(booking, accepted)
 	}
 
 	// Set up recurring schedule notification callback
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error {
-		trainer, err := db.GetTrainerByID(schedule.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(schedule.SpecialistID)
+		if err != nil || specialist == nil {
 			return err
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
+			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
 		if schedule.CreatedBy == "client" {
-			// Notify trainer about client-created schedule
-			if !trainer.NotifyNewBookings {
-				log.Printf("Skipping recurring schedule notification for trainer %s (disabled)", trainer.Name)
+			// Notify specialist about client-created schedule
+			if !specialist.NotifyNewBookings {
+				log.Printf("Skipping recurring schedule notification for specialist %s (disabled)", specialist.Name)
 				return nil
 			}
-			return handler.NotifyTrainerRecurringSchedule(schedule, previewCount)
+			return handler.NotifySpecialistRecurringSchedule(schedule, previewCount)
 		}
-		// Notify client about trainer-created schedule
+		// Notify client about specialist-created schedule
 		client, err := db.GetClientByID(schedule.ClientID)
 		if err != nil || client == nil {
 			return err
@@ -330,24 +330,24 @@ func main() {
 
 	// Set up cancellation notification callback
 	api.NotifyCancellationFunc = func(booking *models.Booking, cancelledBy string) error {
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
 			return err
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
+			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
 		if cancelledBy == "client" {
-			// Client cancelled — notify trainer if enabled
-			if !trainer.NotifyCancellations {
-				log.Printf("Skipping cancellation notification for trainer %s (disabled)", trainer.Name)
+			// Client cancelled — notify specialist if enabled
+			if !specialist.NotifyCancellations {
+				log.Printf("Skipping cancellation notification for specialist %s (disabled)", specialist.Name)
 				return nil
 			}
-			return handler.NotifyTrainerBookingCancelled(booking)
+			return handler.NotifySpecialistBookingCancelled(booking)
 		}
-		// Trainer cancelled — notify client if enabled
+		// Specialist cancelled — notify client if enabled
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			return err
@@ -364,13 +364,13 @@ func main() {
 
 	// Set up move request notification callback
 	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error {
-		trainer, err := db.GetTrainerByID(oldBooking.TrainerID)
-		if err != nil || trainer == nil {
+		specialist, err := db.GetSpecialistByID(oldBooking.SpecialistID)
+		if err != nil || specialist == nil {
 			return err
 		}
-		handler := botManager.GetHandler(trainer.WebhookSecret)
+		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
-			log.Printf("No handler found for trainer %s", trainer.Name)
+			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
 		return handler.NotifyMoveRequest(newBooking, oldBooking, requestedBy)
@@ -379,7 +379,7 @@ func main() {
 	// Set up HTTP server
 	apiRouter := api.NewRouter()
 
-	// Master bot webhook (for trainer onboarding)
+	// Master bot webhook (for specialist onboarding)
 	var masterHandler *telegram.MasterHandler
 	var masterWebhookSecret string
 	if cfg.MasterBotToken != "" {
@@ -416,7 +416,7 @@ func main() {
 		path := r.URL.Path
 
 		if strings.HasPrefix(path, "/tg/") {
-			// Trainer bot webhooks
+			// Specialist bot webhooks
 			log.Printf("Webhook request: %s %s", r.Method, path)
 
 			parts := strings.Split(strings.Trim(path, "/"), "/")
@@ -582,16 +582,16 @@ func sendReminders() {
 			continue
 		}
 
-		// Get trainer to find the correct bot
-		trainer, err := db.GetTrainerByID(booking.TrainerID)
-		if err != nil || trainer == nil {
-			log.Printf("Reminder: error getting trainer for booking %s: %v", booking.ID, err)
+		// Get specialist to find the correct bot
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
+			log.Printf("Reminder: error getting specialist for booking %s: %v", booking.ID, err)
 			continue
 		}
 
-		bot := botManager.GetBot(trainer.WebhookSecret)
+		bot := botManager.GetBot(specialist.WebhookSecret)
 		if bot == nil {
-			log.Printf("Reminder: no bot found for trainer %s", trainer.Name)
+			log.Printf("Reminder: no bot found for specialist %s", specialist.Name)
 			continue
 		}
 
@@ -611,7 +611,7 @@ func sendReminders() {
 }
 
 func seedLegacyData(cfg *config.Config) error {
-	existing, err := db.GetTrainerByTelegramID(cfg.TrainerTelegramID)
+	existing, err := db.GetSpecialistByTelegramID(cfg.SpecialistTelegramID)
 	if err != nil {
 		return err
 	}
@@ -624,20 +624,20 @@ func seedLegacyData(cfg *config.Config) error {
 		return err
 	}
 
-	log.Println("Seeding initial trainer from env vars...")
+	log.Println("Seeding initial specialist from env vars...")
 
-	trainer, err := db.CreateTrainer(
-		cfg.TrainerTelegramID,
+	specialist, err := db.CreateSpecialist(
+		cfg.SpecialistTelegramID,
 		cfg.TelegramBotToken,
 		bot.Username,
-		cfg.TrainerName,
+		cfg.SpecialistName,
 		"Europe/Moscow",
 		24,
 	)
 	if err != nil {
 		return err
 	}
-	log.Printf("Created trainer: %s (@%s)", trainer.Name, trainer.BotUsername)
+	log.Printf("Created specialist: %s (@%s)", specialist.Name, specialist.BotUsername)
 
 	loc := myI18n.Default()
 	sessionTypes := []struct {
@@ -652,7 +652,7 @@ func seedLegacyData(cfg *config.Config) error {
 	}
 
 	for _, st := range sessionTypes {
-		db.CreateSessionType(trainer.ID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
+		db.CreateSessionType(specialist.ID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
 	}
 
 	workingHours := []struct {
@@ -669,7 +669,7 @@ func seedLegacyData(cfg *config.Config) error {
 	}
 
 	for _, wh := range workingHours {
-		db.UpsertWorkingHours(trainer.ID, wh.day, wh.start, wh.end)
+		db.UpsertWorkingHours(specialist.ID, wh.day, wh.start, wh.end)
 	}
 
 	log.Println("Legacy seed complete!")

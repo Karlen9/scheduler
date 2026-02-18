@@ -18,7 +18,7 @@ func scanClient(row interface {
 	var isGhost sql.NullInt64
 	var language, displayName sql.NullString
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
-	err := row.Scan(&c.ID, &c.TelegramUserID, &c.TrainerID, &c.Name, &phone, &photoURL, &preferredDuration,
+	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &preferredDuration,
 		&isGhost, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName)
 	if err != nil {
 		return nil, err
@@ -45,12 +45,12 @@ func scanClient(row interface {
 	return &c, nil
 }
 
-func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Client, error) {
+func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
-		WHERE telegram_user_id = ? AND trainer_id = ?
-	`), telegramUserID, trainerID)
+		WHERE telegram_user_id = ? AND specialist_id = ?
+	`), telegramUserID, specialistID)
 
 	c, err := scanClient(row)
 	if err == sql.ErrNoRows {
@@ -64,7 +64,7 @@ func GetClientByTelegramID(telegramUserID int64, trainerID string) (*models.Clie
 
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
 		WHERE id = ?
 	`), id)
@@ -79,13 +79,13 @@ func GetClientByID(id string) (*models.Client, error) {
 	return c, nil
 }
 
-func CreateClient(telegramUserID int64, trainerID string, name string) (*models.Client, error) {
+func CreateClient(telegramUserID int64, specialistID string, name string) (*models.Client, error) {
 	id := uuid.New().String()
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO clients (id, telegram_user_id, trainer_id, name)
+		INSERT INTO clients (id, telegram_user_id, specialist_id, name)
 		VALUES (?, ?, ?, ?)
-	`), id, telegramUserID, trainerID, name)
+	`), id, telegramUserID, specialistID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -93,15 +93,15 @@ func CreateClient(telegramUserID int64, trainerID string, name string) (*models.
 	return GetClientByID(id)
 }
 
-func GetOrCreateClient(telegramUserID int64, trainerID string, name string) (*models.Client, error) {
-	client, err := GetClientByTelegramID(telegramUserID, trainerID)
+func GetOrCreateClient(telegramUserID int64, specialistID string, name string) (*models.Client, error) {
+	client, err := GetClientByTelegramID(telegramUserID, specialistID)
 	if err != nil {
 		return nil, err
 	}
 	if client != nil {
 		return client, nil
 	}
-	return CreateClient(telegramUserID, trainerID, name)
+	return CreateClient(telegramUserID, specialistID, name)
 }
 
 func UpdateClientName(clientID string, name string) error {
@@ -132,18 +132,18 @@ func UpdateClientPhoto(clientID, fileID string) error {
 	return err
 }
 
-func UpdateTrainerPhoto(trainerID, fileID string) error {
-	_, err := DB.Exec(Q(`UPDATE trainers SET photo_url = ? WHERE id = ?`), fileID, trainerID)
+func UpdateSpecialistPhoto(specialistID, fileID string) error {
+	_, err := DB.Exec(Q(`UPDATE specialists SET photo_url = ? WHERE id = ?`), fileID, specialistID)
 	return err
 }
 
-func GetClientsByTrainerID(trainerID string) ([]models.Client, error) {
+func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, trainer_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
-		WHERE trainer_id = ?
+		WHERE specialist_id = ?
 		ORDER BY name ASC
-	`), trainerID)
+	`), specialistID)
 	if err != nil {
 		return nil, err
 	}
@@ -194,14 +194,14 @@ func UpdateClientLanguage(clientID, language string) error {
 	return err
 }
 
-func CreateGhostClient(trainerID, name string) (*models.Client, error) {
+func CreateGhostClient(specialistID, name string) (*models.Client, error) {
 	id := uuid.New().String()
 	fakeTelegramID := -time.Now().UnixNano()
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO clients (id, telegram_user_id, trainer_id, name, is_ghost)
+		INSERT INTO clients (id, telegram_user_id, specialist_id, name, is_ghost)
 		VALUES (?, ?, ?, ?, 1)
-	`), id, fakeTelegramID, trainerID, name)
+	`), id, fakeTelegramID, specialistID, name)
 	if err != nil {
 		return nil, err
 	}

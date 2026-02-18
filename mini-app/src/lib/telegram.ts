@@ -215,13 +215,14 @@ export function getInitData(): string {
   return webApp?.initData ?? '';
 }
 
-export function getTrainerId(): string | null {
+export function getSpecialistId(): string | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  const fromURL = params.get('trainer');
+  // Check new param first, fall back to old for backward compat
+  const fromURL = params.get('specialist') || params.get('trainer');
   if (fromURL) {
-    sessionStorage.setItem('trainerId', fromURL);
+    sessionStorage.setItem('specialistId', fromURL);
     return fromURL;
   }
-  return sessionStorage.getItem('trainerId');
+  return sessionStorage.getItem('specialistId');
 }

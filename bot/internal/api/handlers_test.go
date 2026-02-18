@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// ========== Task 2: Health + Trainer tests ==========
+// ========== Task 2: Health + Specialist tests ==========
 
 func TestHealthEndpoint(t *testing.T) {
 	w := doRequest(t, http.MethodGet, "/health", nil, 111111)
@@ -18,7 +18,7 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 }
 
-func TestGetTrainer(t *testing.T) {
+func TestGetSpecialist(t *testing.T) {
 	w := doAdminRequest(t, http.MethodGet, "/api/trainer", nil)
 
 	if w.Code != http.StatusOK {
@@ -28,15 +28,15 @@ func TestGetTrainer(t *testing.T) {
 	var result map[string]interface{}
 	parseJSON(t, w, &result)
 
-	if name, _ := result["name"].(string); name != "Test Trainer" {
-		t.Fatalf("expected name 'Test Trainer', got %q", name)
+	if name, _ := result["name"].(string); name != "Test Specialist" {
+		t.Fatalf("expected name 'Test Specialist', got %q", name)
 	}
 	if isOwner, _ := result["isOwner"].(bool); !isOwner {
-		t.Fatal("expected isOwner=true for trainer")
+		t.Fatal("expected isOwner=true for specialist")
 	}
 }
 
-func TestGetTrainerAsClient(t *testing.T) {
+func TestGetSpecialistAsClient(t *testing.T) {
 	w := doClientRequest(t, http.MethodGet, "/api/trainer", nil, 999999)
 
 	if w.Code != http.StatusOK {

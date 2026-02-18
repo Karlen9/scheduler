@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { getAvatarColor } from '@/lib/colors';
 import { getPhotoUrl } from '@/lib/api';
 
-interface TrainerCardProps {
+interface SpecialistCardProps {
   name: string;
   specialization: string;
   photoUrl?: string;
@@ -18,7 +18,7 @@ interface TrainerCardProps {
   onShare?: () => void;
 }
 
-export function TrainerCard({
+export function SpecialistCard({
   name,
   specialization,
   photoUrl,
@@ -28,7 +28,7 @@ export function TrainerCard({
   servicesCount,
   onServices,
   onShare,
-}: TrainerCardProps) {
+}: SpecialistCardProps) {
   const t = useTranslations('HomePage');
   const [photoError, setPhotoError] = useState(false);
 

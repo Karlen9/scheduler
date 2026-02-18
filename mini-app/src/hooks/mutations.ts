@@ -22,8 +22,8 @@ export function invalidateServices() {
   mutate(CACHE_KEYS.durations);
 }
 
-export function invalidateTrainer() {
-  mutate(CACHE_KEYS.trainer);
+export function invalidateSpecialist() {
+  mutate(CACHE_KEYS.specialist);
   mutate(CACHE_KEYS.adminProfile);
 }
 

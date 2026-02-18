@@ -10,7 +10,7 @@ import { PhotoEditor } from '@/components/PhotoEditor';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 import { useAdminProfile } from '@/hooks/queries';
-import { invalidateTrainer } from '@/hooks/mutations';
+import { invalidateSpecialist } from '@/hooks/mutations';
 
 export default function ProfilePage() {
   const t = useTranslations('AdminProfile');
@@ -41,8 +41,8 @@ export default function ProfilePage() {
     setPhone(profile.phone || '');
     setTelegram(profile.telegramHandle || '');
     setPhotoUrl(profile.photoUrl || '');
-    if (profile.gymLatitude && profile.gymLongitude) {
-      setGymCoords(`${profile.gymLatitude}, ${profile.gymLongitude}`);
+    if (profile.locationLatitude && profile.locationLongitude) {
+      setGymCoords(`${profile.locationLatitude}, ${profile.locationLongitude}`);
     }
     setInitialized(true);
   }, [profile, isLoading, initialized]);
@@ -63,7 +63,7 @@ export default function ProfilePage() {
       const result = await api.admin.uploadPhoto(file);
       setPhotoUrl(result.fileId);
       setPhotoError(false);
-      invalidateTrainer();
+      invalidateSpecialist();
       toast.success(ts('photoUpdated'));
     } catch (err) {
       console.error('Failed to upload photo:', err);
@@ -76,13 +76,13 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      let gymLatitude = 0;
-      let gymLongitude = 0;
+      let locationLatitude = 0;
+      let locationLongitude = 0;
       if (gymCoords.trim()) {
         const parts = gymCoords.split(',').map((s) => parseFloat(s.trim()));
         if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          gymLatitude = parts[0];
-          gymLongitude = parts[1];
+          locationLatitude = parts[0];
+          locationLongitude = parts[1];
         }
       }
       await api.admin.updateProfile({
@@ -91,10 +91,10 @@ export default function ProfilePage() {
         bio,
         phone,
         telegramHandle: telegram,
-        gymLatitude,
-        gymLongitude,
+        locationLatitude,
+        locationLongitude,
       });
-      invalidateTrainer();
+      invalidateSpecialist();
       toast.success(ts('profileSaved'));
     } catch (err) {
       console.error('Failed to save profile:', err);

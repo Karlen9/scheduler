@@ -19,7 +19,7 @@
     "great": "Great",
     "creating": "Creating...",
     "uploading": "Uploading...",
-    "workout": "Workout",
+    "workout": "Session",
     "ghost": "(guest)",
     "add": "Add"
   },
@@ -156,7 +156,7 @@
     "day5": "days"
   },
   "HomePage": {
-    "trainerLoadError": "Failed to load trainer information",
+    "trainerLoadError": "Failed to load specialist information",
     "showMore": "Show more",
     "showLess": "Show less",
     "messageButton": "Message",
@@ -215,7 +215,7 @@
     "successBookingCreated": "Booking created.",
     "successRecurringTitle": "Schedule Submitted",
     "successRecurringForClient": "Schedule for {name} has been submitted for confirmation.",
-    "successRecurringForTrainer": "Schedule has been submitted for trainer's confirmation."
+    "successRecurringForTrainer": "Schedule has been submitted for specialist's confirmation."
   },
   "BookingsPage": {
     "title": "My Bookings",
@@ -230,7 +230,7 @@
     "cancelConfirmButton": "Cancel Booking",
     "cancelReasonPlaceholder": "Cancellation reason (optional)",
     "cancelDefaultReason": "Cancelled by client",
-    "trainerBookedYou": "The trainer booked a session for you",
+    "trainerBookedYou": "The specialist booked a session for you",
     "declineButton": "Decline"
   },
   "RecurringPage": {
@@ -250,7 +250,7 @@
     "noSessionsPlanned": "No sessions planned yet",
     "noPlannedSessions": "No scheduled sessions",
     "cancelSessionDialog": "Cancel session?",
-    "cancelSessionDescription": "The session will be cancelled. The trainer will be notified.",
+    "cancelSessionDescription": "The session will be cancelled. The specialist will be notified.",
     "awaitingRescheduleConfirmation": "Awaiting reschedule confirmation",
     "rescheduleRequest": "Reschedule request"
   },
@@ -263,10 +263,10 @@
     "notifyBookingStatus": "Booking status",
     "notifyBookingStatusDesc": "Booking confirmations and rejections",
     "notifyCancellations": "Cancellations",
-    "notifyCancellationsDesc": "Notifications about trainer cancellations",
+    "notifyCancellationsDesc": "Notifications about specialist cancellations",
     "notifyReminders": "Reminders",
     "notifyRemindersDesc": "One hour before the session",
-    "notifyDaysOff": "Trainer days off",
+    "notifyDaysOff": "Specialist days off",
     "notifyDaysOffDesc": "New days off",
     "theme": "Theme"
   },
@@ -309,11 +309,11 @@
     "nameLabel": "Name",
     "specializationLabel": "Specialization",
     "bioLabel": "About",
-    "bioPlaceholder": "Tell about your experience and training approach...",
+    "bioPlaceholder": "Tell about your experience and approach...",
     "phoneLabel": "Phone",
     "telegramLabel": "Telegram",
     "telegramPlaceholder": "@username",
-    "gymCoordsLabel": "Gym coordinates",
+    "gymCoordsLabel": "Location coordinates",
     "gymCoordsPlaceholder": "40.748817, -73.985428",
     "gymCoordsHint": "Open a map service, click on the building (not the business listing) and copy the coordinates"
   },
@@ -333,7 +333,7 @@
     "typePair": "Pair",
     "typeConsultation": "Consultation",
     "nameLabel": "Name",
-    "namePlaceholder": "Pair training",
+    "namePlaceholder": "Pair session",
     "priceLabel": "Price",
     "pricePlaceholder": "2500",
     "durationLabel": "Duration",
@@ -449,7 +449,7 @@
     "minutes": "minutes"
   },
   "Errors": {
-    "trainerLoadFailed": "Failed to load trainer information",
+    "trainerLoadFailed": "Failed to load specialist information",
     "bookingCreateFailed": "Failed to create booking",
     "bookingCancelFailed": "Failed to cancel booking",
     "bookingConfirmFailed": "Failed to confirm booking",

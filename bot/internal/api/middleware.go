@@ -32,8 +32,8 @@ func localizerFromRequest(r *http.Request) *i18n.Localizer {
 type contextKey string
 
 const (
-	ClientContextKey  contextKey = "client"
-	TrainerContextKey contextKey = "trainer"
+	ClientContextKey     contextKey = "client"
+	SpecialistContextKey contextKey = "specialist"
 )
 
 // TelegramUser represents user data from Telegram initData
@@ -50,39 +50,45 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			initData := r.Header.Get("X-Telegram-Init-Data")
-			trainerID := r.Header.Get("X-Trainer-ID")
-			if trainerID == "" {
-				trainerID = r.URL.Query().Get("trainer")
+			specialistID := r.Header.Get("X-Specialist-ID")
+			if specialistID == "" {
+				specialistID = r.Header.Get("X-Trainer-ID")
+			}
+			if specialistID == "" {
+				specialistID = r.URL.Query().Get("specialist")
+			}
+			if specialistID == "" {
+				specialistID = r.URL.Query().Get("trainer")
 			}
 
-			// Get trainer by ID or fall back to first trainer
-			var trainer *models.Trainer
+			// Get specialist by ID or fall back to first specialist
+			var specialist *models.Specialist
 			var err error
-			if trainerID != "" {
-				trainer, err = db.GetTrainerByID(trainerID)
+			if specialistID != "" {
+				specialist, err = db.GetSpecialistByID(specialistID)
 			} else {
-				trainer, err = db.GetFirstTrainer()
+				specialist, err = db.GetFirstSpecialist()
 			}
 			if err != nil {
-				log.Printf("Error getting trainer: %v", err)
+				log.Printf("Error getting specialist: %v", err)
 				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
 				return
 			}
-			if trainer == nil {
-				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TrainerNotFound"), http.StatusNotFound)
+			if specialist == nil {
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.SpecialistNotFound"), http.StatusNotFound)
 				return
 			}
 
 			if initData == "" {
 				// For development, allow requests without auth
 				log.Println("Warning: No Telegram initData provided")
-				ctx := context.WithValue(r.Context(), TrainerContextKey, trainer)
+				ctx := context.WithValue(r.Context(), SpecialistContextKey, specialist)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 
-			// Validate initData using the trainer's bot token
-			user, ok := validateInitData(initData, trainer.BotToken)
+			// Validate initData using the specialist's bot token
+			user, ok := validateInitData(initData, specialist.BotToken)
 			if !ok {
 				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TelegramAuth"), http.StatusUnauthorized)
 				return
@@ -93,7 +99,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			if user.LastName != "" {
 				name += " " + user.LastName
 			}
-			client, err := db.GetOrCreateClient(user.ID, trainer.ID, name)
+			client, err := db.GetOrCreateClient(user.ID, specialist.ID, name)
 			if err != nil {
 				log.Printf("Error getting/creating client: %v", err)
 				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
@@ -108,7 +114,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 
 			ctx := context.WithValue(r.Context(), ClientContextKey, client)
-			ctx = context.WithValue(ctx, TrainerContextKey, trainer)
+			ctx = context.WithValue(ctx, SpecialistContextKey, specialist)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -174,25 +180,25 @@ func GetClientFromContext(r *http.Request) *models.Client {
 	return client
 }
 
-// GetTrainerFromContext extracts trainer from request context
-func GetTrainerFromContext(r *http.Request) *models.Trainer {
-	trainer, _ := r.Context().Value(TrainerContextKey).(*models.Trainer)
-	return trainer
+// GetSpecialistFromContext extracts specialist from request context
+func GetSpecialistFromContext(r *http.Request) *models.Specialist {
+	specialist, _ := r.Context().Value(SpecialistContextKey).(*models.Specialist)
+	return specialist
 }
 
-// AdminAuthMiddleware checks if the user is the trainer (admin)
+// AdminAuthMiddleware checks if the user is the specialist (admin)
 func AdminAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		client := GetClientFromContext(r)
-		trainer := GetTrainerFromContext(r)
+		specialist := GetSpecialistFromContext(r)
 
-		if client == nil || trainer == nil {
+		if client == nil || specialist == nil {
 			httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Check if client's telegram ID matches trainer's telegram ID
-		if client.TelegramUserID != trainer.TelegramUserID {
+		// Check if client's telegram ID matches specialist's telegram ID
+		if client.TelegramUserID != specialist.TelegramUserID {
 			httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 			return
 		}
@@ -202,7 +208,7 @@ func AdminAuthMiddleware(next http.Handler) http.Handler {
 }
 
 // DevAuthMiddleware is a simple middleware for development that creates a mock client
-func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
+func DevAuthMiddleware(defaultSpecialistID int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check if we already have auth from Telegram middleware
@@ -211,15 +217,15 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Get trainer from context (set by TelegramAuthMiddleware)
-			trainer := GetTrainerFromContext(r)
-			if trainer == nil {
-				// Fall back to first trainer
+			// Get specialist from context (set by TelegramAuthMiddleware)
+			specialist := GetSpecialistFromContext(r)
+			if specialist == nil {
+				// Fall back to first specialist
 				var err error
-				trainer, err = db.GetFirstTrainer()
-				if err != nil || trainer == nil {
-					log.Printf("Error getting trainer: %v", err)
-					http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TrainerNotConfigured"), http.StatusInternalServerError)
+				specialist, err = db.GetFirstSpecialist()
+				if err != nil || specialist == nil {
+					log.Printf("Error getting specialist: %v", err)
+					http.Error(w, myI18n.T(localizerFromRequest(r), "Error.SpecialistNotConfigured"), http.StatusInternalServerError)
 					return
 				}
 			}
@@ -230,15 +236,15 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 				userIDStr = r.URL.Query().Get("dev_user_id")
 			}
 
-			// Default to trainer's ID for dev (allows admin access)
-			var userID int64 = trainer.TelegramUserID
+			// Default to specialist's ID for dev (allows admin access)
+			var userID int64 = specialist.TelegramUserID
 			if userIDStr != "" {
 				if parsed, err := strconv.ParseInt(userIDStr, 10, 64); err == nil {
 					userID = parsed
 				}
 			}
 
-			client, err := db.GetOrCreateClient(userID, trainer.ID, "Dev User")
+			client, err := db.GetOrCreateClient(userID, specialist.ID, "Dev User")
 			if err != nil {
 				log.Printf("Error creating dev client: %v", err)
 				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
@@ -246,21 +252,21 @@ func DevAuthMiddleware(defaultTrainerID int64) func(http.Handler) http.Handler {
 			}
 
 			ctx := context.WithValue(r.Context(), ClientContextKey, client)
-			ctx = context.WithValue(ctx, TrainerContextKey, trainer)
+			ctx = context.WithValue(ctx, SpecialistContextKey, specialist)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-// I18nMiddleware determines the user's language from client/trainer profile
+// I18nMiddleware determines the user's language from client/specialist profile
 // and stores a localizer in context. Must run AFTER auth middleware.
 func I18nMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lang := "ru"
 		if client := GetClientFromContext(r); client != nil && client.Language != "" {
 			lang = client.Language
-		} else if trainer := GetTrainerFromContext(r); trainer != nil && trainer.Language != "" {
-			lang = trainer.Language
+		} else if specialist := GetSpecialistFromContext(r); specialist != nil && specialist.Language != "" {
+			lang = specialist.Language
 		}
 		loc := myI18n.NewLocalizer(lang)
 		ctx := myI18n.WithLocalizer(r.Context(), loc)

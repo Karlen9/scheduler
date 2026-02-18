@@ -1,6 +1,6 @@
 // Static data keys
 export const CACHE_KEYS = {
-  trainer: 'trainer',
+  specialist: 'specialist',
   workingHours: 'workingHours',
   daysOff: 'daysOff',
   durations: 'durations',

@@ -20,7 +20,7 @@ func NewRouter() http.Handler {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Dev-User-ID", "X-Trainer-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Dev-User-ID", "X-Specialist-ID", "X-Trainer-ID"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
 		MaxAge:           300,
@@ -31,19 +31,19 @@ func NewRouter() http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	// Super admin (list all trainers) - protect in production!
-	r.Get("/superadmin/trainers", HandleListAllTrainers)
+	// Super admin (list all specialists) - protect in production!
+	r.Get("/superadmin/trainers", HandleListAllSpecialists)
 
 	// API routes with auth
 	r.Route("/api", func(r chi.Router) {
-		r.Use(TelegramAuthMiddleware("")) // botToken not used, we look it up per trainer
+		r.Use(TelegramAuthMiddleware("")) // botToken not used, we look it up per specialist
 		r.Use(DevAuthMiddleware(0))       // Fallback for dev
 		r.Use(I18nMiddleware)             // Set localizer from user's language pref
 
 		// Photo proxy (works without auth — middleware passes through unauthenticated requests)
 		r.Get("/photo/{fileId}", HandleGetPhoto)
 
-		r.Get("/trainer", HandleGetTrainer)
+		r.Get("/trainer", HandleGetSpecialist)
 		r.Get("/services", HandleGetServices)
 		r.Get("/working-hours", HandleGetWorkingHours)
 		r.Get("/availability", HandleGetAvailability)
@@ -74,13 +74,13 @@ func NewRouter() http.Handler {
 		r.Put("/recurring/{scheduleId}/bookings/{bookingId}/cancel-request", HandleClientCancelRequest)
 		r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleClientMoveRequest)
 
-		// Admin routes (trainer only)
+		// Admin routes (specialist only)
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(AdminAuthMiddleware)
 
-			// Trainer settings
-			r.Get("/settings", HandleGetTrainerSettings)
-			r.Put("/settings", HandleUpdateTrainerSettings)
+			// Specialist settings
+			r.Get("/settings", HandleGetSpecialistSettings)
+			r.Put("/settings", HandleUpdateSpecialistSettings)
 
 			// Durations
 			r.Get("/durations", HandleAdminGetDurations)
@@ -133,7 +133,7 @@ func NewRouter() http.Handler {
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-move", HandleAdminApproveMoveBooking)
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
 
-			// Photo upload (trainer)
+			// Photo upload (specialist)
 			r.Post("/upload/photo", HandleAdminUploadPhoto)
 
 			// Notification preferences

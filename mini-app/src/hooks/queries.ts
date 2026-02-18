@@ -2,7 +2,7 @@ import useSWR, { SWRConfiguration } from 'swr';
 import { api } from '@/lib/api';
 import { CACHE_KEYS } from './cache-keys';
 import type {
-  Trainer,
+  Specialist,
   SessionType,
   WorkingHours,
   ClientProfile,
@@ -16,10 +16,10 @@ import type {
 
 const staticConfig: SWRConfiguration = { dedupingInterval: 60000 };
 
-export function useTrainer() {
-  const { data, isLoading, error, mutate } = useSWR<Trainer>(
-    CACHE_KEYS.trainer,
-    () => api.getTrainer(),
+export function useSpecialist() {
+  const { data, isLoading, error, mutate } = useSWR<Specialist>(
+    CACHE_KEYS.specialist,
+    () => api.getSpecialist(),
     staticConfig,
   );
   return { data: data ?? null, isLoading, error, mutate };
@@ -163,7 +163,7 @@ export function useAdminServices() {
 }
 
 export function useAdminProfile() {
-  const { data, isLoading, error, mutate } = useSWR<Trainer>(
+  const { data, isLoading, error, mutate } = useSWR<Specialist>(
     CACHE_KEYS.adminProfile,
     () => api.admin.getProfile(),
     staticConfig,

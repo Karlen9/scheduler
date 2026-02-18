@@ -34,9 +34,9 @@ describe('BookingCard', () => {
     expect(screen.getByText(/мин/)).toBeInTheDocument();
   });
 
-  it('renders workout label', () => {
+  it('renders session label', () => {
     renderWithIntl(<BookingCard booking={makeBooking()} />);
-    expect(screen.getByText(/Тренировка/)).toBeInTheDocument();
+    expect(screen.getByText(/Сеанс/)).toBeInTheDocument();
   });
 
   it('shows cancel button for confirmed bookings', async () => {
@@ -67,7 +67,7 @@ describe('BookingCard', () => {
     const booking = makeBooking({ status: 'pending', createdBy: 'trainer' });
     renderWithIntl(<BookingCard booking={booking} onConfirm={onConfirm} onDecline={onDecline} />);
 
-    expect(screen.getByText('Тренер записал вас')).toBeInTheDocument();
+    expect(screen.getByText('Специалист записал вас')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Подтвердить' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Отклонить' })).toBeInTheDocument();
 
