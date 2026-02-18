@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Booking } from '@/lib/types';
 import { ClientAvatar } from '@/components/ClientAvatar';
 

@@ -280,7 +280,7 @@ export function BookingForm({
   const [timeAssignments, setTimeAssignments] = useState<Record<string, string>>({});
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const [noSlotsAvailable, setNoSlotsAvailable] = useState(false);
+  const [, setNoSlotsAvailable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [message, setMessage] = useState('');

@@ -16,8 +16,6 @@ import { invalidateClients } from '@/hooks/mutations';
 export default function AdminClientsPage() {
   const t = useTranslations('AdminClients');
   const tc = useTranslations('Common');
-  const te = useTranslations('Errors');
-  const ts = useTranslations('Success');
   const { data: clients, isLoading } = useClients();
   const [deleteTarget, setDeleteTarget] = useState<ClientInfo | null>(null);
 
