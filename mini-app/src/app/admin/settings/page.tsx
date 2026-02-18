@@ -1,13 +1,31 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Users, User, DollarSign, Clock, Bell, HelpCircle, CalendarOff } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
+import { setLocale } from "@/actions/locale";
 import { TopBar } from "@/components/TopBar";
 import { SettingsMenuItem, SettingsGroup } from "@/components/SettingsMenuItem";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useAdminProfile } from "@/hooks/queries";
 
 export default function SettingsPage() {
   const t = useTranslations("AdminSettings");
+  const tl = useTranslations("LanguageSelector");
+  const locale = useLocale();
+  const router = useRouter();
+  const { data: trainerProfile } = useAdminProfile();
+
+  // Cross-device language sync
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (trainerProfile?.language && trainerProfile.language !== locale && !syncedRef.current) {
+      syncedRef.current = true;
+      setLocale(trainerProfile.language).then(() => router.refresh());
+    }
+  }, [trainerProfile?.language, locale, router]);
 
   return (
     <div>
@@ -68,6 +86,11 @@ export default function SettingsPage() {
         <div className="mt-2">
           <h3 className="text-sm text-muted-foreground mb-3">{t("theme")}</h3>
           <ThemeSelector />
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-sm text-muted-foreground mb-3">{tl("language")}</h3>
+          <LanguageSelector isAdmin />
         </div>
       </div>
     </div>
