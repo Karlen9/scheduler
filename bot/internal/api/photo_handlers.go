@@ -30,15 +30,18 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine which trainer's bot to use
-	trainerID := r.URL.Query().Get("trainer")
-	if trainerID != "" {
-		trainer, err := db.GetTrainerByID(trainerID)
-		if err != nil || trainer == nil {
-			httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	// Determine which specialist's bot to use
+	specialistID := r.URL.Query().Get("specialist")
+	if specialistID == "" {
+		specialistID = r.URL.Query().Get("trainer")
+	}
+	if specialistID != "" {
+		specialist, err := db.GetSpecialistByID(specialistID)
+		if err != nil || specialist == nil {
+			httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 			return
 		}
-		bot := &telegram.Bot{Token: trainer.BotToken}
+		bot := &telegram.Bot{Token: specialist.BotToken}
 		data, contentType, err := bot.GetFile(fileID)
 		if err != nil {
 			log.Printf("GetFile error: %v", err)
@@ -51,15 +54,15 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// No trainer specified — try all active trainers (file_ids are bot-scoped)
-	trainers, err := db.GetAllActiveTrainers()
-	if err != nil || len(trainers) == 0 {
-		httpError(w, r, "Error.TrainerNotConfigured", http.StatusInternalServerError)
+	// No specialist specified — try all active specialists (file_ids are bot-scoped)
+	specialists, err := db.GetAllActiveSpecialists()
+	if err != nil || len(specialists) == 0 {
+		httpError(w, r, "Error.SpecialistNotConfigured", http.StatusInternalServerError)
 		return
 	}
 
-	for _, trainer := range trainers {
-		bot := &telegram.Bot{Token: trainer.BotToken}
+	for _, specialist := range specialists {
+		bot := &telegram.Bot{Token: specialist.BotToken}
 		data, contentType, err := bot.GetFile(fileID)
 		if err == nil {
 			w.Header().Set("Content-Type", contentType)
@@ -69,7 +72,7 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("GetFile error: no trainer's bot could resolve file_id %s", fileID[:20])
+	log.Printf("GetFile error: no specialist's bot could resolve file_id %s", fileID[:20])
 	httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
 }
 
@@ -77,9 +80,9 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 // POST /api/upload/photo
 func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -89,10 +92,10 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bot := &telegram.Bot{Token: trainer.BotToken}
+	bot := &telegram.Bot{Token: specialist.BotToken}
 
-	// Always send to trainer's chat (used as CDN, not meant for the client to see)
-	fileID, _, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
+	// Always send to specialist's chat (used as CDN, not meant for the client to see)
+	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
@@ -110,12 +113,12 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"fileId": fileID})
 }
 
-// HandleAdminUploadPhoto handles photo upload for trainers.
+// HandleAdminUploadPhoto handles photo upload for specialists.
 // POST /api/admin/upload/photo
 func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -125,17 +128,17 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bot := &telegram.Bot{Token: trainer.BotToken}
+	bot := &telegram.Bot{Token: specialist.BotToken}
 
-	fileID, _, err := bot.SendPhoto(trainer.TelegramUserID, photoData, filename)
+	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
 		return
 	}
 
-	if err := db.UpdateTrainerPhoto(trainer.ID, fileID); err != nil {
-		log.Printf("UpdateTrainerPhoto error: %v", err)
+	if err := db.UpdateSpecialistPhoto(specialist.ID, fileID); err != nil {
+		log.Printf("UpdateSpecialistPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoSaveFailed", http.StatusInternalServerError)
 		return
 	}

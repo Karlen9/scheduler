@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Trainer struct {
+type Specialist struct {
 	ID                  string    `json:"id"`
 	TelegramUserID      int64     `json:"telegramUserId"`
 	BotToken            string    `json:"-"`
@@ -19,8 +19,8 @@ type Trainer struct {
 	Specialization      string    `json:"specialization"`
 	Bio                 string    `json:"bio"`
 	PhotoURL            string    `json:"photoUrl"`
-	GymLatitude         float64   `json:"gymLatitude"`
-	GymLongitude        float64   `json:"gymLongitude"`
+	LocationLatitude    float64   `json:"locationLatitude"`
+	LocationLongitude   float64   `json:"locationLongitude"`
 	Language            string    `json:"language,omitempty"`
 	AvailableDurations  string    `json:"availableDurations,omitempty"`
 	NotifyNewBookings   bool      `json:"notifyNewBookings"`
@@ -32,7 +32,7 @@ type Trainer struct {
 type Client struct {
 	ID                  string    `json:"id"`
 	TelegramUserID      int64     `json:"telegramUserId"`
-	TrainerID           string    `json:"trainerId"`
+	SpecialistID        string    `json:"specialistId"`
 	Name                string    `json:"name"`
 	DisplayName         string    `json:"displayName,omitempty"`
 	Phone               string    `json:"phone,omitempty"`
@@ -49,7 +49,7 @@ type Client struct {
 
 type SessionType struct {
 	ID              string `json:"id"`
-	TrainerID       string `json:"-"`
+	SpecialistID    string `json:"-"`
 	Type            string `json:"type"` // personal, pair, consultation
 	Name            string `json:"name"`
 	DurationMinutes int    `json:"durationMinutes"`
@@ -60,11 +60,11 @@ type SessionType struct {
 }
 
 type WorkingHours struct {
-	ID        string `json:"id"`
-	TrainerID string `json:"-"`
-	DayOfWeek int    `json:"dayOfWeek"`
-	StartTime string `json:"startTime"`
-	EndTime   string `json:"endTime"`
+	ID           string `json:"id"`
+	SpecialistID string `json:"-"`
+	DayOfWeek    int    `json:"dayOfWeek"`
+	StartTime    string `json:"startTime"`
+	EndTime      string `json:"endTime"`
 }
 
 type BookingStatus string
@@ -82,13 +82,13 @@ const (
 type CancelledBy string
 
 const (
-	CancelledByClient  CancelledBy = "client"
-	CancelledByTrainer CancelledBy = "trainer"
+	CancelledByClient     CancelledBy = "client"
+	CancelledBySpecialist CancelledBy = "trainer"
 )
 
 type Booking struct {
 	ID                  string        `json:"id"`
-	TrainerID           string        `json:"-"`
+	SpecialistID        string        `json:"-"`
 	ClientID            string        `json:"-"`
 	SessionTypeID       string        `json:"-"`
 	StartsAt            time.Time     `json:"startsAt"`
@@ -124,7 +124,7 @@ const (
 // RecurringSchedule represents a recurring weekly booking schedule
 type RecurringSchedule struct {
 	ID              string                  `json:"id"`
-	TrainerID       string                  `json:"-"`
+	SpecialistID    string                  `json:"-"`
 	ClientID        string                  `json:"-"`
 	ClientName      string                  `json:"clientName"`
 	DayOfWeek       int                     `json:"dayOfWeek"`
@@ -153,13 +153,13 @@ type TimeSlot struct {
 	Available bool   `json:"available"`
 }
 
-// DayOff represents a day when trainer is not available
+// DayOff represents a day when specialist is not available
 type DayOff struct {
-	ID        string    `json:"id"`
-	TrainerID string    `json:"-"`
-	Date      time.Time `json:"-"`
-	Reason    string    `json:"reason,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID           string    `json:"id"`
+	SpecialistID string    `json:"-"`
+	Date         time.Time `json:"-"`
+	Reason       string    `json:"reason,omitempty"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 // MarshalJSON serializes DayOff with date as "YYYY-MM-DD" string (not RFC3339 timestamp)

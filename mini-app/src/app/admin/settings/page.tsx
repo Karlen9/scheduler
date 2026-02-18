@@ -16,16 +16,20 @@ export default function SettingsPage() {
   const tl = useTranslations('LanguageSelector');
   const locale = useLocale();
   const router = useRouter();
-  const { data: trainerProfile } = useAdminProfile();
+  const { data: specialistProfile } = useAdminProfile();
 
   // Cross-device language sync
   const syncedRef = useRef(false);
   useEffect(() => {
-    if (trainerProfile?.language && trainerProfile.language !== locale && !syncedRef.current) {
+    if (
+      specialistProfile?.language &&
+      specialistProfile.language !== locale &&
+      !syncedRef.current
+    ) {
       syncedRef.current = true;
-      setLocale(trainerProfile.language).then(() => router.refresh());
+      setLocale(specialistProfile.language).then(() => router.refresh());
     }
-  }, [trainerProfile?.language, locale, router]);
+  }, [specialistProfile?.language, locale, router]);
 
   return (
     <div>

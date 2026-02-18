@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	router      http.Handler
-	testTrainer *models.Trainer
+	router         http.Handler
+	testSpecialist *models.Specialist
 )
 
 func TestMain(m *testing.M) {
@@ -40,21 +40,21 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// Create a test trainer
+	// Create a test specialist
 	var err error
-	testTrainer, err = db.CreateTrainer(111111, "test-bot-token", "testbot", "Test Trainer", "UTC", 24)
+	testSpecialist, err = db.CreateSpecialist(111111, "test-bot-token", "testbot", "Test Specialist", "UTC", 24)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "db.CreateTrainer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "db.CreateSpecialist: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Set all notification callbacks to no-ops
 	api.NotifyBookingFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyStatusChangeFunc = func(booking *models.Booking, newStatus string) error { return nil }
-	api.UpdateTrainerMessageFunc = func(booking *models.Booking) error { return nil }
+	api.UpdateSpecialistMessageFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyClientBookingResponseFunc = func(booking *models.Booking, accepted bool) error { return nil }
 	api.NotifyCancellationFunc = func(booking *models.Booking, cancelledBy string) error { return nil }
-	api.NotifyTrainerBookingFunc = func(booking *models.Booking) error { return nil }
+	api.NotifySpecialistBookingFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error { return nil }
 	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error { return nil }
 
@@ -78,7 +78,7 @@ func doRequest(t *testing.T, method, path string, body *string, telegramUserID i
 
 	req := httptest.NewRequest(method, path, reqBody)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Trainer-ID", testTrainer.ID)
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
 	req.Header.Set("X-Dev-User-ID", fmt.Sprintf("%d", telegramUserID))
 
 	w := httptest.NewRecorder()
@@ -86,10 +86,10 @@ func doRequest(t *testing.T, method, path string, body *string, telegramUserID i
 	return w
 }
 
-// doAdminRequest sends a request as the trainer (admin).
+// doAdminRequest sends a request as the specialist (admin).
 func doAdminRequest(t *testing.T, method, path string, body *string) *httptest.ResponseRecorder {
 	t.Helper()
-	return doRequest(t, method, path, body, testTrainer.TelegramUserID)
+	return doRequest(t, method, path, body, testSpecialist.TelegramUserID)
 }
 
 // doClientRequest sends a request as a regular client with the given Telegram user ID.

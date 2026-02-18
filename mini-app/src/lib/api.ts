@@ -1,5 +1,5 @@
 import {
-  Trainer,
+  Specialist,
   SessionType,
   Booking,
   TimeSlot,
@@ -10,7 +10,7 @@ import {
   RecurringSchedule,
   RecurringPreviewResponse,
 } from './types';
-import { getInitData, getTrainerId } from './telegram';
+import { getInitData, getSpecialistId } from './telegram';
 
 // API base URL - dev URL takes priority over prod URL, fallback to localhost
 const API_BASE_URL =
@@ -18,7 +18,7 @@ const API_BASE_URL =
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const initData = getInitData();
-  const trainerId = getTrainerId();
+  const specialistId = getSpecialistId();
 
   const isFormData = options?.body instanceof FormData;
   const headers: HeadersInit = {
@@ -30,8 +30,8 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     (headers as Record<string, string>)['X-Telegram-Init-Data'] = initData;
   }
 
-  if (trainerId) {
-    (headers as Record<string, string>)['X-Trainer-ID'] = trainerId;
+  if (specialistId) {
+    (headers as Record<string, string>)['X-Specialist-ID'] = specialistId;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -55,14 +55,14 @@ export function getPhotoUrl(fileIdOrUrl: string): string {
   // Direct URLs (e.g. Telegram profile photos) — use as-is
   if (fileIdOrUrl.startsWith('http')) return fileIdOrUrl;
   // File IDs — proxy through our API
-  const trainerId = getTrainerId();
-  const query = trainerId ? `?trainer=${trainerId}` : '';
+  const specialistId = getSpecialistId();
+  const query = specialistId ? `?specialist=${specialistId}` : '';
   return `${API_BASE_URL}/api/photo/${fileIdOrUrl}${query}`;
 }
 
 export const api = {
-  async getTrainer(): Promise<Trainer> {
-    return fetchAPI<Trainer>('/api/trainer');
+  async getSpecialist(): Promise<Specialist> {
+    return fetchAPI<Specialist>('/api/trainer');
   },
 
   async getSessionTypes(): Promise<SessionType[]> {
@@ -221,18 +221,18 @@ export const api = {
 
   admin: {
     // Profile
-    async getProfile(): Promise<Trainer> {
-      return fetchAPI<Trainer>('/api/admin/profile');
+    async getProfile(): Promise<Specialist> {
+      return fetchAPI<Specialist>('/api/admin/profile');
     },
 
-    async updateProfile(data: Partial<Trainer>): Promise<Trainer> {
-      return fetchAPI<Trainer>('/api/admin/profile', {
+    async updateProfile(data: Partial<Specialist>): Promise<Specialist> {
+      return fetchAPI<Specialist>('/api/admin/profile', {
         method: 'PUT',
         body: JSON.stringify(data),
       });
     },
 
-    // Photo upload (trainer)
+    // Photo upload (specialist)
     async uploadPhoto(file: File): Promise<{ fileId: string }> {
       const formData = new FormData();
       formData.append('photo', file);
@@ -380,7 +380,7 @@ export const api = {
       await fetchAPI<void>(`/api/admin/clients/${id}`, { method: 'DELETE' });
     },
 
-    // Trainer-initiated bookings
+    // Specialist-initiated bookings
     async createBooking(data: {
       clientId: string;
       duration: number;

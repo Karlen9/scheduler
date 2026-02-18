@@ -48,7 +48,7 @@ func bookingDurationDisplay(loc *i18n.Localizer, booking *models.Booking) string
 	if booking.DurationMinutes > 0 {
 		return formatDuration(loc, booking.DurationMinutes)
 	}
-	return myI18n.T(loc, "Hint.DefaultWorkout")
+	return myI18n.T(loc, "Hint.DefaultSession")
 }
 
 func bookingServiceDisplay(loc *i18n.Localizer, booking *models.Booking) string {
@@ -59,9 +59,9 @@ func bookingServiceDisplay(loc *i18n.Localizer, booking *models.Booking) string 
 		return booking.SessionType.Name
 	}
 	if booking.DurationMinutes > 0 {
-		return fmt.Sprintf("%s %s", myI18n.T(loc, "Hint.DefaultWorkout"), formatDuration(loc, booking.DurationMinutes))
+		return fmt.Sprintf("%s %s", myI18n.T(loc, "Hint.DefaultSession"), formatDuration(loc, booking.DurationMinutes))
 	}
-	return myI18n.T(loc, "Hint.DefaultWorkout")
+	return myI18n.T(loc, "Hint.DefaultSession")
 }
 
 // localizeCancelReason translates known cancel reason keys stored in the DB.
@@ -102,9 +102,9 @@ func FormatWelcome(loc *i18n.Localizer, version string) string {
 	return msg
 }
 
-// FormatWelcomeTrainer creates a trainer welcome message with version and changelog
-func FormatWelcomeTrainer(loc *i18n.Localizer, version, miniAppURL string) string {
-	msg := myI18n.T(loc, "Welcome.Trainer")
+// FormatWelcomeSpecialist creates a specialist welcome message with version and changelog
+func FormatWelcomeSpecialist(loc *i18n.Localizer, version, miniAppURL string) string {
+	msg := myI18n.T(loc, "Welcome.Specialist")
 	msg += "\n\n" + myI18n.Tf(loc, "BotFatherLink", map[string]interface{}{"URL": miniAppURL})
 	if version != "" {
 		msg += "\n\n" + myI18n.Tf(loc, "Version", map[string]interface{}{"Version": version})
@@ -116,12 +116,12 @@ func FormatWelcomeTrainer(loc *i18n.Localizer, version, miniAppURL string) strin
 	return msg
 }
 
-// FormatHelpTrainer creates the help message for trainers
-func FormatHelpTrainer(loc *i18n.Localizer, clientURL string) string {
-	return fmt.Sprintf(myI18n.T(loc, "Help.Trainer"), clientURL)
+// FormatHelpSpecialist creates the help message for specialists
+func FormatHelpSpecialist(loc *i18n.Localizer, clientURL string) string {
+	return fmt.Sprintf(myI18n.T(loc, "Help.Specialist"), clientURL)
 }
 
-// FormatNewBookingMessage creates a message for trainer about new booking request
+// FormatNewBookingMessage creates a message for specialist about new booking request
 func FormatNewBookingMessage(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"ClientName": booking.ClientName,
@@ -135,18 +135,18 @@ func FormatNewBookingMessage(loc *i18n.Localizer, booking *models.Booking) strin
 	return msg
 }
 
-// FormatBookingAcceptedTrainer creates a message for trainer after accepting
-func FormatBookingAcceptedTrainer(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ConfirmedTrainer", map[string]interface{}{
+// FormatBookingAcceptedSpecialist creates a message for specialist after accepting
+func FormatBookingAcceptedSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
+	return myI18n.Tf(loc, "Booking.ConfirmedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,
 		"Service":    bookingServiceDisplay(loc, booking),
 		"DateTime":   formatDateTime(loc, booking.StartsAt),
 	})
 }
 
-// FormatBookingRejectedTrainer creates a message for trainer after rejecting
-func FormatBookingRejectedTrainer(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.RejectedTrainer", map[string]interface{}{
+// FormatBookingRejectedSpecialist creates a message for specialist after rejecting
+func FormatBookingRejectedSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
+	return myI18n.Tf(loc, "Booking.RejectedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,
 		"Service":    bookingServiceDisplay(loc, booking),
 		"DateTime":   formatDateTime(loc, booking.StartsAt),
@@ -173,16 +173,16 @@ func FormatBookingRejectedClient(loc *i18n.Localizer, booking *models.Booking) s
 	return msg
 }
 
-// FormatBookingCancelledByTrainerClient creates a message for client when trainer cancels a booking
-func FormatBookingCancelledByTrainerClient(loc *i18n.Localizer, booking *models.Booking) string {
-	msg := myI18n.Tf(loc, "Booking.CancelledByTrainerClient", map[string]interface{}{
+// FormatBookingCancelledBySpecialistClient creates a message for client when specialist cancels a booking
+func FormatBookingCancelledBySpecialistClient(loc *i18n.Localizer, booking *models.Booking) string {
+	msg := myI18n.Tf(loc, "Booking.CancelledBySpecialistClient", map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
 		"DateTime": formatDateTime(loc, booking.StartsAt),
 	})
 	if booking.CancelReason != "" {
 		msg += myI18n.Tf(loc, "Booking.CancelReason", map[string]interface{}{"Reason": localizeCancelReason(loc, booking.CancelReason)})
 	}
-	msg += myI18n.T(loc, "Booking.CancelledByTrainerClientRetry")
+	msg += myI18n.T(loc, "Booking.CancelledBySpecialistClientRetry")
 	return msg
 }
 
@@ -227,7 +227,7 @@ func formatDaysOfWeekMsg(loc *i18n.Localizer, daysOfWeek string) string {
 	return strings.Join(names, ", ")
 }
 
-// formatDayTimesMsg formats per-day times like "Пн 09:00, Ср 10:30"
+// formatDayTimesMsg formats per-day times like "Mon 09:00, Wed 10:30"
 func formatDayTimesMsg(loc *i18n.Localizer, dayTimesJSON string) string {
 	if dayTimesJSON == "" {
 		return ""
@@ -286,12 +286,12 @@ func scheduleServiceDisplay(loc *i18n.Localizer, schedule *models.RecurringSched
 		return schedule.SessionType.Name
 	}
 	if schedule.DurationMinutes > 0 {
-		return fmt.Sprintf("%s %s", myI18n.T(loc, "Hint.DefaultWorkout"), formatDuration(loc, schedule.DurationMinutes))
+		return fmt.Sprintf("%s %s", myI18n.T(loc, "Hint.DefaultSession"), formatDuration(loc, schedule.DurationMinutes))
 	}
-	return myI18n.T(loc, "Hint.DefaultWorkout")
+	return myI18n.T(loc, "Hint.DefaultSession")
 }
 
-// FormatRecurringScheduleRequest creates a message for trainer about new recurring schedule request from client
+// FormatRecurringScheduleRequest creates a message for specialist about new recurring schedule request from client
 func FormatRecurringScheduleRequest(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
 	data := map[string]interface{}{
 		"ClientName": schedule.ClientName,
@@ -301,13 +301,13 @@ func FormatRecurringScheduleRequest(loc *i18n.Localizer, schedule *models.Recurr
 	}
 	msg := myI18n.Tf(loc, "Recurring.Request", data)
 	if count > 0 {
-		msg += myI18n.Tp(loc, "Recurring.WorkoutCount", count, map[string]interface{}{"Count": count})
+		msg += myI18n.Tp(loc, "Recurring.SessionCount", count, map[string]interface{}{"Count": count})
 	}
 	msg += myI18n.T(loc, "Hint.OpenApp")
 	return msg
 }
 
-// FormatRecurringScheduleRequestForClient creates a message for client about trainer-created schedule
+// FormatRecurringScheduleRequestForClient creates a message for client about specialist-created schedule
 func FormatRecurringScheduleRequestForClient(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
 	data := map[string]interface{}{
 		"Service":   scheduleServiceDisplay(loc, schedule),
@@ -316,13 +316,13 @@ func FormatRecurringScheduleRequestForClient(loc *i18n.Localizer, schedule *mode
 	}
 	msg := myI18n.Tf(loc, "Recurring.RequestForClient", data)
 	if count > 0 {
-		msg += myI18n.Tp(loc, "Recurring.WorkoutCount", count, map[string]interface{}{"Count": count})
+		msg += myI18n.Tp(loc, "Recurring.SessionCount", count, map[string]interface{}{"Count": count})
 	}
 	msg += myI18n.T(loc, "Hint.OpenApp")
 	return msg
 }
 
-// FormatRecurringScheduleApproved creates a message shown to trainer after approving (or shown to trainer when client approves)
+// FormatRecurringScheduleApproved creates a message shown to specialist after approving (or shown to specialist when client approves)
 func FormatRecurringScheduleApproved(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
 	return myI18n.Tf(loc, "Recurring.Approved", map[string]interface{}{
 		"ClientName": schedule.ClientName,
@@ -343,7 +343,7 @@ func FormatRecurringScheduleApprovedClient(loc *i18n.Localizer, schedule *models
 	})
 }
 
-// FormatRecurringScheduleDeclined creates a message shown to trainer after declining
+// FormatRecurringScheduleDeclined creates a message shown to specialist after declining
 func FormatRecurringScheduleDeclined(loc *i18n.Localizer, schedule *models.RecurringSchedule) string {
 	return myI18n.Tf(loc, "Recurring.Declined", map[string]interface{}{
 		"ClientName": schedule.ClientName,
@@ -364,21 +364,21 @@ func FormatRecurringScheduleDeclinedClient(loc *i18n.Localizer, schedule *models
 
 // ========== Cancellation Notification Messages ==========
 
-// FormatBookingCancelledForTrainer creates a notification for trainer when client cancels
-func FormatBookingCancelledForTrainer(loc *i18n.Localizer, booking *models.Booking) string {
+// FormatBookingCancelledForSpecialist creates a notification for specialist when client cancels
+func FormatBookingCancelledForSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"ClientName": booking.ClientName,
 		"Service":    bookingServiceDisplay(loc, booking),
 		"DateTime":   formatDateTime(loc, booking.StartsAt),
 	}
-	msg := myI18n.Tf(loc, "Booking.CancelledForTrainer", data)
+	msg := myI18n.Tf(loc, "Booking.CancelledForSpecialist", data)
 	if booking.CancelReason != "" {
 		msg += myI18n.Tf(loc, "Booking.CancelReason", map[string]interface{}{"Reason": localizeCancelReason(loc, booking.CancelReason)})
 	}
 	return msg
 }
 
-// FormatBookingCancelledForClient creates a notification for client when trainer cancels
+// FormatBookingCancelledForClient creates a notification for client when specialist cancels
 func FormatBookingCancelledForClient(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -391,9 +391,9 @@ func FormatBookingCancelledForClient(loc *i18n.Localizer, booking *models.Bookin
 	return msg
 }
 
-// FormatMoveRequestForTrainer creates a message for trainer when client requests booking move
-func FormatMoveRequestForTrainer(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
-	msg := myI18n.Tf(loc, "Move.RequestForTrainer", map[string]interface{}{
+// FormatMoveRequestForSpecialist creates a message for specialist when client requests booking move
+func FormatMoveRequestForSpecialist(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
+	msg := myI18n.Tf(loc, "Move.RequestForSpecialist", map[string]interface{}{
 		"ClientName":  oldBooking.ClientName,
 		"Service":     bookingServiceDisplay(loc, oldBooking),
 		"OldDateTime": formatDateTime(loc, oldBooking.StartsAt),
@@ -403,7 +403,7 @@ func FormatMoveRequestForTrainer(loc *i18n.Localizer, newBooking, oldBooking *mo
 	return msg
 }
 
-// FormatMoveRequestForClient creates a message for client when trainer requests booking move
+// FormatMoveRequestForClient creates a message for client when specialist requests booking move
 func FormatMoveRequestForClient(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
 	msg := myI18n.Tf(loc, "Move.RequestForClient", map[string]interface{}{
 		"Service":     bookingServiceDisplay(loc, oldBooking),
@@ -433,15 +433,15 @@ func FormatMoveDeclined(loc *i18n.Localizer, oldBooking *models.Booking) string 
 	})
 }
 
-// ========== Trainer-Initiated Booking Messages ==========
+// ========== Specialist-Initiated Booking Messages ==========
 
-// FormatTrainerCreatedBookingClient creates a message for client when trainer books them
-func FormatTrainerCreatedBookingClient(loc *i18n.Localizer, booking *models.Booking) string {
+// FormatSpecialistCreatedBookingClient creates a message for client when specialist books them
+func FormatSpecialistCreatedBookingClient(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
 		"DateTime": formatDateTime(loc, booking.StartsAt),
 	}
-	msg := myI18n.Tf(loc, "Booking.TrainerCreatedClient", data)
+	msg := myI18n.Tf(loc, "Booking.SpecialistCreatedClient", data)
 	if booking.ClientMessage != "" {
 		msg += myI18n.Tf(loc, "Booking.ClientMessage", map[string]interface{}{"Message": booking.ClientMessage})
 	}
@@ -449,18 +449,18 @@ func FormatTrainerCreatedBookingClient(loc *i18n.Localizer, booking *models.Book
 	return msg
 }
 
-// FormatClientAcceptedBookingTrainer creates a message for trainer when client accepts
-func FormatClientAcceptedBookingTrainer(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ClientAcceptedTrainer", map[string]interface{}{
+// FormatClientAcceptedBookingSpecialist creates a message for specialist when client accepts
+func FormatClientAcceptedBookingSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
+	return myI18n.Tf(loc, "Booking.ClientAcceptedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,
 		"Service":    bookingServiceDisplay(loc, booking),
 		"DateTime":   formatDateTime(loc, booking.StartsAt),
 	})
 }
 
-// FormatClientDeclinedBookingTrainer creates a message for trainer when client declines
-func FormatClientDeclinedBookingTrainer(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ClientDeclinedTrainer", map[string]interface{}{
+// FormatClientDeclinedBookingSpecialist creates a message for specialist when client declines
+func FormatClientDeclinedBookingSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
+	return myI18n.Tf(loc, "Booking.ClientDeclinedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,
 		"Service":    bookingServiceDisplay(loc, booking),
 		"DateTime":   formatDateTime(loc, booking.StartsAt),

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../telegram', () => ({
   getInitData: () => 'mock-init-data',
-  getTrainerId: () => 'mock-trainer-id',
+  getSpecialistId: () => 'mock-specialist-id',
 }));
 
 const mockFetch = vi.fn();
@@ -14,25 +14,30 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 
-describe('api.getTrainer', () => {
-  it('fetches trainer with correct URL and headers', async () => {
-    const trainerData = { id: '1', name: 'Test Trainer', timezone: 'UTC', cancelCutoffHours: 2 };
+describe('api.getSpecialist', () => {
+  it('fetches specialist with correct URL and headers', async () => {
+    const specialistData = {
+      id: '1',
+      name: 'Test Specialist',
+      timezone: 'UTC',
+      cancelCutoffHours: 2,
+    };
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () => Promise.resolve(trainerData),
+      json: () => Promise.resolve(specialistData),
     });
 
-    const result = await api.getTrainer();
+    const result = await api.getSpecialist();
 
-    expect(result).toEqual(trainerData);
+    expect(result).toEqual(specialistData);
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toBe('http://localhost:8080/api/trainer');
     expect(options.headers['Content-Type']).toBe('application/json');
     expect(options.headers['X-Telegram-Init-Data']).toBe('mock-init-data');
-    expect(options.headers['X-Trainer-ID']).toBe('mock-trainer-id');
+    expect(options.headers['X-Specialist-ID']).toBe('mock-specialist-id');
   });
 });
 
@@ -78,7 +83,7 @@ describe('error handling', () => {
       text: () => Promise.resolve('Bad request'),
     });
 
-    await expect(api.getTrainer()).rejects.toThrow('Bad request');
+    await expect(api.getSpecialist()).rejects.toThrow('Bad request');
   });
 
   it('throws with HTTP status when no error text', async () => {
@@ -88,6 +93,6 @@ describe('error handling', () => {
       text: () => Promise.resolve(''),
     });
 
-    await expect(api.getTrainer()).rejects.toThrow('HTTP 500');
+    await expect(api.getSpecialist()).rejects.toThrow('HTTP 500');
   });
 });

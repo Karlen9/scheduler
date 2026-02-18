@@ -23,8 +23,8 @@ func parseDate(dateStr string) (time.Time, error) {
 // ========== Durations ==========
 
 // getDurationsFromServices derives unique durations from active session types
-func getDurationsFromServices(trainerID string) []int {
-	services, err := db.GetSessionTypesByTrainerID(trainerID)
+func getDurationsFromServices(specialistID string) []int {
+	services, err := db.GetSessionTypesBySpecialistID(specialistID)
 	if err != nil || len(services) == 0 {
 		return []int{}
 	}
@@ -45,78 +45,78 @@ func getDurationsFromServices(trainerID string) []int {
 
 // HandleGetDurations returns available durations derived from active session types (public endpoint)
 func HandleGetDurations(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	durations := getDurationsFromServices(trainer.ID)
+	durations := getDurationsFromServices(specialist.ID)
 	writeJSON(w, durations)
 }
 
 // HandleAdminGetDurations returns durations derived from active session types
 func HandleAdminGetDurations(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	durations := getDurationsFromServices(trainer.ID)
+	durations := getDurationsFromServices(specialist.ID)
 	writeJSON(w, durations)
 }
 
-// ========== Trainer Settings ==========
+// ========== Specialist Settings ==========
 
-type UpdateTrainerRequest struct {
+type UpdateSpecialistRequest struct {
 	Name            string `json:"name,omitempty"`
 	Timezone        string `json:"timezone,omitempty"`
 	CancelCutoffHrs *int   `json:"cancelCutoffHours,omitempty"`
 }
 
-func HandleGetTrainerSettings(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+func HandleGetSpecialistSettings(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	writeJSON(w, trainer)
+	writeJSON(w, specialist)
 }
 
-func HandleUpdateTrainerSettings(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+func HandleUpdateSpecialistSettings(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	var req UpdateTrainerRequest
+	var req UpdateSpecialistRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
 	// Apply updates
-	name := trainer.Name
+	name := specialist.Name
 	if req.Name != "" {
 		name = req.Name
 	}
 
-	timezone := trainer.Timezone
+	timezone := specialist.Timezone
 	if req.Timezone != "" {
 		timezone = req.Timezone
 	}
 
-	cancelCutoff := trainer.CancelCutoffHrs
+	cancelCutoff := specialist.CancelCutoffHrs
 	if req.CancelCutoffHrs != nil {
 		cancelCutoff = *req.CancelCutoffHrs
 	}
 
-	updated, err := db.UpdateTrainer(trainer.ID, name, timezone, cancelCutoff)
+	updated, err := db.UpdateSpecialist(specialist.ID, name, timezone, cancelCutoff)
 	if err != nil {
-		log.Printf("Error updating trainer: %v", err)
+		log.Printf("Error updating specialist: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
@@ -146,13 +146,13 @@ type UpdateSessionTypeRequest struct {
 }
 
 func HandleAdminGetServices(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	services, err := db.GetAllSessionTypesByTrainerID(trainer.ID)
+	services, err := db.GetAllSessionTypesBySpecialistID(specialist.ID)
 	if err != nil {
 		log.Printf("Error getting services: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -167,9 +167,9 @@ func HandleAdminGetServices(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleCreateService(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -194,7 +194,7 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 		currency = "RUB"
 	}
 
-	service, err := db.CreateSessionType(trainer.ID, req.Type, req.Name, req.DurationMinutes, req.Price, currency, req.ImageURL)
+	service, err := db.CreateSessionType(specialist.ID, req.Type, req.Name, req.DurationMinutes, req.Price, currency, req.ImageURL)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -206,9 +206,9 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -224,7 +224,7 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if existing == nil || existing.TrainerID != trainer.ID {
+	if existing == nil || existing.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ServiceNotFound", http.StatusNotFound)
 		return
 	}
@@ -287,9 +287,9 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -305,7 +305,7 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if existing == nil || existing.TrainerID != trainer.ID {
+	if existing == nil || existing.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ServiceNotFound", http.StatusNotFound)
 		return
 	}
@@ -333,13 +333,13 @@ type BulkWorkingHoursRequest struct {
 }
 
 func HandleAdminGetWorkingHours(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	hours, err := db.GetWorkingHoursByTrainerID(trainer.ID)
+	hours, err := db.GetWorkingHoursBySpecialistID(specialist.ID)
 	if err != nil {
 		log.Printf("Error getting working hours: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -354,9 +354,9 @@ func HandleAdminGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -367,7 +367,7 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clear existing and set new
-	if err := db.ClearWorkingHours(trainer.ID); err != nil {
+	if err := db.ClearWorkingHours(specialist.ID); err != nil {
 		log.Printf("Error clearing working hours: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
@@ -383,7 +383,7 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := db.UpsertWorkingHours(trainer.ID, wh.DayOfWeek, wh.StartTime, wh.EndTime); err != nil {
+		if err := db.UpsertWorkingHours(specialist.ID, wh.DayOfWeek, wh.StartTime, wh.EndTime); err != nil {
 			log.Printf("Error setting working hours: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
@@ -391,14 +391,14 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return updated hours
-	hours, _ := db.GetWorkingHoursByTrainerID(trainer.ID)
+	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
 	writeJSON(w, hours)
 }
 
 func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -420,20 +420,20 @@ func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.UpsertWorkingHours(trainer.ID, day, req.StartTime, req.EndTime); err != nil {
+	if err := db.UpsertWorkingHours(specialist.ID, day, req.StartTime, req.EndTime); err != nil {
 		log.Printf("Error setting working hours: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
-	hours, _ := db.GetWorkingHoursByTrainerID(trainer.ID)
+	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
 	writeJSON(w, hours)
 }
 
 func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -444,7 +444,7 @@ func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.DeleteWorkingHours(trainer.ID, day); err != nil {
+	if err := db.DeleteWorkingHours(specialist.ID, day); err != nil {
 		log.Printf("Error deleting working hours: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
@@ -456,15 +456,15 @@ func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 // ========== Bookings Management ==========
 
 func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
 	status := r.URL.Query().Get("status")
 
-	bookings, err := db.GetBookingsByTrainerID(trainer.ID, status)
+	bookings, err := db.GetBookingsBySpecialistID(specialist.ID, status)
 	if err != nil {
 		log.Printf("Error getting bookings: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -484,9 +484,9 @@ type UpdateBookingStatusRequest struct {
 }
 
 func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -502,7 +502,7 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if booking == nil || booking.TrainerID != trainer.ID {
+	if booking == nil || booking.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
@@ -523,7 +523,7 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 
 	oldStatus := booking.Status
 	if (req.Status == "cancelled" || req.Status == "rejected") && req.Reason != "" {
-		if err := db.CancelBooking(bookingID, req.Reason, models.CancelledByTrainer); err != nil {
+		if err := db.CancelBooking(bookingID, req.Reason, models.CancelledBySpecialist); err != nil {
 			log.Printf("Error cancelling booking: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
@@ -537,13 +537,13 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("🔄 BOOKING STATUS [%s] %s → %s | Client: %s | Trainer: %s (@%s)",
+	log.Printf("BOOKING STATUS [%s] %s -> %s | Client: %s | Specialist: %s (@%s)",
 		bookingID[:8],
 		oldStatus,
 		req.Status,
 		booking.ClientName,
-		trainer.Name,
-		trainer.BotUsername,
+		specialist.Name,
+		specialist.BotUsername,
 	)
 
 	// Refresh booking to get updated status + session type
@@ -556,10 +556,10 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Update trainer's Telegram notification message (remove buttons)
-	if UpdateTrainerMessageFunc != nil && booking != nil {
-		if err := UpdateTrainerMessageFunc(booking); err != nil {
-			log.Printf("Error updating trainer message: %v", err)
+	// Update specialist's Telegram notification message (remove buttons)
+	if UpdateSpecialistMessageFunc != nil && booking != nil {
+		if err := UpdateSpecialistMessageFunc(booking); err != nil {
+			log.Printf("Error updating specialist message: %v", err)
 		}
 	}
 
@@ -574,9 +574,9 @@ type AdminRescheduleBookingRequest struct {
 }
 
 func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -592,7 +592,7 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if booking == nil || booking.TrainerID != trainer.ID {
+	if booking == nil || booking.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
@@ -632,7 +632,7 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
 
 	// Check for conflicts (exclude current booking)
-	hasConflict, err := db.HasConflictingBooking(trainer.ID, startsAt, endsAt, bookingID)
+	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, bookingID)
 	if err != nil {
 		log.Printf("Error checking conflicts: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -649,8 +649,8 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("📅 RESCHEDULE [%s] Trainer: %s moved booking for client: %s | New: %s %s",
-		bookingID[:8], trainer.Name, booking.ClientName, req.Date, req.Time)
+	log.Printf("RESCHEDULE [%s] Specialist: %s moved booking for client: %s | New: %s %s",
+		bookingID[:8], specialist.Name, booking.ClientName, req.Date, req.Time)
 
 	// Refresh booking
 	booking, _ = db.GetBookingByID(bookingID)
@@ -665,10 +665,10 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-// ========== Trainer-Initiated Bookings ==========
+// ========== Specialist-Initiated Bookings ==========
 
-// NotifyTrainerBookingFunc is a callback to notify client about trainer-created booking
-var NotifyTrainerBookingFunc func(booking *models.Booking) error
+// NotifySpecialistBookingFunc is a callback to notify client about specialist-created booking
+var NotifySpecialistBookingFunc func(booking *models.Booking) error
 
 type AdminCreateBookingRequest struct {
 	ClientID string `json:"clientId"`
@@ -679,9 +679,9 @@ type AdminCreateBookingRequest struct {
 }
 
 func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -696,14 +696,14 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify client belongs to this trainer
+	// Verify client belongs to this specialist
 	client, err := db.GetClientByID(req.ClientID)
 	if err != nil {
 		log.Printf("Error getting client: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if client == nil || client.TrainerID != trainer.ID {
+	if client == nil || client.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
@@ -720,7 +720,7 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	endsAt := startsAt.Add(time.Duration(req.Duration) * time.Minute)
 
 	// Check for conflicts
-	hasConflict, err := db.HasConflictingBooking(trainer.ID, startsAt, endsAt, "")
+	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, "")
 	if err != nil {
 		log.Printf("Error checking conflicts: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -732,7 +732,7 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find session type by duration (same pattern as waitlist)
-	services, err := db.GetSessionTypesByTrainerID(trainer.ID)
+	services, err := db.GetSessionTypesBySpecialistID(specialist.ID)
 	if err != nil || len(services) == 0 {
 		httpError(w, r, "Error.NoServices", http.StatusBadRequest)
 		return
@@ -746,15 +746,15 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create booking with created_by = "trainer"
-	booking, err := db.CreateBookingByTrainer(trainer.ID, client.ID, sessionTypeID, startsAt, endsAt, client.Name, req.Message, req.Duration)
+	booking, err := db.CreateBookingBySpecialist(specialist.ID, client.ID, sessionTypeID, startsAt, endsAt, client.Name, req.Message, req.Duration)
 	if err != nil {
 		log.Printf("Error creating booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("📅 TRAINER BOOKING [%s] Trainer: %s booked client: %s | Duration: %dmin | Time: %s %s",
-		booking.ID[:8], trainer.Name, client.Name, req.Duration, req.Date, req.Time)
+	log.Printf("SPECIALIST BOOKING [%s] Specialist: %s booked client: %s | Duration: %dmin | Time: %s %s",
+		booking.ID[:8], specialist.Name, client.Name, req.Duration, req.Date, req.Time)
 
 	// Ghost clients: auto-confirm and skip notification
 	if client.IsGhost {
@@ -763,10 +763,10 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		}
 		booking, _ = db.GetBookingByID(booking.ID)
 	} else {
-		// Notify client about trainer-created booking
-		if NotifyTrainerBookingFunc != nil {
-			if err := NotifyTrainerBookingFunc(booking); err != nil {
-				log.Printf("Error notifying client about trainer booking: %v", err)
+		// Notify client about specialist-created booking
+		if NotifySpecialistBookingFunc != nil {
+			if err := NotifySpecialistBookingFunc(booking); err != nil {
+				log.Printf("Error notifying client about specialist booking: %v", err)
 			}
 		}
 	}
@@ -783,13 +783,13 @@ type CreateDayOffRequest struct {
 }
 
 func HandleGetDaysOff(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	daysOff, err := db.GetDaysOffByTrainerID(trainer.ID)
+	daysOff, err := db.GetDaysOffBySpecialistID(specialist.ID)
 	if err != nil {
 		log.Printf("Error getting days off: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -804,9 +804,9 @@ func HandleGetDaysOff(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -828,13 +828,13 @@ func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if already exists
-	existing, _ := db.GetDayOff(trainer.ID, date)
+	existing, _ := db.GetDayOff(specialist.ID, date)
 	if existing != nil {
 		httpError(w, r, "Error.DayOffDuplicate", http.StatusConflict)
 		return
 	}
 
-	dayOff, err := db.CreateDayOff(trainer.ID, date, req.Reason)
+	dayOff, err := db.CreateDayOff(specialist.ID, date, req.Reason)
 	if err != nil {
 		log.Printf("Error creating day off: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -846,9 +846,9 @@ func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -870,46 +870,46 @@ func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 // ========== Profile ==========
 
 type UpdateProfileRequest struct {
-	Name           string   `json:"name,omitempty"`
-	TelegramHandle string   `json:"telegramHandle,omitempty"`
-	Phone          string   `json:"phone,omitempty"`
-	Specialization string   `json:"specialization,omitempty"`
-	Bio            string   `json:"bio,omitempty"`
-	PhotoURL       string   `json:"photoUrl,omitempty"`
-	GymLatitude    *float64 `json:"gymLatitude,omitempty"`
-	GymLongitude   *float64 `json:"gymLongitude,omitempty"`
-	Language       string   `json:"language,omitempty"`
+	Name              string   `json:"name,omitempty"`
+	TelegramHandle    string   `json:"telegramHandle,omitempty"`
+	Phone             string   `json:"phone,omitempty"`
+	Specialization    string   `json:"specialization,omitempty"`
+	Bio               string   `json:"bio,omitempty"`
+	PhotoURL          string   `json:"photoUrl,omitempty"`
+	LocationLatitude  *float64 `json:"locationLatitude,omitempty"`
+	LocationLongitude *float64 `json:"locationLongitude,omitempty"`
+	Language          string   `json:"language,omitempty"`
 }
 
 func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	resp := TrainerResponse{
-		ID:              trainer.ID,
-		Name:            trainer.Name,
-		Timezone:        trainer.Timezone,
-		CancelCutoffHrs: trainer.CancelCutoffHrs,
-		TelegramHandle:  trainer.TelegramHandle,
-		Phone:           trainer.Phone,
-		Specialization:  trainer.Specialization,
-		Bio:             trainer.Bio,
-		PhotoURL:        trainer.PhotoURL,
-		GymLatitude:     trainer.GymLatitude,
-		GymLongitude:    trainer.GymLongitude,
-		Language:        trainer.Language,
+	resp := SpecialistResponse{
+		ID:                specialist.ID,
+		Name:              specialist.Name,
+		Timezone:          specialist.Timezone,
+		CancelCutoffHrs:   specialist.CancelCutoffHrs,
+		TelegramHandle:    specialist.TelegramHandle,
+		Phone:             specialist.Phone,
+		Specialization:    specialist.Specialization,
+		Bio:               specialist.Bio,
+		PhotoURL:          specialist.PhotoURL,
+		LocationLatitude:  specialist.LocationLatitude,
+		LocationLongitude: specialist.LocationLongitude,
+		Language:          specialist.Language,
 	}
 
 	writeJSON(w, resp)
 }
 
 func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -926,42 +926,42 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Update name if provided
 	if req.Name != "" {
-		trainer.Name = req.Name
-		db.UpdateTrainer(trainer.ID, trainer.Name, trainer.Timezone, trainer.CancelCutoffHrs)
+		specialist.Name = req.Name
+		db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs)
 	}
 
 	// Update profile fields
-	telegramHandle := trainer.TelegramHandle
+	telegramHandle := specialist.TelegramHandle
 	if req.TelegramHandle != "" {
 		telegramHandle = req.TelegramHandle
 	}
-	phone := trainer.Phone
+	phone := specialist.Phone
 	if req.Phone != "" {
 		phone = req.Phone
 	}
-	specialization := trainer.Specialization
+	specialization := specialist.Specialization
 	if req.Specialization != "" {
 		specialization = req.Specialization
 	}
-	bio := trainer.Bio
+	bio := specialist.Bio
 	if req.Bio != "" {
 		bio = req.Bio
 	}
-	photoURL := trainer.PhotoURL
+	photoURL := specialist.PhotoURL
 	if req.PhotoURL != "" {
 		photoURL = req.PhotoURL
 	}
 
-	gymLatitude := trainer.GymLatitude
-	if req.GymLatitude != nil {
-		gymLatitude = *req.GymLatitude
+	locationLatitude := specialist.LocationLatitude
+	if req.LocationLatitude != nil {
+		locationLatitude = *req.LocationLatitude
 	}
-	gymLongitude := trainer.GymLongitude
-	if req.GymLongitude != nil {
-		gymLongitude = *req.GymLongitude
+	locationLongitude := specialist.LocationLongitude
+	if req.LocationLongitude != nil {
+		locationLongitude = *req.LocationLongitude
 	}
 
-	updated, err := db.UpdateTrainerProfile(trainer.ID, telegramHandle, phone, specialization, bio, photoURL, gymLatitude, gymLongitude)
+	updated, err := db.UpdateSpecialistProfile(specialist.ID, telegramHandle, phone, specialization, bio, photoURL, locationLatitude, locationLongitude)
 	if err != nil {
 		log.Printf("Error updating profile: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -970,23 +970,23 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Update language if valid
 	if req.Language == "ru" || req.Language == "en" {
-		db.UpdateTrainerLanguage(trainer.ID, req.Language)
+		db.UpdateSpecialistLanguage(specialist.ID, req.Language)
 		updated.Language = req.Language
 	}
 
-	resp := TrainerResponse{
-		ID:              updated.ID,
-		Name:            updated.Name,
-		Timezone:        updated.Timezone,
-		CancelCutoffHrs: updated.CancelCutoffHrs,
-		TelegramHandle:  updated.TelegramHandle,
-		Phone:           updated.Phone,
-		Specialization:  updated.Specialization,
-		Bio:             updated.Bio,
-		PhotoURL:        updated.PhotoURL,
-		GymLatitude:     updated.GymLatitude,
-		GymLongitude:    updated.GymLongitude,
-		Language:        updated.Language,
+	resp := SpecialistResponse{
+		ID:                updated.ID,
+		Name:              updated.Name,
+		Timezone:          updated.Timezone,
+		CancelCutoffHrs:   updated.CancelCutoffHrs,
+		TelegramHandle:    updated.TelegramHandle,
+		Phone:             updated.Phone,
+		Specialization:    updated.Specialization,
+		Bio:               updated.Bio,
+		PhotoURL:          updated.PhotoURL,
+		LocationLatitude:  updated.LocationLatitude,
+		LocationLongitude: updated.LocationLongitude,
+		Language:          updated.Language,
 	}
 
 	writeJSON(w, resp)
@@ -995,9 +995,9 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 // ========== Admin Clients ==========
 
 func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -1015,23 +1015,23 @@ func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := db.CreateGhostClient(trainer.ID, name)
+	client, err := db.CreateGhostClient(specialist.ID, name)
 	if err != nil {
 		log.Printf("Error creating ghost client: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("👻 GHOST CLIENT created: %s for trainer %s", name, trainer.Name)
+	log.Printf("GHOST CLIENT created: %s for specialist %s", name, specialist.Name)
 
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, client)
 }
 
 func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -1047,7 +1047,7 @@ func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if client == nil || client.TrainerID != trainer.ID {
+	if client == nil || client.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
@@ -1058,14 +1058,14 @@ func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("🗑 CLIENT deleted: %s (%s) by trainer %s", client.Name, clientID[:8], trainer.Name)
+	log.Printf("CLIENT deleted: %s (%s) by specialist %s", client.Name, clientID[:8], specialist.Name)
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -1081,7 +1081,7 @@ func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if client == nil || client.TrainerID != trainer.ID {
+	if client == nil || client.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
@@ -1125,13 +1125,13 @@ func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	clients, err := db.GetClientsByTrainerID(trainer.ID)
+	clients, err := db.GetClientsBySpecialistID(specialist.ID)
 	if err != nil {
 		log.Printf("Error getting clients: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1158,23 +1158,23 @@ type UpdateAdminNotificationPrefsRequest struct {
 }
 
 func HandleAdminGetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
 	resp := AdminNotificationPrefsResponse{
-		NotifyNewBookings:   trainer.NotifyNewBookings,
-		NotifyCancellations: trainer.NotifyCancellations,
+		NotifyNewBookings:   specialist.NotifyNewBookings,
+		NotifyCancellations: specialist.NotifyCancellations,
 	}
 	writeJSON(w, resp)
 }
 
 func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -1184,16 +1184,16 @@ func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	notifyNewBookings := trainer.NotifyNewBookings
+	notifyNewBookings := specialist.NotifyNewBookings
 	if req.NotifyNewBookings != nil {
 		notifyNewBookings = *req.NotifyNewBookings
 	}
-	notifyCancellations := trainer.NotifyCancellations
+	notifyCancellations := specialist.NotifyCancellations
 	if req.NotifyCancellations != nil {
 		notifyCancellations = *req.NotifyCancellations
 	}
 
-	if err := db.UpdateTrainerNotificationPrefs(trainer.ID, notifyNewBookings, notifyCancellations); err != nil {
+	if err := db.UpdateSpecialistNotificationPrefs(specialist.ID, notifyNewBookings, notifyCancellations); err != nil {
 		log.Printf("Error updating notification prefs: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
@@ -1208,7 +1208,7 @@ func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 
 // ========== Super Admin ==========
 
-type TrainerListItem struct {
+type SpecialistListItem struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	BotUsername string `json:"botUsername"`
@@ -1216,17 +1216,17 @@ type TrainerListItem struct {
 	CreatedAt   string `json:"createdAt"`
 }
 
-func HandleListAllTrainers(w http.ResponseWriter, r *http.Request) {
-	trainers, err := db.GetAllActiveTrainers()
+func HandleListAllSpecialists(w http.ResponseWriter, r *http.Request) {
+	specialists, err := db.GetAllActiveSpecialists()
 	if err != nil {
-		log.Printf("Error getting trainers: %v", err)
+		log.Printf("Error getting specialists: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
-	result := make([]TrainerListItem, len(trainers))
-	for i, t := range trainers {
-		result[i] = TrainerListItem{
+	result := make([]SpecialistListItem, len(specialists))
+	for i, t := range specialists {
+		result[i] = SpecialistListItem{
 			ID:          t.ID,
 			Name:        t.Name,
 			BotUsername: t.BotUsername,

@@ -28,7 +28,7 @@ type OnboardingSession struct {
 	BotUsername string
 }
 
-// MasterHandler handles the master bot for trainer onboarding
+// MasterHandler handles the master bot for specialist onboarding
 type MasterHandler struct {
 	bot           *Bot
 	sessions      map[int64]*OnboardingSession // telegramUserID -> session
@@ -116,8 +116,8 @@ func (h *MasterHandler) handleCommand(chatID, userID int64, text string, langCod
 		} else {
 			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Help"), nil)
 		}
-	case "/trainers":
-		h.handleAdminTrainers(chatID, userID, loc)
+	case "/specialists":
+		h.handleAdminSpecialists(chatID, userID, loc)
 	case "/stats":
 		h.handleAdminStats(chatID, userID, loc)
 	default:
@@ -134,27 +134,27 @@ func (h *MasterHandler) isAdmin(userID int64) bool {
 	return false
 }
 
-func (h *MasterHandler) handleAdminTrainers(chatID, userID int64, loc *localizerType) {
+func (h *MasterHandler) handleAdminSpecialists(chatID, userID int64, loc *localizerType) {
 	if !h.isAdmin(userID) {
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 		return
 	}
 
-	trainers, err := db.GetAllActiveTrainers()
+	specialists, err := db.GetAllActiveSpecialists()
 	if err != nil {
-		log.Printf("Error getting trainers: %v", err)
+		log.Printf("Error getting specialists: %v", err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
-	if len(trainers) == 0 {
-		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.NoTrainers"), nil)
+	if len(specialists) == 0 {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.NoSpecialists"), nil)
 		return
 	}
 
-	msg := myI18n.Tf(loc, "Master.TrainersList", map[string]interface{}{"Count": len(trainers)})
-	for i, t := range trainers {
-		msg += myI18n.Tf(loc, "Master.TrainerItem", map[string]interface{}{
+	msg := myI18n.Tf(loc, "Master.SpecialistsList", map[string]interface{}{"Count": len(specialists)})
+	for i, t := range specialists {
+		msg += myI18n.Tf(loc, "Master.SpecialistItem", map[string]interface{}{
 			"Num":         i + 1,
 			"Name":        t.Name,
 			"BotUsername": t.BotUsername,
@@ -172,33 +172,33 @@ func (h *MasterHandler) handleAdminStats(chatID, userID int64, loc *localizerTyp
 		return
 	}
 
-	trainers, err := db.GetAllActiveTrainers()
+	specialists, err := db.GetAllActiveSpecialists()
 	if err != nil {
-		log.Printf("Error getting trainers: %v", err)
+		log.Printf("Error getting specialists: %v", err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
 	msg := myI18n.T(loc, "Master.Stats")
-	msg += myI18n.Tf(loc, "Master.TrainerCount", map[string]interface{}{"Count": len(trainers)})
+	msg += myI18n.Tf(loc, "Master.SpecialistCount", map[string]interface{}{"Count": len(specialists)})
 
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
 func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 	// Check if already registered
-	existing, err := db.GetTrainerByTelegramID(userID)
+	existing, err := db.GetSpecialistByTelegramID(userID)
 	if err != nil {
-		log.Printf("Error checking existing trainer: %v", err)
+		log.Printf("Error checking existing specialist: %v", err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
 	if existing != nil && existing.IsActive {
 		// Already registered and active — re-register handler in case it was lost
-		log.Printf("Trainer @%s already exists, re-registering handler", existing.BotUsername)
-		if OnTrainerCreated != nil {
-			if err := OnTrainerCreated(existing); err != nil {
+		log.Printf("Specialist @%s already exists, re-registering handler", existing.BotUsername)
+		if OnSpecialistCreated != nil {
+			if err := OnSpecialistCreated(existing); err != nil {
 				log.Printf("Error re-registering bot for @%s: %v", existing.BotUsername, err)
 				h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), existing.BotUsername), nil)
 				return
@@ -227,7 +227,7 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 	}
 
 	// Check if token already registered
-	existing, err := db.GetTrainerByBotToken(text)
+	existing, err := db.GetSpecialistByBotToken(text)
 	if err != nil {
 		log.Printf("Error checking existing bot: %v", err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
@@ -237,8 +237,8 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 		if existing.TelegramUserID == userID {
 			// Same user's bot — re-register handler and confirm
 			log.Printf("Token for @%s already exists for same user, re-registering", existing.BotUsername)
-			if OnTrainerCreated != nil {
-				if err := OnTrainerCreated(existing); err != nil {
+			if OnSpecialistCreated != nil {
+				if err := OnSpecialistCreated(existing); err != nil {
 					log.Printf("Error re-registering bot for @%s: %v", existing.BotUsername, err)
 					h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), existing.BotUsername), nil)
 					h.setSession(userID, nil)
@@ -279,8 +279,8 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		return
 	}
 
-	// Create trainer
-	trainer, err := db.CreateTrainer(
+	// Create specialist
+	specialist, err := db.CreateSpecialist(
 		userID,
 		session.BotToken,
 		session.BotUsername,
@@ -289,24 +289,24 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		24,
 	)
 	if err != nil {
-		log.Printf("Error creating trainer: %v", err)
+		log.Printf("Error creating specialist: %v", err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
-	// Save trainer's personal Telegram handle
+	// Save specialist's personal Telegram handle
 	if username != "" {
-		if _, err := db.UpdateTrainerProfile(trainer.ID, username, "", "", "", "", 0, 0); err != nil {
+		if _, err := db.UpdateSpecialistProfile(specialist.ID, username, "", "", "", "", 0, 0); err != nil {
 			log.Printf("Error saving telegram handle: %v", err)
 		}
 	}
 
 	// Seed default data
-	h.seedDefaults(trainer.ID, loc)
+	h.seedDefaults(specialist.ID, loc)
 
 	// Register bot handler + webhook via main.go callback
-	if OnTrainerCreated != nil {
-		if err := OnTrainerCreated(trainer); err != nil {
+	if OnSpecialistCreated != nil {
+		if err := OnSpecialistCreated(specialist); err != nil {
 			log.Printf("Error registering bot for @%s: %v", session.BotUsername, err)
 			h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), session.BotUsername), nil)
 			h.setSession(userID, nil)
@@ -321,10 +321,10 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	msg := fmt.Sprintf(myI18n.T(loc, "Master.Success"), name, session.BotUsername, session.BotUsername, session.BotUsername)
 	h.bot.SendMessage(chatID, msg, nil)
 
-	log.Printf("New trainer registered: %s (@%s)", name, session.BotUsername)
+	log.Printf("New specialist registered: %s (@%s)", name, session.BotUsername)
 }
 
-func (h *MasterHandler) seedDefaults(trainerID string, loc *localizerType) {
+func (h *MasterHandler) seedDefaults(specialistID string, loc *localizerType) {
 	// Session types
 	sessionTypes := []struct {
 		typeCode string
@@ -338,7 +338,7 @@ func (h *MasterHandler) seedDefaults(trainerID string, loc *localizerType) {
 	}
 
 	for _, st := range sessionTypes {
-		db.CreateSessionType(trainerID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
+		db.CreateSessionType(specialistID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
 	}
 
 	// Working hours (Mon-Fri 9-18, Sat 10-15)
@@ -356,13 +356,13 @@ func (h *MasterHandler) seedDefaults(trainerID string, loc *localizerType) {
 	}
 
 	for _, wh := range workingHours {
-		db.UpsertWorkingHours(trainerID, wh.day, wh.start, wh.end)
+		db.UpsertWorkingHours(specialistID, wh.day, wh.start, wh.end)
 	}
 }
 
-// OnTrainerCreated is called when a new trainer is created or re-registered.
+// OnSpecialistCreated is called when a new specialist is created or re-registered.
 // Set by main.go to register the new bot dynamically. Returns error if registration fails.
-var OnTrainerCreated func(trainer *models.Trainer) error
+var OnSpecialistCreated func(specialist *models.Specialist) error
 
 // localizerType is an alias for the go-i18n Localizer type used in master handler signatures
 type localizerType = i18n.Localizer

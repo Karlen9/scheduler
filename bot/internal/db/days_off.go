@@ -36,12 +36,12 @@ func parseDateString(s string) time.Time {
 	return time.Time{}
 }
 
-func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
+func GetDaysOffBySpecialistID(specialistID string) ([]models.DayOff, error) {
 	rows, err := DB.Query(Q(
-		`SELECT id, trainer_id, date, reason, created_at
+		`SELECT id, specialist_id, date, reason, created_at
 		FROM days_off
-		WHERE trainer_id = ? AND date >= `+DateNow()+`
-		ORDER BY date ASC`), trainerID)
+		WHERE specialist_id = ? AND date >= `+DateNow()+`
+		ORDER BY date ASC`), specialistID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
 		var d models.DayOff
 		var reason sql.NullString
 		var dateStr string
-		err := rows.Scan(&d.ID, &d.TrainerID, &dateStr, &reason, &d.CreatedAt)
+		err := rows.Scan(&d.ID, &d.SpecialistID, &dateStr, &reason, &d.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -63,18 +63,18 @@ func GetDaysOffByTrainerID(trainerID string) ([]models.DayOff, error) {
 	return daysOff, rows.Err()
 }
 
-func GetDayOff(trainerID string, date time.Time) (*models.DayOff, error) {
+func GetDayOff(specialistID string, date time.Time) (*models.DayOff, error) {
 	dateStr := date.Format("2006-01-02")
 	row := DB.QueryRow(Q(`
-		SELECT id, trainer_id, date, reason, created_at
+		SELECT id, specialist_id, date, reason, created_at
 		FROM days_off
-		WHERE trainer_id = ? AND date = ?
-	`), trainerID, dateStr)
+		WHERE specialist_id = ? AND date = ?
+	`), specialistID, dateStr)
 
 	var d models.DayOff
 	var reason sql.NullString
 	var dateResult string
-	err := row.Scan(&d.ID, &d.TrainerID, &dateResult, &reason, &d.CreatedAt)
+	err := row.Scan(&d.ID, &d.SpecialistID, &dateResult, &reason, &d.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -86,7 +86,7 @@ func GetDayOff(trainerID string, date time.Time) (*models.DayOff, error) {
 	return &d, nil
 }
 
-func CreateDayOff(trainerID string, date time.Time, reason string) (*models.DayOff, error) {
+func CreateDayOff(specialistID string, date time.Time, reason string) (*models.DayOff, error) {
 	id := uuid.New().String()
 	dateStr := date.Format("2006-01-02")
 
@@ -98,19 +98,19 @@ func CreateDayOff(trainerID string, date time.Time, reason string) (*models.DayO
 	}
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO days_off (id, trainer_id, date, reason)
+		INSERT INTO days_off (id, specialist_id, date, reason)
 		VALUES (?, ?, ?, ?)
-	`), id, trainerID, dateStr, reasonVal)
+	`), id, specialistID, dateStr, reasonVal)
 	if err != nil {
 		return nil, err
 	}
 
 	return &models.DayOff{
-		ID:        id,
-		TrainerID: trainerID,
-		Date:      date,
-		Reason:    reason,
-		CreatedAt: time.Now(),
+		ID:           id,
+		SpecialistID: specialistID,
+		Date:         date,
+		Reason:       reason,
+		CreatedAt:    time.Now(),
 	}, nil
 }
 
@@ -119,13 +119,13 @@ func DeleteDayOff(id string) error {
 	return err
 }
 
-func IsDayOff(trainerID string, date time.Time) (bool, error) {
+func IsDayOff(specialistID string, date time.Time) (bool, error) {
 	dateStr := date.Format("2006-01-02")
 	var count int
 	err := DB.QueryRow(Q(`
 		SELECT COUNT(*) FROM days_off
-		WHERE trainer_id = ? AND date = ?
-	`), trainerID, dateStr).Scan(&count)
+		WHERE specialist_id = ? AND date = ?
+	`), specialistID, dateStr).Scan(&count)
 	if err != nil {
 		return false, err
 	}

@@ -15,13 +15,13 @@ const messages = {
     declined: 'Отклонено',
   },
   Common: {
-    workout: 'Тренировка',
+    workout: 'Сеанс',
     min: 'мин',
     confirm: 'Подтвердить',
     cancelVerb: 'Отменить',
   },
   BookingsPage: {
-    trainerBookedYou: 'Тренер записал вас',
+    trainerBookedYou: 'Специалист записал вас',
     declineButton: 'Отклонить',
   },
   Dates: {

@@ -32,7 +32,7 @@ type Config struct {
 	DatabaseURL         string // postgres:// connection string; if set, uses Postgres instead of SQLite
 	Port                string
 	PublicBaseURL       string
-	MasterBotToken      string  // Master bot for trainer onboarding
+	MasterBotToken      string  // Master bot for specialist onboarding
 	MasterWebhookSecret string  // Fixed webhook secret for master bot
 	AdminIDs            []int64 // Telegram IDs with admin access
 
@@ -40,9 +40,9 @@ type Config struct {
 	EncryptionKey string // Hex-encoded 32-byte AES key for encrypting tokens at rest
 
 	// Optional - for initial single-bot setup (legacy)
-	TelegramBotToken  string
-	TrainerTelegramID int64
-	TrainerName       string
+	TelegramBotToken     string
+	SpecialistTelegramID int64
+	SpecialistName       string
 }
 
 func Load() *Config {
@@ -50,7 +50,18 @@ func Load() *Config {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	trainerID, _ := strconv.ParseInt(os.Getenv("TRAINER_TELEGRAM_ID"), 10, 64)
+	// Read SPECIALIST_TELEGRAM_ID first, fall back to TRAINER_TELEGRAM_ID
+	specialistIDStr := os.Getenv("SPECIALIST_TELEGRAM_ID")
+	if specialistIDStr == "" {
+		specialistIDStr = os.Getenv("TRAINER_TELEGRAM_ID")
+	}
+	specialistID, _ := strconv.ParseInt(specialistIDStr, 10, 64)
+
+	// Read SPECIALIST_NAME first, fall back to TRAINER_NAME
+	specialistName := os.Getenv("SPECIALIST_NAME")
+	if specialistName == "" {
+		specialistName = os.Getenv("TRAINER_NAME")
+	}
 
 	cfg := &Config{
 		WebAppURL:           os.Getenv("WEB_APP_URL"),
@@ -64,9 +75,9 @@ func Load() *Config {
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
 
 		// Legacy single-bot setup
-		TelegramBotToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
-		TrainerTelegramID: trainerID,
-		TrainerName:       os.Getenv("TRAINER_NAME"),
+		TelegramBotToken:     os.Getenv("TELEGRAM_BOT_TOKEN"),
+		SpecialistTelegramID: specialistID,
+		SpecialistName:       specialistName,
 	}
 
 	if cfg.WebAppURL == "" {
@@ -85,8 +96,8 @@ func Load() *Config {
 		cfg.Port = "8080"
 	}
 
-	if cfg.TrainerName == "" {
-		cfg.TrainerName = "Trainer"
+	if cfg.SpecialistName == "" {
+		cfg.SpecialistName = "Specialist"
 	}
 
 	if cfg.PublicBaseURL == "" {
@@ -94,7 +105,7 @@ func Load() *Config {
 	}
 
 	if cfg.MasterBotToken == "" {
-		log.Println("Warning: MASTER_BOT_TOKEN not set, trainer onboarding disabled")
+		log.Println("Warning: MASTER_BOT_TOKEN not set, specialist onboarding disabled")
 	}
 
 	if cfg.EncryptionKey == "" {

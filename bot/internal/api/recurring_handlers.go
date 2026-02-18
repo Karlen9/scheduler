@@ -73,7 +73,7 @@ func calculateDateRange(period string) (string, string, error) {
 	return startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), nil
 }
 
-func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, durationMinutes int, startDateStr, endDateStr string, dayTimes map[string]string) ([]string, error) {
+func generatePreviewDates(specialistID string, daysOfWeek []int, timeStr string, durationMinutes int, startDateStr, endDateStr string, dayTimes map[string]string) ([]string, error) {
 	startDate, err := time.Parse("2006-01-02", startDateStr)
 	if err != nil {
 		return nil, err
@@ -83,8 +83,8 @@ func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, du
 		return nil, err
 	}
 
-	workingHours, _ := db.GetWorkingHoursByTrainerID(trainerID)
-	daysOff, _ := db.GetDaysOffByTrainerID(trainerID)
+	workingHours, _ := db.GetWorkingHoursBySpecialistID(specialistID)
+	daysOff, _ := db.GetDaysOffBySpecialistID(specialistID)
 
 	dayOffSet := make(map[string]bool)
 	for _, d := range daysOff {
@@ -120,7 +120,7 @@ func generatePreviewDates(trainerID string, daysOfWeek []int, timeStr string, du
 		}
 		startsAt := time.Date(d.Year(), d.Month(), d.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
 		endsAt := startsAt.Add(time.Duration(durationMinutes) * time.Minute)
-		hasConflict, _ := db.HasConflictingBooking(trainerID, startsAt, endsAt, "")
+		hasConflict, _ := db.HasConflictingBooking(specialistID, startsAt, endsAt, "")
 		if hasConflict {
 			continue
 		}
@@ -256,9 +256,9 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -301,7 +301,7 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	schedule, err := db.CreateRecurringScheduleFull(
-		trainer.ID, client.ID, client.Name,
+		specialist.ID, client.ID, client.Name,
 		firstDay, req.Time, sessionType.DurationMinutes,
 		"client", req.SessionTypeID, daysStr, startDate, endDate, dayTimesToJSON(req.DayTimes),
 	)
@@ -311,13 +311,13 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("🔄 RECURRING CREATE (CLIENT) [%s] Client: %s | Days: %s | Time: %s | Period: %s",
+	log.Printf("RECURRING CREATE (CLIENT) [%s] Client: %s | Days: %s | Time: %s | Period: %s",
 		schedule.ID[:8], client.Name, daysStr, req.Time, req.Period)
 
-	// Notify trainer
+	// Notify specialist
 	if NotifyRecurringScheduleFunc != nil {
 		schedule.SessionType = sessionType
-		previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
+		previewDates, _ := generatePreviewDates(specialist.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 		if err := NotifyRecurringScheduleFunc(schedule, len(previewDates)); err != nil {
 			log.Printf("Error notifying about recurring schedule: %v", err)
 		}
@@ -334,9 +334,9 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -371,7 +371,7 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
+	dates, err := generatePreviewDates(specialist.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -415,20 +415,20 @@ func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("🔄 RECURRING CANCEL (CLIENT) [%s]", id[:8])
+	log.Printf("RECURRING CANCEL (CLIENT) [%s]", id[:8])
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // ========== Admin Recurring Schedule Endpoints ==========
 
 func HandleAdminGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
-	schedules, err := db.GetRecurringSchedulesByTrainerID(trainer.ID)
+	schedules, err := db.GetRecurringSchedulesBySpecialistID(specialist.ID)
 	if err != nil {
 		log.Printf("Error getting recurring schedules: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -443,9 +443,9 @@ func HandleAdminGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -456,7 +456,7 @@ func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Reques
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if schedule == nil || schedule.TrainerID != trainer.ID {
+	if schedule == nil || schedule.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
@@ -465,9 +465,9 @@ func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Reques
 }
 
 func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -502,7 +502,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if client == nil || client.TrainerID != trainer.ID {
+	if client == nil || client.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
@@ -526,7 +526,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	}
 
 	schedule, err := db.CreateRecurringScheduleFull(
-		trainer.ID, client.ID, client.Name,
+		specialist.ID, client.ID, client.Name,
 		firstDay, req.Time, sessionType.DurationMinutes,
 		"trainer", req.SessionTypeID, daysStr, startDate, endDate, dayTimesToJSON(req.DayTimes),
 	)
@@ -536,7 +536,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	log.Printf("🔄 RECURRING CREATE (ADMIN) [%s] Client: %s | Days: %s | Time: %s | Period: %s",
+	log.Printf("RECURRING CREATE (ADMIN) [%s] Client: %s | Days: %s | Time: %s | Period: %s",
 		schedule.ID[:8], client.Name, daysStr, req.Time, req.Period)
 
 	// Ghost clients: auto-approve and generate bookings immediately
@@ -548,7 +548,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		// Notify client
 		if NotifyRecurringScheduleFunc != nil {
 			schedule.SessionType = sessionType
-			previewDates, _ := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
+			previewDates, _ := generatePreviewDates(specialist.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 			if err := NotifyRecurringScheduleFunc(schedule, len(previewDates)); err != nil {
 				log.Printf("Error notifying about recurring schedule: %v", err)
 			}
@@ -560,9 +560,9 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 }
 
 func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -597,7 +597,7 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dates, err := generatePreviewDates(trainer.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
+	dates, err := generatePreviewDates(specialist.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -612,9 +612,9 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 }
 
 func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -625,7 +625,7 @@ func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if schedule == nil || schedule.TrainerID != trainer.ID {
+	if schedule == nil || schedule.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
@@ -641,16 +641,16 @@ func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Printf("🔄 RECURRING APPROVED [%s] %d bookings created", id[:8], count)
+	log.Printf("RECURRING APPROVED [%s] %d bookings created", id[:8], count)
 
 	updated, _ := db.GetRecurringScheduleByID(id)
 	writeJSON(w, updated)
 }
 
 func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -661,7 +661,7 @@ func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if schedule == nil || schedule.TrainerID != trainer.ID {
+	if schedule == nil || schedule.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
@@ -676,7 +676,7 @@ func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Printf("🔄 RECURRING DECLINED [%s]", id[:8])
+	log.Printf("RECURRING DECLINED [%s]", id[:8])
 
 	updated, _ := db.GetRecurringScheduleByID(id)
 	writeJSON(w, updated)
@@ -796,9 +796,9 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 // --- Admin: Request Cancel ---
 
 func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -806,7 +806,7 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 	if booking == nil {
 		return
 	}
-	if booking.TrainerID != trainer.ID {
+	if booking.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
@@ -815,7 +815,7 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.CancelBooking(booking.ID, "", models.CancelledByTrainer); err != nil {
+	if err := db.CancelBooking(booking.ID, "", models.CancelledBySpecialist); err != nil {
 		log.Printf("Error cancelling booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
@@ -837,9 +837,9 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 // --- Admin: Request Move ---
 
 func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -847,7 +847,7 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 	if booking == nil {
 		return
 	}
-	if booking.TrainerID != trainer.ID {
+	if booking.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
@@ -882,9 +882,9 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 // --- Admin: Approve/Decline Move ---
 
 func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -892,7 +892,7 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 	if booking == nil {
 		return
 	}
-	if booking.TrainerID != trainer.ID {
+	if booking.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
@@ -913,9 +913,9 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -923,7 +923,7 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 	if booking == nil {
 		return
 	}
-	if booking.TrainerID != trainer.ID {
+	if booking.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
 		return
 	}
@@ -959,13 +959,13 @@ func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID stri
 	endsAt := startsAt.Add(time.Duration(booking.DurationMinutes) * time.Minute)
 
 	// Check conflicts
-	hasConflict, _ := db.HasConflictingBooking(booking.TrainerID, startsAt, endsAt, booking.ID)
+	hasConflict, _ := db.HasConflictingBooking(booking.SpecialistID, startsAt, endsAt, booking.ID)
 	if hasConflict {
 		return nil, fmt.Errorf("Error.TimeSlotTaken")
 	}
 
 	newBooking, err := db.CreateRescheduleBooking(
-		booking.TrainerID, booking.ClientID, booking.SessionTypeID,
+		booking.SpecialistID, booking.ClientID, booking.SessionTypeID,
 		startsAt, endsAt, booking.ClientName, booking.DurationMinutes,
 		scheduleID, booking.ID,
 	)
@@ -976,9 +976,9 @@ func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID stri
 }
 
 func HandleAdminCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
-	trainer := GetTrainerFromContext(r)
-	if trainer == nil {
-		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
 
@@ -989,7 +989,7 @@ func HandleAdminCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if schedule == nil || schedule.TrainerID != trainer.ID {
+	if schedule == nil || schedule.SpecialistID != specialist.ID {
 		httpError(w, r, "Error.ScheduleNotFound", http.StatusNotFound)
 		return
 	}
@@ -1004,6 +1004,6 @@ func HandleAdminCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	log.Printf("🔄 RECURRING CANCEL (ADMIN) [%s]", id[:8])
+	log.Printf("RECURRING CANCEL (ADMIN) [%s]", id[:8])
 	w.WriteHeader(http.StatusNoContent)
 }

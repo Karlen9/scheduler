@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Telegram Mini App scheduler for fitness trainers. Two main components:
+Telegram Mini App scheduler for specialists (trainers, teachers, beauty professionals, etc.). Two main components:
 - **bot/** - Go Telegram bot that serves as entry point
 - **mini-app/** - Next.js 15 frontend (Telegram Mini App) for booking UI
 
@@ -28,7 +28,7 @@ go run .          # Run server (webhook + API)
 go build -o scheduler-bot  # Build binary
 ```
 
-Required env vars: `TELEGRAM_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`, `WEBHOOK_SECRET`, `TRAINER_TELEGRAM_ID`, `TRAINER_NAME`
+Required env vars: `TELEGRAM_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`, `WEBHOOK_SECRET`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST_NAME`
 
 ### Deployment
 ```bash
@@ -40,14 +40,14 @@ bunx vercel       # Deploy to Vercel
 
 ### Mini App Structure (mini-app/src/)
 - **app/** - Next.js App Router pages
-  - `page.tsx` - Home screen (trainer info, action buttons)
+  - `page.tsx` - Home screen (specialist info, action buttons)
   - `book/page.tsx` - Booking flow (calendar, time slots)
   - `bookings/page.tsx` - User's bookings list with cancel/reschedule
 - **components/** - Reusable UI components (Calendar, TimeSlots, BookingCard, etc.)
 - **lib/** - Core utilities
   - `telegram.ts` - Telegram WebApp SDK integration (theme, user data, navigation buttons)
   - `api.ts` - API client connecting to Go backend
-  - `types.ts` - TypeScript interfaces (Trainer, SessionType, Booking, TimeSlot, WorkingHours)
+  - `types.ts` - TypeScript interfaces (Specialist, SessionType, Booking, TimeSlot, WorkingHours)
 
 ### Bot Structure (bot/)
 - `main.go` - HTTP server with Telegram webhook + REST API on single port
@@ -57,11 +57,11 @@ bunx vercel       # Deploy to Vercel
 - `internal/config/` - Environment configuration
 
 ### Data Flow
-1. User opens trainer's Telegram bot → /start → "Open Scheduler" button
+1. User opens specialist's Telegram bot → /start → "Open Scheduler" button
 2. Mini-app loads → `initTelegramApp()` → applies Telegram theme colors
 3. User selects date/time → `api.createBooking()` → booking created with status "pending"
-4. Trainer receives Telegram notification with Accept/Reject buttons
-5. Trainer clicks button → webhook → booking status updated → user notified
+4. Specialist receives Telegram notification with Accept/Reject buttons
+5. Specialist clicks button → webhook → booking status updated → user notified
 
 ### Webhook Setup
 Bot uses Telegram webhooks (not long polling):

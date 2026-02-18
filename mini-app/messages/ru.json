@@ -19,7 +19,7 @@
     "great": "Отлично",
     "creating": "Создание...",
     "uploading": "Загрузка...",
-    "workout": "Тренировка",
+    "workout": "Сеанс",
     "ghost": "(гость)",
     "add": "Добавить"
   },
@@ -156,7 +156,7 @@
     "day5": "дней"
   },
   "HomePage": {
-    "trainerLoadError": "Не удалось загрузить информацию о тренере",
+    "trainerLoadError": "Не удалось загрузить информацию о специалисте",
     "showMore": "Показать больше",
     "showLess": "Скрыть",
     "messageButton": "Написать",
@@ -203,7 +203,7 @@
     "period1month": "1 месяц",
     "period3months": "3 месяца",
     "preview": "Предпросмотр",
-    "previewCount": "Будет создано тренировок: {count}",
+    "previewCount": "Будет создано сеансов: {count}",
     "submitRecurring": "Отправить на подтверждение",
     "successTitle": "Запись создана",
     "successYouAreBooked": "Вы записаны",
@@ -215,14 +215,14 @@
     "successBookingCreated": "Запись создана.",
     "successRecurringTitle": "Расписание отправлено",
     "successRecurringForClient": "Расписание для {name} отправлено на подтверждение.",
-    "successRecurringForTrainer": "Расписание отправлено на подтверждение тренеру."
+    "successRecurringForTrainer": "Расписание отправлено на подтверждение специалисту."
   },
   "BookingsPage": {
     "title": "Мои записи",
     "activeBookings": "Активные записи",
     "pastBookings": "Прошедшие записи",
     "emptyTitle": "У вас пока нет записей",
-    "emptyDescription": "Выберите удобное время и запишитесь на тренировку",
+    "emptyDescription": "Выберите удобное время и запишитесь на сеанс",
     "loadError": "Ошибка загрузки",
     "loadErrorDescription": "Не удалось загрузить записи",
     "cancelDialog": "Отменить запись?",
@@ -230,7 +230,7 @@
     "cancelConfirmButton": "Отменить запись",
     "cancelReasonPlaceholder": "Причина отмены (необязательно)",
     "cancelDefaultReason": "Отменено клиентом",
-    "trainerBookedYou": "Тренер записал вас на тренировку",
+    "trainerBookedYou": "Специалист записал вас на сеанс",
     "declineButton": "Отклонить"
   },
   "RecurringPage": {
@@ -241,16 +241,16 @@
     "declinedSection": "Отклоненные",
     "cancelledSection": "Отмененные",
     "cancelDialog": "Отменить расписание?",
-    "cancelDialogDescription": "Регулярные тренировки по этому расписанию больше не будут создаваться автоматически.",
+    "cancelDialogDescription": "Регулярные сеансы по этому расписанию больше не будут создаваться автоматически.",
     "regularSchedule": "Регулярное расписание"
   },
   "RecurringDetail": {
     "scheduleNotFound": "Расписание не найдено",
-    "sessionsCount": "Тренировки ({count})",
-    "noSessionsPlanned": "Тренировки пока не запланированы",
-    "noPlannedSessions": "Нет запланированных тренировок",
-    "cancelSessionDialog": "Отменить тренировку?",
-    "cancelSessionDescription": "Тренировка будет отменена. Тренер получит уведомление.",
+    "sessionsCount": "Сеансы ({count})",
+    "noSessionsPlanned": "Сеансы пока не запланированы",
+    "noPlannedSessions": "Нет запланированных сеансов",
+    "cancelSessionDialog": "Отменить сеанс?",
+    "cancelSessionDescription": "Сеанс будет отменён. Специалист получит уведомление.",
     "awaitingRescheduleConfirmation": "Ожидает подтверждения переноса",
     "rescheduleRequest": "Запрос на перенос"
   },
@@ -263,10 +263,10 @@
     "notifyBookingStatus": "Статус записи",
     "notifyBookingStatusDesc": "Подтверждение и отклонение записей",
     "notifyCancellations": "Отмена записей",
-    "notifyCancellationsDesc": "Уведомления об отмене записей тренером",
+    "notifyCancellationsDesc": "Уведомления об отмене записей специалистом",
     "notifyReminders": "Напоминания",
-    "notifyRemindersDesc": "За час до тренировки",
-    "notifyDaysOff": "Выходные тренера",
+    "notifyRemindersDesc": "За час до сеанса",
+    "notifyDaysOff": "Выходные специалиста",
     "notifyDaysOffDesc": "Новые выходные дни",
     "theme": "Тема"
   },
@@ -309,11 +309,11 @@
     "nameLabel": "Имя",
     "specializationLabel": "Специализация",
     "bioLabel": "О себе",
-    "bioPlaceholder": "Расскажите о своем опыте и подходе к тренировкам...",
+    "bioPlaceholder": "Расскажите о своем опыте и подходе к работе...",
     "phoneLabel": "Телефон",
     "telegramLabel": "Telegram",
     "telegramPlaceholder": "@username",
-    "gymCoordsLabel": "Координаты зала",
+    "gymCoordsLabel": "Координаты локации",
     "gymCoordsPlaceholder": "55.753207, 37.618493",
     "gymCoordsHint": "Откройте Яндекс Карты, нажмите на здание на карте (не на организацию) и скопируйте координаты"
   },
@@ -333,7 +333,7 @@
     "typePair": "Парная",
     "typeConsultation": "Консультация",
     "nameLabel": "Название",
-    "namePlaceholder": "Парная тренировка",
+    "namePlaceholder": "Парный сеанс",
     "priceLabel": "Цена",
     "pricePlaceholder": "2500",
     "durationLabel": "Длительность",
@@ -438,7 +438,7 @@
   "NextBookingBanner": {
     "title": "Ближайшая запись",
     "noBookings": "Записей нет",
-    "noUpcomingSessions": "Нет предстоящих тренировок"
+    "noUpcomingSessions": "Нет предстоящих сеансов"
   },
   "TimePickerModal": {
     "title": "Выберите время"
@@ -449,7 +449,7 @@
     "minutes": "минут"
   },
   "Errors": {
-    "trainerLoadFailed": "Не удалось загрузить информацию о тренере",
+    "trainerLoadFailed": "Не удалось загрузить информацию о специалисте",
     "bookingCreateFailed": "Не удалось создать запись",
     "bookingCancelFailed": "Не удалось отменить запись",
     "bookingConfirmFailed": "Не удалось подтвердить запись",
@@ -460,7 +460,7 @@
     "scheduleConfirmFailed": "Не удалось подтвердить расписание",
     "scheduleDeclineFailed": "Не удалось отклонить расписание",
     "scheduleCreateFailed": "Ошибка создания расписания",
-    "sessionCancelFailed": "Не удалось отменить тренировку",
+    "sessionCancelFailed": "Не удалось отменить сеанс",
     "moveCancelFailed": "Не удалось подтвердить перенос",
     "moveDeclineFailed": "Не удалось отклонить перенос",
     "previewFailed": "Не удалось загрузить предпросмотр",
@@ -485,7 +485,7 @@
     "scheduleCancelled": "Расписание отменено",
     "scheduleConfirmed": "Расписание подтверждено",
     "scheduleDeclined": "Расписание отклонено",
-    "sessionCancelled": "Тренировка отменена",
+    "sessionCancelled": "Сеанс отменён",
     "moveConfirmed": "Перенос подтвержден",
     "moveDeclined": "Перенос отклонен",
     "clientDeleted": "Клиент {name} удалён"
