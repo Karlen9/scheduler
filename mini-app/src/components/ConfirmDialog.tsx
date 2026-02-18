@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useTranslations } from "next-intl";
-import { PrimaryButton } from "@/components/PrimaryButton";
+import { useTranslations } from 'next-intl';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -32,12 +32,12 @@ export function ConfirmDialog({
   inputValue,
   onInputChange,
 }: ConfirmDialogProps) {
-  const tc = useTranslations("Common");
+  const tc = useTranslations('Common');
 
   if (!isOpen) return null;
 
-  const resolvedConfirmText = confirmText ?? tc("confirm");
-  const resolvedCancelText = cancelText ?? tc("cancel");
+  const resolvedConfirmText = confirmText ?? tc('confirm');
+  const resolvedCancelText = cancelText ?? tc('cancel');
 
   const handleConfirm = () => {
     onConfirm();
@@ -45,44 +45,36 @@ export function ConfirmDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-background rounded-2xl p-6 w-full max-w-sm">
-        <h3 className="text-lg font-medium text-foreground mb-2">
-          {title}
-        </h3>
-        {description && (
-          <p className="text-sm text-muted-foreground mb-4">
-            {description}
-          </p>
-        )}
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6">
+        <h3 className="text-foreground mb-2 text-lg font-medium">{title}</h3>
+        {description && <p className="text-muted-foreground mb-4 text-sm">{description}</p>}
         {showInput && (
           <input
             type="text"
-            value={inputValue || ""}
+            value={inputValue || ''}
             onChange={(e) => onInputChange?.(e.target.value)}
             placeholder={inputPlaceholder}
-            className="w-full px-4 py-3 rounded-lg bg-card text-foreground outline-none focus:ring-2 focus:ring-brand mb-4 text-sm"
+            className="bg-card text-foreground focus:ring-brand mb-4 w-full rounded-lg px-4 py-3 text-sm outline-none focus:ring-2"
           />
         )}
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl bg-card text-foreground font-medium text-base transition-opacity active:opacity-70"
+            className="bg-card text-foreground flex-1 rounded-xl px-4 py-3 text-base font-medium transition-opacity active:opacity-70"
           >
             {resolvedCancelText}
           </button>
           {destructive ? (
             <button
               onClick={handleConfirm}
-              className="flex-1 py-3 px-4 rounded-xl bg-destructive text-white font-medium text-base transition-opacity active:opacity-70"
+              className="bg-destructive flex-1 rounded-xl px-4 py-3 text-base font-medium text-white transition-opacity active:opacity-70"
             >
               {resolvedConfirmText}
             </button>
           ) : (
             <div className="flex-1">
-              <PrimaryButton onClick={handleConfirm}>
-                {resolvedConfirmText}
-              </PrimaryButton>
+              <PrimaryButton onClick={handleConfirm}>{resolvedConfirmText}</PrimaryButton>
             </div>
           )}
         </div>

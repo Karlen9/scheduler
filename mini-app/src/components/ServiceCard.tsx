@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Pencil } from "lucide-react";
-import { useTranslations, useLocale } from "next-intl";
-import { SessionType } from "@/lib/types";
+import { Pencil } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
+import { SessionType } from '@/lib/types';
 
 interface ServiceCardProps {
   service: SessionType;
@@ -10,25 +10,26 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, onEdit }: ServiceCardProps) {
-  const t = useTranslations("ServiceCard");
+  const t = useTranslations('ServiceCard');
   const locale = useLocale();
 
   return (
-    <div className="bg-card rounded-xl p-4 flex items-center gap-4">
+    <div className="bg-card flex items-center gap-4 rounded-xl p-4">
       <div className="flex-1">
-        <h4 className="font-medium text-foreground">{service.name}</h4>
-        <p className="text-sm text-muted-foreground">
-          {t("priceLabel")} {service.price.toLocaleString(locale === "en" ? "en-US" : "ru-RU")} {service.currency === "RUB" ? "\u20BD" : service.currency}
+        <h4 className="text-foreground font-medium">{service.name}</h4>
+        <p className="text-muted-foreground text-sm">
+          {t('priceLabel')} {service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')}{' '}
+          {service.currency === 'RUB' ? '\u20BD' : service.currency}
         </p>
-        <p className="text-sm text-muted-foreground">
-          {t("durationLabel")} {service.durationMinutes} {t("minutes")}
+        <p className="text-muted-foreground text-sm">
+          {t('durationLabel')} {service.durationMinutes} {t('minutes')}
         </p>
       </div>
       <button
         onClick={onEdit}
-        className="w-10 h-10 rounded-full bg-brand flex items-center justify-center transition-opacity active:opacity-80"
+        className="bg-brand flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-80"
       >
-        <Pencil className="w-4 h-4 text-white" />
+        <Pencil className="h-4 w-4 text-white" />
       </button>
     </div>
   );

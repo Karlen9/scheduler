@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Repeat } from "lucide-react";
-import { toast } from "sonner";
-import { useTranslations } from "next-intl";
-import { ActivityBackButton } from "@/components/ActivityBackButton";
-import { EmptyState } from "@/components/EmptyState";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { RecurringScheduleCard } from "@/components/RecurringScheduleCard";
-import { RecurringSchedule } from "@/lib/types";
-import { api } from "@/lib/api";
-import { useAdminRecurringSchedules, useAdminServices } from "@/hooks/queries";
-import { invalidateRecurring } from "@/hooks/mutations";
+import { useState } from 'react';
+import { Repeat } from 'lucide-react';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
+import { ActivityBackButton } from '@/components/ActivityBackButton';
+import { EmptyState } from '@/components/EmptyState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { RecurringScheduleCard } from '@/components/RecurringScheduleCard';
+import { RecurringSchedule } from '@/lib/types';
+import { api } from '@/lib/api';
+import { useAdminRecurringSchedules, useAdminServices } from '@/hooks/queries';
+import { invalidateRecurring } from '@/hooks/mutations';
 
 export default function AdminRecurringPage() {
-  const t = useTranslations("RecurringPage");
-  const tc = useTranslations("Common");
-  const te = useTranslations("Errors");
-  const ts = useTranslations("Success");
+  const t = useTranslations('RecurringPage');
+  const tc = useTranslations('Common');
+  const te = useTranslations('Errors');
+  const ts = useTranslations('Success');
   const { data: schedules, isLoading: schedulesLoading } = useAdminRecurringSchedules();
   const { data: services, isLoading: servicesLoading } = useAdminServices();
 
@@ -28,20 +28,20 @@ export default function AdminRecurringPage() {
   const handleApprove = async (schedule: RecurringSchedule) => {
     try {
       await api.admin.approveRecurringSchedule(schedule.id);
-      toast.success(ts("scheduleConfirmed"));
+      toast.success(ts('scheduleConfirmed'));
       invalidateRecurring();
     } catch {
-      toast.error(te("scheduleConfirmFailed"));
+      toast.error(te('scheduleConfirmFailed'));
     }
   };
 
   const handleDecline = async (schedule: RecurringSchedule) => {
     try {
       await api.admin.declineRecurringSchedule(schedule.id);
-      toast.success(ts("scheduleDeclined"));
+      toast.success(ts('scheduleDeclined'));
       invalidateRecurring();
     } catch {
-      toast.error(te("scheduleDeclineFailed"));
+      toast.error(te('scheduleDeclineFailed'));
     }
   };
 
@@ -49,29 +49,29 @@ export default function AdminRecurringPage() {
     if (!cancelTarget) return;
     try {
       await api.admin.cancelRecurringSchedule(cancelTarget.id);
-      toast.success(ts("scheduleCancelled"));
+      toast.success(ts('scheduleCancelled'));
       setCancelTarget(null);
       invalidateRecurring();
     } catch {
-      toast.error(te("scheduleCancelFailed"));
+      toast.error(te('scheduleCancelFailed'));
     }
   };
 
-  const pendingSchedules = schedules.filter((s) => s.status === "pending");
-  const activeSchedules = schedules.filter((s) => s.status === "active");
-  const declinedSchedules = schedules.filter((s) => s.status === "declined");
-  const cancelledSchedules = schedules.filter((s) => s.status === "cancelled");
+  const pendingSchedules = schedules.filter((s) => s.status === 'pending');
+  const activeSchedules = schedules.filter((s) => s.status === 'active');
+  const declinedSchedules = schedules.filter((s) => s.status === 'declined');
+  const cancelledSchedules = schedules.filter((s) => s.status === 'cancelled');
   const hasSchedules = schedules.length > 0;
 
   if (isLoading) {
     return (
       <div>
         <ActivityBackButton href="/admin" />
-        <div className="p-4 space-y-3 animate-pulse">
+        <div className="animate-pulse space-y-3 p-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl p-4 space-y-2">
-              <div className="h-4 bg-border rounded w-1/3" />
-              <div className="h-3 bg-border rounded w-2/3" />
+            <div key={i} className="bg-card space-y-2 rounded-xl p-4">
+              <div className="bg-border h-4 w-1/3 rounded" />
+              <div className="bg-border h-3 w-2/3 rounded" />
             </div>
           ))}
         </div>
@@ -83,19 +83,19 @@ export default function AdminRecurringPage() {
     <div>
       <ActivityBackButton href="/admin" />
 
-      <div className="p-4 space-y-6">
+      <div className="space-y-6 p-4">
         {!hasSchedules ? (
           <EmptyState
-            icon={<Repeat className="w-16 h-16" />}
-            title={t("emptyTitle")}
-            description={t("emptyDescription")}
+            icon={<Repeat className="h-16 w-16" />}
+            title={t('emptyTitle')}
+            description={t('emptyDescription')}
           />
         ) : (
           <>
             {pendingSchedules.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  {t("pendingSection")}
+                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+                  {t('pendingSection')}
                 </h3>
                 <div className="space-y-3">
                   {pendingSchedules.map((schedule) => (
@@ -104,8 +104,8 @@ export default function AdminRecurringPage() {
                       schedule={schedule}
                       services={services}
                       onCancel={setCancelTarget}
-                      onApprove={schedule.createdBy === "client" ? handleApprove : undefined}
-                      onDecline={schedule.createdBy === "client" ? handleDecline : undefined}
+                      onApprove={schedule.createdBy === 'client' ? handleApprove : undefined}
+                      onDecline={schedule.createdBy === 'client' ? handleDecline : undefined}
                       detailPath="/admin/recurring"
                     />
                   ))}
@@ -115,8 +115,8 @@ export default function AdminRecurringPage() {
 
             {activeSchedules.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  {t("activeSection")}
+                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+                  {t('activeSection')}
                 </h3>
                 <div className="space-y-3">
                   {activeSchedules.map((schedule) => (
@@ -134,8 +134,8 @@ export default function AdminRecurringPage() {
 
             {declinedSchedules.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  {t("declinedSection")}
+                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+                  {t('declinedSection')}
                 </h3>
                 <div className="space-y-3">
                   {declinedSchedules.map((schedule) => (
@@ -151,8 +151,8 @@ export default function AdminRecurringPage() {
 
             {cancelledSchedules.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  {t("cancelledSection")} ({cancelledSchedules.length})
+                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+                  {t('cancelledSection')} ({cancelledSchedules.length})
                 </h3>
                 <div className="space-y-3">
                   {cancelledSchedules.map((schedule) => (
@@ -173,9 +173,9 @@ export default function AdminRecurringPage() {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={handleCancel}
-        title={t("cancelDialog")}
-        description={t("cancelDialogDescription")}
-        confirmText={tc("cancelVerb")}
+        title={t('cancelDialog')}
+        description={t('cancelDialogDescription')}
+        confirmText={tc('cancelVerb')}
         destructive
       />
     </div>

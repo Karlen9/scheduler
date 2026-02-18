@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useTranslations } from "next-intl";
-import { BottomSheet } from "@/components/BottomSheet";
+import { useTranslations } from 'next-intl';
+import { BottomSheet } from '@/components/BottomSheet';
 
 interface TimePickerModalProps {
   isOpen: boolean;
@@ -11,9 +11,7 @@ interface TimePickerModalProps {
   title?: string;
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) =>
-  `${i.toString().padStart(2, "0")}:00`
-);
+const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
 export function TimePickerModal({
   isOpen,
@@ -22,11 +20,16 @@ export function TimePickerModal({
   selectedTime,
   title,
 }: TimePickerModalProps) {
-  const t = useTranslations("TimePickerModal");
-  const resolvedTitle = title ?? t("title");
+  const t = useTranslations('TimePickerModal');
+  const resolvedTitle = title ?? t('title');
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title={resolvedTitle} className="max-h-[80vh] overflow-auto">
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={resolvedTitle}
+      className="max-h-[80vh] overflow-auto"
+    >
       <div className="grid grid-cols-4 gap-2">
         {HOURS.map((time) => (
           <button
@@ -35,10 +38,10 @@ export function TimePickerModal({
               onSelect(time);
               onClose();
             }}
-            className={`py-3 rounded-lg text-sm transition-colors ${
+            className={`rounded-lg py-3 text-sm transition-colors ${
               selectedTime === time
-                ? "bg-brand text-white"
-                : "bg-card text-foreground active:bg-border"
+                ? 'bg-brand text-white'
+                : 'bg-card text-foreground active:bg-border'
             }`}
           >
             {time}

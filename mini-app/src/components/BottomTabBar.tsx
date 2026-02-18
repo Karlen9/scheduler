@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { usePathname } from "next/navigation";
-import { useRef, useEffect, useState } from "react";
-import Link from "next/link";
-import { LucideIcon } from "lucide-react";
+import { usePathname } from 'next/navigation';
+import { useRef, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { LucideIcon } from 'lucide-react';
 
 interface Tab {
   key: string;
@@ -34,18 +34,20 @@ function PlusButton({
   return (
     <Link
       href={href}
-      className="relative z-10 flex items-center justify-center mx-5 active:scale-95"
-      style={{ width: "56px" }}
+      className="relative z-10 mx-5 flex items-center justify-center active:scale-95"
+      style={{ width: '56px' }}
     >
       <div
-        className={`absolute w-[82px] h-[82px] rounded-full flex items-center justify-center transition-all shadow-lg shadow-brand/30 ${
-          isActive
-            ? "bg-brand text-white scale-105"
-            : "bg-brand text-white"
+        className={`shadow-brand/30 absolute flex h-[82px] w-[82px] items-center justify-center rounded-full shadow-lg transition-all ${
+          isActive ? 'bg-brand scale-105 text-white' : 'bg-brand text-white'
         }`}
-        style={{ top: "50%", left: "50%", transform: `translate(-50%, -50%)${isActive ? " scale(1.05)" : ""}` }}
+        style={{
+          top: '50%',
+          left: '50%',
+          transform: `translate(-50%, -50%)${isActive ? ' scale(1.05)' : ''}`,
+        }}
       >
-        <Icon className={`w-9 h-9 ${bouncing ? "tab-bounce" : ""}`} strokeWidth={2.5} />
+        <Icon className={`h-9 w-9 ${bouncing ? 'tab-bounce' : ''}`} strokeWidth={2.5} />
       </div>
     </Link>
   );
@@ -57,7 +59,7 @@ function TabButton({
   bouncing,
   icon: Icon,
   label,
-  activeColor = "text-brand",
+  activeColor = 'text-brand',
 }: {
   href: string;
   isActive: boolean;
@@ -69,12 +71,12 @@ function TabButton({
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center justify-center gap-1 rounded-full transition-colors z-10 active:scale-90 ${
-        isActive ? activeColor : "text-muted-foreground"
+      className={`z-10 flex flex-col items-center justify-center gap-1 rounded-full transition-colors active:scale-90 ${
+        isActive ? activeColor : 'text-muted-foreground'
       }`}
-      style={{ width: "96px", height: "48px" }}
+      style={{ width: '96px', height: '48px' }}
     >
-      <Icon className={`w-5 h-5 ${bouncing ? "tab-bounce" : ""}`} />
+      <Icon className={`h-5 w-5 ${bouncing ? 'tab-bounce' : ''}`} />
       {label && <span className="text-[11px] font-medium">{label}</span>}
     </Link>
   );
@@ -92,12 +94,12 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
 
   const activeIndex = tabs.findIndex((tab) => {
     if (tab.matchPaths) {
-      return tab.matchPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
+      return tab.matchPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
     }
-    if (tab.href === "/admin" || tab.href === "/") {
-      return pathname === tab.href || pathname === tab.href + "/";
+    if (tab.href === '/admin' || tab.href === '/') {
+      return pathname === tab.href || pathname === tab.href + '/';
     }
-    return pathname === tab.href || pathname.startsWith(tab.href + "/");
+    return pathname === tab.href || pathname.startsWith(tab.href + '/');
   });
 
   const currentIndex = activeIndex === -1 ? 0 : activeIndex;
@@ -111,7 +113,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
     : sideTabs.findIndex((t) => t.key === tabs[currentIndex]?.key);
 
   const activeSubIndex = showSubTabs
-    ? subTabs.findIndex((t) => pathname === t.href || pathname.startsWith(t.href + "/"))
+    ? subTabs.findIndex((t) => pathname === t.href || pathname.startsWith(t.href + '/'))
     : -1;
 
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -144,92 +146,90 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
   }, [pathname, currentIndex, showSubTabs, tabs]);
 
   return (
-      <div className="fixed bottom-0 left-0 right-0 pb-6 flex justify-center z-50">
-        <div className="relative bg-tab-bar rounded-full border border-tab-bar-border px-3 py-1.5 overflow-visible">
-          {showSubTabs ? (
-            <>
-              {/* Sliding indicator for sub-tabs */}
-              {activeSubIndex >= 0 && subTabW > 0 && (
-                <div
-                  className="absolute top-1.5 bottom-1.5 rounded-full bg-tab-bar-indicator"
-                  style={{
-                    width: `${subTabW}px`,
-                    left: `${6 + activeSubIndex * subTabW}px`,
-                    transition: "left 300ms ease-in-out",
-                  }}
-                />
-              )}
+    <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-6">
+      <div className="bg-tab-bar border-tab-bar-border relative overflow-visible rounded-full border px-3 py-1.5">
+        {showSubTabs ? (
+          <>
+            {/* Sliding indicator for sub-tabs */}
+            {activeSubIndex >= 0 && subTabW > 0 && (
+              <div
+                className="bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full"
+                style={{
+                  width: `${subTabW}px`,
+                  left: `${6 + activeSubIndex * subTabW}px`,
+                  transition: 'left 300ms ease-in-out',
+                }}
+              />
+            )}
 
-              <div ref={subTabsRef} className="relative flex items-center">
-                {subTabs.map((tab) => {
-                  const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
-                  const bouncing = animatingKey === tab.href;
+            <div ref={subTabsRef} className="relative flex items-center">
+              {subTabs.map((tab) => {
+                const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
+                const bouncing = animatingKey === tab.href;
+                return (
+                  <TabButton
+                    key={tab.href}
+                    href={tab.href}
+                    isActive={isActive}
+                    bouncing={bouncing}
+                    icon={tab.icon}
+                    label={tab.label}
+                    activeColor="text-foreground"
+                  />
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Active indicator for side tabs */}
+            {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
+              <div
+                className="bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full"
+                style={{
+                  width: `${sideTabW}px`,
+                  left: activeSideIndex === 0 ? '6px' : `calc(100% - 6px - ${sideTabW}px)`,
+                  transition: 'left 300ms ease-in-out',
+                }}
+              />
+            )}
+
+            {/* Tab buttons */}
+            <div ref={tabsRef} className="relative flex items-center">
+              {tabs.map((tab, index) => {
+                const isActive = index === currentIndex;
+                const Icon = tab.icon;
+                const bouncing = animatingKey === tab.key;
+
+                if (tab.isCenter) {
                   return (
-                    <TabButton
-                      key={tab.href}
-                      href={tab.href}
-                      isActive={isActive}
-                      bouncing={bouncing}
-                      icon={tab.icon}
-                      label={tab.label}
-                      activeColor="text-foreground"
-                    />
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Active indicator for side tabs */}
-              {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
-                <div
-                  className="absolute top-1.5 bottom-1.5 rounded-full bg-tab-bar-indicator"
-                  style={{
-                    width: `${sideTabW}px`,
-                    left: activeSideIndex === 0
-                      ? "6px"
-                      : `calc(100% - 6px - ${sideTabW}px)`,
-                    transition: "left 300ms ease-in-out",
-                  }}
-                />
-              )}
-
-              {/* Tab buttons */}
-              <div ref={tabsRef} className="relative flex items-center">
-                {tabs.map((tab, index) => {
-                  const isActive = index === currentIndex;
-                  const Icon = tab.icon;
-                  const bouncing = animatingKey === tab.key;
-
-                  if (tab.isCenter) {
-                    return (
-                      <PlusButton
-                        key={tab.key}
-                        href={tab.href}
-                        isActive={isActive}
-                        bouncing={bouncing}
-                        icon={Icon}
-                      />
-                    );
-                  }
-
-                  return (
-                    <TabButton
+                    <PlusButton
                       key={tab.key}
                       href={tab.href}
                       isActive={isActive}
                       bouncing={bouncing}
                       icon={Icon}
-                      label={tab.label}
                     />
                   );
-                })}
-              </div>
-            </>
-          )}
-        </div>
-        {/* Bottom safe area */}
-        <div className="h-[env(safe-area-inset-bottom)]" />
+                }
+
+                return (
+                  <TabButton
+                    key={tab.key}
+                    href={tab.href}
+                    isActive={isActive}
+                    bouncing={bouncing}
+                    icon={Icon}
+                    label={tab.label}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
+      {/* Bottom safe area */}
+      <div className="h-[env(safe-area-inset-bottom)]" />
+    </div>
   );
 }

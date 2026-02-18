@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Share2, Phone, MessageCircle } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { getAvatarColor } from "@/lib/colors";
-import { getPhotoUrl } from "@/lib/api";
+import { useState } from 'react';
+import { Share2, Phone, MessageCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { getAvatarColor } from '@/lib/colors';
+import { getPhotoUrl } from '@/lib/api';
 
 interface TrainerCardProps {
   name: string;
@@ -29,42 +29,42 @@ export function TrainerCard({
   onServices,
   onShare,
 }: TrainerCardProps) {
-  const t = useTranslations("HomePage");
+  const t = useTranslations('HomePage');
   const [photoError, setPhotoError] = useState(false);
 
   const handleMessage = () => {
     if (telegram) {
-      const handle = telegram.replace("@", "");
-      window.open(`https://t.me/${handle}`, "_blank");
+      const handle = telegram.replace('@', '');
+      window.open(`https://t.me/${handle}`, '_blank');
     } else if (botUsername) {
-      window.open(`https://t.me/${botUsername}`, "_blank");
+      window.open(`https://t.me/${botUsername}`, '_blank');
     }
   };
   return (
     <div className="bg-card rounded-xl p-4">
       {/* Profile Header */}
-      <div className="flex gap-4 mb-4">
-        <div className="relative w-[127px] h-[127px] rounded-full overflow-hidden flex-shrink-0 bg-border">
+      <div className="mb-4 flex gap-4">
+        <div className="bg-border relative h-[127px] w-[127px] flex-shrink-0 overflow-hidden rounded-full">
           {photoUrl && !photoError ? (
             <img
               src={getPhotoUrl(photoUrl)}
               alt={name}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
               onError={() => setPhotoError(true)}
             />
           ) : (
-            <div className={`w-full h-full flex items-center justify-center text-4xl ${getAvatarColor(name)}`}>
+            <div
+              className={`flex h-full w-full items-center justify-center text-4xl ${getAvatarColor(name)}`}
+            >
               {name.charAt(0)}
             </div>
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <h2 className="text-xl font-bold text-foreground mb-2 leading-tight">
-            {name}
-          </h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-foreground mb-2 text-xl leading-tight font-bold">{name}</h2>
           {specialization && (
-            <p className="text-sm font-medium text-foreground mb-3 leading-snug">
+            <p className="text-foreground mb-3 text-sm leading-snug font-medium">
               {specialization}
             </p>
           )}
@@ -74,14 +74,14 @@ export function TrainerCard({
             <div className="space-y-1.5">
               {phone && (
                 <div className="flex items-center gap-2">
-                  <Phone className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">{phone}</p>
+                  <Phone className="text-muted-foreground h-3 w-3" />
+                  <p className="text-muted-foreground text-xs">{phone}</p>
                 </div>
               )}
               {telegram && (
                 <div className="flex items-center gap-2">
-                  <MessageCircle className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">{telegram}</p>
+                  <MessageCircle className="text-muted-foreground h-3 w-3" />
+                  <p className="text-muted-foreground text-xs">{telegram}</p>
                 </div>
               )}
             </div>
@@ -91,10 +91,10 @@ export function TrainerCard({
 
       {/* Stats row */}
       {servicesCount != null && servicesCount > 0 && (
-        <div className="bg-background rounded-xl p-4 mb-4">
+        <div className="bg-background mb-4 rounded-xl p-4">
           <div className="text-center">
-            <p className="text-lg font-bold text-foreground">{servicesCount}</p>
-            <p className="text-xs text-muted-foreground">{t("servicesTitle").replace(":", "")}</p>
+            <p className="text-foreground text-lg font-bold">{servicesCount}</p>
+            <p className="text-muted-foreground text-xs">{t('servicesTitle').replace(':', '')}</p>
           </div>
         </div>
       )}
@@ -104,22 +104,22 @@ export function TrainerCard({
         {(telegram || botUsername) && (
           <button
             onClick={handleMessage}
-            className="flex-1 py-3 px-4 rounded-[28px] bg-brand text-white text-sm font-medium transition-opacity active:opacity-80"
+            className="bg-brand flex-1 rounded-[28px] px-4 py-3 text-sm font-medium text-white transition-opacity active:opacity-80"
           >
-            {t("messageButton")}
+            {t('messageButton')}
           </button>
         )}
         <button
           onClick={onServices}
-          className="flex-1 py-3 px-4 rounded-[28px] bg-surface-hover border border-surface-border text-muted-foreground text-sm font-medium transition-opacity active:opacity-80"
+          className="bg-surface-hover border-surface-border text-muted-foreground flex-1 rounded-[28px] border px-4 py-3 text-sm font-medium transition-opacity active:opacity-80"
         >
-          {t("servicesButton")}
+          {t('servicesButton')}
         </button>
         <button
           onClick={onShare}
-          className="w-12 h-12 rounded-[28px] bg-surface-hover border border-surface-border flex items-center justify-center transition-opacity active:opacity-80"
+          className="bg-surface-hover border-surface-border flex h-12 w-12 items-center justify-center rounded-[28px] border transition-opacity active:opacity-80"
         >
-          <Share2 className="w-4 h-4 text-muted-foreground" />
+          <Share2 className="text-muted-foreground h-4 w-4" />
         </button>
       </div>
     </div>

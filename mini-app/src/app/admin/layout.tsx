@@ -1,14 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { AdminLayout } from "@/components/AdminLayout";
-import { initTelegramApp } from "@/lib/telegram";
+import { useEffect } from 'react';
+import { AdminLayout } from '@/components/AdminLayout';
+import { initTelegramApp } from '@/lib/telegram';
 
-export default function AdminRootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initTelegramApp();
   }, []);

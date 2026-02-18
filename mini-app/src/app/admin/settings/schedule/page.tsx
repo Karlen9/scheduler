@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { useTranslations } from "next-intl";
-import { TopBar } from "@/components/TopBar";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { TimePickerModal } from "@/components/TimePickerModal";
-import { WorkingHours } from "@/lib/types";
-import { api } from "@/lib/api";
-import { useAdminWorkingHours } from "@/hooks/queries";
-import { invalidateWorkingHours } from "@/hooks/mutations";
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
+import { TopBar } from '@/components/TopBar';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { TimePickerModal } from '@/components/TimePickerModal';
+import { WorkingHours } from '@/lib/types';
+import { api } from '@/lib/api';
+import { useAdminWorkingHours } from '@/hooks/queries';
+import { invalidateWorkingHours } from '@/hooks/mutations';
 
-const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 interface DaySchedule {
   enabled: boolean;
@@ -20,41 +20,41 @@ interface DaySchedule {
 }
 
 const defaultSchedule: Record<number, DaySchedule> = {
-  0: { enabled: false, startTime: "09:00", endTime: "18:00" },
-  1: { enabled: true, startTime: "09:00", endTime: "21:00" },
-  2: { enabled: true, startTime: "09:00", endTime: "21:00" },
-  3: { enabled: true, startTime: "09:00", endTime: "21:00" },
-  4: { enabled: true, startTime: "09:00", endTime: "21:00" },
-  5: { enabled: true, startTime: "09:00", endTime: "21:00" },
-  6: { enabled: false, startTime: "09:00", endTime: "18:00" },
+  0: { enabled: false, startTime: '09:00', endTime: '18:00' },
+  1: { enabled: true, startTime: '09:00', endTime: '21:00' },
+  2: { enabled: true, startTime: '09:00', endTime: '21:00' },
+  3: { enabled: true, startTime: '09:00', endTime: '21:00' },
+  4: { enabled: true, startTime: '09:00', endTime: '21:00' },
+  5: { enabled: true, startTime: '09:00', endTime: '21:00' },
+  6: { enabled: false, startTime: '09:00', endTime: '18:00' },
 };
 
 export default function SchedulePage() {
-  const t = useTranslations("AdminSchedule");
-  const tc = useTranslations("Common");
-  const tdat = useTranslations("Dates");
-  const te = useTranslations("Errors");
-  const ts = useTranslations("Success");
+  const t = useTranslations('AdminSchedule');
+  const tc = useTranslations('Common');
+  const tdat = useTranslations('Dates');
+  const te = useTranslations('Errors');
+  const ts = useTranslations('Success');
   const { data: workingHours, isLoading } = useAdminWorkingHours();
   const [schedule, setSchedule] = useState<Record<number, DaySchedule>>(defaultSchedule);
   const [initialized, setInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [pickerDay, setPickerDay] = useState<number | null>(null);
-  const [pickerType, setPickerType] = useState<"start" | "end">("start");
+  const [pickerType, setPickerType] = useState<'start' | 'end'>('start');
   const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     if (isLoading || initialized) return;
 
     const newSchedule: Record<number, DaySchedule> = {
-      0: { enabled: false, startTime: "09:00", endTime: "18:00" },
-      1: { enabled: false, startTime: "09:00", endTime: "21:00" },
-      2: { enabled: false, startTime: "09:00", endTime: "21:00" },
-      3: { enabled: false, startTime: "09:00", endTime: "21:00" },
-      4: { enabled: false, startTime: "09:00", endTime: "21:00" },
-      5: { enabled: false, startTime: "09:00", endTime: "21:00" },
-      6: { enabled: false, startTime: "09:00", endTime: "18:00" },
+      0: { enabled: false, startTime: '09:00', endTime: '18:00' },
+      1: { enabled: false, startTime: '09:00', endTime: '21:00' },
+      2: { enabled: false, startTime: '09:00', endTime: '21:00' },
+      3: { enabled: false, startTime: '09:00', endTime: '21:00' },
+      4: { enabled: false, startTime: '09:00', endTime: '21:00' },
+      5: { enabled: false, startTime: '09:00', endTime: '21:00' },
+      6: { enabled: false, startTime: '09:00', endTime: '18:00' },
     };
 
     workingHours.forEach((wh) => {
@@ -76,7 +76,7 @@ export default function SchedulePage() {
     }));
   };
 
-  const openTimePicker = (day: number, type: "start" | "end") => {
+  const openTimePicker = (day: number, type: 'start' | 'end') => {
     setPickerDay(day);
     setPickerType(type);
     setShowPicker(true);
@@ -89,7 +89,7 @@ export default function SchedulePage() {
       ...prev,
       [pickerDay]: {
         ...prev[pickerDay],
-        [pickerType === "start" ? "startTime" : "endTime"]: time,
+        [pickerType === 'start' ? 'startTime' : 'endTime']: time,
       },
     }));
     setShowPicker(false);
@@ -112,10 +112,10 @@ export default function SchedulePage() {
 
       await api.admin.updateWorkingHours(hours);
       invalidateWorkingHours();
-      toast.success(ts("scheduleSaved"));
+      toast.success(ts('scheduleSaved'));
     } catch (err) {
-      console.error("Failed to save working hours:", err);
-      toast.error(te("saveFailed"));
+      console.error('Failed to save working hours:', err);
+      toast.error(te('saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -124,9 +124,9 @@ export default function SchedulePage() {
   if (isLoading) {
     return (
       <div>
-        <TopBar title={t("title")} showBack />
-        <div className="p-4 flex justify-center items-center min-h-[200px]">
-          <div className="text-muted-foreground">{tc("loading")}</div>
+        <TopBar title={t('title')} showBack />
+        <div className="flex min-h-[200px] items-center justify-center p-4">
+          <div className="text-muted-foreground">{tc('loading')}</div>
         </div>
       </div>
     );
@@ -134,39 +134,36 @@ export default function SchedulePage() {
 
   return (
     <div>
-      <TopBar title={t("title")} showBack />
+      <TopBar title={t('title')} showBack />
 
-      <div className="p-4 space-y-6">
+      <div className="space-y-6 p-4">
         {/* Working Hours per Day */}
         <div>
-          <h3 className="text-sm text-muted-foreground mb-3">{t("workingDays")}</h3>
+          <h3 className="text-muted-foreground mb-3 text-sm">{t('workingDays')}</h3>
           <div className="space-y-2">
             {[1, 2, 3, 4, 5, 6, 0].map((day) => (
-              <div
-                key={day}
-                className="flex items-center gap-3 p-3 bg-card rounded-lg"
-              >
+              <div key={day} className="bg-card flex items-center gap-3 rounded-lg p-3">
                 <input
                   type="checkbox"
                   checked={schedule[day].enabled}
                   onChange={() => handleDayToggle(day)}
-                  className="w-5 h-5 rounded border-border text-brand focus:ring-brand"
+                  className="border-border text-brand focus:ring-brand h-5 w-5 rounded"
                 />
-                <span className="w-8 text-foreground font-medium">
+                <span className="text-foreground w-8 font-medium">
                   {tdat(`daysShort.${dayKeys[day]}`)}
                 </span>
                 {schedule[day].enabled && (
-                  <div className="flex-1 flex items-center gap-2 text-sm">
+                  <div className="flex flex-1 items-center gap-2 text-sm">
                     <button
-                      onClick={() => openTimePicker(day, "start")}
-                      className="px-3 py-1 rounded bg-surface-hover text-foreground"
+                      onClick={() => openTimePicker(day, 'start')}
+                      className="bg-surface-hover text-foreground rounded px-3 py-1"
                     >
                       {schedule[day].startTime}
                     </button>
                     <span className="text-muted-foreground">–</span>
                     <button
-                      onClick={() => openTimePicker(day, "end")}
-                      className="px-3 py-1 rounded bg-surface-hover text-foreground"
+                      onClick={() => openTimePicker(day, 'end')}
+                      className="bg-surface-hover text-foreground rounded px-3 py-1"
                     >
                       {schedule[day].endTime}
                     </button>
@@ -179,7 +176,7 @@ export default function SchedulePage() {
 
         {/* Save Button */}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>
-          {isSaving ? tc("saving") : tc("saveChanges")}
+          {isSaving ? tc('saving') : tc('saveChanges')}
         </PrimaryButton>
       </div>
 
@@ -190,10 +187,10 @@ export default function SchedulePage() {
         onSelect={handleTimeSelect}
         selectedTime={
           pickerDay !== null
-            ? schedule[pickerDay][pickerType === "start" ? "startTime" : "endTime"]
-            : "09:00"
+            ? schedule[pickerDay][pickerType === 'start' ? 'startTime' : 'endTime']
+            : '09:00'
         }
-        title={pickerType === "start" ? t("startTime") : t("endTime")}
+        title={pickerType === 'start' ? t('startTime') : t('endTime')}
       />
     </div>
   );

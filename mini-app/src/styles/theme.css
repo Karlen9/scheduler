@@ -326,17 +326,17 @@
   }
 
   /* Card containers: subtle outline ring for visual separation */
-  .bg-card:where([class*="rounded-"]):not(.animate-pulse) {
+  .bg-card:where([class*='rounded-']):not(.animate-pulse) {
     box-shadow: var(--card-shadow);
   }
 
   body {
     @apply bg-background text-foreground;
     font-family:
-      "Inter",
+      'Inter',
       -apple-system,
       BlinkMacSystemFont,
-      "Segoe UI",
+      'Segoe UI',
       sans-serif;
   }
 

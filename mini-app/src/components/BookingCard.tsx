@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Calendar, Clock, Dumbbell } from "lucide-react";
-import { useTranslations, useLocale } from "next-intl";
-import { Booking } from "@/lib/types";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Calendar, Clock, Dumbbell } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
+import { Booking } from '@/lib/types';
+import { StatusBadge } from '@/components/StatusBadge';
 
 interface BookingCardProps {
   booking: Booking;
@@ -12,47 +12,67 @@ interface BookingCardProps {
   onDecline?: (booking: Booking) => void;
 }
 
-const monthGenKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const monthGenKeys = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+];
 
 export function BookingCard({ booking, onCancel, onConfirm, onDecline }: BookingCardProps) {
-  const tc = useTranslations("Common");
-  const tb = useTranslations("BookingsPage");
-  const td = useTranslations("Dates");
+  const tc = useTranslations('Common');
+  const tb = useTranslations('BookingsPage');
+  const td = useTranslations('Dates');
   const locale = useLocale();
 
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
-  const isActive = booking.status === "pending" || booking.status === "confirmed";
-  const isTrainerPending = booking.status === "pending" && booking.createdBy === "trainer";
+  const isActive = booking.status === 'pending' || booking.status === 'confirmed';
+  const isTrainerPending = booking.status === 'pending' && booking.createdBy === 'trainer';
 
   function formatDate(date: Date): string {
     return `${date.getUTCDate()} ${td(`monthsGen.${monthGenKeys[date.getUTCMonth()]}`)} ${date.getUTCFullYear()}`;
   }
 
   function formatTime(date: Date): string {
-    return date.toLocaleTimeString(locale === "en" ? "en-US" : "ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+    return date.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC',
+    });
   }
 
   return (
     <div className="bg-card rounded-xl p-4">
-      <div className="flex items-start justify-between mb-3">
+      <div className="mb-3 flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{formatDate(startsAt)}</span>
+          <div className="mb-2 flex items-center gap-2">
+            <Calendar className="text-muted-foreground h-4 w-4" />
+            <span className="text-foreground text-sm">{formatDate(startsAt)}</span>
           </div>
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">
+          <div className="mb-2 flex items-center gap-2">
+            <Clock className="text-muted-foreground h-4 w-4" />
+            <span className="text-foreground text-sm">
               {formatTime(startsAt)} – {formatTime(endsAt)}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Dumbbell className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">
-              {tc("workout")}
+            <Dumbbell className="text-muted-foreground h-4 w-4" />
+            <span className="text-foreground text-sm">
+              {tc('workout')}
               {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
-                <span className="text-muted-foreground"> · {booking.durationMinutes || booking.sessionType?.durationMinutes} {tc("min")}</span>
+                <span className="text-muted-foreground">
+                  {' '}
+                  · {booking.durationMinutes || booking.sessionType?.durationMinutes} {tc('min')}
+                </span>
               )}
             </span>
           </div>
@@ -61,30 +81,32 @@ export function BookingCard({ booking, onCancel, onConfirm, onDecline }: Booking
       </div>
 
       {isTrainerPending && onConfirm && onDecline ? (
-        <div className="pt-3 border-t border-border space-y-2">
-          <p className="text-xs text-muted-foreground mb-2">{tb("trainerBookedYou")}</p>
+        <div className="border-border space-y-2 border-t pt-3">
+          <p className="text-muted-foreground mb-2 text-xs">{tb('trainerBookedYou')}</p>
           <button
             onClick={() => onConfirm(booking)}
-            className="w-full py-2 px-4 rounded-lg bg-action-confirm-bg text-action-confirm-text text-sm font-medium transition-opacity active:opacity-70"
+            className="bg-action-confirm-bg text-action-confirm-text w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
           >
-            {tc("confirm")}
+            {tc('confirm')}
           </button>
           <button
             onClick={() => onDecline(booking)}
-            className="w-full py-2 px-4 rounded-lg bg-background text-destructive text-sm font-medium transition-opacity active:opacity-70"
+            className="bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
           >
-            {tb("declineButton")}
+            {tb('declineButton')}
           </button>
         </div>
-      ) : isActive && (
-        <div className="pt-3 border-t border-border">
-          <button
-            onClick={() => onCancel?.(booking)}
-            className="w-full py-2 px-4 rounded-lg bg-background text-destructive text-sm font-medium transition-opacity active:opacity-70"
-          >
-            {tc("cancelVerb")}
-          </button>
-        </div>
+      ) : (
+        isActive && (
+          <div className="border-border border-t pt-3">
+            <button
+              onClick={() => onCancel?.(booking)}
+              className="bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+            >
+              {tc('cancelVerb')}
+            </button>
+          </div>
+        )
       )}
     </div>
   );

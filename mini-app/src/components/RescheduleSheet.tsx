@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useMemo } from "react";
-import { useTranslations } from "next-intl";
-import { Booking, TimeSlot } from "@/lib/types";
-import { BottomSheet } from "@/components/BottomSheet";
-import { CalendarView } from "@/components/CalendarView";
-import { TimeSlotGrid } from "@/components/TimeSlotGrid";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { api } from "@/lib/api";
-import { useWorkingHours, useDaysOff } from "@/hooks/queries";
+import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
+import { Booking, TimeSlot } from '@/lib/types';
+import { BottomSheet } from '@/components/BottomSheet';
+import { CalendarView } from '@/components/CalendarView';
+import { TimeSlotGrid } from '@/components/TimeSlotGrid';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { api } from '@/lib/api';
+import { useWorkingHours, useDaysOff } from '@/hooks/queries';
 
 interface RescheduleSheetProps {
   booking: Booking | null;
@@ -18,13 +18,13 @@ interface RescheduleSheetProps {
 }
 
 function formatDateISO(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: RescheduleSheetProps) {
-  const t = useTranslations("RescheduleSheet");
-  const tc = useTranslations("Common");
-  const te = useTranslations("Errors");
+  const t = useTranslations('RescheduleSheet');
+  const tc = useTranslations('Common');
+  const te = useTranslations('Errors');
   const { data: workingHoursData } = useWorkingHours();
   const { data: daysOffData } = useDaysOff();
 
@@ -83,7 +83,7 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
       onSuccess();
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : te("bookingRescheduleFailed"));
+      setError(err instanceof Error ? err.message : te('bookingRescheduleFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -100,7 +100,12 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
   const hasAvailableSlots = timeSlots.some((s) => s.available);
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={handleClose} title={t("title")} className="max-h-[85vh] overflow-y-auto">
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={t('title')}
+      className="max-h-[85vh] overflow-y-auto"
+    >
       <div className="space-y-4">
         <CalendarView
           selectedDate={selectedDate}
@@ -112,7 +117,10 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
         {isLoadingSlots && (
           <div className="grid grid-cols-3 gap-2">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="py-3 rounded-lg bg-card animate-pulse text-sm text-transparent">
+              <div
+                key={i}
+                className="bg-card animate-pulse rounded-lg py-3 text-sm text-transparent"
+              >
                 00:00
               </div>
             ))}
@@ -121,24 +129,20 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
 
         {selectedDate && !isLoadingSlots && timeSlots.length > 0 && (
           <>
-            <h4 className="text-sm font-medium text-muted-foreground">{t("selectTime")}</h4>
+            <h4 className="text-muted-foreground text-sm font-medium">{t('selectTime')}</h4>
             {hasAvailableSlots ? (
               <TimeSlotGrid slots={timeSlots} selected={selectedTime} onSelect={setSelectedTime} />
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                {t("noSlots")}
-              </p>
+              <p className="text-muted-foreground py-4 text-center text-sm">{t('noSlots')}</p>
             )}
           </>
         )}
 
-        {error && (
-          <p className="text-sm text-destructive text-center">{error}</p>
-        )}
+        {error && <p className="text-destructive text-center text-sm">{error}</p>}
 
         {selectedTime && (
           <PrimaryButton onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? tc("saving") : t("submitButton")}
+            {isSubmitting ? tc('saving') : t('submitButton')}
           </PrimaryButton>
         )}
       </div>

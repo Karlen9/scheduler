@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { ChevronRight, LucideIcon } from "lucide-react";
-import Link from "next/link";
+import { ChevronRight, LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 
 interface SettingsMenuItemProps {
   icon: LucideIcon;
@@ -16,23 +16,21 @@ export function SettingsMenuItem({
   label,
   value,
   href,
-  iconColor = "bg-brand",
+  iconColor = 'bg-brand',
 }: SettingsMenuItemProps) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-surface-hover"
+      className="active:bg-surface-hover flex items-center gap-3 px-4 py-3.5 transition-colors"
     >
       <div
-        className={`w-8 h-8 rounded-lg ${iconColor} flex items-center justify-center flex-shrink-0`}
+        className={`h-8 w-8 rounded-lg ${iconColor} flex flex-shrink-0 items-center justify-center`}
       >
-        <Icon className="w-[18px] h-[18px] text-white" />
+        <Icon className="h-[18px] w-[18px] text-white" />
       </div>
-      <span className="flex-1 text-[15px] text-foreground">{label}</span>
-      {value && (
-        <span className="text-[15px] text-muted-foreground mr-1">{value}</span>
-      )}
-      <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      <span className="text-foreground flex-1 text-[15px]">{label}</span>
+      {value && <span className="text-muted-foreground mr-1 text-[15px]">{value}</span>}
+      <ChevronRight className="text-muted-foreground h-4 w-4 flex-shrink-0" />
     </Link>
   );
 }
@@ -45,14 +43,8 @@ interface SettingsGroupProps {
 export function SettingsGroup({ title, children }: SettingsGroupProps) {
   return (
     <div className="mb-4">
-      {title && (
-        <h3 className="text-sm font-medium text-muted-foreground px-4 mb-2">
-          {title}
-        </h3>
-      )}
-      <div className="bg-card rounded-xl overflow-hidden divide-y divide-border">
-        {children}
-      </div>
+      {title && <h3 className="text-muted-foreground mb-2 px-4 text-sm font-medium">{title}</h3>}
+      <div className="bg-card divide-border divide-y overflow-hidden rounded-xl">{children}</div>
     </div>
   );
 }
