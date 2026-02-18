@@ -1,25 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useTranslations, useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
-import { setLocale } from "@/actions/locale";
+import { useTranslations } from "next-intl";
 import { TopBar } from "@/components/TopBar";
-import { ThemeSelector } from "@/components/ThemeSelector";
-import { LanguageSelector } from "@/components/LanguageSelector";
 import { api } from "@/lib/api";
-import { useAdminNotifications, useAdminProfile } from "@/hooks/queries";
+import { useAdminNotifications } from "@/hooks/queries";
 import { invalidateAdminNotifications } from "@/hooks/mutations";
 
 export default function AdminNotificationsPage() {
   const t = useTranslations("AdminNotifications");
   const te = useTranslations("Errors");
-  const tl = useTranslations("LanguageSelector");
-  const locale = useLocale();
-  const router = useRouter();
   const { data: prefs, isLoading } = useAdminNotifications();
-  const { data: trainerProfile } = useAdminProfile();
   const [notifyNewBookings, setNotifyNewBookings] = useState(true);
   const [notifyCancellations, setNotifyCancellations] = useState(true);
   const [initialized, setInitialized] = useState(false);
@@ -31,15 +23,6 @@ export default function AdminNotificationsPage() {
     setNotifyCancellations(prefs.notifyCancellations);
     setInitialized(true);
   }, [prefs, isLoading, initialized]);
-
-  // Cross-device language sync
-  const syncedRef = useRef(false);
-  useEffect(() => {
-    if (trainerProfile?.language && trainerProfile.language !== locale && !syncedRef.current) {
-      syncedRef.current = true;
-      setLocale(trainerProfile.language).then(() => router.refresh());
-    }
-  }, [trainerProfile?.language, locale, router]);
 
   const handleToggle = async (
     key: "notifyNewBookings" | "notifyCancellations",
@@ -104,16 +87,6 @@ export default function AdminNotificationsPage() {
             </div>
           ))}
         </div>
-      </div>
-      {/* Theme */}
-      <div className="p-4 pt-0">
-        <h3 className="text-sm text-muted-foreground mb-3">{t("theme")}</h3>
-        <ThemeSelector />
-      </div>
-      {/* Language */}
-      <div className="p-4 pt-0">
-        <h3 className="text-sm text-muted-foreground mb-3">{tl("language")}</h3>
-        <LanguageSelector isAdmin />
       </div>
     </div>
   );
