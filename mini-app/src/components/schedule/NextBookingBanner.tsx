@@ -96,7 +96,9 @@ export function NextBookingBanner({ booking, onBookingClick }: NextBookingBanner
       >
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-foreground truncate font-medium">{booking.clientName}</p>
+            <p className="text-foreground truncate font-medium">
+              {booking.clientDisplayName || booking.clientName}
+            </p>
             <p className="text-muted-foreground text-sm">
               {tc('workout')}
               {booking.durationMinutes ? ` \u00b7 ${booking.durationMinutes} ${tc('min')}` : ''}
@@ -106,7 +108,11 @@ export function NextBookingBanner({ booking, onBookingClick }: NextBookingBanner
               {formatTime(booking.startsAt)} – {formatTime(booking.endsAt)}
             </p>
           </div>
-          <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="lg" />
+          <ClientAvatar
+            name={booking.clientDisplayName || booking.clientName}
+            photoUrl={booking.clientPhotoUrl}
+            size="lg"
+          />
         </div>
       </button>
     </div>

@@ -151,11 +151,13 @@ export function DayTimeline({
             >
               <div className="flex items-center gap-1.5">
                 <ClientAvatar
-                  name={booking.clientName}
+                  name={booking.clientDisplayName || booking.clientName}
                   photoUrl={booking.clientPhotoUrl}
                   size="sm"
                 />
-                <p className="text-foreground truncate text-sm font-medium">{booking.clientName}</p>
+                <p className="text-foreground truncate text-sm font-medium">
+                  {booking.clientDisplayName || booking.clientName}
+                </p>
               </div>
               {rowSpan >= 2 && (
                 <p className="text-muted-foreground truncate text-xs">

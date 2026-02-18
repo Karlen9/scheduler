@@ -268,11 +268,13 @@ export default function AdminRecurringDetailPage() {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <ClientAvatar
-                name={schedule.clientName}
+                name={schedule.clientDisplayName || schedule.clientName}
                 photoUrl={schedule.clientPhotoUrl}
                 size="sm"
               />
-              <span className="text-foreground text-sm">{schedule.clientName}</span>
+              <span className="text-foreground text-sm">
+                {schedule.clientDisplayName || schedule.clientName}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -359,7 +361,7 @@ export default function AdminRecurringDetailPage() {
         title={t('cancelSessionDialog')}
         description={
           cancelTarget
-            ? `${formatDate(cancelTarget.startsAt)} — ${cancelTarget.clientName}`
+            ? `${formatDate(cancelTarget.startsAt)} — ${cancelTarget.clientDisplayName || cancelTarget.clientName}`
             : undefined
         }
         confirmText={tc('cancelVerb')}
@@ -418,8 +420,14 @@ function BookingRow({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} size="sm" />
-            <span className="text-foreground text-sm">{booking.clientName}</span>
+            <ClientAvatar
+              name={booking.clientDisplayName || booking.clientName}
+              photoUrl={booking.clientPhotoUrl}
+              size="sm"
+            />
+            <span className="text-foreground text-sm">
+              {booking.clientDisplayName || booking.clientName}
+            </span>
           </div>
         </div>
         <span

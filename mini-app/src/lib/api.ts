@@ -369,6 +369,13 @@ export const api = {
       });
     },
 
+    async updateClient(id: string, name: string): Promise<ClientInfo> {
+      return fetchAPI<ClientInfo>(`/api/admin/clients/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name }),
+      });
+    },
+
     async deleteClient(id: string): Promise<void> {
       await fetchAPI<void>(`/api/admin/clients/${id}`, { method: 'DELETE' });
     },

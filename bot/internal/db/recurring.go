@@ -15,13 +15,14 @@ import (
 )
 
 const recurringColumns = `id, trainer_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by, created_at, session_type_id, days_of_week, start_date, end_date, day_times,
-	COALESCE((SELECT photo_url FROM clients WHERE id = recurring_schedules.client_id), '')`
+	COALESCE((SELECT photo_url FROM clients WHERE id = recurring_schedules.client_id), ''),
+	COALESCE((SELECT display_name FROM clients WHERE id = recurring_schedules.client_id), '')`
 
 func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models.RecurringSchedule, error) {
 	var s models.RecurringSchedule
 	var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
 
-	err := row.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL)
+	err := row.Scan(&s.ID, &s.TrainerID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL, &s.ClientDisplayName)
 	if err != nil {
 		return nil, err
 	}

@@ -1062,6 +1062,68 @@ func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
+	trainer := GetTrainerFromContext(r)
+	if trainer == nil {
+		httpError(w, r, "Error.TrainerNotFound", http.StatusNotFound)
+		return
+	}
+
+	clientID := chi.URLParam(r, "id")
+	if clientID == "" {
+		httpError(w, r, "Error.MissingClientID", http.StatusBadRequest)
+		return
+	}
+
+	client, err := db.GetClientByID(clientID)
+	if err != nil {
+		log.Printf("Error getting client: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if client == nil || client.TrainerID != trainer.ID {
+		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpError(w, r, "Error.InvalidJSON", http.StatusBadRequest)
+		return
+	}
+
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		httpError(w, r, "Error.NameRequired", http.StatusBadRequest)
+		return
+	}
+
+	if client.IsGhost {
+		if err := db.UpdateGhostClientName(clientID, name); err != nil {
+			log.Printf("Error updating ghost client name: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if err := db.UpdateClientDisplayName(clientID, name); err != nil {
+			log.Printf("Error updating client display name: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	updated, err := db.GetClientByID(clientID)
+	if err != nil {
+		log.Printf("Error getting updated client: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, updated)
+}
+
 func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 	trainer := GetTrainerFromContext(r)
 	if trainer == nil {

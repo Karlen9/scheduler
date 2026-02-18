@@ -366,7 +366,10 @@
     "deleteDialogDescription": "Клиент «{name}» будет удалён. Если у клиента есть записи, удаление не будет выполнено.",
     "deleteConfirm": "Удалить",
     "deleteSuccess": "Клиент {name} удалён",
-    "deleteError": "Не удалось удалить клиента"
+    "deleteError": "Не удалось удалить клиента",
+    "renameDialog": "Переименовать клиента",
+    "renameSuccess": "Имя клиента обновлено",
+    "renameError": "Не удалось переименовать клиента"
   },
   "AdminHelp": {
     "title": "Помощь",

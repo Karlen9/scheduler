@@ -73,7 +73,9 @@ export function NearestBookingCard({ booking, onClick }: NearestBookingCardProps
       >
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <p className="text-foreground font-medium">{booking.clientName}</p>
+            <p className="text-foreground font-medium">
+              {booking.clientDisplayName || booking.clientName}
+            </p>
             <p className="text-muted-foreground text-sm">
               {tc('workout')}
               {booking.durationMinutes
@@ -87,7 +89,10 @@ export function NearestBookingCard({ booking, onClick }: NearestBookingCardProps
               {formatTime(startsAt)} – {formatTime(endsAt)}
             </p>
           </div>
-          <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} />
+          <ClientAvatar
+            name={booking.clientDisplayName || booking.clientName}
+            photoUrl={booking.clientPhotoUrl}
+          />
         </div>
       </button>
     </div>

@@ -259,7 +259,10 @@ export function BookingForm({
     if (!searchQuery.trim()) return clients;
     const q = searchQuery.toLowerCase();
     return clients.filter(
-      (c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)),
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.displayName && c.displayName.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.includes(q)),
     );
   }, [clients, searchQuery]);
 
@@ -633,7 +636,7 @@ export function BookingForm({
     const isGhost = selectedClient?.isGhost;
     if (mode === 'single' && selectedDate && selectedTime && selectedService) {
       const who = selectedClient
-        ? t('successClientBooked', { name: selectedClient.name })
+        ? t('successClientBooked', { name: selectedClient.displayName || selectedClient.name })
         : t('successYouAreBooked');
       const monthKey = monthGenKeys[selectedDate.getMonth()];
       const suffix = isGhost ? '' : t('successAwaitConfirmation');
@@ -647,7 +650,9 @@ export function BookingForm({
       });
     }
     if (mode === 'multi') {
-      const multiFor = selectedClient ? t('successMultiFor', { name: selectedClient.name }) : '';
+      const multiFor = selectedClient
+        ? t('successMultiFor', { name: selectedClient.displayName || selectedClient.name })
+        : '';
       const confirm = isGhost ? '' : t('successAwaitConfirmation');
       return `${t('successMultiCount', { count: selectedDates.length })}${multiFor}.${confirm}`;
     }
@@ -710,10 +715,13 @@ export function BookingForm({
                     }}
                     className="bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left transition-colors"
                   >
-                    <ClientAvatar name={client.name} photoUrl={client.photoUrl} />
+                    <ClientAvatar
+                      name={client.displayName || client.name}
+                      photoUrl={client.photoUrl}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="text-foreground truncate font-medium">
-                        {client.name}
+                        {client.displayName || client.name}
                         {client.isGhost && (
                           <span className="text-muted-foreground ml-1.5 text-xs font-normal">
                             {tc('ghost')}
@@ -749,10 +757,13 @@ export function BookingForm({
         {/* Selected client header (admin) */}
         {hasClientSelector && selectedClient && (
           <div className="bg-card flex items-center gap-3 rounded-xl p-3">
-            <ClientAvatar name={selectedClient.name} photoUrl={selectedClient.photoUrl} />
+            <ClientAvatar
+              name={selectedClient.displayName || selectedClient.name}
+              photoUrl={selectedClient.photoUrl}
+            />
             <div className="min-w-0 flex-1">
               <p className="text-foreground truncate text-sm font-medium">
-                {selectedClient.name}
+                {selectedClient.displayName || selectedClient.name}
                 {selectedClient.isGhost && (
                   <span className="text-muted-foreground ml-1.5 text-xs font-normal">
                     {tc('ghost')}
@@ -1180,7 +1191,9 @@ export function BookingForm({
         title={t('successRecurringTitle')}
         description={
           selectedClient
-            ? t('successRecurringForClient', { name: selectedClient.name })
+            ? t('successRecurringForClient', {
+                name: selectedClient.displayName || selectedClient.name,
+              })
             : t('successRecurringForTrainer')
         }
       />

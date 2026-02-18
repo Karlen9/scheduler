@@ -34,6 +34,7 @@ type Client struct {
 	TelegramUserID      int64     `json:"telegramUserId"`
 	TrainerID           string    `json:"trainerId"`
 	Name                string    `json:"name"`
+	DisplayName         string    `json:"displayName,omitempty"`
 	Phone               string    `json:"phone,omitempty"`
 	PhotoURL            string    `json:"photoUrl,omitempty"`
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
@@ -104,9 +105,10 @@ type Booking struct {
 	ReplacesBookingID   string        `json:"replacesBookingId,omitempty"`
 
 	// Joined fields for API responses
-	SessionType    *SessionType `json:"sessionType,omitempty"`
-	ClientPhotoURL string       `json:"clientPhotoUrl,omitempty"`
-	Client         *Client      `json:"-"`
+	SessionType       *SessionType `json:"sessionType,omitempty"`
+	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
+	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
+	Client            *Client      `json:"-"`
 }
 
 // RecurringScheduleStatus represents the status of a recurring schedule
@@ -138,9 +140,10 @@ type RecurringSchedule struct {
 	EndDate       string `json:"endDate,omitempty"`
 	DayTimes      string `json:"dayTimes,omitempty"`
 	// Joined fields
-	SessionType    *SessionType `json:"sessionType,omitempty"`
-	ClientPhotoURL string       `json:"clientPhotoUrl,omitempty"`
-	Bookings       []Booking    `json:"bookings,omitempty"`
+	SessionType       *SessionType `json:"sessionType,omitempty"`
+	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
+	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
+	Bookings          []Booking    `json:"bookings,omitempty"`
 }
 
 // TimeSlot represents an available time slot for booking

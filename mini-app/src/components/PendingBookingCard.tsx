@@ -53,9 +53,14 @@ export function PendingBookingCard({ booking, onAccept, onReject }: PendingBooki
   return (
     <div className="bg-card border-l-warning rounded-xl border-l-4 p-4">
       <div className="flex items-start gap-3">
-        <ClientAvatar name={booking.clientName} photoUrl={booking.clientPhotoUrl} />
+        <ClientAvatar
+          name={booking.clientDisplayName || booking.clientName}
+          photoUrl={booking.clientPhotoUrl}
+        />
         <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate font-medium">{booking.clientName}</p>
+          <p className="text-foreground truncate font-medium">
+            {booking.clientDisplayName || booking.clientName}
+          </p>
           <p className="text-muted-foreground text-sm">
             {tc('workout')}
             {booking.durationMinutes
