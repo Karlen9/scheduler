@@ -745,7 +745,7 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Create booking with created_by = "trainer"
+	// Create booking with created_by = "specialist"
 	booking, err := db.CreateBookingBySpecialist(specialist.ID, client.ID, sessionTypeID, startsAt, endsAt, client.Name, req.Message, req.Duration)
 	if err != nil {
 		log.Printf("Error creating booking: %v", err)

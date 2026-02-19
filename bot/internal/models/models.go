@@ -83,7 +83,7 @@ type CancelledBy string
 
 const (
 	CancelledByClient     CancelledBy = "client"
-	CancelledBySpecialist CancelledBy = "trainer"
+	CancelledBySpecialist CancelledBy = "specialist"
 )
 
 type Booking struct {

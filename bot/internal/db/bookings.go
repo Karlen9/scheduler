@@ -303,7 +303,7 @@ func CreateBookingBySpecialist(specialistID, clientID, sessionTypeID string, sta
 
 	_, err := DB.Exec(Q(`
 		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'trainer')
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'specialist')
 	`), id, specialistID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
 	if err != nil {
 		return nil, err

@@ -124,12 +124,12 @@ export default function BookingsPage() {
                   booking={booking}
                   onCancel={setCancelBookingTarget}
                   onConfirm={
-                    booking.status === 'pending' && booking.createdBy === 'trainer'
+                    booking.status === 'pending' && booking.createdBy === 'specialist'
                       ? handleConfirm
                       : undefined
                   }
                   onDecline={
-                    booking.status === 'pending' && booking.createdBy === 'trainer'
+                    booking.status === 'pending' && booking.createdBy === 'specialist'
                       ? handleDecline
                       : undefined
                   }

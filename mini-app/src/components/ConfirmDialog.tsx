@@ -46,7 +46,7 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6">
+      <div className="bg-card w-full max-w-sm rounded-2xl p-6 shadow-lg">
         <h3 className="text-foreground mb-2 text-lg font-medium">{title}</h3>
         {description && <p className="text-muted-foreground mb-4 text-sm">{description}</p>}
         {showInput && (

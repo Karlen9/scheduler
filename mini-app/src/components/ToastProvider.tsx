@@ -8,9 +8,9 @@ export function ToastProvider() {
       position="top-center"
       toastOptions={{
         style: {
-          background: 'var(--app-surface)',
-          color: 'var(--app-text)',
-          border: '1px solid var(--app-divider)',
+          background: 'var(--card)',
+          color: 'var(--foreground)',
+          border: '1px solid var(--border)',
         },
       }}
     />

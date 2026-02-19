@@ -81,7 +81,7 @@ export default function HomePage() {
     return (
       <div className="px-4 pt-4">
         <div className="bg-card text-muted-foreground rounded-xl p-4 text-center">
-          {t('trainerLoadError')}
+          {t('specialistLoadError')}
         </div>
       </div>
     );

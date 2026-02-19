@@ -7,7 +7,6 @@ export { TimeSlotPicker } from './TimeSlotPicker';
 export { CalendarView } from './CalendarView';
 export { BookingCard } from './BookingCard';
 export { ConfirmDialog } from './ConfirmDialog';
-export { SuccessModal } from './SuccessModal';
 export { EmptyState } from './EmptyState';
 export { LoadingSkeleton, CalendarSkeleton, BookingCardSkeleton } from './LoadingSkeleton';
 export { TimeSlotGrid } from './TimeSlotGrid';

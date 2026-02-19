@@ -49,9 +49,9 @@ export interface Booking {
     | 'cancel_requested'
     | 'reschedule_pending';
   cancelReason?: string;
-  cancelledBy?: 'client' | 'trainer';
+  cancelledBy?: 'client' | 'specialist';
   durationMinutes?: number;
-  createdBy?: 'client' | 'trainer';
+  createdBy?: 'client' | 'specialist';
   recurringScheduleId?: string;
   replacesBookingId?: string;
 }
@@ -103,7 +103,7 @@ export interface RecurringSchedule {
   time: string;
   durationMinutes: number;
   status: 'pending' | 'active' | 'declined' | 'cancelled';
-  createdBy: 'client' | 'trainer';
+  createdBy: 'client' | 'specialist';
   createdAt: string;
   // Phase 2 fields
   sessionTypeId?: string;

@@ -36,7 +36,7 @@ export function BookingCard({ booking, onCancel, onConfirm, onDecline }: Booking
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
   const isActive = booking.status === 'pending' || booking.status === 'confirmed';
-  const isSpecialistPending = booking.status === 'pending' && booking.createdBy === 'trainer';
+  const isSpecialistPending = booking.status === 'pending' && booking.createdBy === 'specialist';
 
   function formatDate(date: Date): string {
     return `${date.getUTCDate()} ${td(`monthsGen.${monthGenKeys[date.getUTCMonth()]}`)} ${date.getUTCFullYear()}`;
@@ -82,7 +82,7 @@ export function BookingCard({ booking, onCancel, onConfirm, onDecline }: Booking
 
       {isSpecialistPending && onConfirm && onDecline ? (
         <div className="border-border space-y-2 border-t pt-3">
-          <p className="text-muted-foreground mb-2 text-xs">{tb('trainerBookedYou')}</p>
+          <p className="text-muted-foreground mb-2 text-xs">{tb('specialistBookedYou')}</p>
           <button
             onClick={() => onConfirm(booking)}
             className="bg-action-confirm-bg text-action-confirm-text w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"

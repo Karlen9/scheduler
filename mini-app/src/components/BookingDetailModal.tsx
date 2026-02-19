@@ -126,7 +126,7 @@ export function BookingDetailModal({
 
       {/* Accept / Reject for pending client-created bookings */}
       {booking.status === 'pending' &&
-        booking.createdBy !== 'trainer' &&
+        booking.createdBy !== 'specialist' &&
         (onAccept || onReject) && (
           <div className="mb-3 flex gap-3">
             <button
