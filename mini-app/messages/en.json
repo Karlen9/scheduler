@@ -156,7 +156,7 @@
     "day5": "days"
   },
   "HomePage": {
-    "trainerLoadError": "Failed to load specialist information",
+    "specialistLoadError": "Failed to load specialist information",
     "showMore": "Show more",
     "showLess": "Show less",
     "messageButton": "Message",
@@ -215,7 +215,7 @@
     "successBookingCreated": "Booking created.",
     "successRecurringTitle": "Schedule Submitted",
     "successRecurringForClient": "Schedule for {name} has been submitted for confirmation.",
-    "successRecurringForTrainer": "Schedule has been submitted for specialist's confirmation."
+    "successRecurringForSpecialist": "Schedule has been submitted for specialist's confirmation."
   },
   "BookingsPage": {
     "title": "My Bookings",
@@ -230,7 +230,7 @@
     "cancelConfirmButton": "Cancel Booking",
     "cancelReasonPlaceholder": "Cancellation reason (optional)",
     "cancelDefaultReason": "Cancelled by client",
-    "trainerBookedYou": "The specialist booked a session for you",
+    "specialistBookedYou": "The specialist booked a session for you",
     "declineButton": "Decline"
   },
   "RecurringPage": {
@@ -449,7 +449,7 @@
     "minutes": "minutes"
   },
   "Errors": {
-    "trainerLoadFailed": "Failed to load specialist information",
+    "specialistLoadFailed": "Failed to load specialist information",
     "bookingCreateFailed": "Failed to create booking",
     "bookingCancelFailed": "Failed to cancel booking",
     "bookingConfirmFailed": "Failed to confirm booking",

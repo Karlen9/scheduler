@@ -21,7 +21,7 @@ const messages = {
     cancelVerb: 'Отменить',
   },
   BookingsPage: {
-    trainerBookedYou: 'Специалист записал вас',
+    specialistBookedYou: 'Специалист записал вас',
     declineButton: 'Отклонить',
   },
   Dates: {

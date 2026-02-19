@@ -144,7 +144,7 @@ func migrateSQLite() error {
 			client_message TEXT,
 			status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending')),
 			cancel_reason TEXT,
-			cancelled_by TEXT CHECK(cancelled_by IN ('client','trainer') OR cancelled_by IS NULL),
+			cancelled_by TEXT CHECK(cancelled_by IN ('client','specialist') OR cancelled_by IS NULL),
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			replaces_booking_id TEXT
 		)`,
@@ -172,7 +172,7 @@ func migrateSQLite() error {
 			duration_minutes INTEGER NOT NULL,
 			status TEXT NOT NULL DEFAULT 'pending'
 				CHECK(status IN ('pending','active','declined','cancelled')),
-			created_by TEXT NOT NULL CHECK(created_by IN ('client','trainer')),
+			created_by TEXT NOT NULL CHECK(created_by IN ('client','specialist')),
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			session_type_id TEXT,
 			days_of_week TEXT,
@@ -235,6 +235,8 @@ func migrateSQLite() error {
 	}
 
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_bot_token_hash ON specialists(bot_token_hash)`)
+
+	migrateTrainerEnumSQLite()
 
 	return nil
 }
@@ -324,7 +326,7 @@ func migratePostgres() error {
 			client_message TEXT,
 			status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending')),
 			cancel_reason TEXT,
-			cancelled_by TEXT CHECK(cancelled_by IN ('client','trainer') OR cancelled_by IS NULL),
+			cancelled_by TEXT CHECK(cancelled_by IN ('client','specialist') OR cancelled_by IS NULL),
 			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 			reminder_sent INTEGER DEFAULT 0,
 			duration_minutes INTEGER DEFAULT 60,
@@ -356,7 +358,7 @@ func migratePostgres() error {
 			duration_minutes INTEGER NOT NULL,
 			status TEXT NOT NULL DEFAULT 'pending'
 				CHECK(status IN ('pending','active','declined','cancelled')),
-			created_by TEXT NOT NULL CHECK(created_by IN ('client','trainer')),
+			created_by TEXT NOT NULL CHECK(created_by IN ('client','specialist')),
 			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 			session_type_id TEXT,
 			days_of_week TEXT,
@@ -421,6 +423,8 @@ func migratePostgres() error {
 	}
 
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_bot_token_hash ON specialists(bot_token_hash)`)
+
+	migrateTrainerEnumPostgres()
 
 	return nil
 }
@@ -489,4 +493,156 @@ func MigrateEncryptTokens() error {
 		log.Printf("Migrated %d specialist token(s) (encrypted + hashed)", migrated)
 	}
 	return nil
+}
+
+// migrateTrainerEnumSQLite rebuilds bookings and recurring_schedules tables to update
+// CHECK constraints and data from 'trainer' to 'specialist'.
+func migrateTrainerEnumSQLite() {
+	var bookingsSQL string
+	if err := DB.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='bookings'`).Scan(&bookingsSQL); err != nil {
+		return
+	}
+	if !strings.Contains(bookingsSQL, "'trainer'") {
+		return // Already migrated or fresh install
+	}
+
+	log.Println("Migrating 'trainer' enum values to 'specialist' in SQLite...")
+
+	// PRAGMA foreign_keys cannot be changed inside a transaction
+	DB.Exec(`PRAGMA foreign_keys=off`)
+
+	tx, err := DB.Begin()
+	if err != nil {
+		log.Printf("Migration error (begin tx): %v", err)
+		DB.Exec(`PRAGMA foreign_keys=on`)
+		return
+	}
+
+	stmts := []string{
+		// --- Rebuild bookings table ---
+		`CREATE TABLE bookings_new (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			client_id TEXT NOT NULL REFERENCES clients(id),
+			session_type_id TEXT NOT NULL REFERENCES session_types(id),
+			starts_at DATETIME NOT NULL,
+			ends_at DATETIME NOT NULL,
+			client_name TEXT NOT NULL,
+			client_message TEXT,
+			status TEXT DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected','cancelled','completed','cancel_requested','reschedule_pending')),
+			cancel_reason TEXT,
+			cancelled_by TEXT CHECK(cancelled_by IN ('client','specialist') OR cancelled_by IS NULL),
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			replaces_booking_id TEXT,
+			reminder_sent BOOLEAN DEFAULT 0,
+			duration_minutes INTEGER DEFAULT 60,
+			created_by TEXT,
+			recurring_schedule_id TEXT,
+			telegram_notification_chat_id INTEGER,
+			telegram_notification_msg_id INTEGER
+		)`,
+		`INSERT INTO bookings_new (id, specialist_id, client_id, session_type_id, starts_at, ends_at,
+			client_name, client_message, status, cancel_reason, cancelled_by, created_at,
+			replaces_booking_id, reminder_sent, duration_minutes, created_by, recurring_schedule_id,
+			telegram_notification_chat_id, telegram_notification_msg_id)
+		SELECT id, specialist_id, client_id, session_type_id, starts_at, ends_at,
+			client_name, client_message, status, cancel_reason,
+			CASE cancelled_by WHEN 'trainer' THEN 'specialist' ELSE cancelled_by END,
+			created_at, replaces_booking_id, reminder_sent, duration_minutes,
+			CASE created_by WHEN 'trainer' THEN 'specialist' ELSE created_by END,
+			recurring_schedule_id, telegram_notification_chat_id, telegram_notification_msg_id
+		FROM bookings`,
+		`DROP TABLE bookings`,
+		`ALTER TABLE bookings_new RENAME TO bookings`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_specialist_id ON bookings(specialist_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
+
+		// --- Rebuild recurring_schedules table ---
+		`CREATE TABLE recurring_schedules_new (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			client_id TEXT NOT NULL REFERENCES clients(id),
+			client_name TEXT NOT NULL,
+			day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
+			"time" TEXT NOT NULL,
+			duration_minutes INTEGER NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending'
+				CHECK(status IN ('pending','active','declined','cancelled')),
+			created_by TEXT NOT NULL CHECK(created_by IN ('client','specialist')),
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			session_type_id TEXT,
+			days_of_week TEXT,
+			start_date TEXT,
+			end_date TEXT,
+			day_times TEXT
+		)`,
+		`INSERT INTO recurring_schedules_new (id, specialist_id, client_id, client_name, day_of_week, "time",
+			duration_minutes, status, created_by, created_at, session_type_id, days_of_week,
+			start_date, end_date, day_times)
+		SELECT id, specialist_id, client_id, client_name, day_of_week, "time",
+			duration_minutes, status,
+			CASE created_by WHEN 'trainer' THEN 'specialist' ELSE created_by END,
+			created_at, session_type_id, days_of_week, start_date, end_date, day_times
+		FROM recurring_schedules`,
+		`DROP TABLE recurring_schedules`,
+		`ALTER TABLE recurring_schedules_new RENAME TO recurring_schedules`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_specialist_id ON recurring_schedules(specialist_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_client_id ON recurring_schedules(client_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_status ON recurring_schedules(status)`,
+	}
+
+	for _, stmt := range stmts {
+		if _, err := tx.Exec(stmt); err != nil {
+			log.Printf("Migration error, rolling back: %v", err)
+			tx.Rollback()
+			DB.Exec(`PRAGMA foreign_keys=on`)
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("Migration commit error: %v", err)
+		DB.Exec(`PRAGMA foreign_keys=on`)
+		return
+	}
+
+	DB.Exec(`PRAGMA foreign_keys=on`)
+	log.Println("Migration complete: 'trainer' → 'specialist' enum values updated (SQLite)")
+}
+
+// migrateTrainerEnumPostgres updates CHECK constraints and data from 'trainer' to 'specialist'.
+func migrateTrainerEnumPostgres() {
+	// Dynamically find and drop old CHECK constraints that reference 'trainer'
+	DB.Exec(`
+		DO $$
+		DECLARE c_name TEXT;
+		BEGIN
+			SELECT conname INTO c_name FROM pg_constraint
+			WHERE conrelid = 'bookings'::regclass AND contype = 'c'
+			AND pg_get_constraintdef(oid) LIKE '%cancelled_by%trainer%';
+			IF c_name IS NOT NULL THEN
+				EXECUTE 'ALTER TABLE bookings DROP CONSTRAINT ' || quote_ident(c_name);
+			END IF;
+
+			SELECT conname INTO c_name FROM pg_constraint
+			WHERE conrelid = 'recurring_schedules'::regclass AND contype = 'c'
+			AND pg_get_constraintdef(oid) LIKE '%created_by%trainer%';
+			IF c_name IS NOT NULL THEN
+				EXECUTE 'ALTER TABLE recurring_schedules DROP CONSTRAINT ' || quote_ident(c_name);
+			END IF;
+		END $$
+	`)
+
+	// Update data
+	DB.Exec(`UPDATE bookings SET cancelled_by = 'specialist' WHERE cancelled_by = 'trainer'`)
+	DB.Exec(`UPDATE bookings SET created_by = 'specialist' WHERE created_by = 'trainer'`)
+	DB.Exec(`UPDATE recurring_schedules SET created_by = 'specialist' WHERE created_by = 'trainer'`)
+
+	// Add new constraints (ignore if already exist)
+	DB.Exec(`ALTER TABLE bookings ADD CONSTRAINT bookings_cancelled_by_specialist_check
+		CHECK(cancelled_by IN ('client','specialist') OR cancelled_by IS NULL)`)
+	DB.Exec(`ALTER TABLE recurring_schedules ADD CONSTRAINT recurring_schedules_created_by_specialist_check
+		CHECK(created_by IN ('client','specialist'))`)
 }

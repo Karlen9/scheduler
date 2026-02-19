@@ -61,10 +61,10 @@ describe('BookingCard', () => {
     expect(cancelButton).toBeInTheDocument();
   });
 
-  it('shows confirm and decline for trainer-created pending bookings', async () => {
+  it('shows confirm and decline for specialist-created pending bookings', async () => {
     const onConfirm = vi.fn();
     const onDecline = vi.fn();
-    const booking = makeBooking({ status: 'pending', createdBy: 'trainer' });
+    const booking = makeBooking({ status: 'pending', createdBy: 'specialist' });
     renderWithIntl(<BookingCard booking={booking} onConfirm={onConfirm} onDecline={onDecline} />);
 
     expect(screen.getByText('Специалист записал вас')).toBeInTheDocument();

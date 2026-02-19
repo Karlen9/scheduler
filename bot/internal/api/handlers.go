@@ -35,7 +35,7 @@ var UpdateSpecialistMessageFunc func(booking *models.Booking) error
 var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
 
 // NotifyCancellationFunc is a callback to notify the other side about an immediate cancellation.
-// cancelledBy is "client" or "trainer".
+// cancelledBy is "client" or "specialist".
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
 
 // SpecialistResponse is the API response for specialist info
@@ -711,7 +711,7 @@ func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 		return
 	}
-	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "trainer" {
+	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "specialist" {
 		httpError(w, r, "Error.BookingCannotConfirm", http.StatusBadRequest)
 		return
 	}
@@ -761,7 +761,7 @@ func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 		return
 	}
-	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "trainer" {
+	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "specialist" {
 		httpError(w, r, "Error.BookingCannotReject", http.StatusBadRequest)
 		return
 	}

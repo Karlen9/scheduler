@@ -9,7 +9,7 @@ import { CalendarSkeleton } from '@/components/LoadingSkeleton';
 import { CalendarView } from '@/components/CalendarView';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
 import { PrimaryButton } from '@/components/PrimaryButton';
-import { SuccessModal } from '@/components/SuccessModal';
+
 import { EmptyState } from '@/components/EmptyState';
 import { ServiceSelector } from '@/components/ServiceSelector';
 import { ClientAvatar } from '@/components/ClientAvatar';
@@ -285,7 +285,6 @@ export function BookingForm({
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [, setNoSlotsAvailable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [message, setMessage] = useState('');
 
   // ═══════════════════════════════
@@ -298,7 +297,6 @@ export function BookingForm({
   const [previewDates, setPreviewDates] = useState<string[] | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showRecSuccess, setShowRecSuccess] = useState(false);
 
   // ═══════════════════════════════
   // Shared computed
@@ -483,7 +481,8 @@ export function BookingForm({
         message: message || undefined,
       });
       invalidateBookings();
-      setShowSuccess(true);
+      toast.success(t('successTitle'), { description: getOnetimeSuccessDescription() });
+      router.push(successRedirect);
     } catch (err) {
       const msg = err instanceof Error ? err.message : te('bookingCreateFailed');
       toast.error(msg);
@@ -510,7 +509,8 @@ export function BookingForm({
         });
       }
       invalidateBookings();
-      setShowSuccess(true);
+      toast.success(t('successTitle'), { description: getOnetimeSuccessDescription() });
+      router.push(successRedirect);
     } catch (err) {
       const msg = err instanceof Error ? err.message : te('bookingCreateFailed');
       toast.error(msg);
@@ -522,11 +522,6 @@ export function BookingForm({
   const handleOnetimeSubmit = () => {
     if (mode === 'single') handleSingleSubmit();
     else handleMultiSubmit();
-  };
-
-  const handleSuccessClose = () => {
-    setShowSuccess(false);
-    router.push(successRedirect);
   };
 
   // ──── Recurring handlers ────
@@ -598,18 +593,19 @@ export function BookingForm({
       setSelectedPeriod('');
       setPreviewDates(null);
       invalidateRecurring();
-      setShowRecSuccess(true);
+      const recDesc = selectedClient
+        ? t('successRecurringForClient', {
+            name: selectedClient.displayName || selectedClient.name,
+          })
+        : t('successRecurringForSpecialist');
+      toast.success(t('successRecurringTitle'), { description: recDesc });
+      router.push(successRedirect);
     } catch (err) {
       const msg = err instanceof Error ? err.message : te('scheduleCreateFailed');
       toast.error(msg);
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleRecSuccessClose = () => {
-    setShowRecSuccess(false);
-    router.push(successRedirect);
   };
 
   // ──── Button state (one-time) ────
@@ -1175,28 +1171,6 @@ export function BookingForm({
           ) : null}
         </div>
       )}
-
-      {/* One-time success */}
-      <SuccessModal
-        isOpen={showSuccess}
-        onClose={handleSuccessClose}
-        title={t('successTitle')}
-        description={getOnetimeSuccessDescription()}
-      />
-
-      {/* Recurring success */}
-      <SuccessModal
-        isOpen={showRecSuccess}
-        onClose={handleRecSuccessClose}
-        title={t('successRecurringTitle')}
-        description={
-          selectedClient
-            ? t('successRecurringForClient', {
-                name: selectedClient.displayName || selectedClient.name,
-              })
-            : t('successRecurringForTrainer')
-        }
-      />
     </div>
   );
 }

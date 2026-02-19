@@ -156,7 +156,7 @@
     "day5": "дней"
   },
   "HomePage": {
-    "trainerLoadError": "Не удалось загрузить информацию о специалисте",
+    "specialistLoadError": "Не удалось загрузить информацию о специалисте",
     "showMore": "Показать больше",
     "showLess": "Скрыть",
     "messageButton": "Написать",
@@ -215,7 +215,7 @@
     "successBookingCreated": "Запись создана.",
     "successRecurringTitle": "Расписание отправлено",
     "successRecurringForClient": "Расписание для {name} отправлено на подтверждение.",
-    "successRecurringForTrainer": "Расписание отправлено на подтверждение специалисту."
+    "successRecurringForSpecialist": "Расписание отправлено на подтверждение специалисту."
   },
   "BookingsPage": {
     "title": "Мои записи",
@@ -230,7 +230,7 @@
     "cancelConfirmButton": "Отменить запись",
     "cancelReasonPlaceholder": "Причина отмены (необязательно)",
     "cancelDefaultReason": "Отменено клиентом",
-    "trainerBookedYou": "Специалист записал вас на сеанс",
+    "specialistBookedYou": "Специалист записал вас на сеанс",
     "declineButton": "Отклонить"
   },
   "RecurringPage": {
@@ -449,7 +449,7 @@
     "minutes": "минут"
   },
   "Errors": {
-    "trainerLoadFailed": "Не удалось загрузить информацию о специалисте",
+    "specialistLoadFailed": "Не удалось загрузить информацию о специалисте",
     "bookingCreateFailed": "Не удалось создать запись",
     "bookingCancelFailed": "Не удалось отменить запись",
     "bookingConfirmFailed": "Не удалось подтвердить запись",

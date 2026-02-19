@@ -22,7 +22,7 @@ import (
 var NotifyRecurringScheduleFunc func(schedule *models.RecurringSchedule, previewCount int) error
 
 // NotifyMoveRequestFunc notifies the other side about a move/reschedule request for a recurring booking.
-// Called with (newBooking, oldBooking, requestedBy "client"/"trainer").
+// Called with (newBooking, oldBooking, requestedBy "client"/"specialist").
 var NotifyMoveRequestFunc func(newBooking, oldBooking *models.Booking, requestedBy string) error
 
 // ========== Shared Types & Helpers ==========
@@ -528,7 +528,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	schedule, err := db.CreateRecurringScheduleFull(
 		specialist.ID, client.ID, client.Name,
 		firstDay, req.Time, sessionType.DurationMinutes,
-		"trainer", req.SessionTypeID, daysStr, startDate, endDate, dayTimesToJSON(req.DayTimes),
+		"specialist", req.SessionTypeID, daysStr, startDate, endDate, dayTimesToJSON(req.DayTimes),
 	)
 	if err != nil {
 		log.Printf("Error creating recurring schedule: %v", err)
@@ -826,7 +826,7 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 	updated, _ := db.GetBookingByID(booking.ID)
 
 	if NotifyCancellationFunc != nil {
-		if err := NotifyCancellationFunc(updated, "trainer"); err != nil {
+		if err := NotifyCancellationFunc(updated, "specialist"); err != nil {
 			log.Printf("Error notifying cancellation: %v", err)
 		}
 	}
@@ -871,7 +871,7 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 	log.Printf("MOVE REQUEST (ADMIN) booking %s -> %s", booking.ID[:8], newBooking.ID[:8])
 
 	if NotifyMoveRequestFunc != nil {
-		if err := NotifyMoveRequestFunc(newBooking, booking, "trainer"); err != nil {
+		if err := NotifyMoveRequestFunc(newBooking, booking, "specialist"); err != nil {
 			log.Printf("Error notifying move request: %v", err)
 		}
 	}

@@ -27,7 +27,7 @@ export function BottomSheet({
     <div className="fixed inset-0 z-[60] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
-        className={`bg-background animate-slide-up relative w-full rounded-t-2xl p-4 ${className}`}
+        className={`bg-card animate-slide-up relative w-full rounded-t-2xl p-4 shadow-lg ${className}`}
         style={{ maxWidth: '430px' }}
       >
         {(title || showClose) && (
