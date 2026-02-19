@@ -8,6 +8,9 @@ import (
 	"github.com/go-chi/cors"
 )
 
+// WebAppURL is set from config. Used to restrict CORS origins.
+var WebAppURL string
+
 func NewRouter() http.Handler {
 	r := chi.NewRouter()
 
@@ -15,33 +18,44 @@ func NewRouter() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
+	r.Use(SecurityHeadersMiddleware)
+
+	// Rate limiting
+	r.Use(GlobalRateLimitMiddleware(100, 200))
+	r.Use(PerIPRateLimitMiddleware(20, 40))
 
 	// CORS for mini-app
+	allowedOrigins := []string{"*"}
+	if WebAppURL != "" && WebAppURL != "https://your-mini-app-url.com" {
+		allowedOrigins = []string{WebAppURL, "http://localhost:3000"}
+	}
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Dev-User-ID", "X-Specialist-ID", "X-Trainer-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Specialist-ID", "X-Trainer-ID"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
 
-	// Health check
+	// Health check (no auth)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
 
-	// Super admin (list all specialists) - protect in production!
-	r.Get("/superadmin/specialists", HandleListAllSpecialists)
+	// Super admin (bearer token auth)
+	r.Route("/superadmin", func(r chi.Router) {
+		r.Use(SuperadminAuthMiddleware)
+		r.Get("/specialists", HandleListAllSpecialists)
+	})
 
-	// API routes with auth
+	// Photo proxy (no auth — fileIds are unguessable Telegram tokens)
+	r.Get("/api/photo/{fileId}", HandleGetPhoto)
+
+	// API routes with Telegram auth
 	r.Route("/api", func(r chi.Router) {
-		r.Use(TelegramAuthMiddleware("")) // botToken not used, we look it up per specialist
-		r.Use(DevAuthMiddleware(0))       // Fallback for dev
-		r.Use(I18nMiddleware)             // Set localizer from user's language pref
-
-		// Photo proxy (works without auth — middleware passes through unauthenticated requests)
-		r.Get("/photo/{fileId}", HandleGetPhoto)
+		r.Use(TelegramAuthMiddleware(""))
+		r.Use(I18nMiddleware)
 
 		r.Get("/specialist", HandleGetSpecialist)
 		r.Get("/services", HandleGetServices)

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
@@ -80,10 +81,8 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 
 			if initData == "" {
-				// For development, allow requests without auth
-				log.Println("Warning: No Telegram initData provided")
-				ctx := context.WithValue(r.Context(), SpecialistContextKey, specialist)
-				next.ServeHTTP(w, r.WithContext(ctx))
+				log.Printf("Auth rejected: no initData from %s", r.RemoteAddr)
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TelegramAuth"), http.StatusUnauthorized)
 				return
 			}
 
@@ -160,6 +159,18 @@ func validateInitData(initData, botToken string) (*TelegramUser, bool) {
 		return nil, false
 	}
 
+	// Check auth_date is not too old (1 hour max)
+	if authDateStr := values.Get("auth_date"); authDateStr != "" {
+		authDate, err := strconv.ParseInt(authDateStr, 10, 64)
+		if err == nil {
+			age := time.Now().Unix() - authDate
+			if age > 3600 {
+				log.Printf("Auth rejected: initData expired (age=%ds)", age)
+				return nil, false
+			}
+		}
+	}
+
 	// Parse user data
 	userJSON := values.Get("user")
 	if userJSON == "" {
@@ -207,57 +218,6 @@ func AdminAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// DevAuthMiddleware is a simple middleware for development that creates a mock client
-func DevAuthMiddleware(defaultSpecialistID int64) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Check if we already have auth from Telegram middleware
-			if GetClientFromContext(r) != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			// Get specialist from context (set by TelegramAuthMiddleware)
-			specialist := GetSpecialistFromContext(r)
-			if specialist == nil {
-				// Fall back to first specialist
-				var err error
-				specialist, err = db.GetFirstSpecialist()
-				if err != nil || specialist == nil {
-					log.Printf("Error getting specialist: %v", err)
-					http.Error(w, myI18n.T(localizerFromRequest(r), "Error.SpecialistNotConfigured"), http.StatusInternalServerError)
-					return
-				}
-			}
-
-			// For dev, use a mock user ID from query or header
-			userIDStr := r.Header.Get("X-Dev-User-ID")
-			if userIDStr == "" {
-				userIDStr = r.URL.Query().Get("dev_user_id")
-			}
-
-			// Default to specialist's ID for dev (allows admin access)
-			var userID int64 = specialist.TelegramUserID
-			if userIDStr != "" {
-				if parsed, err := strconv.ParseInt(userIDStr, 10, 64); err == nil {
-					userID = parsed
-				}
-			}
-
-			client, err := db.GetOrCreateClient(userID, specialist.ID, "Dev User")
-			if err != nil {
-				log.Printf("Error creating dev client: %v", err)
-				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
-				return
-			}
-
-			ctx := context.WithValue(r.Context(), ClientContextKey, client)
-			ctx = context.WithValue(ctx, SpecialistContextKey, specialist)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
 // I18nMiddleware determines the user's language from client/specialist profile
 // and stores a localizer in context. Must run AFTER auth middleware.
 func I18nMiddleware(next http.Handler) http.Handler {
@@ -271,5 +231,34 @@ func I18nMiddleware(next http.Handler) http.Handler {
 		loc := myI18n.NewLocalizer(lang)
 		ctx := myI18n.WithLocalizer(r.Context(), loc)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// SuperadminSecret is set from config at startup. If empty, superadmin endpoints are disabled.
+var SuperadminSecret string
+
+// SuperadminAuthMiddleware checks the Authorization: Bearer <secret> header.
+func SuperadminAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if SuperadminSecret == "" {
+			http.NotFound(w, r)
+			return
+		}
+		auth := r.Header.Get("Authorization")
+		if auth == "" || auth != "Bearer "+SuperadminSecret {
+			log.Printf("Superadmin auth rejected from %s", r.RemoteAddr)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// SecurityHeadersMiddleware adds security response headers.
+func SecurityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		next.ServeHTTP(w, r)
 	})
 }

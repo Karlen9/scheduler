@@ -1,8 +1,17 @@
 package api_test
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"sort"
+	"strings"
 	"testing"
+	"time"
 )
 
 // ========== Task 2: Health + Specialist tests ==========
@@ -212,8 +221,8 @@ func TestGetClientProfile(t *testing.T) {
 	var profile map[string]interface{}
 	parseJSON(t, w, &profile)
 
-	if name, _ := profile["name"].(string); name != "Dev User" {
-		t.Fatalf("expected name 'Dev User', got %q", name)
+	if name, _ := profile["name"].(string); name != "Test User" {
+		t.Fatalf("expected name 'Test User', got %q", name)
 	}
 }
 
@@ -268,5 +277,84 @@ func TestGetServices(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ========== Security tests ==========
+
+func TestRejectNoInitData(t *testing.T) {
+	// Request without X-Telegram-Init-Data should get 401
+	req := httptest.NewRequest(http.MethodGet, "/api/specialist", nil)
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
+	// No X-Telegram-Init-Data header
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 without initData, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestRejectInvalidInitData(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/specialist", nil)
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
+	req.Header.Set("X-Telegram-Init-Data", "hash=abc123&user=%7B%7D&auth_date=123")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 with invalid initData, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestRejectExpiredInitData(t *testing.T) {
+	// Generate initData with auth_date 2 hours ago
+	userID := int64(777777)
+	user := fmt.Sprintf(`{"id":%d,"first_name":"Expired","last_name":"","username":"expired"}`, userID)
+	authDate := fmt.Sprintf("%d", time.Now().Unix()-7200) // 2 hours ago
+
+	parts := []string{
+		"auth_date=" + authDate,
+		"user=" + user,
+	}
+	sort.Strings(parts)
+	dataCheckString := strings.Join(parts, "\n")
+
+	secretKey := hmac.New(sha256.New, []byte("WebAppData"))
+	secretKey.Write([]byte(testSpecialist.BotToken))
+	secret := secretKey.Sum(nil)
+
+	h := hmac.New(sha256.New, secret)
+	h.Write([]byte(dataCheckString))
+	hash := hex.EncodeToString(h.Sum(nil))
+
+	v := url.Values{}
+	v.Set("user", user)
+	v.Set("auth_date", authDate)
+	v.Set("hash", hash)
+	initData := v.Encode()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/specialist", nil)
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
+	req.Header.Set("X-Telegram-Init-Data", initData)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 with expired initData, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestSuperadminRequiresAuth(t *testing.T) {
+	// Without bearer token -> 404 (no SUPERADMIN_SECRET set in test)
+	req := httptest.NewRequest(http.MethodGet, "/superadmin/specialists", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound && w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 404 or 401 for superadmin without auth, got %d", w.Code)
 	}
 }

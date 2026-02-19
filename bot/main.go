@@ -376,6 +376,9 @@ func main() {
 		return handler.NotifyMoveRequest(newBooking, oldBooking, requestedBy)
 	}
 
+	api.SuperadminSecret = cfg.SuperadminSecret
+	api.WebAppURL = cfg.WebAppURL
+
 	// Set up HTTP server
 	apiRouter := api.NewRouter()
 
