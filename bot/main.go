@@ -404,6 +404,9 @@ func main() {
 	api.LoadTestMode = os.Getenv("LOAD_TEST_MODE") == "true"
 	if api.LoadTestMode {
 		log.Println("WARNING: LOAD_TEST_MODE enabled — Telegram auth bypassed for X-Test-User-ID requests")
+		if err := seedLoadTestData(); err != nil {
+			log.Printf("Warning: failed to seed load test data: %v", err)
+		}
 	}
 
 	// Set up HTTP server
@@ -703,5 +706,29 @@ func seedLegacyData(cfg *config.Config) error {
 	}
 
 	log.Println("Legacy seed complete!")
+	return nil
+}
+
+// seedLoadTestData creates a test specialist with working hours for load testing.
+// Only called when LOAD_TEST_MODE is enabled.
+func seedLoadTestData() error {
+	existing, _ := db.GetFirstSpecialist()
+	if existing != nil {
+		log.Printf("Load test: specialist already exists (%s)", existing.Name)
+		return nil
+	}
+
+	specialist, err := db.CreateSpecialist(1, "loadtest-token", "loadtestbot", "Load Test Specialist", "UTC", 24)
+	if err != nil {
+		return err
+	}
+	log.Printf("Load test: created specialist %s (ID: %s)", specialist.Name, specialist.ID)
+
+	for day := 0; day <= 6; day++ {
+		db.UpsertWorkingHours(specialist.ID, day, "08:00", "20:00")
+	}
+
+	db.UpdateSpecialistAvailableDurations(specialist.ID, "30,60,90,120")
+	log.Println("Load test: seed complete")
 	return nil
 }

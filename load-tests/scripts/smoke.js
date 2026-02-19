@@ -50,11 +50,14 @@ export default function (data) {
   const wh = http.get(`${BASE_URL}/api/working-hours`, { headers });
   check(wh, { "working-hours 200": (r) => r.status === 200 });
 
-  // GET /api/availability (today)
-  const today = new Date().toISOString().split("T")[0];
-  const avail = http.get(`${BASE_URL}/api/availability?date=${today}`, {
-    headers,
-  });
+  // GET /api/availability (3 days from now)
+  const futureDate = new Date(Date.now() + 3 * 86400000)
+    .toISOString()
+    .split("T")[0];
+  const avail = http.get(
+    `${BASE_URL}/api/availability?date=${futureDate}&duration=60`,
+    { headers },
+  );
   check(avail, { "availability 200": (r) => r.status === 200 });
 
   sleep(1);
