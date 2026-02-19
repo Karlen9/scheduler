@@ -34,7 +34,7 @@ describe('api.getSpecialist', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toBe('http://localhost:8080/api/specialist');
+    expect(url).toBe('/api/specialist');
     expect(options.headers['Content-Type']).toBe('application/json');
     expect(options.headers['X-Telegram-Init-Data']).toBe('mock-init-data');
     expect(options.headers['X-Specialist-ID']).toBe('mock-specialist-id');
@@ -61,7 +61,7 @@ describe('api.createBooking', () => {
 
     expect(result).toEqual(bookingData);
     const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toBe('http://localhost:8080/api/bookings');
+    expect(url).toBe('/api/bookings');
     expect(options.method).toBe('POST');
 
     const body = JSON.parse(options.body);

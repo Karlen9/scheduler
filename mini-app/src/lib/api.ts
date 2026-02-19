@@ -12,9 +12,8 @@ import {
 } from './types';
 import { getInitData, getSpecialistId } from './telegram';
 
-// API base URL - dev URL takes priority over prod URL, fallback to localhost
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_DEV_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+// API calls use relative URLs — Next.js rewrites proxy them to the backend
+const API_BASE_URL = '';
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const initData = getInitData();
