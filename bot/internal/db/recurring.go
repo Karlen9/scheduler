@@ -282,7 +282,7 @@ func scanRecurringSchedules(rows *sql.Rows) ([]models.RecurringSchedule, error) 
 		var s models.RecurringSchedule
 		var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
 
-		if err := rows.Scan(&s.ID, &s.SpecialistID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL); err != nil {
+		if err := rows.Scan(&s.ID, &s.SpecialistID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL, &s.ClientDisplayName); err != nil {
 			return nil, err
 		}
 

@@ -20,13 +20,13 @@ func generateWebhookSecret() string {
 
 func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, error) {
 	var t models.Specialist
-	var telegramHandle, phone, specialization, bio, photoURL, locationAddress, availableDurations, language sql.NullString
+	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language sql.NullString
 	var notifyNewBookings, notifyCancellations sql.NullInt64
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
 		&telegramHandle, &phone, &specialization, &bio, &photoURL,
-		&t.LocationLatitude, &t.LocationLongitude, &locationAddress,
+		&t.LocationLatitude, &t.LocationLongitude,
 		&availableDurations,
 		&notifyNewBookings, &notifyCancellations,
 		&t.IsActive, &t.CreatedAt,
@@ -60,7 +60,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	return &t, nil
 }
 
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, location_address, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language`
 
 func GetSpecialistByTelegramID(telegramUserID int64) (*models.Specialist, error) {
 	row := DB.QueryRow(Q(`

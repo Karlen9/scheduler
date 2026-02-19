@@ -1,14 +1,9 @@
 export { TopBar } from './TopBar';
-export { SpecialistCard } from './SpecialistCard';
 export { PrimaryButton } from './PrimaryButton';
-export { BottomSafeArea } from './BottomSafeArea';
-export { WeekDatePicker } from './WeekDatePicker';
-export { TimeSlotPicker } from './TimeSlotPicker';
 export { CalendarView } from './CalendarView';
 export { BookingCard } from './BookingCard';
 export { ConfirmDialog } from './ConfirmDialog';
 export { EmptyState } from './EmptyState';
 export { LoadingSkeleton, CalendarSkeleton, BookingCardSkeleton } from './LoadingSkeleton';
 export { TimeSlotGrid } from './TimeSlotGrid';
-export { SessionTypeSelector } from './SessionTypeSelector';
 export { ToastProvider } from './ToastProvider';
