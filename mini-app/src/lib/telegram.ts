@@ -218,7 +218,9 @@ export function getInitData(): string {
 export function getSpecialistId(): string | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  const fromURL = params.get('specialist');
+  // Support both new (?specialist=) and legacy (?trainer=) URL params
+  // Telegram caches menu button URLs, so old ?trainer= links persist until /start
+  const fromURL = params.get('specialist') || params.get('trainer');
   if (fromURL) {
     sessionStorage.setItem('specialistId', fromURL);
     return fromURL;

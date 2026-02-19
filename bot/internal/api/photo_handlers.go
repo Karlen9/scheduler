@@ -32,6 +32,9 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 
 	// Determine which specialist's bot to use
 	specialistID := r.URL.Query().Get("specialist")
+	if specialistID == "" {
+		specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
+	}
 	if specialistID != "" {
 		specialist, err := db.GetSpecialistByID(specialistID)
 		if err != nil || specialist == nil {
