@@ -729,6 +729,12 @@ func seedLoadTestData() error {
 	}
 
 	db.UpdateSpecialistAvailableDurations(specialist.ID, "30,60,90,120")
+
+	// Session types required for booking creation
+	db.CreateSessionType(specialist.ID, "default", "Session", 60, 0, "RUB", "")
+	db.CreateSessionType(specialist.ID, "short", "Short Session", 30, 0, "RUB", "")
+	db.CreateSessionType(specialist.ID, "long", "Long Session", 90, 0, "RUB", "")
+
 	log.Println("Load test: seed complete")
 	return nil
 }
