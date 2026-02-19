@@ -412,7 +412,8 @@
       "rescheduled": "Перенесена"
     },
     "rescheduleButton": "Изменить",
-    "cancelButton": "Отменить"
+    "cancelButton": "Отменить",
+    "waitingForClient": "Ожидание ответа клиента"
   },
   "RescheduleSheet": {
     "title": "Перенос записи",

@@ -124,6 +124,11 @@ export function BookingDetailModal({
         )}
       </div>
 
+      {/* Waiting for client response on specialist-created bookings */}
+      {booking.status === 'pending' && booking.createdBy === 'specialist' && (
+        <div className="text-secondary mb-3 py-2 text-center text-sm">{t('waitingForClient')}</div>
+      )}
+
       {/* Accept / Reject for pending client-created bookings */}
       {booking.status === 'pending' &&
         booking.createdBy !== 'specialist' &&
