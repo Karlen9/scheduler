@@ -20,6 +20,24 @@ func httpError(w http.ResponseWriter, r *http.Request, msgID string, code int) {
 	http.Error(w, myI18n.T(loc, msgID), code)
 }
 
+// maxBookingDate returns the latest allowed booking date (3 months from today).
+func maxBookingDate() time.Time {
+	return time.Now().AddDate(0, 3, 0)
+}
+
+// validateBookingDate checks that a date is not in the past and not more than 3 months ahead.
+// Returns an error message ID or "" if valid.
+func validateBookingDate(date time.Time) string {
+	today := time.Now().Truncate(24 * time.Hour)
+	if date.Before(today) {
+		return "Error.DateInPast"
+	}
+	if date.After(maxBookingDate()) {
+		return "Error.DateTooFar"
+	}
+	return ""
+}
+
 // NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin panel
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 
@@ -173,6 +191,12 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+		return
+	}
+
+	// Reject past dates and dates more than 3 months ahead
+	if errMsg := validateBookingDate(date); errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
@@ -403,6 +427,12 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+		return
+	}
+
+	// Reject past dates and dates more than 3 months ahead
+	if errMsg := validateBookingDate(date); errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 

@@ -62,6 +62,15 @@ func TestGetSpecialistAsClient(t *testing.T) {
 
 // ========== Task 3: Booking CRUD tests ==========
 
+// nextWeekday returns the next date (from tomorrow) that falls on the given weekday (time.Monday=1, etc.)
+func nextWeekday(wd time.Weekday) string {
+	d := time.Now().AddDate(0, 0, 1)
+	for d.Weekday() != wd {
+		d = d.AddDate(0, 0, 1)
+	}
+	return d.Format("2006-01-02")
+}
+
 // setupWorkingHoursAndService sets working hours for days 1-5 and creates a session type
 // so that booking creation can succeed.
 func setupWorkingHoursAndService(t *testing.T) {
@@ -99,9 +108,9 @@ func TestCreateAndGetBooking(t *testing.T) {
 	// Setup working hours and session type
 	setupWorkingHoursAndService(t)
 
-	// Create a booking as client 222222 on Monday 2026-06-15
+	// Create a booking as client 222222 on next Monday
 	body := jsonBody(map[string]interface{}{
-		"date":     "2026-06-15",
+		"date":     nextWeekday(time.Monday),
 		"time":     "10:00",
 		"duration": 60,
 		"name":     "Test Client",
@@ -149,9 +158,9 @@ func TestCreateAndGetBooking(t *testing.T) {
 }
 
 func TestCancelBooking(t *testing.T) {
-	// Create a booking as client 333333 on Tuesday 2026-06-16
+	// Create a booking as client 333333 on next Tuesday
 	body := jsonBody(map[string]interface{}{
-		"date":     "2026-06-16",
+		"date":     nextWeekday(time.Tuesday),
 		"time":     "11:00",
 		"duration": 60,
 		"name":     "Cancel Client",

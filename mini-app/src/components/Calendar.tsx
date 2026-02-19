@@ -92,6 +92,8 @@ export interface MonthGridProps {
   onTitleClick?: () => void;
   /** When false, non-working days/days-off are styled but remain clickable (default: true) */
   disableNonWorking?: boolean;
+  /** Maximum allowed date (dates after this are disabled) */
+  maxDate?: Date;
 }
 
 export function MonthGrid({
@@ -111,6 +113,7 @@ export function MonthGrid({
   showLegend = false,
   onTitleClick,
   disableNonWorking = true,
+  maxDate,
 }: MonthGridProps) {
   const td = useTranslations('Dates');
   const MONTH_NAMES = monthNomKeys.map((k) => td(`monthsNom.${k}`));
@@ -148,8 +151,13 @@ export function MonthGrid({
     return bookedDates?.has(toISODate(d)) ?? false;
   }
 
+  function isBeyondMax(d: Date): boolean {
+    return maxDate ? d > maxDate : false;
+  }
+
   function isDisabled(d: Date): boolean {
     if (disablePast && isPast(d)) return true;
+    if (isBeyondMax(d)) return true;
     if (disableNonWorking) {
       if (nonWorkingSet.size > 0 && nonWorkingSet.has(d.getDay())) return true;
       if (daysOffSet.size > 0 && daysOffSet.has(toISODate(d))) return true;
@@ -218,7 +226,7 @@ export function MonthGrid({
                       ? 'text-muted-foreground/50'
                       : dayOff && isCurrentMonth
                         ? 'bg-dayoff-bg text-dayoff-text'
-                        : disabled && disablePast && isPast(date)
+                        : disabled && (isPast(date) || isBeyondMax(date))
                           ? 'text-muted-foreground opacity-40'
                           : nonWorking
                             ? isCurrentMonth
