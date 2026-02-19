@@ -52,7 +52,13 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			initData := r.Header.Get("X-Telegram-Init-Data")
 			specialistID := r.Header.Get("X-Specialist-ID")
 			if specialistID == "" {
+				specialistID = r.Header.Get("X-Trainer-ID") // legacy cached Telegram headers
+			}
+			if specialistID == "" {
 				specialistID = r.URL.Query().Get("specialist")
+			}
+			if specialistID == "" {
+				specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
 			}
 
 			// Get specialist by ID or fall back to first specialist
