@@ -448,8 +448,24 @@ func (h *Handler) NotifyClientSpecialistBooking(booking *models.Booking) error {
 
 	loc := myI18n.NewLocalizer(client.Language)
 	text := FormatSpecialistCreatedBookingClient(loc, booking)
-	_, err = h.Bot.SendNotification(client.TelegramUserID, text)
-	return err
+	keyboard := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: BtnAccept(loc), CallbackData: "client_accept:" + booking.ID},
+				{Text: BtnDecline(loc), CallbackData: "client_decline:" + booking.ID},
+			},
+		},
+	}
+	msg, err := h.Bot.SendMessage(client.TelegramUserID, text, keyboard)
+	if err != nil {
+		return err
+	}
+
+	// Save message info so we can edit it later (remove buttons)
+	if msg != nil {
+		db.SaveClientNotificationInfo(booking.ID, client.TelegramUserID, msg.MessageID)
+	}
+	return nil
 }
 
 // NotifySpecialistBookingCancelled sends a cancellation notification to the specialist
