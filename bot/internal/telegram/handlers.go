@@ -195,6 +195,12 @@ func (h *Handler) handleCallbackQuery(update Update) {
 		return
 	}
 
+	// Handle client accept/decline callback
+	if strings.HasPrefix(data, "client_accept:") || strings.HasPrefix(data, "client_decline:") {
+		h.handleClientBookingCallback(update)
+		return
+	}
+
 	parts := strings.SplitN(data, ":", 2)
 	if len(parts) != 2 {
 		h.Bot.AnswerCallbackQuery(cq.ID, "")
@@ -311,6 +317,103 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	}
 
 	_, _ = h.Bot.SendWebAppButton(cq.From.ID, FormatWelcome(loc, h.Version), webAppURL, BtnOpenApp(loc))
+}
+
+func (h *Handler) handleClientBookingCallback(update Update) {
+	cq := update.CallbackQuery
+	data := cq.Data
+
+	parts := strings.SplitN(data, ":", 2)
+	if len(parts) != 2 {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+
+	action, bookingID := parts[0], parts[1]
+
+	// Get specialist to identify which bot this is
+	specialist, _ := db.GetSpecialistByBotToken(h.Bot.Token)
+	if specialist == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+
+	// Get client by telegram user ID
+	client, _ := db.GetClientByTelegramID(cq.From.ID, specialist.ID)
+	if client == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+
+	loc := myI18n.NewLocalizer(client.Language)
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil || booking == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.NotFound"))
+		return
+	}
+
+	// Validate: client owns booking, booking is pending, and was created by specialist
+	if booking.ClientID != client.ID {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+	if booking.Status != models.BookingStatusPending || booking.CreatedBy != "specialist" {
+		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.AlreadyProcessed"))
+		if cq.Message != nil {
+			h.UpdateClientNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, booking)
+		}
+		return
+	}
+
+	accepted := action == "client_accept"
+	var toastText string
+
+	if accepted {
+		if err := db.UpdateBookingStatus(bookingID, models.BookingStatusConfirmed); err != nil {
+			log.Printf("Error confirming booking via client callback: %v", err)
+			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+			return
+		}
+		toastText = myI18n.T(loc, "Callback.ClientConfirmed")
+	} else {
+		if err := db.CancelBooking(bookingID, "", models.CancelledByClient); err != nil {
+			log.Printf("Error declining booking via client callback: %v", err)
+			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+			return
+		}
+		toastText = myI18n.T(loc, "Callback.ClientDeclined")
+	}
+
+	h.Bot.AnswerCallbackQuery(cq.ID, toastText)
+
+	// Refresh booking
+	booking, _ = db.GetBookingByID(bookingID)
+	if booking == nil {
+		return
+	}
+
+	// Edit client's message to remove buttons and show result
+	if cq.Message != nil {
+		h.UpdateClientNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, booking)
+	}
+
+	// Notify specialist about client's response
+	h.notifySpecialistClientResponse(booking, accepted)
+}
+
+// UpdateClientNotificationMessage edits the client's booking notification to reflect the new status
+func (h *Handler) UpdateClientNotificationMessage(loc *i18n.Localizer, chatID int64, messageID int, booking *models.Booking) error {
+	var text string
+	switch booking.Status {
+	case models.BookingStatusConfirmed:
+		text = FormatSpecialistCreatedBookingClientAccepted(loc, booking)
+	case models.BookingStatusCancelled, models.BookingStatusRejected:
+		text = FormatSpecialistCreatedBookingClientDeclined(loc, booking)
+	default:
+		text = FormatSpecialistCreatedBookingClient(loc, booking)
+	}
+	return h.Bot.EditMessageText(chatID, messageID, text, nil)
 }
 
 // localizerForClient returns a localizer for the client's language
