@@ -34,6 +34,9 @@ var UpdateSpecialistMessageFunc func(booking *models.Booking) error
 // confirms or declines a specialist-created booking via the REST API
 var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
 
+// UpdateClientMessageFunc is a callback to edit the client's Telegram notification message
+var UpdateClientMessageFunc func(booking *models.Booking) error
+
 // NotifyCancellationFunc is a callback to notify the other side about an immediate cancellation.
 // cancelledBy is "client" or "specialist".
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
@@ -725,6 +728,13 @@ func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Update client's Telegram notification message (remove buttons)
+	if UpdateClientMessageFunc != nil {
+		if err := UpdateClientMessageFunc(booking); err != nil {
+			log.Printf("Error updating client message: %v", err)
+		}
+	}
+
 	writeJSON(w, booking)
 }
 
@@ -772,6 +782,13 @@ func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 	if NotifyClientBookingResponseFunc != nil {
 		if err := NotifyClientBookingResponseFunc(booking, false); err != nil {
 			log.Printf("Error notifying specialist about client decline: %v", err)
+		}
+	}
+
+	// Update client's Telegram notification message (remove buttons)
+	if UpdateClientMessageFunc != nil {
+		if err := UpdateClientMessageFunc(booking); err != nil {
+			log.Printf("Error updating client message: %v", err)
 		}
 	}
 
