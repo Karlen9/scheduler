@@ -401,6 +401,11 @@ func main() {
 	api.SuperadminSecret = cfg.SuperadminSecret
 	api.WebAppURL = cfg.WebAppURL
 
+	api.LoadTestMode = os.Getenv("LOAD_TEST_MODE") == "true"
+	if api.LoadTestMode {
+		log.Println("WARNING: LOAD_TEST_MODE enabled — Telegram auth bypassed for X-Test-User-ID requests")
+	}
+
 	// Set up HTTP server
 	apiRouter := api.NewRouter()
 

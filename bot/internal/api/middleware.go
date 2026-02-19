@@ -37,6 +37,10 @@ const (
 	SpecialistContextKey contextKey = "specialist"
 )
 
+// LoadTestMode when true bypasses Telegram HMAC validation.
+// Set via LOAD_TEST_MODE env var. Never enable in production.
+var LoadTestMode bool
+
 // TelegramUser represents user data from Telegram initData
 type TelegramUser struct {
 	ID        int64  `json:"id"`
@@ -60,6 +64,40 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 			if specialistID == "" {
 				specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
+			}
+
+			if LoadTestMode {
+				testUserIDStr := r.Header.Get("X-Test-User-ID")
+				if testUserIDStr != "" {
+					testUserID, err := strconv.ParseInt(testUserIDStr, 10, 64)
+					if err != nil {
+						http.Error(w, "invalid X-Test-User-ID", http.StatusBadRequest)
+						return
+					}
+
+					var specialist *models.Specialist
+					var specErr error
+					if specialistID != "" {
+						specialist, specErr = db.GetSpecialistByID(specialistID)
+					} else {
+						specialist, specErr = db.GetFirstSpecialist()
+					}
+					if specErr != nil || specialist == nil {
+						http.Error(w, "specialist not found", http.StatusNotFound)
+						return
+					}
+
+					client, err := db.GetOrCreateClient(testUserID, specialist.ID, "LoadTest User")
+					if err != nil {
+						http.Error(w, "internal error", http.StatusInternalServerError)
+						return
+					}
+
+					ctx := context.WithValue(r.Context(), ClientContextKey, client)
+					ctx = context.WithValue(ctx, SpecialistContextKey, specialist)
+					next.ServeHTTP(w, r.WithContext(ctx))
+					return
+				}
 			}
 
 			// Get specialist by ID or fall back to first specialist
