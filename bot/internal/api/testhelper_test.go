@@ -1,13 +1,19 @@
 package api_test
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"scheduler-bot/internal/api"
 	"scheduler-bot/internal/crypto"
@@ -64,8 +70,36 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// doRequest sends an HTTP request through the test router with dev auth headers.
-// If body is non-nil its value is sent as the request body.
+// buildInitData generates a valid Telegram-signed initData string for testing.
+func buildInitData(userID int64, firstName string, botToken string) string {
+	user := fmt.Sprintf(`{"id":%d,"first_name":"%s","last_name":"","username":"test_%d"}`, userID, firstName, userID)
+	authDate := fmt.Sprintf("%d", time.Now().Unix())
+
+	// Build data check string (sorted keys)
+	parts := []string{
+		"auth_date=" + authDate,
+		"user=" + user,
+	}
+	sort.Strings(parts)
+	dataCheckString := strings.Join(parts, "\n")
+
+	// Calculate HMAC using Telegram's algorithm
+	secretKey := hmac.New(sha256.New, []byte("WebAppData"))
+	secretKey.Write([]byte(botToken))
+	secret := secretKey.Sum(nil)
+
+	h := hmac.New(sha256.New, secret)
+	h.Write([]byte(dataCheckString))
+	hash := hex.EncodeToString(h.Sum(nil))
+
+	// Build query string
+	v := url.Values{}
+	v.Set("user", user)
+	v.Set("auth_date", authDate)
+	v.Set("hash", hash)
+	return v.Encode()
+}
+
 func doRequest(t *testing.T, method, path string, body *string, telegramUserID int64) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -79,7 +113,10 @@ func doRequest(t *testing.T, method, path string, body *string, telegramUserID i
 	req := httptest.NewRequest(method, path, reqBody)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
-	req.Header.Set("X-Dev-User-ID", fmt.Sprintf("%d", telegramUserID))
+
+	// Generate valid Telegram initData (signed HMAC)
+	initData := buildInitData(telegramUserID, "Test User", testSpecialist.BotToken)
+	req.Header.Set("X-Telegram-Init-Data", initData)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

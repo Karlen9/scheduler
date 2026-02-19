@@ -39,6 +39,9 @@ type Config struct {
 	// Encryption
 	EncryptionKey string // Hex-encoded 32-byte AES key for encrypting tokens at rest
 
+	// Security
+	SuperadminSecret string // Bearer token for /superadmin/* endpoints
+
 	// Optional - for initial single-bot setup (legacy)
 	TelegramBotToken     string
 	SpecialistTelegramID int64
@@ -65,6 +68,7 @@ func Load() *Config {
 		MasterWebhookSecret: os.Getenv("MASTER_WEBHOOK_SECRET"),
 		AdminIDs:            parseAdminIDs(os.Getenv("ADMIN_IDS")),
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
+		SuperadminSecret:    os.Getenv("SUPERADMIN_SECRET"),
 
 		// Legacy single-bot setup
 		TelegramBotToken:     os.Getenv("TELEGRAM_BOT_TOKEN"),
