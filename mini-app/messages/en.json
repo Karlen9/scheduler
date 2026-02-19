@@ -412,7 +412,8 @@
       "rescheduled": "Rescheduled"
     },
     "rescheduleButton": "Reschedule",
-    "cancelButton": "Cancel"
+    "cancelButton": "Cancel",
+    "waitingForClient": "Waiting for client response"
   },
   "RescheduleSheet": {
     "title": "Reschedule Booking",
