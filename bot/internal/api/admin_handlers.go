@@ -521,6 +521,12 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Specialist cannot confirm their own bookings — only the client can
+	if booking.CreatedBy == "specialist" && req.Status == "confirmed" {
+		httpError(w, r, "Error.CannotConfirmOwnBooking", http.StatusForbidden)
+		return
+	}
+
 	oldStatus := booking.Status
 	if (req.Status == "cancelled" || req.Status == "rejected") && req.Reason != "" {
 		if err := db.CancelBooking(bookingID, req.Reason, models.CancelledBySpecialist); err != nil {

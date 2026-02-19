@@ -478,5 +478,8 @@
   },
   "CancelReason.Rescheduled": {
     "other": "Перенесена"
+  },
+  "Error.CannotConfirmOwnBooking": {
+    "other": "Нельзя подтвердить свою же запись"
   }
 }
