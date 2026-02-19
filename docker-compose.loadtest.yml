@@ -1,0 +1,74 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: scheduler_loadtest
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: loadtest
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler -d scheduler_loadtest"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build:
+      context: ./bot
+      args:
+        VERSION: loadtest
+    ports:
+      - "127.0.0.1:8082:8080"
+    environment:
+      - DATABASE_URL=postgres://scheduler:loadtest@db:5432/scheduler_loadtest?sslmode=disable
+      - PORT=8080
+      - PUBLIC_BASE_URL=http://localhost:8082
+      - WEB_APP_URL=http://localhost:3000
+      - LOAD_TEST_MODE=true
+      - MASTER_BOT_TOKEN=fake:loadtest
+    depends_on:
+      db:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./load-tests/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--storage.tsdb.retention.time=1h"
+    depends_on:
+      - bot
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=loadtest
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./load-tests/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./load-tests/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  k6:
+    image: grafana/k6:latest
+    environment:
+      - BASE_URL=http://bot:8080
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
+    volumes:
+      - ./load-tests/scripts:/scripts:ro
+    depends_on:
+      - bot
+      - prometheus
+    profiles:
+      - test
+    entrypoint: ["k6", "run", "-o", "experimental-prometheus-rw"]
