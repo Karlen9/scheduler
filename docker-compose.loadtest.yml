@@ -26,7 +26,6 @@ services:
       - PUBLIC_BASE_URL=http://localhost:8082
       - WEB_APP_URL=http://localhost:3000
       - LOAD_TEST_MODE=true
-      - MASTER_BOT_TOKEN=fake:loadtest
     depends_on:
       db:
         condition: service_healthy

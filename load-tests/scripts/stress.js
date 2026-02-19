@@ -37,7 +37,7 @@ export default function (data) {
     const futureDate = new Date(Date.now() + 7 * 86400000)
       .toISOString()
       .split("T")[0];
-    http.get(`${BASE_URL}/api/availability?date=${futureDate}`, { headers });
+    http.get(`${BASE_URL}/api/availability?date=${futureDate}&duration=60`, { headers });
   });
 
   sleep(0.3);

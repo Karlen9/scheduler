@@ -22,9 +22,11 @@ func NewRouter() http.Handler {
 	r.Use(PrometheusMiddleware)
 	r.Use(SecurityHeadersMiddleware)
 
-	// Rate limiting
-	r.Use(GlobalRateLimitMiddleware(100, 200))
-	r.Use(PerIPRateLimitMiddleware(20, 40))
+	// Rate limiting (disabled in load test mode)
+	if !LoadTestMode {
+		r.Use(GlobalRateLimitMiddleware(100, 200))
+		r.Use(PerIPRateLimitMiddleware(20, 40))
+	}
 
 	// CORS for mini-app
 	allowedOrigins := []string{"*"}
