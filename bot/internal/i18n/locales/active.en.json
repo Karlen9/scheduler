@@ -23,6 +23,12 @@
   "Btn.Reject": {
     "other": "❌ Reject"
   },
+  "Btn.Accept": {
+    "other": "✅ Accept"
+  },
+  "Btn.Decline": {
+    "other": "❌ Decline"
+  },
   "Booking.New": {
     "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
@@ -64,6 +70,12 @@
   },
   "Booking.SpecialistCreatedClient": {
     "other": "📅 The specialist booked a session for you\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.SpecialistCreatedClientAccepted": {
+    "other": "✅ You accepted the booking\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.SpecialistCreatedClientDeclined": {
+    "other": "❌ You declined the booking\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
   },
   "Booking.ClientAcceptedSpecialist": {
     "other": "✅ Client confirmed the booking\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
@@ -131,6 +143,12 @@
   },
   "Callback.Confirmed": {
     "other": "✅ Booking confirmed"
+  },
+  "Callback.ClientConfirmed": {
+    "other": "✅ Booking accepted"
+  },
+  "Callback.ClientDeclined": {
+    "other": "❌ Booking declined"
   },
   "Callback.Rejected": {
     "other": "❌ Booking rejected"

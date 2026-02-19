@@ -23,6 +23,12 @@
   "Btn.Reject": {
     "other": "❌ Отклонить"
   },
+  "Btn.Accept": {
+    "other": "✅ Принять"
+  },
+  "Btn.Decline": {
+    "other": "❌ Отклонить"
+  },
   "Booking.New": {
     "other": "📅 Новая заявка на запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
@@ -64,6 +70,12 @@
   },
   "Booking.SpecialistCreatedClient": {
     "other": "📅 Специалист записал вас на сеанс\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.SpecialistCreatedClientAccepted": {
+    "other": "✅ Вы приняли запись\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+  },
+  "Booking.SpecialistCreatedClientDeclined": {
+    "other": "❌ Вы отклонили запись\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
   },
   "Booking.ClientAcceptedSpecialist": {
     "other": "✅ Клиент подтвердил запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
@@ -133,6 +145,12 @@
   },
   "Callback.Confirmed": {
     "other": "✅ Запись подтверждена"
+  },
+  "Callback.ClientConfirmed": {
+    "other": "✅ Запись принята"
+  },
+  "Callback.ClientDeclined": {
+    "other": "❌ Запись отклонена"
   },
   "Callback.Rejected": {
     "other": "❌ Запись отклонена"

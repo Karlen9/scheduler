@@ -89,6 +89,12 @@ func BtnConfirm(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Confirm"
 // BtnReject returns the localized reject button text
 func BtnReject(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Reject") }
 
+// BtnAccept returns the localized accept button text (for clients)
+func BtnAccept(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Accept") }
+
+// BtnDecline returns the localized decline button text (for clients)
+func BtnDecline(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Decline") }
+
 // FormatWelcome creates a welcome message with version and changelog
 func FormatWelcome(loc *i18n.Localizer, version string) string {
 	msg := myI18n.T(loc, "Welcome.Client")
@@ -445,8 +451,23 @@ func FormatSpecialistCreatedBookingClient(loc *i18n.Localizer, booking *models.B
 	if booking.ClientMessage != "" {
 		msg += myI18n.Tf(loc, "Booking.ClientMessage", map[string]interface{}{"Message": booking.ClientMessage})
 	}
-	msg += myI18n.T(loc, "Hint.OpenApp")
 	return msg
+}
+
+// FormatSpecialistCreatedBookingClientAccepted creates the edited message after client accepts
+func FormatSpecialistCreatedBookingClientAccepted(loc *i18n.Localizer, booking *models.Booking) string {
+	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientAccepted", map[string]interface{}{
+		"Service":  bookingServiceDisplay(loc, booking),
+		"DateTime": formatDateTime(loc, booking.StartsAt),
+	})
+}
+
+// FormatSpecialistCreatedBookingClientDeclined creates the edited message after client declines
+func FormatSpecialistCreatedBookingClientDeclined(loc *i18n.Localizer, booking *models.Booking) string {
+	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientDeclined", map[string]interface{}{
+		"Service":  bookingServiceDisplay(loc, booking),
+		"DateTime": formatDateTime(loc, booking.StartsAt),
+	})
 }
 
 // FormatClientAcceptedBookingSpecialist creates a message for specialist when client accepts
