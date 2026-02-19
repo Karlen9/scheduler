@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
+    command: postgres -c max_connections=200 -c shared_buffers=256MB
     environment:
       POSTGRES_DB: scheduler_loadtest
       POSTGRES_USER: scheduler
@@ -21,7 +22,7 @@ services:
     ports:
       - "127.0.0.1:8082:8080"
     environment:
-      - DATABASE_URL=postgres://scheduler:loadtest@db:5432/scheduler_loadtest?sslmode=disable
+      - DATABASE_URL=postgres://scheduler:loadtest@db:5432/scheduler_loadtest?sslmode=disable&pool_max_conns=50
       - PORT=8080
       - PUBLIC_BASE_URL=http://localhost:8082
       - WEB_APP_URL=http://localhost:3000
