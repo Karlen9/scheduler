@@ -409,6 +409,30 @@ func GetBookingNotificationInfo(bookingID string) (chatID int64, messageID int, 
 	return chatID, messageID, nil
 }
 
+// SaveClientNotificationInfo stores the Telegram message ID for the client notification
+func SaveClientNotificationInfo(bookingID string, chatID int64, messageID int) error {
+	_, err := DB.Exec(Q(`UPDATE bookings SET client_notification_chat_id = ?, client_notification_msg_id = ? WHERE id = ?`),
+		chatID, messageID, bookingID)
+	return err
+}
+
+// GetClientNotificationInfo returns the stored client Telegram notification message info
+func GetClientNotificationInfo(bookingID string) (chatID int64, messageID int, err error) {
+	var chatIDNull, msgIDNull sql.NullInt64
+	err = DB.QueryRow(Q(`SELECT client_notification_chat_id, client_notification_msg_id FROM bookings WHERE id = ?`),
+		bookingID).Scan(&chatIDNull, &msgIDNull)
+	if err != nil {
+		return 0, 0, err
+	}
+	if chatIDNull.Valid {
+		chatID = chatIDNull.Int64
+	}
+	if msgIDNull.Valid {
+		messageID = int(msgIDNull.Int64)
+	}
+	return
+}
+
 func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	endOfDay := startOfDay.AddDate(0, 0, 1)
