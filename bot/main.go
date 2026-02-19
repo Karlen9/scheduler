@@ -294,6 +294,28 @@ func main() {
 		return handler.NotifySpecialistClientBookingResponse(booking, accepted)
 	}
 
+	// Set up callback to edit client's Telegram notification message
+	api.UpdateClientMessageFunc = func(booking *models.Booking) error {
+		chatID, messageID, err := db.GetClientNotificationInfo(booking.ID)
+		if err != nil || chatID == 0 || messageID == 0 {
+			return nil // No saved message to edit
+		}
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
+			return nil
+		}
+		handler := botManager.GetHandler(specialist.WebhookSecret)
+		if handler == nil {
+			return nil
+		}
+		client, err := db.GetClientByID(booking.ClientID)
+		if err != nil || client == nil {
+			return nil
+		}
+		loc := myI18n.NewLocalizer(client.Language)
+		return handler.UpdateClientNotificationMessage(loc, chatID, messageID, booking)
+	}
+
 	// Set up recurring schedule notification callback
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error {
 		specialist, err := db.GetSpecialistByID(schedule.SpecialistID)

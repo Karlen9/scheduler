@@ -59,6 +59,7 @@ func TestMain(m *testing.M) {
 	api.NotifyStatusChangeFunc = func(booking *models.Booking, newStatus string) error { return nil }
 	api.UpdateSpecialistMessageFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyClientBookingResponseFunc = func(booking *models.Booking, accepted bool) error { return nil }
+	api.UpdateClientMessageFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyCancellationFunc = func(booking *models.Booking, cancelledBy string) error { return nil }
 	api.NotifySpecialistBookingFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error { return nil }
