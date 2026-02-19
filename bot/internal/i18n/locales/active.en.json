@@ -476,5 +476,8 @@
   },
   "CancelReason.Rescheduled": {
     "other": "Rescheduled"
+  },
+  "Error.CannotConfirmOwnBooking": {
+    "other": "Cannot confirm your own booking"
   }
 }
