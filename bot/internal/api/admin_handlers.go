@@ -625,6 +625,12 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Reject past dates and dates more than 3 months ahead
+	if errMsg := validateBookingDate(date); errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
+		return
+	}
+
 	timeParts := parseTime(req.Time)
 	duration := booking.DurationMinutes
 	if duration == 0 && booking.SessionType != nil {
@@ -718,6 +724,12 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	date, err := parseDate(req.Date)
 	if err != nil {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+		return
+	}
+
+	// Reject past dates and dates more than 3 months ahead
+	if errMsg := validateBookingDate(date); errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 

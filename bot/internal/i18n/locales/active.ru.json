@@ -499,5 +499,11 @@
   },
   "Error.CannotConfirmOwnBooking": {
     "other": "Нельзя подтвердить свою же запись"
+  },
+  "Error.DateInPast": {
+    "other": "Нельзя записаться на прошедшую дату"
+  },
+  "Error.DateTooFar": {
+    "other": "Нельзя записаться более чем на 3 месяца вперёд"
   }
 }
