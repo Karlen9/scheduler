@@ -4,7 +4,9 @@ import { useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Booking, WorkingHours } from '@/lib/types';
-import { ClientAvatar } from '@/components/ClientAvatar';
+import { TimelineBookingCard } from './TimelineBookingCard';
+import { TimelineEmptySlot, EmptySlot } from './TimelineEmptySlot';
+import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 
 interface DayTimelineProps {
   bookings: Booking[];
@@ -14,32 +16,10 @@ interface DayTimelineProps {
   onEmptySlotClick?: (date: Date, time: string) => void;
 }
 
-interface EmptySlot {
-  startMin: number;
-  endMin: number;
-}
-
 const HOUR_HEIGHT = 72;
 
 function formatHour(hour: number): string {
   return `${hour.toString().padStart(2, '0')}:00`;
-}
-
-function formatMinutes(totalMin: number): string {
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-}
-
-function getCardStyle(status: string): { bg: string; text: string; subtext: string } {
-  switch (status) {
-    case 'confirmed':
-      return { bg: 'bg-brand', text: 'text-white', subtext: 'text-white/70' };
-    case 'pending':
-      return { bg: 'bg-warning', text: 'text-white', subtext: 'text-white/80' };
-    default:
-      return { bg: 'bg-brand', text: 'text-white', subtext: 'text-white/70' };
-  }
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -63,7 +43,6 @@ export function DayTimeline({
   onEmptySlotClick,
 }: DayTimelineProps) {
   const t = useTranslations('DayTimeline');
-  const tc = useTranslations('Common');
   const locale = useLocale();
 
   const today = useMemo(() => new Date(), []);
@@ -216,29 +195,14 @@ export function DayTimeline({
         const height = ((slot.endMin - slot.startMin) / 60) * HOUR_HEIGHT;
 
         return (
-          <button
+          <TimelineEmptySlot
             key={`empty-${slot.startMin}`}
-            onClick={() => onEmptySlotClick?.(date, formatMinutes(slot.startMin))}
-            className="bg-card border-surface-border absolute right-0 left-12 overflow-hidden rounded-xl border border-dashed px-3 py-2 text-left transition-opacity active:opacity-80"
-            style={{ top: top + 3, height: height - 3 }}
-          >
-            <div className="flex h-full items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-muted-foreground text-sm font-medium">{t('emptySlot')}</p>
-                {height >= 54 && (
-                  <p className="text-muted-foreground/60 text-xs">{t('timeNotOccupied')}</p>
-                )}
-                {height >= 68 && (
-                  <p className="text-muted-foreground/60 text-xs">
-                    {formatMinutes(slot.startMin)} – {formatMinutes(slot.endMin)}
-                  </p>
-                )}
-              </div>
-              <div className="bg-brand/10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
-                <Plus className="text-brand h-3.5 w-3.5" />
-              </div>
-            </div>
-          </button>
+            slot={slot}
+            date={date}
+            top={top}
+            height={height}
+            onEmptySlotClick={onEmptySlotClick}
+          />
         );
       })}
 
@@ -250,54 +214,21 @@ export function DayTimeline({
         const endMin = end.getUTCHours() * 60 + end.getUTCMinutes();
         const top = ((startMin - minHour * 60) / 60) * HOUR_HEIGHT;
         const height = ((endMin - startMin) / 60) * HOUR_HEIGHT;
-        const style = getCardStyle(booking.status);
 
         return (
-          <button
+          <TimelineBookingCard
             key={booking.id}
-            onClick={() => onBookingClick?.(booking)}
-            className={`absolute right-0 left-12 ${style.bg} overflow-hidden rounded-xl px-3 py-2 text-left transition-opacity active:opacity-80`}
-            style={{ top: top + 3, height: height - 3 }}
-          >
-            <div className="flex h-full items-center gap-2">
-              <div className="min-w-0 flex-1">
-                <p className={`text-sm font-medium ${style.text} truncate`}>
-                  {booking.clientDisplayName || booking.clientName}
-                </p>
-                {height >= 54 && (
-                  <p className={`text-xs ${style.subtext} truncate`}>
-                    {tc('workout')}
-                    {booking.durationMinutes
-                      ? ` \u00b7 ${booking.durationMinutes} ${tc('min')}`
-                      : ''}
-                  </p>
-                )}
-                {height >= 68 && (
-                  <p className={`text-xs ${style.subtext}`}>
-                    {formatTime(booking.startsAt)} – {formatTime(booking.endsAt)}
-                  </p>
-                )}
-              </div>
-              <ClientAvatar
-                name={booking.clientDisplayName || booking.clientName}
-                photoUrl={booking.clientPhotoUrl}
-                size="sm"
-              />
-            </div>
-          </button>
+            booking={booking}
+            top={top}
+            height={height}
+            onBookingClick={onBookingClick}
+            formatTime={formatTime}
+          />
         );
       })}
 
       {/* Current time indicator */}
-      {nowTop !== null && (
-        <div
-          className="pointer-events-none absolute right-0 left-10 z-10 flex items-center"
-          style={{ top: nowTop }}
-        >
-          <div className="bg-destructive -ml-1 h-2.5 w-2.5 rounded-full" />
-          <div className="border-destructive flex-1 border-t-2" />
-        </div>
-      )}
+      {nowTop !== null && <CurrentTimeIndicator top={nowTop} />}
     </div>
   );
 }

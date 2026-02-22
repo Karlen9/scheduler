@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction } from 'react';
+
 export interface Specialist {
   id: string;
   name: string;
@@ -119,3 +121,60 @@ export interface RecurringPreviewResponse {
   dates: string[];
   count: number;
 }
+
+export interface CreateBookingParams {
+  clientId?: string;
+  duration: number;
+  date: string;
+  time: string;
+  message?: string;
+}
+
+export interface CreateRecurringParams {
+  clientId?: string;
+  sessionTypeId: string;
+  dayTimes: Record<string, string>;
+  period: string;
+}
+
+export interface PreviewRecurringParams {
+  sessionTypeId: string;
+  dayTimes: Record<string, string>;
+  period: string;
+}
+
+export interface BookingFormProps {
+  services: SessionType[];
+  workingHours: WorkingHours[];
+  daysOff: string[];
+  isLoading: boolean;
+  clients?: ClientInfo[];
+  showRecurring?: boolean;
+  bookedDates?: string[];
+  onCreateBooking: (params: CreateBookingParams) => Promise<void>;
+  onCreateRecurring: (params: CreateRecurringParams) => Promise<void>;
+  onPreviewRecurring: (params: PreviewRecurringParams) => Promise<{ dates: string[] }>;
+  onCreateGhostClient?: (name: string) => Promise<ClientInfo>;
+  successRedirect: string;
+  title?: string;
+}
+
+export type TRecurringDayFormProps = {
+  services: SessionType[];
+  recService: SessionType | null;
+  setRecService: Dispatch<SetStateAction<SessionType | null>>;
+  activeDay: number | null;
+  handleDayClick: (day: number) => void;
+  dayTimeMap: Record<number, string>;
+  timeSlotsForActiveDay: string[];
+  hasDayTimes: boolean;
+  selectedPeriod: string;
+  recFormReady: boolean;
+  setSelectedPeriod: (value: SetStateAction<string>) => void;
+  isPreviewing: boolean;
+  handlePreview: () => Promise<void>;
+  previewDates: string[] | null;
+  handleRecTimeSelect: (time: string) => void;
+};
+
+export type TVoidFunction = () => void;

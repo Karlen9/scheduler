@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -10,12 +9,13 @@ import { ActivityBackButton } from '@/components/ActivityBackButton';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ServiceSelector } from '@/components/ServiceSelector';
 import { PhotoEditor } from '@/components/PhotoEditor';
-import { api, getPhotoUrl } from '@/lib/api';
-import { getAvatarColor } from '@/lib/colors';
+import { api } from '@/lib/api';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useProfile, useSessionTypes } from '@/hooks/queries';
 import { invalidateProfile } from '@/hooks/mutations';
+import { AvatarSection } from './AvatarSection';
+import { NotificationPreferences } from './NotificationPreferences';
 
 export default function ClientProfilePage() {
   const t = useTranslations('ProfilePage');
@@ -149,39 +149,16 @@ export default function ClientProfilePage() {
     <div>
       <ActivityBackButton href="/" />
       <div className="space-y-6 p-4">
-        {/* Avatar */}
-        <div className="flex justify-center pt-2">
-          <div className="relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            {photoUrl && !photoError ? (
-              <img
-                src={getPhotoUrl(photoUrl)}
-                alt={name}
-                className="h-24 w-24 rounded-full object-cover"
-                onError={() => setPhotoError(true)}
-              />
-            ) : (
-              <div
-                className={`flex h-24 w-24 items-center justify-center rounded-full text-3xl ${name ? getAvatarColor(name) : 'bg-card text-muted-foreground'}`}
-              >
-                {name.charAt(0) || '?'}
-              </div>
-            )}
-            <div className="bg-brand absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full shadow-lg">
-              {isUploading ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Camera className="h-4 w-4 text-white" />
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-          </div>
-        </div>
+        <AvatarSection
+          name={name}
+          photoUrl={photoUrl}
+          photoError={photoError}
+          isUploading={isUploading}
+          onPhotoError={() => setPhotoError(true)}
+          onClickUpload={() => fileInputRef.current?.click()}
+          fileInputRef={fileInputRef}
+          onFileSelect={handleFileSelect}
+        />
 
         {/* Form */}
         <div className="space-y-4">
@@ -227,58 +204,13 @@ export default function ClientProfilePage() {
           {isSaving ? tc('saving') : tc('save')}
         </PrimaryButton>
 
-        {/* Notification Preferences */}
-        <div>
-          <h3 className="text-muted-foreground mb-3 text-sm">{t('notifications')}</h3>
-          <div className="bg-card divide-border divide-y rounded-lg">
-            {[
-              {
-                key: 'notifyBookingStatus' as const,
-                label: t('notifyBookingStatus'),
-                desc: t('notifyBookingStatusDesc'),
-                value: notifyBookingStatus,
-              },
-              {
-                key: 'notifyCancellations' as const,
-                label: t('notifyCancellations'),
-                desc: t('notifyCancellationsDesc'),
-                value: notifyCancellations,
-              },
-              {
-                key: 'notifyReminders' as const,
-                label: t('notifyReminders'),
-                desc: t('notifyRemindersDesc'),
-                value: notifyReminders,
-              },
-              {
-                key: 'notifyDaysOff' as const,
-                label: t('notifyDaysOff'),
-                desc: t('notifyDaysOffDesc'),
-                value: notifyDaysOff,
-              },
-            ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <div className="text-sm font-medium">{item.label}</div>
-                  <div className="text-muted-foreground text-xs">{item.desc}</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleNotification(item.key, !item.value)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    item.value ? 'bg-brand' : 'bg-switch-background'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      item.value ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        <NotificationPreferences
+          notifyBookingStatus={notifyBookingStatus}
+          notifyReminders={notifyReminders}
+          notifyDaysOff={notifyDaysOff}
+          notifyCancellations={notifyCancellations}
+          onToggle={handleToggleNotification}
+        />
 
         {/* Theme */}
         <div>

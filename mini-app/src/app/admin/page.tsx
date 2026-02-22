@@ -4,15 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { Bell, Users } from 'lucide-react';
 import { BookingDetailModal } from '@/components/BookingDetailModal';
 import { BottomSheet } from '@/components/BottomSheet';
 import { PendingBookingCard } from '@/components/PendingBookingCard';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { NextBookingBanner } from '@/components/schedule/NextBookingBanner';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
-import { StatCard } from '@/components/StatCard';
 import { Booking } from '@/lib/types';
 import { api } from '@/lib/api';
 import {
@@ -22,11 +19,13 @@ import {
   useClients,
 } from '@/hooks/queries';
 import { invalidateBookings } from '@/hooks/mutations';
+import { StatsSection } from './StatsSection';
+import { RejectDialog } from './RejectDialog';
+import { CancelDialog } from './CancelDialog';
 
 export default function AdminHomePage() {
   const router = useRouter();
   const t = useTranslations('AdminDashboard');
-  const tc = useTranslations('Common');
   const te = useTranslations('Errors');
   const ts = useTranslations('Success');
   const {
@@ -190,24 +189,12 @@ export default function AdminHomePage() {
         <NextBookingBanner booking={nextBooking} onBookingClick={handleBookingClick} />
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            icon={Bell}
-            iconColor="text-warning"
-            iconBg="bg-warning/20"
-            value={pendingCount}
-            label={t('newRequests')}
-            onClick={pendingCount > 0 ? () => setShowPendingSheet(true) : undefined}
-          />
-          <StatCard
-            icon={Users}
-            iconColor="text-brand"
-            iconBg="bg-brand/20"
-            value={clients.length}
-            label={t('allClients')}
-            onClick={() => router.push('/admin/clients')}
-          />
-        </div>
+        <StatsSection
+          pendingCount={pendingCount}
+          clientsCount={clients.length}
+          onPendingClick={pendingCount > 0 ? () => setShowPendingSheet(true) : undefined}
+          onClientsClick={() => router.push('/admin/clients')}
+        />
 
         {/* Schedule */}
         <ScheduleView
@@ -221,25 +208,17 @@ export default function AdminHomePage() {
       </div>
 
       {/* Reject dialog */}
-      <ConfirmDialog
+      <RejectDialog
         isOpen={showRejectDialog}
-        title={t('rejectDialog')}
-        description={t('rejectDialogDescription', {
-          name: rejectTarget?.clientDisplayName || rejectTarget?.clientName || '',
-        })}
-        confirmText={t('rejectConfirm')}
-        cancelText={tc('back')}
+        targetName={rejectTarget?.clientDisplayName || rejectTarget?.clientName || ''}
+        reason={rejectReason}
+        onReasonChange={setRejectReason}
         onConfirm={handleConfirmReject}
         onClose={() => {
           setShowRejectDialog(false);
           setRejectTarget(null);
           setRejectReason('');
         }}
-        destructive
-        showInput
-        inputPlaceholder={t('rejectReasonPlaceholder')}
-        inputValue={rejectReason}
-        onInputChange={setRejectReason}
       />
 
       {/* Booking detail modal */}
@@ -265,24 +244,16 @@ export default function AdminHomePage() {
       />
 
       {/* Cancel dialog */}
-      <ConfirmDialog
+      <CancelDialog
         isOpen={showCancelDialog}
-        title={t('cancelDialog')}
-        description={t('cancelDialogDescription', {
-          name: selectedBooking?.clientDisplayName || selectedBooking?.clientName || '',
-        })}
-        confirmText={t('cancelConfirm')}
-        cancelText={tc('back')}
+        targetName={selectedBooking?.clientDisplayName || selectedBooking?.clientName || ''}
+        reason={cancelReason}
+        onReasonChange={setCancelReason}
         onConfirm={handleConfirmCancel}
         onClose={() => {
           setShowCancelDialog(false);
           setCancelReason('');
         }}
-        destructive
-        showInput
-        inputPlaceholder={t('cancelReasonPlaceholder')}
-        inputValue={cancelReason}
-        onInputChange={setCancelReason}
       />
 
       {/* Pending requests sheet */}
