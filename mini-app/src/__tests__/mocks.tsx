@@ -1,6 +1,9 @@
-import React from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
+import React from 'react';
+
+import type { RenderOptions, RenderResult } from '@testing-library/react';
+import type { ReactNode } from 'react';
 
 const messages = {
   Status: {
@@ -42,10 +45,13 @@ const messages = {
   },
 };
 
-export function renderWithIntl(ui: React.ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
-  function Wrapper({ children }: { children: React.ReactNode }) {
+export function renderWithIntl(
+  ui: React.ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>,
+): RenderResult {
+  function Wrapper({ children }: { children: React.ReactNode }): ReactNode {
     return (
-      <NextIntlClientProvider locale="ru" messages={messages}>
+      <NextIntlClientProvider locale={'ru'} messages={messages}>
         {children}
       </NextIntlClientProvider>
     );

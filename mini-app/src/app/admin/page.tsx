@@ -1,29 +1,33 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import React, { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+
 import { BookingDetailModal } from '@/components/BookingDetailModal';
 import { BottomSheet } from '@/components/BottomSheet';
 import { PendingBookingCard } from '@/components/PendingBookingCard';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { NextBookingBanner } from '@/components/schedule/NextBookingBanner';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
-import { Booking } from '@/lib/types';
-import { api } from '@/lib/api';
+import { invalidateBookings } from '@/hooks/mutations';
 import {
   useAdminBookings,
-  useAdminWorkingHours,
   useAdminDaysOff,
+  useAdminWorkingHours,
   useClients,
 } from '@/hooks/queries';
-import { invalidateBookings } from '@/hooks/mutations';
-import { StatsSection } from './StatsSection';
-import { RejectDialog } from './RejectDialog';
-import { CancelDialog } from './CancelDialog';
+import { api } from '@/lib/api';
 
-export default function AdminHomePage() {
+import { CancelDialog } from './CancelDialog';
+import { RejectDialog } from './RejectDialog';
+import { StatsSection } from './StatsSection';
+
+import type { TBooking } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+export default function AdminHomePage(): ReactNode {
   const router = useRouter();
   const t = useTranslations('AdminDashboard');
   const te = useTranslations('Errors');
@@ -41,19 +45,21 @@ export default function AdminHomePage() {
     const workingSet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
     const result: number[] = [];
     for (let i = 0; i < 7; i++) {
-      if (!workingSet.has(i)) result.push(i);
+      if (!workingSet.has(i)) {
+        result.push(i);
+      }
     }
     return result;
   }, [workingHoursData]);
 
   const daysOff = useMemo(() => daysOffData.map((d) => d.date), [daysOffData]);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<Booking | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<TBooking | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
-  const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
+  const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
   const [showPendingSheet, setShowPendingSheet] = useState(false);
 
   const error = fetchError
@@ -86,7 +92,7 @@ export default function AdminHomePage() {
     );
   }, [bookings]);
 
-  const handleAccept = async (booking: Booking) => {
+  const handleAccept = async (booking: TBooking): Promise<void> => {
     try {
       await api.admin.updateBookingStatus(booking.id, 'confirmed');
       toast.success(ts('bookingConfirmed'));
@@ -97,14 +103,16 @@ export default function AdminHomePage() {
     }
   };
 
-  const handleRejectClick = (booking: Booking) => {
+  const handleRejectClick = (booking: TBooking): void => {
     setSelectedBooking(null);
     setRejectTarget(booking);
     setShowRejectDialog(true);
   };
 
-  const handleConfirmReject = async () => {
-    if (!rejectTarget) return;
+  const handleConfirmReject = async (): Promise<void> => {
+    if (!rejectTarget) {
+      return;
+    }
     try {
       await api.admin.updateBookingStatus(rejectTarget.id, 'rejected', rejectReason || undefined);
       toast.success(ts('bookingRejected'));
@@ -117,21 +125,23 @@ export default function AdminHomePage() {
     setRejectReason('');
   };
 
-  const handleBookingClick = (booking: Booking) => {
+  const handleBookingClick = (booking: TBooking): void => {
     setSelectedBooking(booking);
   };
 
-  const handleRescheduleClick = (booking: Booking) => {
+  const handleRescheduleClick = (booking: TBooking): void => {
     setSelectedBooking(null);
     setRescheduleBooking(booking);
   };
 
-  const handleCancelClick = () => {
+  const handleCancelClick = (): void => {
     setShowCancelDialog(true);
   };
 
-  const handleConfirmCancel = async () => {
-    if (!selectedBooking) return;
+  const handleConfirmCancel = async (): Promise<void> => {
+    if (!selectedBooking) {
+      return;
+    }
     try {
       await api.admin.updateBookingStatus(
         selectedBooking.id,
@@ -148,24 +158,24 @@ export default function AdminHomePage() {
     setCancelReason('');
   };
 
-  const handleEmptySlotClick = (_date: Date, _time: string) => {
+  const handleEmptySlotClick = (_date: Date, _time: string): void => {
     router.push('/admin/book');
   };
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-4">
-        <div className="animate-pulse">
-          <div className="bg-card mb-3 h-5 w-36 rounded" />
-          <div className="bg-card h-24 rounded-xl" />
+      <div className={'space-y-6 p-4'}>
+        <div className={'animate-pulse'}>
+          <div className={'bg-card mb-3 h-5 w-36 rounded'} />
+          <div className={'bg-card h-24 rounded-xl'} />
         </div>
-        <div className="animate-pulse">
-          <div className="bg-card mb-3 h-5 w-28 rounded" />
-          <div className="bg-card mb-4 h-10 rounded-xl" />
-          <div className="bg-card mb-3 h-5 w-48 rounded" />
-          <div className="space-y-2">
-            <div className="bg-card h-16 rounded-xl" />
-            <div className="bg-card h-16 rounded-xl" />
+        <div className={'animate-pulse'}>
+          <div className={'bg-card mb-3 h-5 w-28 rounded'} />
+          <div className={'bg-card mb-4 h-10 rounded-xl'} />
+          <div className={'bg-card mb-3 h-5 w-48 rounded'} />
+          <div className={'space-y-2'}>
+            <div className={'bg-card h-16 rounded-xl'} />
+            <div className={'bg-card h-16 rounded-xl'} />
           </div>
         </div>
       </div>
@@ -174,8 +184,8 @@ export default function AdminHomePage() {
 
   if (error) {
     return (
-      <div className="p-4">
-        <div className="bg-action-danger-bg text-action-danger-text rounded-xl p-4 text-center">
+      <div className={'p-4'}>
+        <div className={'bg-action-danger-bg text-action-danger-text rounded-xl p-4 text-center'}>
           {error}
         </div>
       </div>
@@ -184,7 +194,7 @@ export default function AdminHomePage() {
 
   return (
     <div>
-      <div className="space-y-6 p-4">
+      <div className={'space-y-6 p-4'}>
         {/* Next upcoming booking */}
         <NextBookingBanner booking={nextBooking} onBookingClick={handleBookingClick} />
 
@@ -261,16 +271,18 @@ export default function AdminHomePage() {
         isOpen={showPendingSheet}
         onClose={() => setShowPendingSheet(false)}
         title={t('newRequests')}
-        className="max-h-[70vh] overflow-y-auto"
+        className={'max-h-[70vh] overflow-y-auto'}
       >
-        <div className="space-y-3">
+        <div className={'space-y-3'}>
           {pendingBookings.map((booking) => (
             <PendingBookingCard
               key={booking.id}
               booking={booking}
               onAccept={async (b) => {
                 await handleAccept(b);
-                if (pendingBookings.length <= 1) setShowPendingSheet(false);
+                if (pendingBookings.length <= 1) {
+                  setShowPendingSheet(false);
+                }
               }}
               onReject={(b) => {
                 setShowPendingSheet(false);

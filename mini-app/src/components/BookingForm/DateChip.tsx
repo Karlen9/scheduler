@@ -1,5 +1,9 @@
-import { monthShortCapKeys } from '@/lib/mappings';
 import { useTranslations } from 'next-intl';
+
+import { monthShortCapKeys } from '@/lib/mappings';
+
+import type { TVoidFunction } from '@/lib/types';
+import type { ReactNode } from 'react';
 
 export function DateChip({
   date,
@@ -12,8 +16,8 @@ export function DateChip({
   time?: string;
   endTime?: string;
   active: boolean;
-  onClick: () => void;
-}) {
+  onClick: TVoidFunction;
+}): ReactNode {
   const td = useTranslations('Dates');
   const monthKey = monthShortCapKeys[date.getMonth()];
 
@@ -26,15 +30,17 @@ export function DateChip({
           : 'border-border bg-card border'
       }`}
     >
-      <span className="text-foreground text-lg font-semibold">{date.getDate()}</span>
-      <span className="text-muted-foreground text-[10px]">{td(`monthsShortCap.${monthKey}`)}</span>
+      <span className={'text-foreground text-lg font-semibold'}>{date.getDate()}</span>
+      <span className={'text-muted-foreground text-[10px]'}>
+        {td(`monthsShortCap.${monthKey}`)}
+      </span>
       {time ? (
         <>
-          <span className="text-foreground mt-1 text-[10px]">{time}</span>
-          {endTime && <span className="text-muted-foreground text-[10px]">{endTime}</span>}
+          <span className={'text-foreground mt-1 text-[10px]'}>{time}</span>
+          {endTime && <span className={'text-muted-foreground text-[10px]'}>{endTime}</span>}
         </>
       ) : (
-        <span className="text-muted-foreground mt-1 text-sm">?</span>
+        <span className={'text-muted-foreground mt-1 text-sm'}>{'?'}</span>
       )}
     </button>
   );

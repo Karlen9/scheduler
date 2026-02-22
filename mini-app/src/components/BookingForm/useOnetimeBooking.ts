@@ -1,22 +1,56 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { api } from '@/lib/api';
-import { ClientInfo, CreateBookingParams, SessionType, TimeSlot } from '@/lib/types';
-import { invalidateBookings } from '@/hooks/mutations';
-import { monthGenKeys } from '@/lib/mappings';
-import { formatDateISO } from '@/lib/helpers';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-interface UseOnetimeBookingParams {
-  services: SessionType[];
-  selectedClient: ClientInfo | null;
+import { invalidateBookings } from '@/hooks/mutations';
+import { api } from '@/lib/api';
+import { formatDateISO } from '@/lib/helpers';
+import { monthGenKeys } from '@/lib/mappings';
+
+import type {
+  TClientInfo,
+  TCreateBookingParams,
+  TSessionType,
+  TTimeSlot,
+  TVoidFunction,
+} from '@/lib/types';
+
+type TUseOnetimeBookingParams = {
+  services: TSessionType[];
+  selectedClient: TClientInfo | null;
   hasClientSelector: boolean;
-  onCreateBooking: (params: CreateBookingParams) => Promise<void>;
+  onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
   successRedirect: string;
-}
+};
+
+type TUseOnetimeBookingReturn = {
+  mode: 'single' | 'multi';
+  setMode: (mode: 'single' | 'multi') => void;
+  selectedService: TSessionType | null;
+  selectedDate: Date | null;
+  selectedTime: string | null;
+  selectedDates: Date[];
+  activeDateISO: string | null;
+  timeAssignments: Record<string, string>;
+  timeSlots: TTimeSlot[];
+  isLoadingSlots: boolean;
+  message: string;
+  setMessage: (message: string) => void;
+  multiActiveTime: string | null;
+  onetimeButtonText: string;
+  onetimeButtonDisabled: boolean;
+  handleServiceSelect: (service: TSessionType) => void;
+  handleEditService: TVoidFunction;
+  handleSingleDateSelect: (date: Date) => void;
+  handleSingleTimeSelect: (time: string) => void;
+  handleMultiDateToggle: (date: Date) => void;
+  handleChipTap: (date: Date) => void;
+  handleMultiTimeSelect: (time: string) => void;
+  handleOnetimeSubmit: TVoidFunction;
+};
 
 export function useOnetimeBooking({
   services,
@@ -24,7 +58,7 @@ export function useOnetimeBooking({
   hasClientSelector,
   onCreateBooking,
   successRedirect,
-}: UseOnetimeBookingParams) {
+}: TUseOnetimeBookingParams): TUseOnetimeBookingReturn {
   const router = useRouter();
   const t = useTranslations('BookingForm');
   const tc = useTranslations('Common');
@@ -33,13 +67,13 @@ export function useOnetimeBooking({
 
   // ── State ──
   const [mode, setMode] = useState<'single' | 'multi'>('single');
-  const [selectedService, setSelectedService] = useState<SessionType | null>(null);
+  const [selectedService, setSelectedService] = useState<TSessionType | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [activeDateISO, setActiveDateISO] = useState<string | null>(null);
   const [timeAssignments, setTimeAssignments] = useState<Record<string, string>>({});
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [timeSlots, setTimeSlots] = useState<TTimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [, setNoSlotsAvailable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,8 +100,10 @@ export function useOnetimeBooking({
 
   // ── Helpers ──
 
-  const fetchSlots = useCallback(async (date: Date, duration: number) => {
-    if (!duration) return;
+  const fetchSlots = useCallback(async (date: Date, duration: number): Promise<void> => {
+    if (!duration) {
+      return;
+    }
     setIsLoadingSlots(true);
     try {
       const dateStr = formatDateISO(date);
@@ -86,7 +122,7 @@ export function useOnetimeBooking({
 
   // ── Service handlers ──
 
-  const handleServiceSelect = (service: SessionType) => {
+  const handleServiceSelect = (service: TSessionType): void => {
     const changed = selectedService?.id !== service.id;
     setSelectedService(service);
     if (changed) {
@@ -100,7 +136,7 @@ export function useOnetimeBooking({
     }
   };
 
-  const handleEditService = () => {
+  const handleEditService = (): void => {
     setSelectedService(null);
     setSelectedDate(null);
     setSelectedTime(null);
@@ -113,7 +149,7 @@ export function useOnetimeBooking({
 
   // ── Single mode handlers ──
 
-  const handleSingleDateSelect = (date: Date) => {
+  const handleSingleDateSelect = (date: Date): void => {
     setSelectedDate(date);
     setSelectedTime(null);
     if (selectedService) {
@@ -121,13 +157,13 @@ export function useOnetimeBooking({
     }
   };
 
-  const handleSingleTimeSelect = (time: string) => {
+  const handleSingleTimeSelect = (time: string): void => {
     setSelectedTime(time);
   };
 
   // ── Multi mode handlers ──
 
-  const handleMultiDateToggle = (date: Date) => {
+  const handleMultiDateToggle = (date: Date): void => {
     const iso = formatDateISO(date);
     const exists = selectedDates.some((d) => formatDateISO(d) === iso);
 
@@ -143,7 +179,9 @@ export function useOnetimeBooking({
         if (newDates.length > 0) {
           const firstISO = formatDateISO(newDates[0]);
           setActiveDateISO(firstISO);
-          if (selectedService) fetchSlots(newDates[0], selectedService.durationMinutes);
+          if (selectedService) {
+            fetchSlots(newDates[0], selectedService.durationMinutes);
+          }
         } else {
           setActiveDateISO(null);
           setTimeSlots([]);
@@ -151,22 +189,30 @@ export function useOnetimeBooking({
         }
       }
     } else {
-      if (selectedDates.length >= 6) return;
+      if (selectedDates.length >= 6) {
+        return;
+      }
       const newDates = [...selectedDates, date].sort((a, b) => a.getTime() - b.getTime());
       setSelectedDates(newDates);
       setActiveDateISO(iso);
-      if (selectedService) fetchSlots(date, selectedService.durationMinutes);
+      if (selectedService) {
+        fetchSlots(date, selectedService.durationMinutes);
+      }
     }
   };
 
-  const handleChipTap = (date: Date) => {
+  const handleChipTap = (date: Date): void => {
     const iso = formatDateISO(date);
     setActiveDateISO(iso);
-    if (selectedService) fetchSlots(date, selectedService.durationMinutes);
+    if (selectedService) {
+      fetchSlots(date, selectedService.durationMinutes);
+    }
   };
 
-  const handleMultiTimeSelect = (time: string) => {
-    if (!activeDateISO || !selectedService) return;
+  const handleMultiTimeSelect = (time: string): void => {
+    if (!activeDateISO || !selectedService) {
+      return;
+    }
     const newAssignments = { ...timeAssignments, [activeDateISO]: time };
     setTimeAssignments(newAssignments);
 
@@ -191,7 +237,7 @@ export function useOnetimeBooking({
 
   // ── Submit ──
 
-  const getOnetimeSuccessDescription = () => {
+  const getOnetimeSuccessDescription = (): string => {
     const isGhost = selectedClient?.isGhost;
     if (mode === 'single' && selectedDate && selectedTime && selectedService) {
       const who = selectedClient
@@ -218,9 +264,13 @@ export function useOnetimeBooking({
     return isGhost ? t('successBookingCreated') : t('successAwaitConfirmation');
   };
 
-  const handleSingleSubmit = async () => {
-    if (!selectedDate || !selectedTime || !selectedService) return;
-    if (hasClientSelector && !selectedClient) return;
+  const handleSingleSubmit = async (): Promise<void> => {
+    if (!selectedDate || !selectedTime || !selectedService) {
+      return;
+    }
+    if (hasClientSelector && !selectedClient) {
+      return;
+    }
     setIsSubmitting(true);
     try {
       const dateStr = formatDateISO(selectedDate);
@@ -242,15 +292,21 @@ export function useOnetimeBooking({
     }
   };
 
-  const handleMultiSubmit = async () => {
-    if (!selectedService) return;
-    if (hasClientSelector && !selectedClient) return;
+  const handleMultiSubmit = async (): Promise<void> => {
+    if (!selectedService) {
+      return;
+    }
+    if (hasClientSelector && !selectedClient) {
+      return;
+    }
     setIsSubmitting(true);
     try {
       for (const date of selectedDates) {
         const iso = formatDateISO(date);
         const time = timeAssignments[iso];
-        if (!time) continue;
+        if (!time) {
+          continue;
+        }
         await onCreateBooking({
           clientId: selectedClient?.id,
           duration: selectedService.durationMinutes,
@@ -270,26 +326,40 @@ export function useOnetimeBooking({
     }
   };
 
-  const handleOnetimeSubmit = () => {
-    if (mode === 'single') handleSingleSubmit();
-    else handleMultiSubmit();
+  const handleOnetimeSubmit = (): void => {
+    if (mode === 'single') {
+      handleSingleSubmit();
+    } else {
+      handleMultiSubmit();
+    }
   };
 
   // ── Button state ──
 
-  const getOnetimeButtonState = () => {
-    if (hasClientSelector && !selectedClient) return { text: t('btnSelectClient'), disabled: true };
-    if (!selectedService) return { text: t('btnSelectService'), disabled: true };
+  const getOnetimeButtonState = (): { text: string; disabled: boolean } => {
+    if (hasClientSelector && !selectedClient) {
+      return { text: t('btnSelectClient'), disabled: true };
+    }
+    if (!selectedService) {
+      return { text: t('btnSelectService'), disabled: true };
+    }
     if (mode === 'single') {
-      if (!selectedDate) return { text: t('btnSelectDate'), disabled: true };
-      if (!selectedTime) return { text: t('btnSelectTime'), disabled: true };
-      return { text: isSubmitting ? tc('sending') : t('btnSubmit'), disabled: isSubmitting };
-    } else {
-      if (selectedDates.length === 0) return { text: t('btnSelectDays'), disabled: true };
-      const allAssigned = selectedDates.every((d) => timeAssignments[formatDateISO(d)]);
-      if (!allAssigned) return { text: t('btnSelectTime'), disabled: true };
+      if (!selectedDate) {
+        return { text: t('btnSelectDate'), disabled: true };
+      }
+      if (!selectedTime) {
+        return { text: t('btnSelectTime'), disabled: true };
+      }
       return { text: isSubmitting ? tc('sending') : t('btnSubmit'), disabled: isSubmitting };
     }
+    if (selectedDates.length === 0) {
+      return { text: t('btnSelectDays'), disabled: true };
+    }
+    const allAssigned = selectedDates.every((d) => timeAssignments[formatDateISO(d)]);
+    if (!allAssigned) {
+      return { text: t('btnSelectTime'), disabled: true };
+    }
+    return { text: isSubmitting ? tc('sending') : t('btnSubmit'), disabled: isSubmitting };
   };
 
   const { text: onetimeButtonText, disabled: onetimeButtonDisabled } = getOnetimeButtonState();

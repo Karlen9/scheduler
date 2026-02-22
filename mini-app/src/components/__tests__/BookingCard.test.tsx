@@ -1,11 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BookingCard } from '@/components/BookingCard';
-import { Booking } from '@/lib/types';
-import { renderWithIntl } from '@/__tests__/mocks';
+import { describe, expect, it, vi } from 'vitest';
 
-function makeBooking(overrides: Partial<Booking> = {}): Booking {
+import { renderWithIntl } from '@/__tests__/mocks';
+import { BookingCard } from '@/components/BookingCard';
+
+import type { TBooking } from '@/lib/types';
+
+function makeBooking(overrides: Partial<TBooking> = {}): TBooking {
   return {
     id: 'test-booking-1',
     startsAt: '2026-06-15T10:00:00Z',

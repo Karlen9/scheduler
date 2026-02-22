@@ -1,6 +1,6 @@
-import { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 
-export interface Specialist {
+export type TSpecialist = {
   id: string;
   name: string;
   timezone: string;
@@ -15,9 +15,9 @@ export interface Specialist {
   locationLongitude?: number;
   isOwner?: boolean;
   language?: string;
-}
+};
 
-export interface SessionType {
+export type TSessionType = {
   id: string;
   type: string;
   name: string;
@@ -25,17 +25,17 @@ export interface SessionType {
   price: number;
   currency: string;
   imageUrl?: string;
-}
+};
 
-export interface WorkingHours {
+export type TWorkingHours = {
   dayOfWeek: number; // 0 = Sunday, 6 = Saturday
   startTime: string; // "09:00"
   endTime: string; // "18:00"
-}
+};
 
-export interface Booking {
+export type TBooking = {
   id: string;
-  sessionType?: SessionType;
+  sessionType?: TSessionType;
   startsAt: string; // ISO datetime
   endsAt: string;
   clientName: string;
@@ -56,15 +56,15 @@ export interface Booking {
   createdBy?: 'client' | 'specialist';
   recurringScheduleId?: string;
   replacesBookingId?: string;
-}
+};
 
-export interface TimeSlot {
+export type TTimeSlot = {
   time: string; // "09:00"
   endTime?: string; // "10:00"
   available: boolean;
-}
+};
 
-export interface ClientProfile {
+export type TClientProfile = {
   id: string;
   name: string;
   phone?: string;
@@ -75,9 +75,9 @@ export interface ClientProfile {
   notifyDaysOff?: boolean;
   notifyCancellations?: boolean;
   language?: string;
-}
+};
 
-export interface ClientInfo {
+export type TClientInfo = {
   id: string;
   telegramUserId: number;
   specialistId: string;
@@ -87,16 +87,16 @@ export interface ClientInfo {
   photoUrl?: string;
   isGhost?: boolean;
   createdAt: string;
-}
+};
 
-export interface DayOff {
+export type TDayOff = {
   id: string;
   date: string; // ISO date string
   reason?: string;
   createdAt: string;
-}
+};
 
-export interface RecurringSchedule {
+export type TRecurringSchedule = {
   id: string;
   clientName: string;
   clientDisplayName?: string;
@@ -109,60 +109,60 @@ export interface RecurringSchedule {
   createdAt: string;
   // Phase 2 fields
   sessionTypeId?: string;
-  sessionType?: SessionType;
+  sessionType?: TSessionType;
   daysOfWeek?: string; // comma-separated: "1,3,5"
   startDate?: string; // "2026-02-17"
   endDate?: string; // "2026-05-17"
   dayTimes?: string; // JSON: '{"1":"09:00","3":"10:30"}'
-  bookings?: Booking[];
-}
+  bookings?: TBooking[];
+};
 
-export interface RecurringPreviewResponse {
+export type TRecurringPreviewResponse = {
   dates: string[];
   count: number;
-}
+};
 
-export interface CreateBookingParams {
+export type TCreateBookingParams = {
   clientId?: string;
   duration: number;
   date: string;
   time: string;
   message?: string;
-}
+};
 
-export interface CreateRecurringParams {
+export type TCreateRecurringParams = {
   clientId?: string;
   sessionTypeId: string;
   dayTimes: Record<string, string>;
   period: string;
-}
+};
 
-export interface PreviewRecurringParams {
+export type TPreviewRecurringParams = {
   sessionTypeId: string;
   dayTimes: Record<string, string>;
   period: string;
-}
+};
 
-export interface BookingFormProps {
-  services: SessionType[];
-  workingHours: WorkingHours[];
+export type TBookingFormProps = {
+  services: TSessionType[];
+  workingHours: TWorkingHours[];
   daysOff: string[];
   isLoading: boolean;
-  clients?: ClientInfo[];
+  clients?: TClientInfo[];
   showRecurring?: boolean;
   bookedDates?: string[];
-  onCreateBooking: (params: CreateBookingParams) => Promise<void>;
-  onCreateRecurring: (params: CreateRecurringParams) => Promise<void>;
-  onPreviewRecurring: (params: PreviewRecurringParams) => Promise<{ dates: string[] }>;
-  onCreateGhostClient?: (name: string) => Promise<ClientInfo>;
+  onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
+  onCreateRecurring: (params: TCreateRecurringParams) => Promise<void>;
+  onPreviewRecurring: (params: TPreviewRecurringParams) => Promise<{ dates: string[] }>;
+  onCreateGhostClient?: (name: string) => Promise<TClientInfo>;
   successRedirect: string;
   title?: string;
-}
+};
 
 export type TRecurringDayFormProps = {
-  services: SessionType[];
-  recService: SessionType | null;
-  setRecService: Dispatch<SetStateAction<SessionType | null>>;
+  services: TSessionType[];
+  recService: TSessionType | null;
+  setRecService: Dispatch<SetStateAction<TSessionType | null>>;
   activeDay: number | null;
   handleDayClick: (day: number) => void;
   dayTimeMap: Record<number, string>;

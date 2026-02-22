@@ -1,24 +1,27 @@
 'use client';
 
-import { useState } from 'react';
 import { CalendarX, ChevronDown } from 'lucide-react';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 import { BookingCard } from '@/components/BookingCard';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { BookingCardSkeleton } from '@/components/LoadingSkeleton';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { api } from '@/lib/api';
-import { Booking } from '@/lib/types';
-import { useBookings } from '@/hooks/queries';
 import { invalidateBookings } from '@/hooks/mutations';
+import { useBookings } from '@/hooks/queries';
+import { api } from '@/lib/api';
 
-export default function BookingsPage() {
+import type { TBooking } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+export default function BookingsPage(): ReactNode {
   const t = useTranslations('BookingsPage');
   const te = useTranslations('Errors');
   const ts = useTranslations('Success');
   const { data: bookings, isLoading, error } = useBookings();
-  const [cancelBookingTarget, setCancelBookingTarget] = useState<Booking | null>(null);
+  const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
 
@@ -35,8 +38,10 @@ export default function BookingsPage() {
     .filter((b) => b.status === 'completed' || b.status === 'cancelled' || b.status === 'rejected')
     .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
 
-  const handleCancelBooking = async () => {
-    if (!cancelBookingTarget) return;
+  const handleCancelBooking = async (): Promise<void> => {
+    if (!cancelBookingTarget) {
+      return;
+    }
     try {
       await api.cancelBooking(cancelBookingTarget.id, cancelReason || t('cancelDefaultReason'));
       toast.success(ts('bookingCancelled'));
@@ -48,7 +53,7 @@ export default function BookingsPage() {
     }
   };
 
-  const handleConfirm = async (booking: Booking) => {
+  const handleConfirm = async (booking: TBooking): Promise<void> => {
     try {
       await api.confirmBooking(booking.id);
       toast.success(ts('bookingConfirmed'));
@@ -58,7 +63,7 @@ export default function BookingsPage() {
     }
   };
 
-  const handleDecline = async (booking: Booking) => {
+  const handleDecline = async (booking: TBooking): Promise<void> => {
     try {
       await api.declineBooking(booking.id);
       toast.success(ts('bookingDeclined'));
@@ -70,10 +75,10 @@ export default function BookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 p-4">
-        <h2 className="px-1 text-lg font-semibold">{t('title')}</h2>
-        <div className="bg-card mb-3 h-4 w-28 animate-pulse rounded" />
-        <div className="space-y-3">
+      <div className={'space-y-4 p-4'}>
+        <h2 className={'px-1 text-lg font-semibold'}>{t('title')}</h2>
+        <div className={'bg-card mb-3 h-4 w-28 animate-pulse rounded'} />
+        <div className={'space-y-3'}>
           <BookingCardSkeleton />
           <BookingCardSkeleton />
         </div>
@@ -83,10 +88,10 @@ export default function BookingsPage() {
 
   if (error) {
     return (
-      <div className="space-y-4 p-4">
-        <h2 className="px-1 text-lg font-semibold">{t('title')}</h2>
+      <div className={'space-y-4 p-4'}>
+        <h2 className={'px-1 text-lg font-semibold'}>{t('title')}</h2>
         <EmptyState
-          icon={<CalendarX className="h-16 w-16" />}
+          icon={<CalendarX className={'h-16 w-16'} />}
           title={t('loadError')}
           description={t('loadErrorDescription')}
         />
@@ -96,10 +101,10 @@ export default function BookingsPage() {
 
   if (bookings.length === 0) {
     return (
-      <div className="space-y-4 p-4">
-        <h2 className="px-1 text-lg font-semibold">{t('title')}</h2>
+      <div className={'space-y-4 p-4'}>
+        <h2 className={'px-1 text-lg font-semibold'}>{t('title')}</h2>
         <EmptyState
-          icon={<CalendarX className="h-16 w-16" />}
+          icon={<CalendarX className={'h-16 w-16'} />}
           title={t('emptyTitle')}
           description={t('emptyDescription')}
         />
@@ -109,15 +114,15 @@ export default function BookingsPage() {
 
   return (
     <div>
-      <div className="space-y-4 p-4">
-        <h2 className="px-1 text-lg font-semibold">{t('title')}</h2>
+      <div className={'space-y-4 p-4'}>
+        <h2 className={'px-1 text-lg font-semibold'}>{t('title')}</h2>
 
         {activeBookings.length > 0 && (
           <div>
-            <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+            <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>
               {t('activeBookings')}
             </h3>
-            <div className="space-y-3">
+            <div className={'space-y-3'}>
               {activeBookings.map((booking) => (
                 <BookingCard
                   key={booking.id}
@@ -143,15 +148,18 @@ export default function BookingsPage() {
           <div>
             <button
               onClick={() => setShowPast(!showPast)}
-              className="text-muted-foreground mb-3 flex items-center gap-2 text-sm font-medium"
+              className={'text-muted-foreground mb-3 flex items-center gap-2 text-sm font-medium'}
             >
               <ChevronDown
                 className={`h-4 w-4 transition-transform ${showPast ? 'rotate-0' : '-rotate-90'}`}
               />
-              {t('pastBookings')} ({pastBookings.length})
+              {t('pastBookings')}
+              {' ('}
+              {pastBookings.length}
+              {')'}
             </button>
             {showPast && (
-              <div className="space-y-3">
+              <div className={'space-y-3'}>
                 {pastBookings.map((booking) => (
                   <BookingCard key={booking.id} booking={booking} />
                 ))}

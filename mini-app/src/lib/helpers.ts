@@ -1,7 +1,9 @@
-import { WorkingHours } from './types';
+import type { TWorkingHours } from './types';
 
 export function parseDayTimes(dayTimesJSON?: string): Record<string, string> | null {
-  if (!dayTimesJSON) return null;
+  if (!dayTimesJSON) {
+    return null;
+  }
   try {
     return JSON.parse(dayTimesJSON);
   } catch {
@@ -27,13 +29,17 @@ export function addMinutesToTime(time: string, minutes: number): string {
 }
 
 export function generateTimeSlotsForDay(
-  workingHours: WorkingHours[],
+  workingHours: TWorkingHours[],
   day: number,
   durationMinutes: number,
 ): string[] {
-  if (durationMinutes <= 0) return [];
+  if (durationMinutes <= 0) {
+    return [];
+  }
   const wh = workingHours.find((h) => h.dayOfWeek === day);
-  if (!wh) return [];
+  if (!wh) {
+    return [];
+  }
   const [startH, startM] = wh.startTime.split(':').map(Number);
   const [endH, endM] = wh.endTime.split(':').map(Number);
   const startMin = startH * 60 + startM;

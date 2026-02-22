@@ -2,10 +2,12 @@
 
 import { Toaster } from 'sonner';
 
-export function ToastProvider() {
+import type { ReactNode } from 'react';
+
+export function ToastProvider(): ReactNode {
   return (
     <Toaster
-      position="top-center"
+      position={'top-center'}
       toastOptions={{
         style: {
           background: 'var(--card)',

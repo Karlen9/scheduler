@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 
-export async function setLocale(locale: string) {
+export async function setLocale(locale: string): Promise<void> {
   const supported = ['ru', 'en'];
   const safe = supported.includes(locale) ? locale : 'ru';
   const store = await cookies();

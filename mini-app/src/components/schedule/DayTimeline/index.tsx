@@ -1,20 +1,24 @@
 'use client';
 
-import { useMemo } from 'react';
 import { Plus } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
-import { Booking, WorkingHours } from '@/lib/types';
-import { TimelineBookingCard } from './TimelineBookingCard';
-import { TimelineEmptySlot, EmptySlot } from './TimelineEmptySlot';
-import { CurrentTimeIndicator } from './CurrentTimeIndicator';
+import { useLocale, useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
-interface DayTimelineProps {
-  bookings: Booking[];
+import { CurrentTimeIndicator } from './CurrentTimeIndicator';
+import { TimelineBookingCard } from './TimelineBookingCard';
+import { TimelineEmptySlot } from './TimelineEmptySlot';
+
+import type { TEmptySlot } from './TimelineEmptySlot';
+import type { TBooking, TWorkingHours } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+type TDayTimelineProps = {
+  bookings: TBooking[];
   date: Date;
-  onBookingClick?: (booking: Booking) => void;
-  workingHours?: WorkingHours[];
+  onBookingClick?: (booking: TBooking) => void;
+  workingHours?: TWorkingHours[];
   onEmptySlotClick?: (date: Date, time: string) => void;
-}
+};
 
 const HOUR_HEIGHT = 72;
 
@@ -41,7 +45,7 @@ export function DayTimeline({
   onBookingClick,
   workingHours,
   onEmptySlotClick,
-}: DayTimelineProps) {
+}: TDayTimelineProps): ReactNode {
   const t = useTranslations('DayTimeline');
   const locale = useLocale();
 
@@ -59,14 +63,18 @@ export function DayTimeline({
 
   // Get working hours for this day of week
   const dayWH = useMemo(() => {
-    if (!workingHours) return null;
+    if (!workingHours) {
+      return null;
+    }
     const dow = date.getDay(); // 0=Sun
     return workingHours.find((wh) => wh.dayOfWeek === dow) ?? null;
   }, [workingHours, date]);
 
   // Calculate empty slots (gaps between bookings within working hours)
-  const emptySlots = useMemo<EmptySlot[]>(() => {
-    if (!dayWH) return [];
+  const emptySlots = useMemo<TEmptySlot[]>(() => {
+    if (!dayWH) {
+      return [];
+    }
     const whStart = parseTimeToMin(dayWH.startTime);
     const whEnd = parseTimeToMin(dayWH.endTime);
 
@@ -86,7 +94,7 @@ export function DayTimeline({
       })
       .sort((a, b) => a.start - b.start);
 
-    const gaps: EmptySlot[] = [];
+    const gaps: TEmptySlot[] = [];
     let cursor = whStart;
 
     for (const slot of occupied) {
@@ -128,27 +136,33 @@ export function DayTimeline({
 
   // No working hours and no bookings -- show simple empty
   if (bookings.length === 0 && !dayWH) {
-    return <div className="text-muted-foreground py-12 text-center text-sm">{t('noBookings')}</div>;
+    return (
+      <div className={'text-muted-foreground py-12 text-center text-sm'}>{t('noBookings')}</div>
+    );
   }
 
   // No bookings but is a working day -- show empty slot without timeline grid
   if (bookings.length === 0 && dayWH) {
     return (
-      <div className="space-y-2">
+      <div className={'space-y-2'}>
         <button
           onClick={() => onEmptySlotClick?.(date, dayWH.startTime)}
-          className="border-border w-full rounded-xl border border-dashed p-4 text-left transition-opacity active:opacity-80"
+          className={
+            'border-border w-full rounded-xl border border-dashed p-4 text-left transition-opacity active:opacity-80'
+          }
         >
-          <div className="flex items-center justify-between">
+          <div className={'flex items-center justify-between'}>
             <div>
-              <p className="text-muted-foreground text-sm font-medium">{t('emptySlot')}</p>
-              <p className="text-muted-foreground/60 text-xs">{t('timeNotOccupied')}</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                {dayWH.startTime} – {dayWH.endTime}
+              <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
+              <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
+              <p className={'text-muted-foreground mt-1 text-xs'}>
+                {dayWH.startTime}
+                {' – '}
+                {dayWH.endTime}
               </p>
             </div>
-            <div className="bg-brand/10 flex h-8 w-8 items-center justify-center rounded-full">
-              <Plus className="text-brand h-4 w-4" />
+            <div className={'bg-brand/10 flex h-8 w-8 items-center justify-center rounded-full'}>
+              <Plus className={'text-brand h-4 w-4'} />
             </div>
           </div>
         </button>
@@ -174,18 +188,22 @@ export function DayTimeline({
   }
 
   return (
-    <div className="relative" style={{ height: totalHeight + 16 }}>
+    <div className={'relative'} style={{ height: totalHeight + 16 }}>
       {/* Hour grid lines and labels */}
       {hourLabels.map((hour) => (
         <div
           key={hour}
-          className="absolute right-0 left-0 flex items-center"
+          className={'absolute right-0 left-0 flex items-center'}
           style={{ top: (hour - minHour) * HOUR_HEIGHT }}
         >
-          <span className="text-muted-foreground w-12 shrink-0 -translate-y-1/2 pr-2 text-right text-xs">
+          <span
+            className={
+              'text-muted-foreground w-12 shrink-0 -translate-y-1/2 pr-2 text-right text-xs'
+            }
+          >
             {formatHour(hour)}
           </span>
-          <div className="border-border flex-1 border-t" />
+          <div className={'border-border flex-1 border-t'} />
         </div>
       ))}
 

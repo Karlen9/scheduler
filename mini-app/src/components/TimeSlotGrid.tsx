@@ -1,17 +1,19 @@
-interface TimeSlot {
+import type { ReactNode } from 'react';
+
+type TTimeSlot = {
   time: string;
   available: boolean;
-}
+};
 
-interface TimeSlotGridProps {
-  slots: TimeSlot[];
+type TTimeSlotGridProps = {
+  slots: TTimeSlot[];
   selected: string | null;
   onSelect: (time: string) => void;
-}
+};
 
-export function TimeSlotGrid({ slots, selected, onSelect }: TimeSlotGridProps) {
+export function TimeSlotGrid({ slots, selected, onSelect }: TTimeSlotGridProps): ReactNode {
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className={'grid grid-cols-4 gap-2'}>
       {slots.map((slot) => (
         <button
           key={slot.time}

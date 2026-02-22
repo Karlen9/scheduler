@@ -1,14 +1,14 @@
-import type { NextConfig } from "next";
-import createNextIntlPlugin from "next-intl/plugin";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: 'standalone',
   async rewrites() {
-    const apiUrl =
-      process.env.API_URL || "http://localhost:8080";
+    const apiUrl = process.env.API_URL || 'http://localhost:8080';
     return [
       {
-        source: "/api/:path*",
+        source: '/api/:path*',
         destination: `${apiUrl}/api/:path*`,
       },
     ];

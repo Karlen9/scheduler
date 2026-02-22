@@ -1,14 +1,19 @@
-import { SessionType } from '@/lib/types';
+import type { TSessionType } from '@/lib/types';
+import type { ReactNode } from 'react';
 
-interface ServiceSelectorProps {
-  services: SessionType[];
+type TServiceSelectorProps = {
+  services: TSessionType[];
   selectedId: string;
-  onChange: (service: SessionType) => void;
-}
+  onChange: (service: TSessionType) => void;
+};
 
-export function ServiceSelector({ services, selectedId, onChange }: ServiceSelectorProps) {
+export function ServiceSelector({
+  services,
+  selectedId,
+  onChange,
+}: TServiceSelectorProps): ReactNode {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={'flex flex-wrap gap-2'}>
       {services.map((service) => (
         <button
           key={service.id}

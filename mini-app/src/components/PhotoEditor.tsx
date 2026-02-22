@@ -1,17 +1,21 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import Cropper, { Area } from 'react-easy-crop';
-import { RotateCw, RotateCcw, X, Check } from 'lucide-react';
+import { Check, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useState } from 'react';
+import Cropper from 'react-easy-crop';
 
-interface PhotoEditorProps {
+import type { TVoidFunction } from '@/lib/types';
+import type { ReactNode } from 'react';
+import type { Area } from 'react-easy-crop';
+
+type TPhotoEditorProps = {
   imageSrc: string;
   onConfirm: (blob: Blob) => void;
-  onCancel: () => void;
-}
+  onCancel: TVoidFunction;
+};
 
-export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps) {
+export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps): ReactNode {
   const t = useTranslations('PhotoEditor');
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -29,37 +33,41 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
-  const handleConfirm = async () => {
-    if (!croppedAreaPixels) return;
+  const handleConfirm = async (): Promise<void> => {
+    if (!croppedAreaPixels) {
+      return;
+    }
     const blob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
-    if (blob) onConfirm(blob);
+    if (blob) {
+      onConfirm(blob);
+    }
   };
 
   return (
     <div
-      className="bg-background fixed inset-0 z-[60] flex flex-col overflow-hidden"
+      className={'bg-background fixed inset-0 z-60 flex flex-col overflow-hidden'}
       style={{ touchAction: 'none' }}
     >
       {/* Header */}
-      <div className="border-border flex items-center justify-between border-b px-4 py-3">
-        <button onClick={onCancel} className="text-muted-foreground -m-2 p-2">
-          <X className="h-6 w-6" />
+      <div className={'border-border flex items-center justify-between border-b px-4 py-3'}>
+        <button onClick={onCancel} className={'text-muted-foreground -m-2 p-2'}>
+          <X className={'h-6 w-6'} />
         </button>
-        <span className="text-sm font-medium">{t('title')}</span>
-        <button onClick={handleConfirm} className="text-brand -m-2 p-2">
-          <Check className="h-6 w-6" />
+        <span className={'text-sm font-medium'}>{t('title')}</span>
+        <button onClick={handleConfirm} className={'text-brand -m-2 p-2'}>
+          <Check className={'h-6 w-6'} />
         </button>
       </div>
 
       {/* Crop area */}
-      <div className="relative flex-1 overflow-hidden">
+      <div className={'relative flex-1 overflow-hidden'}>
         <Cropper
           image={imageSrc}
           crop={crop}
           zoom={zoom}
           rotation={rotation}
           aspect={1}
-          cropShape="round"
+          cropShape={'round'}
           showGrid={false}
           restrictPosition={true}
           onCropChange={setCrop}
@@ -69,40 +77,46 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: PhotoEditorProps)
       </div>
 
       {/* Controls */}
-      <div className="border-border bg-background space-y-4 border-t px-4 py-4">
+      <div className={'border-border bg-background space-y-4 border-t px-4 py-4'}>
         {/* Zoom slider */}
-        <div className="flex items-center gap-3">
-          <span className="text-muted-foreground w-14 text-xs">{t('zoom')}</span>
+        <div className={'flex items-center gap-3'}>
+          <span className={'text-muted-foreground w-14 text-xs'}>{t('zoom')}</span>
           <input
-            type="range"
+            type={'range'}
             min={1}
             max={3}
             step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="accent-brand flex-1"
+            className={'accent-brand flex-1'}
           />
         </div>
 
         {/* Rotation buttons */}
-        <div className="flex items-center justify-center gap-4">
+        <div className={'flex items-center justify-center gap-4'}>
           <button
             onClick={() => setRotation((r) => r - 90)}
-            className="bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70"
+            className={
+              'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+            }
           >
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className={'h-4 w-4'} />
           </button>
           <button
             onClick={() => setRotation(0)}
-            className="bg-card text-muted-foreground rounded-lg px-4 py-2.5 text-sm active:opacity-70"
+            className={
+              'bg-card text-muted-foreground rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+            }
           >
             {rotation !== 0 ? `${rotation}°` : '0°'}
           </button>
           <button
             onClick={() => setRotation((r) => r + 90)}
-            className="bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70"
+            className={
+              'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+            }
           >
-            <RotateCw className="h-4 w-4" />
+            <RotateCw className={'h-4 w-4'} />
           </button>
         </div>
       </div>
@@ -115,7 +129,9 @@ async function getCroppedImg(imageSrc: string, crop: Area, rotation: number): Pr
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
+  if (!ctx) {
+    return null;
+  }
 
   const radians = (rotation * Math.PI) / 180;
 
@@ -143,7 +159,7 @@ async function getCroppedImg(imageSrc: string, crop: Area, rotation: number): Pr
   });
 }
 
-function createImage(url: string): Promise<HTMLImageElement> {
+async function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.addEventListener('load', () => resolve(img));

@@ -2,11 +2,13 @@
 
 import { useTranslations } from 'next-intl';
 
-interface DurationSelectorProps {
+import type { ReactNode } from 'react';
+
+type TDurationSelectorProps = {
   durations: number[];
   selected: number;
   onChange: (duration: number) => void;
-}
+};
 
 export function formatDuration(minutes: number, hourLabel = 'h'): string {
   const hours = minutes / 60;
@@ -16,11 +18,15 @@ export function formatDuration(minutes: number, hourLabel = 'h'): string {
   return `${hours.toFixed(1).replace('.0', '')} ${hourLabel}`;
 }
 
-export function DurationSelector({ durations, selected, onChange }: DurationSelectorProps) {
+export function DurationSelector({
+  durations,
+  selected,
+  onChange,
+}: TDurationSelectorProps): ReactNode {
   const td = useTranslations('Duration');
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={'flex flex-wrap gap-2'}>
       {durations.map((duration) => (
         <button
           key={duration}

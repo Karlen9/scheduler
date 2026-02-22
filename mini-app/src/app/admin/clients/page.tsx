@@ -1,28 +1,33 @@
 'use client';
 
-import { useState } from 'react';
-import { Users, Trash2, Pencil } from 'lucide-react';
-import { toast } from 'sonner';
+import { Pencil, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 import { ActivityBackButton } from '@/components/ActivityBackButton';
-import { EmptyState } from '@/components/EmptyState';
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { ClientInfo } from '@/lib/types';
-import { api } from '@/lib/api';
+import { EmptyState } from '@/components/EmptyState';
+import { invalidateBookings, invalidateClients, invalidateRecurring } from '@/hooks/mutations';
 import { useClients } from '@/hooks/queries';
-import { invalidateClients, invalidateBookings, invalidateRecurring } from '@/hooks/mutations';
+import { api } from '@/lib/api';
 
-export default function AdminClientsPage() {
+import type { TClientInfo } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+export default function AdminClientsPage(): ReactNode {
   const t = useTranslations('AdminClients');
   const tc = useTranslations('Common');
   const { data: clients, isLoading } = useClients();
-  const [deleteTarget, setDeleteTarget] = useState<ClientInfo | null>(null);
-  const [editTarget, setEditTarget] = useState<ClientInfo | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TClientInfo | null>(null);
+  const [editTarget, setEditTarget] = useState<TClientInfo | null>(null);
   const [editName, setEditName] = useState('');
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  const handleDelete = async (): Promise<void> => {
+    if (!deleteTarget) {
+      return;
+    }
     try {
       await api.admin.deleteClient(deleteTarget.id);
       invalidateClients();
@@ -34,15 +39,19 @@ export default function AdminClientsPage() {
     setDeleteTarget(null);
   };
 
-  const handleEdit = (client: ClientInfo) => {
+  const handleEdit = (client: TClientInfo): void => {
     setEditTarget(client);
     setEditName(client.isGhost ? client.name : client.displayName || client.name);
   };
 
-  const handleEditConfirm = async () => {
-    if (!editTarget) return;
+  const handleEditConfirm = async (): Promise<void> => {
+    if (!editTarget) {
+      return;
+    }
     const trimmed = editName.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     try {
       await api.admin.updateClient(editTarget.id, trimmed);
       invalidateClients();
@@ -56,20 +65,20 @@ export default function AdminClientsPage() {
     setEditTarget(null);
   };
 
-  const clientDisplayName = (client: ClientInfo) => client.displayName || client.name;
+  const clientDisplayName = (client: TClientInfo): string => client.displayName || client.name;
 
   if (isLoading) {
     return (
       <div>
-        <ActivityBackButton href="/admin" />
-        <div className="space-y-3 p-4">
-          <h2 className="text-lg font-semibold">{t('title')}</h2>
+        <ActivityBackButton href={'/admin'} />
+        <div className={'space-y-3 p-4'}>
+          <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-card flex animate-pulse items-center gap-3 rounded-xl p-4">
-              <div className="bg-border h-10 w-10 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <div className="bg-border h-4 w-1/2 rounded" />
-                <div className="bg-border h-3 w-1/3 rounded" />
+            <div key={i} className={'bg-card flex animate-pulse items-center gap-3 rounded-xl p-4'}>
+              <div className={'bg-border h-10 w-10 rounded-full'} />
+              <div className={'flex-1 space-y-2'}>
+                <div className={'bg-border h-4 w-1/2 rounded'} />
+                <div className={'bg-border h-3 w-1/3 rounded'} />
               </div>
             </div>
           ))}
@@ -80,14 +89,14 @@ export default function AdminClientsPage() {
 
   if (clients.length === 0) {
     return (
-      <div className="flex flex-1 flex-col">
-        <ActivityBackButton href="/admin" />
-        <div className="p-4">
-          <h2 className="text-lg font-semibold">{t('title')}</h2>
+      <div className={'flex flex-1 flex-col'}>
+        <ActivityBackButton href={'/admin'} />
+        <div className={'p-4'}>
+          <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
         </div>
-        <div className="flex min-h-[300px] flex-1 items-center justify-center">
+        <div className={'flex min-h-[300px] flex-1 items-center justify-center'}>
           <EmptyState
-            icon={<Users className="h-16 w-16" />}
+            icon={<Users className={'h-16 w-16'} />}
             title={t('emptyTitle')}
             description={t('emptyDescription')}
           />
@@ -98,37 +107,39 @@ export default function AdminClientsPage() {
 
   return (
     <div>
-      <ActivityBackButton href="/admin" />
-      <div className="space-y-3 p-4">
-        <h2 className="text-lg font-semibold">{t('title')}</h2>
+      <ActivityBackButton href={'/admin'} />
+      <div className={'space-y-3 p-4'}>
+        <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
         {clients.map((client) => (
-          <div key={client.id} className="bg-card flex items-center gap-3 rounded-xl p-4">
-            <ClientAvatar name={clientDisplayName(client)} photoUrl={client.photoUrl} size="md" />
-            <div className="min-w-0 flex-1">
-              <div className="text-foreground truncate font-medium">
+          <div key={client.id} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
+            <ClientAvatar name={clientDisplayName(client)} photoUrl={client.photoUrl} size={'md'} />
+            <div className={'min-w-0 flex-1'}>
+              <div className={'text-foreground truncate font-medium'}>
                 {clientDisplayName(client)}
                 {client.isGhost && (
-                  <span className="text-muted-foreground ml-1.5 text-xs font-normal">
+                  <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
                     {tc('ghost')}
                   </span>
                 )}
               </div>
               {client.displayName && !client.isGhost && (
-                <div className="text-muted-foreground truncate text-xs">{client.name}</div>
+                <div className={'text-muted-foreground truncate text-xs'}>{client.name}</div>
               )}
-              {client.phone && <div className="text-muted-foreground text-sm">{client.phone}</div>}
+              {client.phone && (
+                <div className={'text-muted-foreground text-sm'}>{client.phone}</div>
+              )}
             </div>
             <button
               onClick={() => handleEdit(client)}
-              className="text-muted-foreground active:bg-card rounded-lg p-2 transition-colors"
+              className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className={'h-4 w-4'} />
             </button>
             <button
               onClick={() => setDeleteTarget(client)}
-              className="text-muted-foreground active:bg-card rounded-lg p-2 transition-colors"
+              className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className={'h-4 w-4'} />
             </button>
           </div>
         ))}

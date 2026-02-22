@@ -1,26 +1,29 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Plus, Camera, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { Camera, Plus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { TopBar } from '@/components/TopBar';
-import { ServiceCard } from '@/components/ServiceCard';
-import { PrimaryButton } from '@/components/PrimaryButton';
-import { SessionType } from '@/lib/types';
-import { api, getPhotoUrl } from '@/lib/api';
-import { useAdminServices } from '@/hooks/queries';
-import { invalidateServices } from '@/hooks/mutations';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
-interface ServiceFormData {
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { ServiceCard } from '@/components/ServiceCard';
+import { TopBar } from '@/components/TopBar';
+import { invalidateServices } from '@/hooks/mutations';
+import { useAdminServices } from '@/hooks/queries';
+import { api, getPhotoUrl } from '@/lib/api';
+
+import type { TSessionType } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+type TServiceFormData = {
   type: string;
   name: string;
   price: string;
   duration: string;
   imageUrl: string;
-}
+};
 
-export default function ServicesPage() {
+export default function ServicesPage(): ReactNode {
   const t = useTranslations('AdminServices');
   const tc = useTranslations('Common');
   const td = useTranslations('Duration');
@@ -28,11 +31,11 @@ export default function ServicesPage() {
   const tsp = useTranslations('ServicesPage');
   const { data: services, isLoading, mutate } = useAdminServices();
   const [showForm, setShowForm] = useState(false);
-  const [editingService, setEditingService] = useState<SessionType | null>(null);
+  const [editingService, setEditingService] = useState<TSessionType | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState<ServiceFormData>({
+  const [formData, setFormData] = useState<TServiceFormData>({
     type: 'personal',
     name: '',
     price: '',
@@ -40,13 +43,13 @@ export default function ServicesPage() {
     imageUrl: '',
   });
 
-  const handleAddClick = () => {
+  const handleAddClick = (): void => {
     setEditingService(null);
     setFormData({ type: 'personal', name: '', price: '', duration: '60', imageUrl: '' });
     setShowForm(true);
   };
 
-  const handleEditClick = (service: SessionType) => {
+  const handleEditClick = (service: TSessionType): void => {
     setEditingService(service);
     setFormData({
       type: service.type,
@@ -58,9 +61,11 @@ export default function ServicesPage() {
     setShowForm(true);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     setUploading(true);
     try {
@@ -74,8 +79,10 @@ export default function ServicesPage() {
     }
   };
 
-  const handleSave = async () => {
-    if (!formData.name || !formData.price || !formData.duration) return;
+  const handleSave = async (): Promise<void> => {
+    if (!formData.name || !formData.price || !formData.duration) {
+      return;
+    }
 
     setSaving(true);
 
@@ -115,8 +122,8 @@ export default function ServicesPage() {
     return (
       <div>
         <TopBar title={t('title')} showBack />
-        <div className="flex min-h-[200px] items-center justify-center p-4">
-          <div className="text-muted-foreground">{tc('loading')}</div>
+        <div className={'flex min-h-[200px] items-center justify-center p-4'}>
+          <div className={'text-muted-foreground'}>{tc('loading')}</div>
         </div>
       </div>
     );
@@ -131,86 +138,98 @@ export default function ServicesPage() {
           onBack={() => setShowForm(false)}
         />
 
-        <div className="space-y-4 p-4">
+        <div className={'space-y-4 p-4'}>
           {/* Image Upload */}
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('servicePhoto')}</label>
-            <div className="flex items-center gap-3">
+            <label className={'text-muted-foreground mb-1 block text-sm'}>
+              {t('servicePhoto')}
+            </label>
+            <div className={'flex items-center gap-3'}>
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-card border-border flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-opacity active:opacity-80"
+                className={
+                  'bg-card border-border flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-opacity active:opacity-80'
+                }
               >
                 {formData.imageUrl ? (
                   <img
                     src={getPhotoUrl(formData.imageUrl)}
                     alt={t('servicePhoto')}
-                    className="h-full w-full object-cover"
+                    className={'h-full w-full object-cover'}
                   />
                 ) : (
-                  <Camera className="text-muted-foreground h-6 w-6" />
+                  <Camera className={'text-muted-foreground h-6 w-6'} />
                 )}
               </div>
               {formData.imageUrl && (
                 <button
-                  type="button"
+                  type={'button'}
                   onClick={() => setFormData((prev) => ({ ...prev, imageUrl: '' }))}
-                  className="bg-card flex h-8 w-8 items-center justify-center rounded-full"
+                  className={'bg-card flex h-8 w-8 items-center justify-center rounded-full'}
                 >
-                  <X className="text-muted-foreground h-4 w-4" />
+                  <X className={'text-muted-foreground h-4 w-4'} />
                 </button>
               )}
               {uploading && (
-                <span className="text-muted-foreground text-xs">{tc('uploading')}</span>
+                <span className={'text-muted-foreground text-xs'}>{tc('uploading')}</span>
               )}
             </div>
             <input
               ref={fileInputRef}
-              type="file"
-              accept="image/*"
+              type={'file'}
+              accept={'image/*'}
               onChange={handleImageUpload}
-              className="hidden"
+              className={'hidden'}
             />
           </div>
 
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('serviceType')}</label>
+            <label className={'text-muted-foreground mb-1 block text-sm'}>{t('serviceType')}</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
+              className={
+                'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
+              }
             >
-              <option value="personal">{t('typePersonal')}</option>
-              <option value="pair">{t('typePair')}</option>
-              <option value="consultation">{t('typeConsultation')}</option>
+              <option value={'personal'}>{t('typePersonal')}</option>
+              <option value={'pair'}>{t('typePair')}</option>
+              <option value={'consultation'}>{t('typeConsultation')}</option>
             </select>
           </div>
 
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('nameLabel')}</label>
+            <label className={'text-muted-foreground mb-1 block text-sm'}>{t('nameLabel')}</label>
             <input
-              type="text"
+              type={'text'}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               maxLength={100}
               placeholder={t('namePlaceholder')}
-              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
+              className={
+                'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
+              }
             />
           </div>
 
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('priceLabel')}</label>
+            <label className={'text-muted-foreground mb-1 block text-sm'}>{t('priceLabel')}</label>
             <input
-              type="number"
+              type={'number'}
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               placeholder={t('pricePlaceholder')}
-              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
+              className={
+                'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
+              }
             />
           </div>
 
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('durationLabel')}</label>
-            <div className="grid grid-cols-3 gap-2">
+            <label className={'text-muted-foreground mb-1 block text-sm'}>
+              {t('durationLabel')}
+            </label>
+            <div className={'grid grid-cols-3 gap-2'}>
               {[
                 { label: td('min30'), value: '30' },
                 { label: td('hour1'), value: '60' },
@@ -221,7 +240,7 @@ export default function ServicesPage() {
               ].map((opt) => (
                 <button
                   key={opt.value}
-                  type="button"
+                  type={'button'}
                   onClick={() => setFormData({ ...formData, duration: opt.value })}
                   className={`rounded-lg py-3 text-sm font-medium transition-colors ${
                     formData.duration === opt.value
@@ -247,21 +266,23 @@ export default function ServicesPage() {
     <div>
       <TopBar title={t('title')} showBack />
 
-      <div className="space-y-4 p-4">
-        <p className="text-muted-foreground text-xs">{tsp('durationDeterminesSlots')}</p>
+      <div className={'space-y-4 p-4'}>
+        <p className={'text-muted-foreground text-xs'}>{tsp('durationDeterminesSlots')}</p>
 
         {/* Add Button */}
         <button
           onClick={handleAddClick}
-          className="border-border text-muted-foreground active:bg-card flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition-colors"
+          className={
+            'border-border text-muted-foreground active:bg-card flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition-colors'
+          }
         >
-          <Plus className="h-5 w-5" />
+          <Plus className={'h-5 w-5'} />
           <span>{tsp('addService')}</span>
         </button>
 
         {/* Services List */}
         {services.length === 0 ? (
-          <div className="text-muted-foreground py-8 text-center">{tsp('noServices')}</div>
+          <div className={'text-muted-foreground py-8 text-center'}>{tsp('noServices')}</div>
         ) : (
           services.map((service) => (
             <ServiceCard

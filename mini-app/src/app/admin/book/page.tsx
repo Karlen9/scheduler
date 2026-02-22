@@ -1,13 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { BookingForm } from '@/components/BookingForm';
-import { ActivityBackButton } from '@/components/ActivityBackButton';
-import { api } from '@/lib/api';
-import { useClients, useAdminServices, useWorkingHours, useDaysOff } from '@/hooks/queries';
-import { invalidateClients } from '@/hooks/mutations';
 
-export default function AdminBookPage() {
+import { ActivityBackButton } from '@/components/ActivityBackButton';
+import { BookingForm } from '@/components/BookingForm';
+import { invalidateClients } from '@/hooks/mutations';
+import { useAdminServices, useClients, useDaysOff, useWorkingHours } from '@/hooks/queries';
+import { api } from '@/lib/api';
+
+import type { ReactNode } from 'react';
+
+export default function AdminBookPage(): ReactNode {
   const t = useTranslations('BookingForm');
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: services, isLoading: svcLoading } = useAdminServices();
@@ -18,7 +21,7 @@ export default function AdminBookPage() {
 
   return (
     <>
-      <ActivityBackButton href="/admin" />
+      <ActivityBackButton href={'/admin'} />
       <BookingForm
         services={services}
         workingHours={workingHours}
@@ -26,7 +29,7 @@ export default function AdminBookPage() {
         isLoading={clientsLoading || svcLoading || whLoading || doLoading}
         clients={clients}
         showRecurring={false}
-        successRedirect="/admin"
+        successRedirect={'/admin'}
         title={t('adminTitle')}
         onCreateGhostClient={async (name) => {
           const client = await api.admin.createGhostClient(name);

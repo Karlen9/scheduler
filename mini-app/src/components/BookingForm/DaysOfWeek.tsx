@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
-import { ReactNode } from 'react';
+
+import type { ReactNode } from 'react';
 
 export function DaysOfWeek({
   activeDay,
@@ -19,8 +20,8 @@ export function DaysOfWeek({
 
   return (
     <div>
-      <label className="text-muted-foreground mb-2 block text-sm">{t('daysOfWeek')}</label>
-      <div className="flex gap-2">
+      <label className={'text-muted-foreground mb-2 block text-sm'}>{t('daysOfWeek')}</label>
+      <div className={'flex gap-2'}>
         {DAYS.map((day) => {
           const isConfigured = day.value in dayTimeMap;
           const isActive = activeDay === day.value;

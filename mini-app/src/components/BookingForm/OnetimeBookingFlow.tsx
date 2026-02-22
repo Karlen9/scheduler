@@ -1,28 +1,31 @@
 'use client';
 
-import { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
+
 import { CalendarView } from '@/components/CalendarView';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
-import { ClientInfo, CreateBookingParams, SessionType } from '@/lib/types';
 import { formatDateISO } from '@/lib/helpers';
+
 import { BookingSummary } from './BookingSummary';
-import { TimeSlotLegend } from './TimeSlotLegend';
-import { ServiceCard } from './ServiceCard';
 import { PinnedBottomButton } from './PinnedBottomButton';
+import { ServiceCard } from './ServiceCard';
+import { TimeSlotLegend } from './TimeSlotLegend';
 import { useOnetimeBooking } from './useOnetimeBooking';
 
-export interface OnetimeBookingFlowProps {
-  services: SessionType[];
+import type { TClientInfo, TCreateBookingParams, TSessionType } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+export type TOnetimeBookingFlowProps = {
+  services: TSessionType[];
   daysOff: string[];
   bookedDates?: string[];
   showRecurring: boolean;
-  selectedClient: ClientInfo | null;
+  selectedClient: TClientInfo | null;
   hasClientSelector: boolean;
   nonWorkingDays: number[];
-  onCreateBooking: (params: CreateBookingParams) => Promise<void>;
+  onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
   successRedirect: string;
-}
+};
 
 export function OnetimeBookingFlow({
   services,
@@ -34,7 +37,7 @@ export function OnetimeBookingFlow({
   nonWorkingDays,
   onCreateBooking,
   successRedirect,
-}: OnetimeBookingFlowProps): ReactNode {
+}: TOnetimeBookingFlowProps): ReactNode {
   const t = useTranslations('BookingForm');
   const tc = useTranslations('Common');
 
@@ -74,7 +77,7 @@ export function OnetimeBookingFlow({
     <>
       {/* Service Selection */}
       {!selectedService ? (
-        <div className="space-y-3">
+        <div className={'space-y-3'}>
           {services.map((service) => (
             <ServiceCard
               key={service.id}
@@ -85,7 +88,7 @@ export function OnetimeBookingFlow({
             />
           ))}
           {services.length > 1 && (
-            <p className="text-muted-foreground px-1 text-xs">{t('selectServiceHint')}</p>
+            <p className={'text-muted-foreground px-1 text-xs'}>{t('selectServiceHint')}</p>
           )}
         </div>
       ) : (
@@ -100,10 +103,10 @@ export function OnetimeBookingFlow({
 
           {/* Single/Multi mode toggle */}
           <div>
-            <h3 className="text-muted-foreground mb-2 text-sm font-medium">
+            <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
               {mode === 'single' ? t('selectDay') : t('selectDays')}
             </h3>
-            <div className="bg-card mb-4 flex rounded-xl p-1">
+            <div className={'bg-card mb-4 flex rounded-xl p-1'}>
               <button
                 onClick={() => setMode('single')}
                 className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
@@ -145,14 +148,18 @@ export function OnetimeBookingFlow({
           {/* Time Slots Loading */}
           {isLoadingSlots && timeSlots.length === 0 && (
             <div>
-              <h3 className="text-muted-foreground mb-2 text-sm font-medium">{t('selectTime')}</h3>
-              <div className="grid grid-cols-4 gap-2">
+              <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
+                {t('selectTime')}
+              </h3>
+              <div className={'grid grid-cols-4 gap-2'}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
                     key={i}
-                    className="bg-card animate-pulse rounded-lg py-3 text-center text-sm text-transparent"
+                    className={
+                      'bg-card animate-pulse rounded-lg py-3 text-center text-sm text-transparent'
+                    }
                   >
-                    00:00
+                    {'00:00'}
                   </div>
                 ))}
               </div>
@@ -164,7 +171,9 @@ export function OnetimeBookingFlow({
             <div
               className={`transition-opacity duration-200 ${isLoadingSlots ? 'pointer-events-none opacity-40' : ''}`}
             >
-              <h3 className="text-muted-foreground mb-2 text-sm font-medium">{t('selectTime')}</h3>
+              <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
+                {t('selectTime')}
+              </h3>
               <TimeSlotLegend availableLabel={t('available')} occupiedLabel={t('occupied')} />
               <TimeSlotGrid
                 slots={timeSlots}
@@ -192,7 +201,7 @@ export function OnetimeBookingFlow({
               <div
                 className={`transition-opacity duration-200 ${isLoadingSlots ? 'pointer-events-none opacity-40' : ''}`}
               >
-                <h3 className="text-muted-foreground mb-2 text-sm font-medium">
+                <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
                   {t('selectTime')}
                 </h3>
                 <TimeSlotLegend availableLabel={t('available')} occupiedLabel={t('occupied')} />
@@ -210,14 +219,16 @@ export function OnetimeBookingFlow({
               selectedDates.length > 0 &&
               selectedDates.every((d) => timeAssignments[formatDateISO(d)]))) && (
             <div>
-              <h3 className="text-muted-foreground mb-2 text-sm font-medium">{t('comment')}</h3>
+              <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>{t('comment')}</h3>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t('commentPlaceholder')}
                 rows={2}
                 maxLength={500}
-                className="bg-card text-foreground focus:ring-brand w-full resize-none rounded-lg px-4 py-3 text-sm outline-none focus:ring-2"
+                className={
+                  'bg-card text-foreground focus:ring-brand w-full resize-none rounded-lg px-4 py-3 text-sm outline-none focus:ring-2'
+                }
               />
             </div>
           )}

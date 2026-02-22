@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, X, Calendar } from 'lucide-react';
-import { toast } from 'sonner';
+import { Calendar, Plus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { TopBar } from '@/components/TopBar';
-import { PrimaryButton } from '@/components/PrimaryButton';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 import { MonthCalendar } from '@/components/MonthCalendar';
-import { api } from '@/lib/api';
-import { useAdminDaysOff } from '@/hooks/queries';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { TopBar } from '@/components/TopBar';
 import { invalidateDaysOff } from '@/hooks/mutations';
+import { useAdminDaysOff } from '@/hooks/queries';
+import { api } from '@/lib/api';
+
+import type { ReactNode } from 'react';
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const monthGenKeys = [
@@ -40,7 +43,7 @@ const parseLocalDate = (dateStr: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-export default function DaysOffPage() {
+export default function DaysOffPage(): ReactNode {
   const t = useTranslations('AdminDaysOff');
   const tc = useTranslations('Common');
   const tdat = useTranslations('Dates');
@@ -58,12 +61,14 @@ export default function DaysOffPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [reason, setReason] = useState('');
 
-  const handleAddDayOff = async () => {
+  const handleAddDayOff = async (): Promise<void> => {
     const dateStr = formatDateISO(selectedDate);
 
     // Check if already exists
     const exists = daysOff.some((d) => d.date.startsWith(dateStr));
-    if (exists) return;
+    if (exists) {
+      return;
+    }
 
     setSaving(true);
 
@@ -81,7 +86,7 @@ export default function DaysOffPage() {
     }
   };
 
-  const handleRemoveDayOff = async (id: string) => {
+  const handleRemoveDayOff = async (id: string): Promise<void> => {
     // Optimistic local update
     const previousDaysOff = daysOff;
     mutate(
@@ -100,7 +105,7 @@ export default function DaysOffPage() {
     }
   };
 
-  const isDayOff = (date: Date) => {
+  const isDayOff = (date: Date): boolean => {
     const dateStr = formatDateISO(date);
     return daysOff.some((d) => d.date.startsWith(dateStr));
   };
@@ -112,8 +117,8 @@ export default function DaysOffPage() {
     return (
       <div>
         <TopBar title={t('title')} showBack />
-        <div className="flex min-h-[200px] items-center justify-center p-4">
-          <div className="text-muted-foreground">{tc('loading')}</div>
+        <div className={'flex min-h-[200px] items-center justify-center p-4'}>
+          <div className={'text-muted-foreground'}>{tc('loading')}</div>
         </div>
       </div>
     );
@@ -124,7 +129,7 @@ export default function DaysOffPage() {
       <div>
         <TopBar title={t('selectDate')} showBack onBack={() => setShowCalendar(false)} />
 
-        <div className="space-y-4 p-4">
+        <div className={'space-y-4 p-4'}>
           <MonthCalendar
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
@@ -132,13 +137,15 @@ export default function DaysOffPage() {
           />
 
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('reasonLabel')}</label>
+            <label className={'text-muted-foreground mb-1 block text-sm'}>{t('reasonLabel')}</label>
             <input
-              type="text"
+              type={'text'}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder={t('reasonPlaceholder')}
-              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
+              className={
+                'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
+              }
             />
           </div>
 
@@ -154,42 +161,48 @@ export default function DaysOffPage() {
     <div>
       <TopBar title={t('title')} showBack />
 
-      <div className="space-y-4 p-4">
+      <div className={'space-y-4 p-4'}>
         {/* Add Button */}
         <button
           onClick={() => setShowCalendar(true)}
-          className="border-border text-muted-foreground active:bg-card flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition-colors"
+          className={
+            'border-border text-muted-foreground active:bg-card flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition-colors'
+          }
         >
-          <Plus className="h-5 w-5" />
+          <Plus className={'h-5 w-5'} />
           <span>{t('addDayOff')}</span>
         </button>
 
         {/* Days Off List */}
         {daysOff.length === 0 ? (
-          <div className="text-muted-foreground py-8 text-center">
-            <Calendar className="mx-auto mb-3 h-12 w-12 opacity-50" />
+          <div className={'text-muted-foreground py-8 text-center'}>
+            <Calendar className={'mx-auto mb-3 h-12 w-12 opacity-50'} />
             <p>{t('empty')}</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className={'space-y-2'}>
             {daysOff.map((dayOff) => (
-              <div key={dayOff.id} className="bg-card flex items-center gap-3 rounded-xl p-4">
-                <div className="bg-dayoff-bg flex h-10 w-10 items-center justify-center rounded-full">
-                  <Calendar className="text-dayoff-text h-5 w-5" />
+              <div key={dayOff.id} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
+                <div
+                  className={'bg-dayoff-bg flex h-10 w-10 items-center justify-center rounded-full'}
+                >
+                  <Calendar className={'text-dayoff-text h-5 w-5'} />
                 </div>
-                <div className="flex-1">
-                  <p className="text-foreground font-medium">
+                <div className={'flex-1'}>
+                  <p className={'text-foreground font-medium'}>
                     {formatDate(parseLocalDate(dayOff.date))}
                   </p>
                   {dayOff.reason && (
-                    <p className="text-muted-foreground text-sm">{dayOff.reason}</p>
+                    <p className={'text-muted-foreground text-sm'}>{dayOff.reason}</p>
                   )}
                 </div>
                 <button
-                  onClick={() => handleRemoveDayOff(dayOff.id)}
-                  className="text-muted-foreground hover:bg-card flex h-8 w-8 items-center justify-center rounded-full"
+                  onClick={async () => handleRemoveDayOff(dayOff.id)}
+                  className={
+                    'text-muted-foreground hover:bg-card flex h-8 w-8 items-center justify-center rounded-full'
+                  }
                 >
-                  <X className="h-5 w-5" />
+                  <X className={'h-5 w-5'} />
                 </button>
               </div>
             ))}

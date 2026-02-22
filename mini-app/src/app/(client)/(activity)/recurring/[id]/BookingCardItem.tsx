@@ -1,20 +1,23 @@
-import { Calendar, Clock, Dumbbell, X, ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, Dumbbell, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Booking } from '@/lib/types';
+
 import { formatTime } from '@/lib/helpers';
 import { bookingStatusColors, bookingStatusKeys } from '@/lib/mappings';
 
-interface BookingCardItemProps {
-  booking: Booking;
-  onRequestCancel: (booking: Booking) => void;
+import type { TBooking } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+type TBookingCardItemProps = {
+  booking: TBooking;
+  onRequestCancel: (booking: TBooking) => void;
   formatBookingDate: (iso: string) => string;
-}
+};
 
 export function BookingCardItem({
   booking,
   onRequestCancel,
   formatBookingDate,
-}: BookingCardItemProps) {
+}: TBookingCardItemProps): ReactNode {
   const tc = useTranslations('Common');
   const tst = useTranslations('Status');
   const t = useTranslations('RecurringDetail');
@@ -25,29 +28,30 @@ export function BookingCardItem({
   const isReschedulePending = booking.status === 'reschedule_pending';
 
   return (
-    <div className="bg-card rounded-xl p-4">
-      <div className="mb-2 flex items-start justify-between">
-        <div className="flex-1 space-y-1.5">
-          <div className="flex items-center gap-2">
-            <Calendar className="text-muted-foreground h-4 w-4 shrink-0" />
-            <span className="text-foreground text-sm">{formatBookingDate(booking.startsAt)}</span>
+    <div className={'bg-card rounded-xl p-4'}>
+      <div className={'mb-2 flex items-start justify-between'}>
+        <div className={'flex-1 space-y-1.5'}>
+          <div className={'flex items-center gap-2'}>
+            <Calendar className={'text-muted-foreground h-4 w-4 shrink-0'} />
+            <span className={'text-foreground text-sm'}>{formatBookingDate(booking.startsAt)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Clock className="text-muted-foreground h-4 w-4 shrink-0" />
-            <span className="text-foreground text-sm">
+          <div className={'flex items-center gap-2'}>
+            <Clock className={'text-muted-foreground h-4 w-4 shrink-0'} />
+            <span className={'text-foreground text-sm'}>
               {formatTime(booking.startsAt)}
-              <span className="text-muted-foreground"> — </span>
+              <span className={'text-muted-foreground'}>{' — '}</span>
               {formatTime(booking.endsAt)}
             </span>
           </div>
           {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
-            <div className="flex items-center gap-2">
-              <Dumbbell className="text-muted-foreground h-4 w-4 shrink-0" />
-              <span className="text-foreground text-sm">
+            <div className={'flex items-center gap-2'}>
+              <Dumbbell className={'text-muted-foreground h-4 w-4 shrink-0'} />
+              <span className={'text-foreground text-sm'}>
                 {tc('workout')}
-                <span className="text-muted-foreground">
+                <span className={'text-muted-foreground'}>
                   {' '}
-                  · {booking.durationMinutes || booking.sessionType?.durationMinutes} {tc('min')}
+                  {'· '}
+                  {booking.durationMinutes || booking.sessionType?.durationMinutes} {tc('min')}
                 </span>
               </span>
             </div>
@@ -60,22 +64,24 @@ export function BookingCardItem({
 
       {/* Action area */}
       {isConfirmed && (
-        <div className="border-border border-t pt-3">
+        <div className={'border-border border-t pt-3'}>
           <button
             onClick={() => onRequestCancel(booking)}
-            className="bg-background text-destructive flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+            className={
+              'bg-background text-destructive flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+            }
           >
-            <X className="h-4 w-4" />
+            <X className={'h-4 w-4'} />
             {tc('cancelVerb')}
           </button>
         </div>
       )}
 
       {isReschedulePending && (
-        <div className="border-border border-t pt-3">
-          <div className="flex items-center justify-center gap-2">
-            <ArrowRight className="text-status-purple-text h-4 w-4" />
-            <span className="text-status-purple-text text-sm">
+        <div className={'border-border border-t pt-3'}>
+          <div className={'flex items-center justify-center gap-2'}>
+            <ArrowRight className={'text-status-purple-text h-4 w-4'} />
+            <span className={'text-status-purple-text text-sm'}>
               {t('awaitingRescheduleConfirmation')}
             </span>
           </div>

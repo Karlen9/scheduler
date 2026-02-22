@@ -1,25 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { TopBar } from '@/components/TopBar';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TimePickerModal } from '@/components/TimePickerModal';
-import { WorkingHours } from '@/lib/types';
-import { api } from '@/lib/api';
-import { useAdminWorkingHours } from '@/hooks/queries';
+import { TopBar } from '@/components/TopBar';
 import { invalidateWorkingHours } from '@/hooks/mutations';
+import { useAdminWorkingHours } from '@/hooks/queries';
+import { api } from '@/lib/api';
+
+import type { TWorkingHours } from '@/lib/types';
+import type { ReactNode } from 'react';
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
-interface DaySchedule {
+type TDaySchedule = {
   enabled: boolean;
   startTime: string;
   endTime: string;
-}
+};
 
-const defaultSchedule: Record<number, DaySchedule> = {
+const defaultSchedule: Record<number, TDaySchedule> = {
   0: { enabled: false, startTime: '09:00', endTime: '18:00' },
   1: { enabled: true, startTime: '09:00', endTime: '21:00' },
   2: { enabled: true, startTime: '09:00', endTime: '21:00' },
@@ -29,14 +32,14 @@ const defaultSchedule: Record<number, DaySchedule> = {
   6: { enabled: false, startTime: '09:00', endTime: '18:00' },
 };
 
-export default function SchedulePage() {
+export default function SchedulePage(): ReactNode {
   const t = useTranslations('AdminSchedule');
   const tc = useTranslations('Common');
   const tdat = useTranslations('Dates');
   const te = useTranslations('Errors');
   const ts = useTranslations('Success');
   const { data: workingHours, isLoading } = useAdminWorkingHours();
-  const [schedule, setSchedule] = useState<Record<number, DaySchedule>>(defaultSchedule);
+  const [schedule, setSchedule] = useState<Record<number, TDaySchedule>>(defaultSchedule);
   const [initialized, setInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,9 +48,11 @@ export default function SchedulePage() {
   const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
-    if (isLoading || initialized) return;
+    if (isLoading || initialized) {
+      return;
+    }
 
-    const newSchedule: Record<number, DaySchedule> = {
+    const newSchedule: Record<number, TDaySchedule> = {
       0: { enabled: false, startTime: '09:00', endTime: '18:00' },
       1: { enabled: false, startTime: '09:00', endTime: '21:00' },
       2: { enabled: false, startTime: '09:00', endTime: '21:00' },
@@ -69,21 +74,23 @@ export default function SchedulePage() {
     setInitialized(true);
   }, [workingHours, isLoading, initialized]);
 
-  const handleDayToggle = (day: number) => {
+  const handleDayToggle = (day: number): void => {
     setSchedule((prev) => ({
       ...prev,
       [day]: { ...prev[day], enabled: !prev[day].enabled },
     }));
   };
 
-  const openTimePicker = (day: number, type: 'start' | 'end') => {
+  const openTimePicker = (day: number, type: 'start' | 'end'): void => {
     setPickerDay(day);
     setPickerType(type);
     setShowPicker(true);
   };
 
-  const handleTimeSelect = (time: string) => {
-    if (pickerDay === null) return;
+  const handleTimeSelect = (time: string): void => {
+    if (pickerDay === null) {
+      return;
+    }
 
     setSchedule((prev) => ({
       ...prev,
@@ -95,11 +102,11 @@ export default function SchedulePage() {
     setShowPicker(false);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     setIsSaving(true);
 
     try {
-      const hours: WorkingHours[] = [];
+      const hours: TWorkingHours[] = [];
       for (let day = 0; day < 7; day++) {
         if (schedule[day].enabled) {
           hours.push({
@@ -125,8 +132,8 @@ export default function SchedulePage() {
     return (
       <div>
         <TopBar title={t('title')} showBack />
-        <div className="flex min-h-[200px] items-center justify-center p-4">
-          <div className="text-muted-foreground">{tc('loading')}</div>
+        <div className={'flex min-h-[200px] items-center justify-center p-4'}>
+          <div className={'text-muted-foreground'}>{tc('loading')}</div>
         </div>
       </div>
     );
@@ -136,34 +143,34 @@ export default function SchedulePage() {
     <div>
       <TopBar title={t('title')} showBack />
 
-      <div className="space-y-6 p-4">
+      <div className={'space-y-6 p-4'}>
         {/* Working Hours per Day */}
         <div>
-          <h3 className="text-muted-foreground mb-3 text-sm">{t('workingDays')}</h3>
-          <div className="space-y-2">
+          <h3 className={'text-muted-foreground mb-3 text-sm'}>{t('workingDays')}</h3>
+          <div className={'space-y-2'}>
             {[1, 2, 3, 4, 5, 6, 0].map((day) => (
-              <div key={day} className="bg-card flex items-center gap-3 rounded-lg p-3">
+              <div key={day} className={'bg-card flex items-center gap-3 rounded-lg p-3'}>
                 <input
-                  type="checkbox"
+                  type={'checkbox'}
                   checked={schedule[day].enabled}
                   onChange={() => handleDayToggle(day)}
-                  className="border-border text-brand focus:ring-brand h-5 w-5 rounded"
+                  className={'border-border text-brand focus:ring-brand h-5 w-5 rounded'}
                 />
-                <span className="text-foreground w-8 font-medium">
+                <span className={'text-foreground w-8 font-medium'}>
                   {tdat(`daysShort.${dayKeys[day]}`)}
                 </span>
                 {schedule[day].enabled && (
-                  <div className="flex flex-1 items-center gap-2 text-sm">
+                  <div className={'flex flex-1 items-center gap-2 text-sm'}>
                     <button
                       onClick={() => openTimePicker(day, 'start')}
-                      className="bg-surface-hover text-foreground rounded px-3 py-1"
+                      className={'bg-surface-hover text-foreground rounded px-3 py-1'}
                     >
                       {schedule[day].startTime}
                     </button>
-                    <span className="text-muted-foreground">–</span>
+                    <span className={'text-muted-foreground'}>{'–'}</span>
                     <button
                       onClick={() => openTimePicker(day, 'end')}
-                      className="bg-surface-hover text-foreground rounded px-3 py-1"
+                      className={'bg-surface-hover text-foreground rounded px-3 py-1'}
                     >
                       {schedule[day].endTime}
                     </button>

@@ -1,30 +1,34 @@
 'use client';
 
-import { useState, useEffect, useMemo, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import {
-  ClientInfo,
-  CreateRecurringParams,
-  PreviewRecurringParams,
-  SessionType,
-  WorkingHours,
-} from '@/lib/types';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { invalidateRecurring } from '@/hooks/mutations';
 import { generateTimeSlotsForDay } from '@/lib/helpers';
-import { PrimaryButton } from '@/components/PrimaryButton';
+
 import { RecurringDayForm } from './RecurringDayForm';
 
-export interface RecurringBookingFlowProps {
-  services: SessionType[];
-  workingHours: WorkingHours[];
-  selectedClient: ClientInfo | null;
+import type {
+  TClientInfo,
+  TCreateRecurringParams,
+  TPreviewRecurringParams,
+  TSessionType,
+  TWorkingHours,
+} from '@/lib/types';
+import type { ReactNode } from 'react';
+
+export type TRecurringBookingFlowProps = {
+  services: TSessionType[];
+  workingHours: TWorkingHours[];
+  selectedClient: TClientInfo | null;
   hasClientSelector: boolean;
-  onCreateRecurring: (params: CreateRecurringParams) => Promise<void>;
-  onPreviewRecurring: (params: PreviewRecurringParams) => Promise<{ dates: string[] }>;
+  onCreateRecurring: (params: TCreateRecurringParams) => Promise<void>;
+  onPreviewRecurring: (params: TPreviewRecurringParams) => Promise<{ dates: string[] }>;
   successRedirect: string;
-}
+};
 
 export function RecurringBookingFlow({
   services,
@@ -34,14 +38,14 @@ export function RecurringBookingFlow({
   onCreateRecurring,
   onPreviewRecurring,
   successRedirect,
-}: RecurringBookingFlowProps): ReactNode {
+}: TRecurringBookingFlowProps): ReactNode {
   const router = useRouter();
   const t = useTranslations('BookingForm');
   const tc = useTranslations('Common');
   const te = useTranslations('Errors');
 
   // ── State ──
-  const [recService, setRecService] = useState<SessionType | null>(null);
+  const [recService, setRecService] = useState<TSessionType | null>(null);
   const [dayTimeMap, setDayTimeMap] = useState<Record<number, string>>({});
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
@@ -77,7 +81,7 @@ export function RecurringBookingFlow({
 
   // ── Handlers ──
 
-  const handleDayClick = (day: number) => {
+  const handleDayClick = (day: number): void => {
     if (activeDay === day) {
       setDayTimeMap((prev) => {
         const next = { ...prev };
@@ -92,8 +96,10 @@ export function RecurringBookingFlow({
     }
   };
 
-  const handleRecTimeSelect = (time: string) => {
-    if (activeDay === null) return;
+  const handleRecTimeSelect = (time: string): void => {
+    if (activeDay === null) {
+      return;
+    }
     setDayTimeMap((prev) => ({ ...prev, [activeDay]: time }));
     setActiveDay(null);
   };
@@ -106,8 +112,10 @@ export function RecurringBookingFlow({
     return result;
   };
 
-  const handlePreview = async () => {
-    if (!recFormReady || !recService) return;
+  const handlePreview = async (): Promise<void> => {
+    if (!recFormReady || !recService) {
+      return;
+    }
     setIsPreviewing(true);
     try {
       const result = await onPreviewRecurring({
@@ -123,8 +131,10 @@ export function RecurringBookingFlow({
     }
   };
 
-  const handleCreateSchedule = async () => {
-    if (!recFormReady || !recService) return;
+  const handleCreateSchedule = async (): Promise<void> => {
+    if (!recFormReady || !recService) {
+      return;
+    }
     setIsSaving(true);
     try {
       await onCreateRecurring({
@@ -178,7 +188,9 @@ export function RecurringBookingFlow({
 
       {recFormReady && (
         <div
-          className="bg-background/80 fixed right-0 bottom-0 left-0 space-y-3 p-4 backdrop-blur-sm"
+          className={
+            'bg-background/80 fixed right-0 bottom-0 left-0 space-y-3 p-4 backdrop-blur-sm'
+          }
           style={{ maxWidth: '430px', margin: '0 auto' }}
         >
           <PrimaryButton onClick={handleCreateSchedule} disabled={isSaving}>

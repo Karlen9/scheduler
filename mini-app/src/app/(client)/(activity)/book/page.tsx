@@ -1,13 +1,16 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { Suspense, useMemo } from 'react';
+
 import { BookingForm } from '@/components/BookingForm';
+import { useBookings, useDaysOff, useSessionTypes, useWorkingHours } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { getUserName } from '@/lib/telegram';
-import { useWorkingHours, useDaysOff, useSessionTypes, useBookings } from '@/hooks/queries';
 
-function ClientBookContent() {
+import type { ReactNode } from 'react';
+
+function ClientBookContent(): ReactNode {
   const t = useTranslations('BookingForm');
   const { data: workingHours, isLoading: whLoading } = useWorkingHours();
   const { data: daysOffData, isLoading: doLoading } = useDaysOff();
@@ -30,7 +33,7 @@ function ClientBookContent() {
       bookedDates={bookedDates}
       isLoading={whLoading || doLoading || svcLoading}
       showRecurring={false}
-      successRedirect="/bookings"
+      successRedirect={'/bookings'}
       title={t('title')}
       onCreateBooking={async (params) => {
         const name = getUserName();
@@ -54,16 +57,16 @@ function ClientBookContent() {
   );
 }
 
-function BookingFallback() {
+function BookingFallback(): ReactNode {
   const tc = useTranslations('Common');
   return (
-    <div className="bg-background flex min-h-screen items-center justify-center">
+    <div className={'bg-background flex min-h-screen items-center justify-center'}>
       {tc('loading')}
     </div>
   );
 }
 
-export default function BookingPage() {
+export default function BookingPage(): ReactNode {
   return (
     <Suspense fallback={<BookingFallback />}>
       <ClientBookContent />
