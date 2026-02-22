@@ -1,21 +1,24 @@
 'use client';
 
+import { Calendar, Check, ChevronRight, Clock, Repeat, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Clock, Repeat, Calendar, Check, X, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { formatDuration } from '@/components/DurationSelector';
-import { ClientAvatar } from '@/components/ClientAvatar';
-import { StatusBadge, statusBorders } from '@/components/StatusBadge';
-import { RecurringSchedule, SessionType } from '@/lib/types';
 
-interface RecurringScheduleCardProps {
-  schedule: RecurringSchedule;
-  services?: SessionType[];
-  onCancel?: (schedule: RecurringSchedule) => void;
-  onApprove?: (schedule: RecurringSchedule) => void;
-  onDecline?: (schedule: RecurringSchedule) => void;
+import { ClientAvatar } from '@/components/ClientAvatar';
+import { formatDuration } from '@/components/DurationSelector';
+import { StatusBadge, statusBorders } from '@/components/StatusBadge';
+
+import type { TRecurringSchedule, TSessionType } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+type TRecurringScheduleCardProps = {
+  schedule: TRecurringSchedule;
+  services?: TSessionType[];
+  onCancel?: (schedule: TRecurringSchedule) => void;
+  onApprove?: (schedule: TRecurringSchedule) => void;
+  onDecline?: (schedule: TRecurringSchedule) => void;
   detailPath?: string; // e.g. "/recurring" or "/admin/recurring"
-}
+};
 
 const dayShortKeysMap: Record<number, string> = {
   0: 'sun',
@@ -48,7 +51,7 @@ export function RecurringScheduleCard({
   onApprove,
   onDecline,
   detailPath,
-}: RecurringScheduleCardProps) {
+}: TRecurringScheduleCardProps): ReactNode {
   const router = useRouter();
   const tc = useTranslations('Common');
   const td = useTranslations('Dates');
@@ -59,7 +62,7 @@ export function RecurringScheduleCard({
     return key ? td(`daysShort.${key}`) : '?';
   }
 
-  function formatDaysOfWeek(sched: RecurringSchedule): string {
+  function formatDaysOfWeek(sched: TRecurringSchedule): string {
     if (sched.daysOfWeek) {
       return sched.daysOfWeek
         .split(',')
@@ -70,7 +73,9 @@ export function RecurringScheduleCard({
   }
 
   function parseDayTimes(dayTimesJSON?: string): Record<string, string> | null {
-    if (!dayTimesJSON) return null;
+    if (!dayTimesJSON) {
+      return null;
+    }
     try {
       return JSON.parse(dayTimesJSON);
     } catch {
@@ -86,23 +91,29 @@ export function RecurringScheduleCard({
   }
 
   function formatDateRange(startDate?: string, endDate?: string): string | null {
-    if (!startDate || !endDate) return null;
+    if (!startDate || !endDate) {
+      return null;
+    }
     const start = new Date(startDate);
     const end = new Date(endDate);
     return `${start.getDate()} ${td(`monthsShort.${monthShortKeys[start.getMonth()]}`)} — ${end.getDate()} ${td(`monthsShort.${monthShortKeys[end.getMonth()]}`)}`;
   }
 
-  function getServiceName(sched: RecurringSchedule, svcs?: SessionType[]): string {
+  function getServiceName(sched: TRecurringSchedule, svcs?: TSessionType[]): string {
     if (sched.sessionType?.name) {
       return sched.sessionType.name;
     }
     if (svcs && svcs.length > 0 && sched.sessionTypeId) {
       const match = svcs.find((s) => s.id === sched.sessionTypeId);
-      if (match) return match.name;
+      if (match) {
+        return match.name;
+      }
     }
     if (svcs && svcs.length > 0) {
       const match = svcs.find((s) => s.durationMinutes === sched.durationMinutes);
-      if (match) return match.name;
+      if (match) {
+        return match.name;
+      }
     }
     return formatDuration(sched.durationMinutes, tdu('hour'));
   }
@@ -117,7 +128,7 @@ export function RecurringScheduleCard({
   const hasActions = canCancel || canApprove || canDecline;
   const isActive = schedule.status === 'active';
 
-  const handleCardClick = () => {
+  const handleCardClick = (): void => {
     if (detailPath && isActive) {
       router.push(`${detailPath}/${schedule.id}`);
     }
@@ -128,89 +139,97 @@ export function RecurringScheduleCard({
       className={`bg-card rounded-xl border-l-4 p-4 ${border} ${detailPath && isActive ? 'cursor-pointer transition-opacity active:opacity-80' : ''}`}
       onClick={handleCardClick}
     >
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex-1">
+      <div className={'mb-3 flex items-start justify-between'}>
+        <div className={'flex-1'}>
           {schedule.clientName && (
-            <div className="mb-2 flex items-center gap-2">
+            <div className={'mb-2 flex items-center gap-2'}>
               <ClientAvatar
                 name={schedule.clientDisplayName || schedule.clientName}
                 photoUrl={schedule.clientPhotoUrl}
-                size="sm"
+                size={'sm'}
               />
-              <span className="text-foreground text-sm font-medium">
+              <span className={'text-foreground text-sm font-medium'}>
                 {schedule.clientDisplayName || schedule.clientName}
               </span>
             </div>
           )}
           {dayTimes ? (
-            <div className="mb-2 flex items-center gap-2">
-              <Clock className="text-muted-foreground h-4 w-4 shrink-0" />
-              <span className="text-foreground text-sm">
+            <div className={'mb-2 flex items-center gap-2'}>
+              <Clock className={'text-muted-foreground h-4 w-4 shrink-0'} />
+              <span className={'text-foreground text-sm'}>
                 {daysLabel}
-                <span className="text-muted-foreground">
+                <span className={'text-muted-foreground'}>
                   {' '}
-                  · {getServiceName(schedule, services)}
+                  {'· '}
+                  {getServiceName(schedule, services)}
                 </span>
               </span>
             </div>
           ) : (
             <>
-              <div className="mb-2 flex items-center gap-2">
-                <Repeat className="text-muted-foreground h-4 w-4" />
-                <span className="text-foreground text-sm">{daysLabel}</span>
+              <div className={'mb-2 flex items-center gap-2'}>
+                <Repeat className={'text-muted-foreground h-4 w-4'} />
+                <span className={'text-foreground text-sm'}>{daysLabel}</span>
               </div>
-              <div className="mb-2 flex items-center gap-2">
-                <Clock className="text-muted-foreground h-4 w-4" />
-                <span className="text-foreground text-sm">
+              <div className={'mb-2 flex items-center gap-2'}>
+                <Clock className={'text-muted-foreground h-4 w-4'} />
+                <span className={'text-foreground text-sm'}>
                   {schedule.time}
-                  <span className="text-muted-foreground">
+                  <span className={'text-muted-foreground'}>
                     {' '}
-                    · {getServiceName(schedule, services)}
+                    {'· '}
+                    {getServiceName(schedule, services)}
                   </span>
                 </span>
               </div>
             </>
           )}
           {dateRange && (
-            <div className="flex items-center gap-2">
-              <Calendar className="text-muted-foreground h-4 w-4" />
-              <span className="text-muted-foreground text-sm">{dateRange}</span>
+            <div className={'flex items-center gap-2'}>
+              <Calendar className={'text-muted-foreground h-4 w-4'} />
+              <span className={'text-muted-foreground text-sm'}>{dateRange}</span>
             </div>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className={'flex shrink-0 items-center gap-2'}>
           <StatusBadge status={schedule.status} />
-          {detailPath && isActive && <ChevronRight className="text-muted-foreground h-4 w-4" />}
+          {detailPath && isActive && <ChevronRight className={'text-muted-foreground h-4 w-4'} />}
         </div>
       </div>
 
       {hasActions && (
-        <div className="border-border border-t pt-3" onClick={(e) => e.stopPropagation()}>
-          <div className="flex gap-2">
+        <div className={'border-border border-t pt-3'} onClick={(e) => e.stopPropagation()}>
+          <div className={'flex gap-2'}>
             {canApprove && (
               <button
                 onClick={() => onApprove(schedule)}
-                className="bg-action-success-bg text-action-success-text flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+                className={
+                  'bg-action-success-bg text-action-success-text flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+                }
               >
-                <Check className="h-4 w-4" />
+                <Check className={'h-4 w-4'} />
                 {tc('confirm')}
               </button>
             )}
             {canDecline && (
               <button
                 onClick={() => onDecline(schedule)}
-                className="bg-action-danger-bg text-action-danger-text flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+                className={
+                  'bg-action-danger-bg text-action-danger-text flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+                }
               >
-                <X className="h-4 w-4" />
+                <X className={'h-4 w-4'} />
                 {tc('cancelVerb')}
               </button>
             )}
             {canCancel && (
               <button
                 onClick={() => onCancel(schedule)}
-                className="bg-background text-destructive flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+                className={
+                  'bg-background text-destructive flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+                }
               >
-                <X className="h-4 w-4" />
+                <X className={'h-4 w-4'} />
                 {tc('cancelVerb')}
               </button>
             )}

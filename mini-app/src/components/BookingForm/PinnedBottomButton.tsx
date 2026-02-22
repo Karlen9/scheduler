@@ -1,14 +1,16 @@
-import { ReactNode } from 'react';
+import { addMinutesToTime, formatDateISO } from '@/lib/helpers';
+
 import { DateChip } from './DateChip';
-import { formatDateISO, addMinutesToTime } from '@/lib/helpers';
 import { PrimaryButton } from '../PrimaryButton';
-import { SessionType, TVoidFunction } from '@/lib/types';
+
+import type { TSessionType, TVoidFunction } from '@/lib/types';
+import type { ReactNode } from 'react';
 
 export type TPinnedBottomButtonProps = {
   mode: 'single' | 'multi';
   selectedDates: Date[];
   timeAssignments: Record<string, string>;
-  selectedService: SessionType | null;
+  selectedService: TSessionType | null;
   handleChipTap: (date: Date) => void;
   handleOnetimeSubmit: TVoidFunction;
   activeDateISO: string | null;
@@ -29,11 +31,11 @@ export function PinnedBottomButton({
 }: TPinnedBottomButtonProps): ReactNode {
   return (
     <div
-      className="bg-background/80 fixed right-0 bottom-0 left-0 space-y-3 p-4 backdrop-blur-sm"
+      className={'bg-background/80 fixed right-0 bottom-0 left-0 space-y-3 p-4 backdrop-blur-sm'}
       style={{ maxWidth: '430px', margin: '0 auto' }}
     >
       {mode === 'multi' && selectedDates.length > 0 && (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 py-1">
+        <div className={'-mx-1 flex gap-2 overflow-x-auto px-1 py-1'}>
           {selectedDates.map((date) => {
             const iso = formatDateISO(date);
             const time = timeAssignments[iso];

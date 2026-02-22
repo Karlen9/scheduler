@@ -1,23 +1,27 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
-import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+
 import { setLocale } from '@/actions/locale';
 import { ActivityBackButton } from '@/components/ActivityBackButton';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { PhotoEditor } from '@/components/PhotoEditor';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ServiceSelector } from '@/components/ServiceSelector';
-import { PhotoEditor } from '@/components/PhotoEditor';
-import { api } from '@/lib/api';
 import { ThemeSelector } from '@/components/ThemeSelector';
-import { LanguageSelector } from '@/components/LanguageSelector';
-import { useProfile, useSessionTypes } from '@/hooks/queries';
 import { invalidateProfile } from '@/hooks/mutations';
+import { useProfile, useSessionTypes } from '@/hooks/queries';
+import { api } from '@/lib/api';
+
 import { AvatarSection } from './AvatarSection';
 import { NotificationPreferences } from './NotificationPreferences';
 
-export default function ClientProfilePage() {
+import type { ReactNode } from 'react';
+
+export default function ClientProfilePage(): ReactNode {
   const t = useTranslations('ProfilePage');
   const tc = useTranslations('Common');
   const te = useTranslations('Errors');
@@ -65,15 +69,19 @@ export default function ClientProfilePage() {
     }
   }, [profile?.language, locale, router]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     const url = URL.createObjectURL(file);
     setEditorImage(url);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const handleEditorConfirm = async (blob: Blob) => {
+  const handleEditorConfirm = async (blob: Blob): Promise<void> => {
     setEditorImage(null);
     setIsUploading(true);
     try {
@@ -91,7 +99,7 @@ export default function ClientProfilePage() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     setIsSaving(true);
     try {
       await api.updateProfile({ name, phone, preferredDuration });
@@ -108,7 +116,7 @@ export default function ClientProfilePage() {
   const handleToggleNotification = async (
     key: 'notifyBookingStatus' | 'notifyReminders' | 'notifyDaysOff' | 'notifyCancellations',
     value: boolean,
-  ) => {
+  ): Promise<void> => {
     const setters = {
       notifyBookingStatus: setNotifyBookingStatus,
       notifyReminders: setNotifyReminders,
@@ -126,29 +134,29 @@ export default function ClientProfilePage() {
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-6 p-4">
-        <div className="flex justify-center pt-2">
-          <div className="bg-card h-24 w-24 rounded-full" />
+      <div className={'animate-pulse space-y-6 p-4'}>
+        <div className={'flex justify-center pt-2'}>
+          <div className={'bg-card h-24 w-24 rounded-full'} />
         </div>
-        <div className="space-y-4">
+        <div className={'space-y-4'}>
           <div>
-            <div className="bg-card mb-2 h-4 w-10 rounded" />
-            <div className="bg-card h-12 rounded-lg" />
+            <div className={'bg-card mb-2 h-4 w-10 rounded'} />
+            <div className={'bg-card h-12 rounded-lg'} />
           </div>
           <div>
-            <div className="bg-card mb-2 h-4 w-16 rounded" />
-            <div className="bg-card h-12 rounded-lg" />
+            <div className={'bg-card mb-2 h-4 w-16 rounded'} />
+            <div className={'bg-card h-12 rounded-lg'} />
           </div>
         </div>
-        <div className="bg-card h-12 rounded-lg" />
+        <div className={'bg-card h-12 rounded-lg'} />
       </div>
     );
   }
 
   return (
     <div>
-      <ActivityBackButton href="/" />
-      <div className="space-y-6 p-4">
+      <ActivityBackButton href={'/'} />
+      <div className={'space-y-6 p-4'}>
         <AvatarSection
           name={name}
           photoUrl={photoUrl}
@@ -161,33 +169,37 @@ export default function ClientProfilePage() {
         />
 
         {/* Form */}
-        <div className="space-y-4">
+        <div className={'space-y-4'}>
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('nameLabel')}</label>
+            <label className={'text-muted-foreground mb-1 block text-sm'}>{t('nameLabel')}</label>
             <input
-              type="text"
+              type={'text'}
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={50}
-              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
+              className={
+                'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
+              }
             />
           </div>
 
           <div>
-            <label className="text-muted-foreground mb-1 block text-sm">{t('phoneLabel')}</label>
+            <label className={'text-muted-foreground mb-1 block text-sm'}>{t('phoneLabel')}</label>
             <input
-              type="tel"
+              type={'tel'}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               maxLength={20}
               placeholder={t('phonePlaceholder')}
-              className="bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2"
+              className={
+                'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
+              }
             />
           </div>
 
           {services.length > 1 && (
             <div>
-              <label className="text-muted-foreground mb-1 block text-sm">
+              <label className={'text-muted-foreground mb-1 block text-sm'}>
                 {t('preferredService')}
               </label>
               <ServiceSelector
@@ -214,13 +226,13 @@ export default function ClientProfilePage() {
 
         {/* Theme */}
         <div>
-          <h3 className="text-muted-foreground mb-3 text-sm">{t('theme')}</h3>
+          <h3 className={'text-muted-foreground mb-3 text-sm'}>{t('theme')}</h3>
           <ThemeSelector />
         </div>
 
         {/* Language */}
         <div>
-          <h3 className="text-muted-foreground mb-3 text-sm">{tl('language')}</h3>
+          <h3 className={'text-muted-foreground mb-3 text-sm'}>{tl('language')}</h3>
           <LanguageSelector />
         </div>
 

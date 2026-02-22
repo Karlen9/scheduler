@@ -1,27 +1,35 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Booking, TimeSlot } from '@/lib/types';
+import { useCallback, useMemo, useState } from 'react';
+
 import { BottomSheet } from '@/components/BottomSheet';
 import { CalendarView } from '@/components/CalendarView';
-import { TimeSlotGrid } from '@/components/TimeSlotGrid';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { TimeSlotGrid } from '@/components/TimeSlotGrid';
+import { useDaysOff, useWorkingHours } from '@/hooks/queries';
 import { api } from '@/lib/api';
-import { useWorkingHours, useDaysOff } from '@/hooks/queries';
 
-interface RescheduleSheetProps {
-  booking: Booking | null;
+import type { TBooking, TTimeSlot, TVoidFunction } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+type TRescheduleSheetProps = {
+  booking: TBooking | null;
   isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
+  onClose: TVoidFunction;
+  onSuccess: TVoidFunction;
+};
 
-function formatDateISO(date: Date) {
+function formatDateISO(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: RescheduleSheetProps) {
+export function RescheduleSheet({
+  booking,
+  isOpen,
+  onClose,
+  onSuccess,
+}: TRescheduleSheetProps): ReactNode {
   const t = useTranslations('RescheduleSheet');
   const tc = useTranslations('Common');
   const te = useTranslations('Errors');
@@ -32,7 +40,9 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
     const workingSet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
     const result: number[] = [];
     for (let i = 0; i < 7; i++) {
-      if (!workingSet.has(i)) result.push(i);
+      if (!workingSet.has(i)) {
+        result.push(i);
+      }
     }
     return result;
   }, [workingHoursData]);
@@ -41,7 +51,7 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [timeSlots, setTimeSlots] = useState<TTimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,13 +76,15 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
     [duration],
   );
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);
     fetchSlots(date);
   };
 
-  const handleSubmit = async () => {
-    if (!booking || !selectedDate || !selectedTime) return;
+  const handleSubmit = async (): Promise<void> => {
+    if (!booking || !selectedDate || !selectedTime) {
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
@@ -89,7 +101,7 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
     }
   };
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setSelectedDate(null);
     setSelectedTime(null);
     setTimeSlots([]);
@@ -104,9 +116,9 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
       isOpen={isOpen}
       onClose={handleClose}
       title={t('title')}
-      className="max-h-[85vh] overflow-y-auto"
+      className={'max-h-[85vh] overflow-y-auto'}
     >
-      <div className="space-y-4">
+      <div className={'space-y-4'}>
         <CalendarView
           selectedDate={selectedDate}
           onSelectDate={handleDateSelect}
@@ -115,13 +127,13 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
         />
 
         {isLoadingSlots && (
-          <div className="grid grid-cols-3 gap-2">
+          <div className={'grid grid-cols-3 gap-2'}>
             {Array.from({ length: 9 }).map((_, i) => (
               <div
                 key={i}
-                className="bg-card animate-pulse rounded-lg py-3 text-sm text-transparent"
+                className={'bg-card animate-pulse rounded-lg py-3 text-sm text-transparent'}
               >
-                00:00
+                {'00:00'}
               </div>
             ))}
           </div>
@@ -129,16 +141,16 @@ export function RescheduleSheet({ booking, isOpen, onClose, onSuccess }: Resched
 
         {selectedDate && !isLoadingSlots && timeSlots.length > 0 && (
           <>
-            <h4 className="text-muted-foreground text-sm font-medium">{t('selectTime')}</h4>
+            <h4 className={'text-muted-foreground text-sm font-medium'}>{t('selectTime')}</h4>
             {hasAvailableSlots ? (
               <TimeSlotGrid slots={timeSlots} selected={selectedTime} onSelect={setSelectedTime} />
             ) : (
-              <p className="text-muted-foreground py-4 text-center text-sm">{t('noSlots')}</p>
+              <p className={'text-muted-foreground py-4 text-center text-sm'}>{t('noSlots')}</p>
             )}
           </>
         )}
 
-        {error && <p className="text-destructive text-center text-sm">{error}</p>}
+        {error && <p className={'text-destructive text-center text-sm'}>{error}</p>}
 
         {selectedTime && (
           <PrimaryButton onClick={handleSubmit} disabled={isSubmitting}>

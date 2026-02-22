@@ -1,10 +1,13 @@
 import { Eye } from 'lucide-react';
-import { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
+
+import { dayKeyMap, monthShortCapKeys } from '@/lib/mappings';
+
 import { ServiceSelector } from '../ServiceSelector';
 import { DaysOfWeek } from './DaysOfWeek';
-import { useTranslations } from 'next-intl';
-import { TRecurringDayFormProps } from '@/lib/types';
-import { dayKeyMap, monthShortCapKeys } from '@/lib/mappings';
+
+import type { TRecurringDayFormProps } from '@/lib/types';
+import type { ReactNode } from 'react';
 
 export function RecurringDayForm({
   services,
@@ -55,11 +58,11 @@ export function RecurringDayForm({
     return `${dayName}, ${d.getDate()} ${td(`monthsShort.${monthKey}`)}`;
   }
   return (
-    <div className="space-y-4">
+    <div className={'space-y-4'}>
       {/* Service */}
       {services.length > 0 && (
         <div>
-          <label className="text-muted-foreground mb-2 block text-sm">{t('service')}</label>
+          <label className={'text-muted-foreground mb-2 block text-sm'}>{t('service')}</label>
           <ServiceSelector
             services={services}
             selectedId={recService?.id ?? ''}
@@ -79,11 +82,11 @@ export function RecurringDayForm({
       {/* Time slots for active day */}
       {recService && activeDay !== null && (
         <div>
-          <label className="text-muted-foreground mb-2 block text-sm">
+          <label className={'text-muted-foreground mb-2 block text-sm'}>
             {t('timeForDay', { day: getDayNameShort(activeDay) })}
           </label>
           {timeSlotsForActiveDay.length > 0 ? (
-            <div className="grid grid-cols-4 gap-2">
+            <div className={'grid grid-cols-4 gap-2'}>
               {timeSlotsForActiveDay.map((slot) => (
                 <button
                   key={slot}
@@ -99,7 +102,7 @@ export function RecurringDayForm({
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">
+            <p className={'text-muted-foreground text-sm'}>
               {t('noSlotsForDay', { day: getDayNameShort(activeDay) })}
             </p>
           )}
@@ -108,11 +111,11 @@ export function RecurringDayForm({
 
       {/* Configured days summary */}
       {hasDayTimes && activeDay === null && (
-        <div className="space-y-1">
+        <div className={'space-y-1'}>
           {DAYS.filter((d) => d.value in dayTimeMap).map((d) => (
-            <div key={d.value} className="flex items-center justify-between px-1 text-sm">
-              <span className="text-foreground">{d.label}</span>
-              <span className="text-muted-foreground">{dayTimeMap[d.value]}</span>
+            <div key={d.value} className={'flex items-center justify-between px-1 text-sm'}>
+              <span className={'text-foreground'}>{d.label}</span>
+              <span className={'text-muted-foreground'}>{dayTimeMap[d.value]}</span>
             </div>
           ))}
         </div>
@@ -121,8 +124,8 @@ export function RecurringDayForm({
       {/* Period */}
       {recService && hasDayTimes && (
         <div>
-          <label className="text-muted-foreground mb-2 block text-sm">{t('period')}</label>
-          <div className="flex gap-2">
+          <label className={'text-muted-foreground mb-2 block text-sm'}>{t('period')}</label>
+          <div className={'flex gap-2'}>
             {PERIODS.map((period) => (
               <button
                 key={period.value}
@@ -142,26 +145,28 @@ export function RecurringDayForm({
 
       {/* Preview & Submit */}
       {recFormReady && (
-        <div className="space-y-2">
+        <div className={'space-y-2'}>
           {!previewDates && (
             <button
               onClick={handlePreview}
               disabled={isPreviewing}
-              className="bg-card text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40"
+              className={
+                'bg-card text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-40'
+              }
             >
-              <Eye className="h-4 w-4" />
+              <Eye className={'h-4 w-4'} />
               {isPreviewing ? tc('loading') : t('preview')}
             </button>
           )}
 
           {previewDates && (
             <div>
-              <label className="text-muted-foreground mb-2 block text-sm">
+              <label className={'text-muted-foreground mb-2 block text-sm'}>
                 {t('previewCount', { count: previewDates.length })}
               </label>
-              <div className="bg-card max-h-40 space-y-1 overflow-y-auto rounded-lg p-3">
+              <div className={'bg-card max-h-40 space-y-1 overflow-y-auto rounded-lg p-3'}>
                 {previewDates.map((date) => (
-                  <div key={date} className="text-foreground text-sm">
+                  <div key={date} className={'text-foreground text-sm'}>
                     {formatPreviewDate(date)}
                   </div>
                 ))}

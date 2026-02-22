@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export function middleware(request: NextRequest) {
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest): NextResponse {
   const lang = request.nextUrl.searchParams.get('lang');
 
   if (lang && ['ru', 'en'].includes(lang)) {

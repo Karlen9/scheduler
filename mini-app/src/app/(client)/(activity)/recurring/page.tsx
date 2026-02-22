@@ -1,18 +1,21 @@
 'use client';
 
-import { useState } from 'react';
 import { Repeat } from 'lucide-react';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { EmptyState } from '@/components/EmptyState';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { RecurringScheduleCard } from '@/components/RecurringScheduleCard';
-import { RecurringSchedule } from '@/lib/types';
-import { api } from '@/lib/api';
-import { useRecurringSchedules, useSessionTypes } from '@/hooks/queries';
-import { invalidateRecurring } from '@/hooks/mutations';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
-export default function ClientRecurringPage() {
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { EmptyState } from '@/components/EmptyState';
+import { RecurringScheduleCard } from '@/components/RecurringScheduleCard';
+import { invalidateRecurring } from '@/hooks/mutations';
+import { useRecurringSchedules, useSessionTypes } from '@/hooks/queries';
+import { api } from '@/lib/api';
+
+import type { TRecurringSchedule } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+export default function ClientRecurringPage(): ReactNode {
   const t = useTranslations('RecurringPage');
   const tc = useTranslations('Common');
   const te = useTranslations('Errors');
@@ -22,10 +25,12 @@ export default function ClientRecurringPage() {
 
   const isLoading = schedulesLoading || servicesLoading;
 
-  const [cancelTarget, setCancelTarget] = useState<RecurringSchedule | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<TRecurringSchedule | null>(null);
 
-  const handleCancel = async () => {
-    if (!cancelTarget) return;
+  const handleCancel = async (): Promise<void> => {
+    if (!cancelTarget) {
+      return;
+    }
     try {
       await api.cancelRecurringSchedule(cancelTarget.id);
       toast.success(ts('scheduleCancelled'));
@@ -44,11 +49,11 @@ export default function ClientRecurringPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-3 p-4">
+      <div className={'animate-pulse space-y-3 p-4'}>
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card space-y-2 rounded-xl p-4">
-            <div className="bg-border h-4 w-1/3 rounded" />
-            <div className="bg-border h-3 w-2/3 rounded" />
+          <div key={i} className={'bg-card space-y-2 rounded-xl p-4'}>
+            <div className={'bg-border h-4 w-1/3 rounded'} />
+            <div className={'bg-border h-3 w-2/3 rounded'} />
           </div>
         ))}
       </div>
@@ -57,10 +62,10 @@ export default function ClientRecurringPage() {
 
   return (
     <div>
-      <div className="space-y-6 p-4">
+      <div className={'space-y-6 p-4'}>
         {!hasSchedules ? (
           <EmptyState
-            icon={<Repeat className="h-16 w-16" />}
+            icon={<Repeat className={'h-16 w-16'} />}
             title={t('emptyTitle')}
             description={t('emptyDescription')}
           />
@@ -68,17 +73,17 @@ export default function ClientRecurringPage() {
           <>
             {pendingSchedules.length > 0 && (
               <div>
-                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+                <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>
                   {t('pendingSection')}
                 </h3>
-                <div className="space-y-3">
+                <div className={'space-y-3'}>
                   {pendingSchedules.map((schedule) => (
                     <RecurringScheduleCard
                       key={schedule.id}
                       schedule={schedule}
                       services={services}
                       onCancel={setCancelTarget}
-                      detailPath="/recurring"
+                      detailPath={'/recurring'}
                     />
                   ))}
                 </div>
@@ -87,17 +92,17 @@ export default function ClientRecurringPage() {
 
             {activeSchedules.length > 0 && (
               <div>
-                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+                <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>
                   {t('activeSection')}
                 </h3>
-                <div className="space-y-3">
+                <div className={'space-y-3'}>
                   {activeSchedules.map((schedule) => (
                     <RecurringScheduleCard
                       key={schedule.id}
                       schedule={schedule}
                       services={services}
                       onCancel={setCancelTarget}
-                      detailPath="/recurring"
+                      detailPath={'/recurring'}
                     />
                   ))}
                 </div>
@@ -106,10 +111,10 @@ export default function ClientRecurringPage() {
 
             {declinedSchedules.length > 0 && (
               <div>
-                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+                <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>
                   {t('declinedSection')}
                 </h3>
-                <div className="space-y-3">
+                <div className={'space-y-3'}>
                   {declinedSchedules.map((schedule) => (
                     <RecurringScheduleCard
                       key={schedule.id}
@@ -123,10 +128,13 @@ export default function ClientRecurringPage() {
 
             {cancelledSchedules.length > 0 && (
               <div>
-                <h3 className="text-muted-foreground mb-3 text-sm font-medium">
-                  {t('cancelledSection')} ({cancelledSchedules.length})
+                <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>
+                  {t('cancelledSection')}
+                  {' ('}
+                  {cancelledSchedules.length}
+                  {')'}
                 </h3>
-                <div className="space-y-3">
+                <div className={'space-y-3'}>
                   {cancelledSchedules.map((schedule) => (
                     <RecurringScheduleCard
                       key={schedule.id}

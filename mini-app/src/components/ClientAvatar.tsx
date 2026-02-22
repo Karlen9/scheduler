@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { getAvatarColor } from '@/lib/colors';
-import { getPhotoUrl } from '@/lib/api';
 
-interface ClientAvatarProps {
+import { getPhotoUrl } from '@/lib/api';
+import { getAvatarColor } from '@/lib/colors';
+
+import type { ReactNode } from 'react';
+
+type TClientAvatarProps = {
   name: string;
   photoUrl?: string;
   size?: 'sm' | 'md' | 'lg';
-}
+};
 
 const sizeClasses = {
   sm: 'w-8 h-8 text-sm',
@@ -16,7 +19,7 @@ const sizeClasses = {
   lg: 'w-16 h-16 text-2xl',
 };
 
-export function ClientAvatar({ name, photoUrl, size = 'md' }: ClientAvatarProps) {
+export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps): ReactNode {
   const [error, setError] = useState(false);
   const cls = sizeClasses[size];
 

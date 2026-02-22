@@ -2,7 +2,9 @@
 
 import { SWRConfig } from 'swr';
 
-export function SWRProvider({ children }: { children: React.ReactNode }) {
+import type { ReactNode } from 'react';
+
+export function SWRProvider({ children }: { children: React.ReactNode }): ReactNode {
   return (
     <SWRConfig
       value={{

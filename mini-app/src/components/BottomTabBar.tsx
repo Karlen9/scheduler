@@ -1,24 +1,26 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LucideIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
-interface Tab {
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+type TTab = {
   key: string;
   label: string;
   icon: LucideIcon;
   href: string;
   isCenter?: boolean;
   matchPaths?: string[];
-}
+};
 
-interface SubTab {
+type TSubTab = {
   icon: LucideIcon;
   href: string;
   label?: string;
-}
+};
 
 function PlusButton({
   href,
@@ -30,11 +32,11 @@ function PlusButton({
   isActive: boolean;
   bouncing: boolean;
   icon: LucideIcon;
-}) {
+}): ReactNode {
   return (
     <Link
       href={href}
-      className="relative z-10 mx-5 flex items-center justify-center active:scale-95"
+      className={'relative z-10 mx-5 flex items-center justify-center active:scale-95'}
       style={{ width: '56px' }}
     >
       <div
@@ -67,7 +69,7 @@ function TabButton({
   icon: LucideIcon;
   label?: string;
   activeColor?: string;
-}) {
+}): ReactNode {
   return (
     <Link
       href={href}
@@ -77,17 +79,17 @@ function TabButton({
       style={{ width: '96px', height: '48px' }}
     >
       <Icon className={`h-5 w-5 ${bouncing ? 'tab-bounce' : ''}`} />
-      {label && <span className="text-[11px] font-medium">{label}</span>}
+      {label && <span className={'text-[11px] font-medium'}>{label}</span>}
     </Link>
   );
 }
 
-interface BottomTabBarProps {
-  tabs: Tab[];
-  subTabs?: SubTab[];
-}
+type TBottomTabBarProps = {
+  tabs: TTab[];
+  subTabs?: TSubTab[];
+};
 
-export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
+export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
   const pathname = usePathname();
   const prevPathRef = useRef(pathname);
   const [animatingKey, setAnimatingKey] = useState<string | null>(null);
@@ -124,13 +126,17 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
   useEffect(() => {
     if (tabsRef.current) {
       const first = tabsRef.current.firstElementChild as HTMLElement | null;
-      if (first) setSideTabW(first.offsetWidth);
+      if (first) {
+        setSideTabW(first.offsetWidth);
+      }
     }
     if (subTabsRef.current) {
       const first = subTabsRef.current.firstElementChild as HTMLElement | null;
-      if (first) setSubTabW(first.offsetWidth);
+      if (first) {
+        setSubTabW(first.offsetWidth);
+      }
     }
-  });
+  }, [subTabsRef]);
 
   // Trigger bounce animation on route change
   useEffect(() => {
@@ -146,14 +152,18 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
   }, [pathname, currentIndex, showSubTabs, tabs]);
 
   return (
-    <div className="fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-6">
-      <div className="bg-tab-bar border-tab-bar-border relative overflow-visible rounded-full border px-3 py-1.5">
+    <div className={'fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-6'}>
+      <div
+        className={
+          'bg-tab-bar border-tab-bar-border relative overflow-visible rounded-full border px-3 py-1.5'
+        }
+      >
         {showSubTabs ? (
           <>
             {/* Sliding indicator for sub-tabs */}
             {activeSubIndex >= 0 && subTabW > 0 && (
               <div
-                className="bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full"
+                className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
                 style={{
                   width: `${subTabW}px`,
                   left: `${6 + activeSubIndex * subTabW}px`,
@@ -162,7 +172,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
               />
             )}
 
-            <div ref={subTabsRef} className="relative flex items-center">
+            <div ref={subTabsRef} className={'relative flex items-center'}>
               {subTabs.map((tab) => {
                 const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
                 const bouncing = animatingKey === tab.href;
@@ -174,7 +184,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
                     bouncing={bouncing}
                     icon={tab.icon}
                     label={tab.label}
-                    activeColor="text-foreground"
+                    activeColor={'text-foreground'}
                   />
                 );
               })}
@@ -185,7 +195,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
             {/* Active indicator for side tabs */}
             {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
               <div
-                className="bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full"
+                className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
                 style={{
                   width: `${sideTabW}px`,
                   left: activeSideIndex === 0 ? '6px' : `calc(100% - 6px - ${sideTabW}px)`,
@@ -195,7 +205,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
             )}
 
             {/* Tab buttons */}
-            <div ref={tabsRef} className="relative flex items-center">
+            <div ref={tabsRef} className={'relative flex items-center'}>
               {tabs.map((tab, index) => {
                 const isActive = index === currentIndex;
                 const Icon = tab.icon;
@@ -229,7 +239,7 @@ export function BottomTabBar({ tabs, subTabs }: BottomTabBarProps) {
         )}
       </div>
       {/* Bottom safe area */}
-      <div className="h-[env(safe-area-inset-bottom)]" />
+      <div className={'h-[env(safe-area-inset-bottom)]'} />
     </div>
   );
 }

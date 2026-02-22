@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { TopBar } from '@/components/TopBar';
-import { api } from '@/lib/api';
-import { useAdminNotifications } from '@/hooks/queries';
-import { invalidateAdminNotifications } from '@/hooks/mutations';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-export default function AdminNotificationsPage() {
+import { TopBar } from '@/components/TopBar';
+import { invalidateAdminNotifications } from '@/hooks/mutations';
+import { useAdminNotifications } from '@/hooks/queries';
+import { api } from '@/lib/api';
+
+import type { ReactNode } from 'react';
+
+export default function AdminNotificationsPage(): ReactNode {
   const t = useTranslations('AdminNotifications');
   const te = useTranslations('Errors');
   const { data: prefs, isLoading } = useAdminNotifications();
@@ -17,14 +20,19 @@ export default function AdminNotificationsPage() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (isLoading || initialized || !prefs) return;
+    if (isLoading || initialized || !prefs) {
+      return;
+    }
 
     setNotifyNewBookings(prefs.notifyNewBookings);
     setNotifyCancellations(prefs.notifyCancellations);
     setInitialized(true);
   }, [prefs, isLoading, initialized]);
 
-  const handleToggle = async (key: 'notifyNewBookings' | 'notifyCancellations', value: boolean) => {
+  const handleToggle = async (
+    key: 'notifyNewBookings' | 'notifyCancellations',
+    value: boolean,
+  ): Promise<void> => {
     const setters = {
       notifyNewBookings: setNotifyNewBookings,
       notifyCancellations: setNotifyCancellations,
@@ -43,9 +51,9 @@ export default function AdminNotificationsPage() {
     return (
       <div>
         <TopBar title={t('title')} showBack />
-        <div className="animate-pulse space-y-3 p-4">
-          <div className="bg-card h-14 rounded-lg" />
-          <div className="bg-card h-14 rounded-lg" />
+        <div className={'animate-pulse space-y-3 p-4'}>
+          <div className={'bg-card h-14 rounded-lg'} />
+          <div className={'bg-card h-14 rounded-lg'} />
         </div>
       </div>
     );
@@ -70,17 +78,17 @@ export default function AdminNotificationsPage() {
     <div>
       <TopBar title={t('title')} showBack />
 
-      <div className="p-4">
-        <div className="bg-card divide-border divide-y rounded-lg">
+      <div className={'p-4'}>
+        <div className={'bg-card divide-border divide-y rounded-lg'}>
           {items.map((item) => (
-            <div key={item.key} className="flex items-center justify-between px-4 py-3">
+            <div key={item.key} className={'flex items-center justify-between px-4 py-3'}>
               <div>
-                <div className="text-sm font-medium">{item.label}</div>
-                <div className="text-muted-foreground text-xs">{item.desc}</div>
+                <div className={'text-sm font-medium'}>{item.label}</div>
+                <div className={'text-muted-foreground text-xs'}>{item.desc}</div>
               </div>
               <button
-                type="button"
-                onClick={() => handleToggle(item.key, !item.value)}
+                type={'button'}
+                onClick={async () => handleToggle(item.key, !item.value)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   item.value ? 'bg-brand' : 'bg-switch-background'
                 }`}

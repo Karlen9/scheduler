@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { api } from '../api';
 
 vi.mock('../telegram', () => ({
   getInitData: () => 'mock-init-data',
@@ -7,8 +9,6 @@ vi.mock('../telegram', () => ({
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
-
-import { api } from '../api';
 
 beforeEach(() => {
   mockFetch.mockReset();
@@ -25,7 +25,7 @@ describe('api.getSpecialist', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () => Promise.resolve(specialistData),
+      json: async () => Promise.resolve(specialistData),
     });
 
     const result = await api.getSpecialist();
@@ -54,7 +54,7 @@ describe('api.createBooking', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () => Promise.resolve(bookingData),
+      json: async () => Promise.resolve(bookingData),
     });
 
     const result = await api.createBooking(60, '2026-06-15', '10:00', 'Client', 'Hello');
@@ -80,7 +80,7 @@ describe('error handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 400,
-      text: () => Promise.resolve('Bad request'),
+      text: async () => Promise.resolve('Bad request'),
     });
 
     await expect(api.getSpecialist()).rejects.toThrow('Bad request');
@@ -90,7 +90,7 @@ describe('error handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
-      text: () => Promise.resolve(''),
+      text: async () => Promise.resolve(''),
     });
 
     await expect(api.getSpecialist()).rejects.toThrow('HTTP 500');

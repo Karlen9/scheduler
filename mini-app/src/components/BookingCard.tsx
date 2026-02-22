@@ -1,16 +1,19 @@
 'use client';
 
 import { Calendar, Clock, Dumbbell } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
-import { Booking } from '@/lib/types';
+import { useLocale, useTranslations } from 'next-intl';
+
 import { StatusBadge } from '@/components/StatusBadge';
 
-interface BookingCardProps {
-  booking: Booking;
-  onCancel?: (booking: Booking) => void;
-  onConfirm?: (booking: Booking) => void;
-  onDecline?: (booking: Booking) => void;
-}
+import type { TBooking } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+type TBookingCardProps = {
+  booking: TBooking;
+  onCancel?: (booking: TBooking) => void;
+  onConfirm?: (booking: TBooking) => void;
+  onDecline?: (booking: TBooking) => void;
+};
 
 const monthGenKeys = [
   'jan',
@@ -27,7 +30,12 @@ const monthGenKeys = [
   'dec',
 ];
 
-export function BookingCard({ booking, onCancel, onConfirm, onDecline }: BookingCardProps) {
+export function BookingCard({
+  booking,
+  onCancel,
+  onConfirm,
+  onDecline,
+}: TBookingCardProps): ReactNode {
   const tc = useTranslations('Common');
   const tb = useTranslations('BookingsPage');
   const td = useTranslations('Dates');
@@ -51,27 +59,30 @@ export function BookingCard({ booking, onCancel, onConfirm, onDecline }: Booking
   }
 
   return (
-    <div className="bg-card rounded-xl p-4">
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex-1">
-          <div className="mb-2 flex items-center gap-2">
-            <Calendar className="text-muted-foreground h-4 w-4" />
-            <span className="text-foreground text-sm">{formatDate(startsAt)}</span>
+    <div className={'bg-card rounded-xl p-4'}>
+      <div className={'mb-3 flex items-start justify-between'}>
+        <div className={'flex-1'}>
+          <div className={'mb-2 flex items-center gap-2'}>
+            <Calendar className={'text-muted-foreground h-4 w-4'} />
+            <span className={'text-foreground text-sm'}>{formatDate(startsAt)}</span>
           </div>
-          <div className="mb-2 flex items-center gap-2">
-            <Clock className="text-muted-foreground h-4 w-4" />
-            <span className="text-foreground text-sm">
-              {formatTime(startsAt)} – {formatTime(endsAt)}
+          <div className={'mb-2 flex items-center gap-2'}>
+            <Clock className={'text-muted-foreground h-4 w-4'} />
+            <span className={'text-foreground text-sm'}>
+              {formatTime(startsAt)}
+              {' – '}
+              {formatTime(endsAt)}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <Dumbbell className="text-muted-foreground h-4 w-4" />
-            <span className="text-foreground text-sm">
+          <div className={'flex items-center gap-2'}>
+            <Dumbbell className={'text-muted-foreground h-4 w-4'} />
+            <span className={'text-foreground text-sm'}>
               {tc('workout')}
               {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
-                <span className="text-muted-foreground">
+                <span className={'text-muted-foreground'}>
                   {' '}
-                  · {booking.durationMinutes || booking.sessionType?.durationMinutes} {tc('min')}
+                  {'· '}
+                  {booking.durationMinutes || booking.sessionType?.durationMinutes} {tc('min')}
                 </span>
               )}
             </span>
@@ -81,27 +92,33 @@ export function BookingCard({ booking, onCancel, onConfirm, onDecline }: Booking
       </div>
 
       {isSpecialistPending && onConfirm && onDecline ? (
-        <div className="border-border space-y-2 border-t pt-3">
-          <p className="text-muted-foreground mb-2 text-xs">{tb('specialistBookedYou')}</p>
+        <div className={'border-border space-y-2 border-t pt-3'}>
+          <p className={'text-muted-foreground mb-2 text-xs'}>{tb('specialistBookedYou')}</p>
           <button
             onClick={() => onConfirm(booking)}
-            className="bg-action-confirm-bg text-action-confirm-text w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+            className={
+              'bg-action-confirm-bg text-action-confirm-text w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+            }
           >
             {tc('confirm')}
           </button>
           <button
             onClick={() => onDecline(booking)}
-            className="bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+            className={
+              'bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+            }
           >
             {tb('declineButton')}
           </button>
         </div>
       ) : (
         isActive && (
-          <div className="border-border border-t pt-3">
+          <div className={'border-border border-t pt-3'}>
             <button
               onClick={() => onCancel?.(booking)}
-              className="bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70"
+              className={
+                'bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+              }
             >
               {tc('cancelVerb')}
             </button>

@@ -1,40 +1,43 @@
 'use client';
 
-import { useState } from 'react';
 import { ChevronDown, MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+
 import { TopBar } from '@/components/TopBar';
 
-interface FAQItem {
+import type { ReactNode } from 'react';
+
+type TFAQItem = {
   question: string;
   answer: string;
-}
+};
 
-function FAQAccordion({ item }: { item: FAQItem }) {
+function FAQAccordion({ item }: { item: TFAQItem }): ReactNode {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-border border-b">
+    <div className={'border-border border-b'}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between py-4 text-left"
+        className={'flex w-full items-center justify-between py-4 text-left'}
       >
-        <span className="text-foreground pr-4">{item.question}</span>
+        <span className={'text-foreground pr-4'}>{item.question}</span>
         <ChevronDown
           className={`text-muted-foreground h-5 w-5 flex-shrink-0 transition-transform ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
-      {isOpen && <div className="text-muted-foreground pb-4 text-sm">{item.answer}</div>}
+      {isOpen && <div className={'text-muted-foreground pb-4 text-sm'}>{item.answer}</div>}
     </div>
   );
 }
 
-export default function HelpPage() {
+export default function HelpPage(): ReactNode {
   const t = useTranslations('AdminHelp');
 
-  const faqItems: FAQItem[] = [
+  const faqItems: TFAQItem[] = [
     { question: t('faq_q1'), answer: t('faq_a1') },
     { question: t('faq_q2'), answer: t('faq_a2') },
     { question: t('faq_q3'), answer: t('faq_a3') },
@@ -42,7 +45,7 @@ export default function HelpPage() {
     { question: t('faq_q5'), answer: t('faq_a5') },
   ];
 
-  const handleContactSupport = () => {
+  const handleContactSupport = (): void => {
     window.open('https://t.me/support', '_blank');
   };
 
@@ -50,11 +53,11 @@ export default function HelpPage() {
     <div>
       <TopBar title={t('title')} showBack />
 
-      <div className="space-y-6 p-4">
+      <div className={'space-y-6 p-4'}>
         {/* FAQ Section */}
         <div>
-          <h3 className="text-muted-foreground mb-3 text-sm font-medium">{t('faqTitle')}</h3>
-          <div className="bg-card rounded-xl px-4">
+          <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>{t('faqTitle')}</h3>
+          <div className={'bg-card rounded-xl px-4'}>
             {faqItems.map((item, index) => (
               <FAQAccordion key={index} item={item} />
             ))}
@@ -63,12 +66,14 @@ export default function HelpPage() {
 
         {/* Contact Support */}
         <div>
-          <h3 className="text-muted-foreground mb-3 text-sm font-medium">{t('needHelp')}</h3>
+          <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>{t('needHelp')}</h3>
           <button
             onClick={handleContactSupport}
-            className="bg-brand flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium text-white transition-opacity active:opacity-80"
+            className={
+              'bg-brand flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium text-white transition-opacity active:opacity-80'
+            }
           >
-            <MessageCircle className="h-5 w-5" />
+            <MessageCircle className={'h-5 w-5'} />
             <span>{t('contactSupport')}</span>
           </button>
         </div>

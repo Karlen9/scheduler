@@ -1,22 +1,26 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
-import { Booking, WorkingHours } from '@/lib/types';
+import { useLocale, useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
+
 import { MonthGrid, WeekStrip } from '@/components/Calendar';
+
 import { DayTimeline } from './DayTimeline';
 
-type ViewMode = 'day' | 'week' | 'month';
+import type { TBooking, TWorkingHours } from '@/lib/types';
+import type { ReactNode } from 'react';
 
-interface ScheduleViewProps {
-  bookings: Booking[];
-  onBookingClick?: (booking: Booking) => void;
+type TViewMode = 'day' | 'week' | 'month';
+
+type TScheduleViewProps = {
+  bookings: TBooking[];
+  onBookingClick?: (booking: TBooking) => void;
   nonWorkingDays?: number[];
   daysOff?: string[];
-  workingHours?: WorkingHours[];
+  workingHours?: TWorkingHours[];
   onEmptySlotClick?: (date: Date, time: string) => void;
-}
+};
 
 const monthGenKeys = [
   'jan',
@@ -57,12 +61,12 @@ export function ScheduleView({
   daysOff,
   workingHours,
   onEmptySlotClick,
-}: ScheduleViewProps) {
+}: TScheduleViewProps): ReactNode {
   const t = useTranslations('ScheduleView');
   const td = useTranslations('Dates');
   const locale = useLocale();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
+  const [viewMode, setViewMode] = useState<TViewMode>('week');
   const [selectedDate, setSelectedDate] = useState(() => toLocalDate(new Date()));
 
   function formatDateHeader(date: Date): string {
@@ -97,7 +101,7 @@ export function ScheduleView({
   }, [bookings]);
 
   // Navigation
-  const navigate = (delta: number) => {
+  const navigate = (delta: number): void => {
     setSelectedDate((d) => {
       const newDate = new Date(d);
       if (viewMode === 'day') {
@@ -113,11 +117,11 @@ export function ScheduleView({
 
   return (
     <div>
-      <h2 className="text-foreground mb-3 text-base font-medium">{t('title')}</h2>
+      <h2 className={'text-foreground mb-3 text-base font-medium'}>{t('title')}</h2>
 
       {/* Tabs */}
-      <div className="border-border mb-4 flex border-b">
-        {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
+      <div className={'border-border mb-4 flex border-b'}>
+        {(['day', 'week', 'month'] as TViewMode[]).map((mode) => (
           <button
             key={mode}
             onClick={() => setViewMode(mode)}
@@ -127,7 +131,7 @@ export function ScheduleView({
           >
             {t(mode)}
             {viewMode === mode && (
-              <span className="bg-brand absolute right-0 bottom-0 left-0 h-0.5 rounded-full" />
+              <span className={'bg-brand absolute right-0 bottom-0 left-0 h-0.5 rounded-full'} />
             )}
           </button>
         ))}
@@ -135,7 +139,7 @@ export function ScheduleView({
 
       {/* Week strip */}
       {viewMode === 'week' && (
-        <div className="mb-4">
+        <div className={'mb-4'}>
           <WeekStrip
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
@@ -150,7 +154,7 @@ export function ScheduleView({
 
       {/* Month calendar */}
       {viewMode === 'month' && (
-        <div className="mb-4">
+        <div className={'mb-4'}>
           <MonthGrid
             displayDate={selectedDate}
             selectedDate={selectedDate}
@@ -167,17 +171,19 @@ export function ScheduleView({
 
       {/* Date header */}
       {viewMode === 'day' ? (
-        <div className="mb-3 flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="text-muted-foreground p-2">
-            <ChevronLeft className="h-5 w-5" />
+        <div className={'mb-3 flex items-center justify-between'}>
+          <button onClick={() => navigate(-1)} className={'text-muted-foreground p-2'}>
+            <ChevronLeft className={'h-5 w-5'} />
           </button>
-          <h3 className="text-foreground text-sm font-medium">{formatDateHeader(selectedDate)}</h3>
-          <button onClick={() => navigate(1)} className="text-muted-foreground p-2">
-            <ChevronRight className="h-5 w-5" />
+          <h3 className={'text-foreground text-sm font-medium'}>
+            {formatDateHeader(selectedDate)}
+          </h3>
+          <button onClick={() => navigate(1)} className={'text-muted-foreground p-2'}>
+            <ChevronRight className={'h-5 w-5'} />
           </button>
         </div>
       ) : (
-        <h3 className="text-foreground mb-3 text-sm font-medium">
+        <h3 className={'text-foreground mb-3 text-sm font-medium'}>
           {formatDateHeader(selectedDate)}
         </h3>
       )}

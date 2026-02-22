@@ -1,26 +1,29 @@
 'use client';
 
-import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { TopBar } from '@/components/TopBar';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { api } from '@/lib/api';
-import { RecurringSchedule, Booking } from '@/lib/types';
 import { formatDuration } from '@/components/DurationSelector';
-import { useAdminRecurringDetail } from '@/hooks/queries';
+import { TopBar } from '@/components/TopBar';
 import { invalidateRecurring } from '@/hooks/mutations';
+import { useAdminRecurringDetail } from '@/hooks/queries';
+import { api } from '@/lib/api';
 import { scheduleStatusColors } from '@/lib/colors';
-import { parseDayTimes, formatTime } from '@/lib/helpers';
-import { monthGenKeys, dayKeys, scheduleStatusKeys } from '@/lib/mappings';
-import { Loading } from './loading';
-import { ScheduleInfoCard } from './ScheduleInfoCard';
+import { formatTime, parseDayTimes } from '@/lib/helpers';
+import { dayKeys, monthGenKeys, scheduleStatusKeys } from '@/lib/mappings';
+
 import { BookingRow } from './BookingRow';
+import { ScheduleInfoCard } from './ScheduleInfoCard';
+
+import type { TBooking, TRecurringSchedule } from '@/lib/types';
+import type { ReactNode } from 'react';
 
 const monthShortKeys = monthGenKeys;
 
-export default function AdminRecurringDetailPage() {
+export default function AdminRecurringDetailPage(): ReactNode {
   const params = useParams();
   const id = params.id as string;
 
@@ -34,12 +37,12 @@ export default function AdminRecurringDetailPage() {
   const ts = useTranslations('Success');
 
   const { data: schedule, isLoading, mutate } = useAdminRecurringDetail(id);
-  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<TBooking | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const getDayName = (day: number) => tdat(`daysShort.${dayKeys[day]}`);
-  const getMonthGen = (month: number) => tdat(`monthsGen.${monthGenKeys[month]}`);
-  const getMonthShort = (month: number) => tdat(`monthsShort.${monthShortKeys[month]}`);
+  const getDayName = (day: number): string => tdat(`daysShort.${dayKeys[day]}`);
+  const getMonthGen = (month: number): string => tdat(`monthsGen.${monthGenKeys[month]}`);
+  const getMonthShort = (month: number): string => tdat(`monthsShort.${monthShortKeys[month]}`);
 
   const formatDate = (isoStr: string): string => {
     const d = new Date(isoStr);
@@ -48,13 +51,15 @@ export default function AdminRecurringDetailPage() {
   };
 
   const formatDateRange = (startDate?: string, endDate?: string): string | null => {
-    if (!startDate || !endDate) return null;
+    if (!startDate || !endDate) {
+      return null;
+    }
     const start = new Date(startDate);
     const end = new Date(endDate);
     return `${start.getDate()} ${getMonthShort(start.getMonth())} — ${end.getDate()} ${getMonthShort(end.getMonth())}`;
   };
 
-  const formatDaysOfWeek = (sched: RecurringSchedule): string => {
+  const formatDaysOfWeek = (sched: TRecurringSchedule): string => {
     if (sched.daysOfWeek) {
       return sched.daysOfWeek
         .split(',')
@@ -71,15 +76,17 @@ export default function AdminRecurringDetailPage() {
     return entries.map((e) => `${getDayName(e.day)} ${e.time}`).join(', ');
   };
 
-  const getServiceName = (sched: RecurringSchedule): string => {
+  const getServiceName = (sched: TRecurringSchedule): string => {
     if (sched.sessionType?.name) {
       return sched.sessionType.name;
     }
     return formatDuration(sched.durationMinutes, td('hour'));
   };
 
-  const handleCancelBooking = async () => {
-    if (!cancelTarget || !schedule) return;
+  const handleCancelBooking = async (): Promise<void> => {
+    if (!cancelTarget || !schedule) {
+      return;
+    }
     setActionLoading(cancelTarget.id);
     try {
       await api.admin.requestCancelBooking(schedule.id, cancelTarget.id);
@@ -94,8 +101,10 @@ export default function AdminRecurringDetailPage() {
     }
   };
 
-  const handleApproveMoveBooking = async (booking: Booking) => {
-    if (!schedule) return;
+  const handleApproveMoveBooking = async (booking: TBooking): Promise<void> => {
+    if (!schedule) {
+      return;
+    }
     setActionLoading(booking.id);
     try {
       await api.admin.approveMoveBooking(schedule.id, booking.id);
@@ -109,8 +118,10 @@ export default function AdminRecurringDetailPage() {
     }
   };
 
-  const handleDeclineMoveBooking = async (booking: Booking) => {
-    if (!schedule) return;
+  const handleDeclineMoveBooking = async (booking: TBooking): Promise<void> => {
+    if (!schedule) {
+      return;
+    }
     setActionLoading(booking.id);
     try {
       await api.admin.declineMoveBooking(schedule.id, booking.id);
@@ -125,15 +136,33 @@ export default function AdminRecurringDetailPage() {
   };
 
   if (isLoading) {
-    <Loading />;
+    return (
+      <div className={'space-y-4 p-4'}>
+        <div className={'bg-card animate-pulse rounded-xl p-4'}>
+          <div className={'bg-border mb-4 h-5 w-2/5 rounded'} />
+          <div className={'bg-border mb-3 h-4 w-1/2 rounded'} />
+          <div className={'bg-border mb-3 h-4 w-1/3 rounded'} />
+          <div className={'bg-border h-4 w-2/5 rounded'} />
+        </div>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className={'bg-card animate-pulse rounded-xl p-4'}>
+            <div className={'bg-border mb-3 h-4 w-1/3 rounded'} />
+            <div className={'bg-border mb-2 h-4 w-1/2 rounded'} />
+            <div className={'bg-border h-4 w-2/5 rounded'} />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (!schedule) {
     return (
       <div>
         <TopBar title={tp('regularSchedule')} showBack />
-        <div className="p-4">
-          <p className="text-muted-foreground py-8 text-center text-sm">{t('scheduleNotFound')}</p>
+        <div className={'p-4'}>
+          <p className={'text-muted-foreground py-8 text-center text-sm'}>
+            {t('scheduleNotFound')}
+          </p>
         </div>
       </div>
     );
@@ -155,7 +184,7 @@ export default function AdminRecurringDetailPage() {
     <div>
       <TopBar title={tp('regularSchedule')} showBack />
 
-      <div className="space-y-4 p-4">
+      <div className={'space-y-4 p-4'}>
         <ScheduleInfoCard
           schedule={schedule}
           scheduleStatus={scheduleStatus}
@@ -170,16 +199,16 @@ export default function AdminRecurringDetailPage() {
 
         {/* Bookings Section */}
         <div>
-          <h3 className="text-muted-foreground mb-3 text-sm font-medium">
+          <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>
             {t('sessionsCount', { count: sortedBookings.length })}
           </h3>
 
           {sortedBookings.length === 0 ? (
-            <div className="bg-card rounded-xl p-6 text-center">
-              <p className="text-muted-foreground text-sm">{t('noPlannedSessions')}</p>
+            <div className={'bg-card rounded-xl p-6 text-center'}>
+              <p className={'text-muted-foreground text-sm'}>{t('noPlannedSessions')}</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className={'space-y-3'}>
               {sortedBookings.map((booking) => (
                 <BookingRow
                   key={booking.id}

@@ -1,16 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import { MonthGrid } from '@/components/Calendar';
 
-interface CalendarViewProps {
+import type { ReactNode } from 'react';
+
+type TCalendarViewProps = {
   selectedDate: Date | null;
   selectedDates?: Date[];
   onSelectDate: (date: Date) => void;
   nonWorkingDays?: number[];
   daysOff?: string[];
   bookedDates?: string[];
-}
+};
 
 export function CalendarView({
   selectedDate,
@@ -19,7 +22,7 @@ export function CalendarView({
   nonWorkingDays,
   daysOff,
   bookedDates,
-}: CalendarViewProps) {
+}: TCalendarViewProps): ReactNode {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const today = useMemo(() => new Date(), []);
@@ -28,7 +31,7 @@ export function CalendarView({
     return d;
   }, [today]);
 
-  const prevMonth = () => {
+  const prevMonth = (): void => {
     const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
     // Don't go before current month
     if (
@@ -40,7 +43,7 @@ export function CalendarView({
     setCurrentMonth(prev);
   };
 
-  const nextMonth = () => {
+  const nextMonth = (): void => {
     const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
     // Don't go beyond maxDate's month
     if (

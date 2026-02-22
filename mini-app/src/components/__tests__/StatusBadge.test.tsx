@@ -1,61 +1,62 @@
-import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
-import { StatusBadge, getStatusColor } from '@/components/StatusBadge';
+import { describe, expect, it } from 'vitest';
+
 import { renderWithIntl } from '@/__tests__/mocks';
+import { StatusBadge, getStatusColor } from '@/components/StatusBadge';
 
 describe('StatusBadge', () => {
   it('renders pending status with correct text', () => {
-    renderWithIntl(<StatusBadge status="pending" />);
+    renderWithIntl(<StatusBadge status={'pending'} />);
     expect(screen.getByText('Ожидание')).toBeInTheDocument();
   });
 
   it('renders confirmed status with correct text', () => {
-    renderWithIntl(<StatusBadge status="confirmed" />);
+    renderWithIntl(<StatusBadge status={'confirmed'} />);
     expect(screen.getByText('Подтверждено')).toBeInTheDocument();
   });
 
   it('renders cancelled status with correct text', () => {
-    renderWithIntl(<StatusBadge status="cancelled" />);
+    renderWithIntl(<StatusBadge status={'cancelled'} />);
     expect(screen.getByText('Отменено')).toBeInTheDocument();
   });
 
   it('renders rejected status with correct text', () => {
-    renderWithIntl(<StatusBadge status="rejected" />);
+    renderWithIntl(<StatusBadge status={'rejected'} />);
     expect(screen.getByText('Отклонено')).toBeInTheDocument();
   });
 
   it('renders completed status with correct text', () => {
-    renderWithIntl(<StatusBadge status="completed" />);
+    renderWithIntl(<StatusBadge status={'completed'} />);
     expect(screen.getByText('Завершено')).toBeInTheDocument();
   });
 
   it('falls back to pending for unknown status', () => {
-    renderWithIntl(<StatusBadge status="unknown_status" />);
+    renderWithIntl(<StatusBadge status={'unknown_status'} />);
     expect(screen.getByText('Ожидание')).toBeInTheDocument();
   });
 
   it('applies correct CSS classes for confirmed status', () => {
-    renderWithIntl(<StatusBadge status="confirmed" />);
+    renderWithIntl(<StatusBadge status={'confirmed'} />);
     const badge = screen.getByText('Подтверждено');
     expect(badge.className).toContain('bg-status-confirmed-bg');
     expect(badge.className).toContain('text-status-confirmed-text');
   });
 
   it('applies pending CSS classes for unknown status', () => {
-    renderWithIntl(<StatusBadge status="nonexistent" />);
+    renderWithIntl(<StatusBadge status={'nonexistent'} />);
     const badge = screen.getByText('Ожидание');
     expect(badge.className).toContain('bg-status-pending-bg');
     expect(badge.className).toContain('text-status-pending-text');
   });
 
   it('applies custom className prop', () => {
-    renderWithIntl(<StatusBadge status="pending" className="my-custom-class" />);
+    renderWithIntl(<StatusBadge status={'pending'} className={'my-custom-class'} />);
     const badge = screen.getByText('Ожидание');
     expect(badge.className).toContain('my-custom-class');
   });
 
   it('always includes base badge classes', () => {
-    renderWithIntl(<StatusBadge status="pending" />);
+    renderWithIntl(<StatusBadge status={'pending'} />);
     const badge = screen.getByText('Ожидание');
     expect(badge.className).toContain('rounded-full');
     expect(badge.className).toContain('text-xs');

@@ -1,16 +1,20 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
-interface CancelDialogProps {
+import type { TVoidFunction } from '@/lib/types';
+import type { ReactNode } from 'react';
+
+type TCancelDialogProps = {
   isOpen: boolean;
   targetName: string;
   reason: string;
   onReasonChange: (value: string) => void;
-  onConfirm: () => void;
-  onClose: () => void;
-}
+  onConfirm: TVoidFunction;
+  onClose: TVoidFunction;
+};
 
 export function CancelDialog({
   isOpen,
@@ -19,7 +23,7 @@ export function CancelDialog({
   onReasonChange,
   onConfirm,
   onClose,
-}: CancelDialogProps) {
+}: TCancelDialogProps): ReactNode {
   const t = useTranslations('AdminDashboard');
   const tc = useTranslations('Common');
 

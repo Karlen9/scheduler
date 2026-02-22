@@ -1,24 +1,26 @@
-export interface TelegramWebApp {
-  ready: () => void;
-  expand: () => void;
-  close: () => void;
+import type { TVoidFunction } from './types';
+
+export type TTelegramWebApp = {
+  ready: TVoidFunction;
+  expand: TVoidFunction;
+  close: TVoidFunction;
   colorScheme: 'light' | 'dark';
   MainButton: {
     text: string;
-    show: () => void;
-    hide: () => void;
-    onClick: (callback: () => void) => void;
-    offClick: (callback: () => void) => void;
-    enable: () => void;
-    disable: () => void;
+    show: TVoidFunction;
+    hide: TVoidFunction;
+    onClick: (callback: TVoidFunction) => void;
+    offClick: (callback: TVoidFunction) => void;
+    enable: TVoidFunction;
+    disable: TVoidFunction;
     showProgress: (leaveActive?: boolean) => void;
-    hideProgress: () => void;
+    hideProgress: TVoidFunction;
   };
   BackButton: {
-    show: () => void;
-    hide: () => void;
-    onClick: (callback: () => void) => void;
-    offClick: (callback: () => void) => void;
+    show: TVoidFunction;
+    hide: TVoidFunction;
+    onClick: (callback: TVoidFunction) => void;
+    offClick: (callback: TVoidFunction) => void;
   };
   themeParams: {
     bg_color?: string;
@@ -38,38 +40,45 @@ export interface TelegramWebApp {
       username?: string;
     };
   };
-  onEvent: (event: string, callback: () => void) => void;
-  offEvent: (event: string, callback: () => void) => void;
-}
+  onEvent: (event: string, callback: TVoidFunction) => void;
+  offEvent: (event: string, callback: TVoidFunction) => void;
+};
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions, @typescript-eslint/naming-convention
   interface Window {
     Telegram?: {
-      WebApp: TelegramWebApp;
+      WebApp: TTelegramWebApp;
     };
   }
 }
 
-export function getTelegramWebApp(): TelegramWebApp | null {
-  if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+export function getTelegramWebApp(): TTelegramWebApp | null {
+  if (window?.Telegram?.WebApp) {
     return window.Telegram.WebApp;
   }
   return null;
 }
 
-export type ThemePreference = 'auto' | 'light' | 'dark';
+export type TThemePreference = 'auto' | 'light' | 'dark';
 
 const THEME_STORAGE_KEY = 'theme-preference';
 
-export function getThemePreference(): ThemePreference {
-  if (typeof localStorage === 'undefined') return 'auto';
+export function getThemePreference(): TThemePreference {
+  if (typeof localStorage === 'undefined') {
+    return 'auto';
+  }
   const val = localStorage.getItem(THEME_STORAGE_KEY);
-  if (val === 'light' || val === 'dark') return val;
+  if (val === 'light' || val === 'dark') {
+    return val;
+  }
   return 'auto';
 }
 
-export function setThemePreference(pref: ThemePreference) {
-  if (typeof localStorage === 'undefined') return;
+export function setThemePreference(pref: TThemePreference): void {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
   localStorage.setItem(THEME_STORAGE_KEY, pref);
 }
 
@@ -118,25 +127,31 @@ const lightThemeVars: Record<string, string> = {
 
 let savedTgVars: Record<string, string> | null = null;
 
-function saveTelegramVars() {
-  if (savedTgVars) return;
+function saveTelegramVars(): void {
+  if (savedTgVars) {
+    return;
+  }
   const root = document.documentElement;
   savedTgVars = {};
   for (const name of tgVarNames) {
     const val = root.style.getPropertyValue(name);
-    if (val) savedTgVars[name] = val;
+    if (val) {
+      savedTgVars[name] = val;
+    }
   }
 }
 
-function setInlineThemeVars(vars: Record<string, string>) {
+function setInlineThemeVars(vars: Record<string, string>): void {
   const root = document.documentElement;
   for (const [name, value] of Object.entries(vars)) {
     root.style.setProperty(name, value);
   }
 }
 
-function restoreTelegramVars() {
-  if (!savedTgVars) return;
+function restoreTelegramVars(): void {
+  if (!savedTgVars) {
+    return;
+  }
   const root = document.documentElement;
   for (const name of tgVarNames) {
     if (savedTgVars[name]) {
@@ -147,8 +162,10 @@ function restoreTelegramVars() {
   }
 }
 
-export function applyTheme() {
-  if (typeof document === 'undefined') return;
+export function applyTheme(): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
 
   saveTelegramVars();
 
@@ -174,7 +191,7 @@ export function applyTheme() {
   }
 }
 
-export function initTelegramApp() {
+export function initTelegramApp(): void {
   const webApp = getTelegramWebApp();
   if (webApp) {
     webApp.ready();
@@ -186,7 +203,7 @@ export function initTelegramApp() {
   applyTheme();
 }
 
-export function getThemeParams() {
+export function getThemeParams(): TTelegramWebApp['themeParams'] {
   const webApp = getTelegramWebApp();
   return (
     webApp?.themeParams ?? {
@@ -216,7 +233,9 @@ export function getInitData(): string {
 }
 
 export function getSpecialistId(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   const params = new URLSearchParams(window.location.search);
   // Support both new (?specialist=) and legacy (?trainer=) URL params
   // Telegram caches menu button URLs, so old ?trainer= links persist until /start

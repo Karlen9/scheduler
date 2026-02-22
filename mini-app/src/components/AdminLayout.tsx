@@ -1,17 +1,21 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
 import { ClipboardList, Plus, User } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { BottomTabBar } from './BottomTabBar';
+import { useEffect } from 'react';
+
 import { getTelegramWebApp } from '@/lib/telegram';
 
-interface AdminLayoutProps {
-  children: ReactNode;
-}
+import { BottomTabBar } from './BottomTabBar';
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+import type { ReactNode } from 'react';
+
+type TAdminLayoutProps = {
+  children: ReactNode;
+};
+
+export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   const pathname = usePathname();
   const router = useRouter();
   const tn = useTranslations('Navigation');
@@ -32,20 +36,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   useEffect(() => {
     const webApp = getTelegramWebApp();
-    if (!webApp) return;
+    if (!webApp) {
+      return;
+    }
 
     if (isHome) {
       webApp.BackButton.hide();
     } else {
       webApp.BackButton.show();
-      const handler = () => router.push('/admin');
+      const handler = (): void => router.push('/admin');
       webApp.BackButton.onClick(handler);
       return () => webApp.BackButton.offClick(handler);
     }
   }, [isHome, router]);
 
   return (
-    <div className="bg-background min-h-screen" style={{ maxWidth: '430px', margin: '0 auto' }}>
+    <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
       <div className={isBookPage ? '' : 'pb-24'}>{children}</div>
       {!isBookPage && <BottomTabBar tabs={adminTabs} />}
     </div>

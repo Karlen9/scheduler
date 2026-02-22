@@ -1,37 +1,38 @@
 import { mutate } from 'swr';
+
 import { CACHE_KEYS } from './cache-keys';
 
-export function invalidateBookings() {
+export function invalidateBookings(): void {
   mutate(CACHE_KEYS.bookings);
   mutate(CACHE_KEYS.adminBookings);
 }
 
-export function invalidateWorkingHours() {
+export function invalidateWorkingHours(): void {
   mutate(CACHE_KEYS.workingHours);
   mutate(CACHE_KEYS.adminWorkingHours);
 }
 
-export function invalidateDaysOff() {
+export function invalidateDaysOff(): void {
   mutate(CACHE_KEYS.daysOff);
   mutate(CACHE_KEYS.adminDaysOff);
 }
 
-export function invalidateServices() {
+export function invalidateServices(): void {
   mutate(CACHE_KEYS.sessionTypes);
   mutate(CACHE_KEYS.adminServices);
   mutate(CACHE_KEYS.durations);
 }
 
-export function invalidateSpecialist() {
+export function invalidateSpecialist(): void {
   mutate(CACHE_KEYS.specialist);
   mutate(CACHE_KEYS.adminProfile);
 }
 
-export function invalidateProfile() {
+export function invalidateProfile(): void {
   mutate(CACHE_KEYS.profile);
 }
 
-export function invalidateRecurring() {
+export function invalidateRecurring(): void {
   mutate(CACHE_KEYS.recurringSchedules);
   mutate(CACHE_KEYS.adminRecurringSchedules);
   // Invalidate all detail keys by matching prefix
@@ -45,10 +46,10 @@ export function invalidateRecurring() {
   invalidateBookings();
 }
 
-export function invalidateClients() {
+export function invalidateClients(): void {
   mutate(CACHE_KEYS.adminClients);
 }
 
-export function invalidateAdminNotifications() {
+export function invalidateAdminNotifications(): void {
   mutate(CACHE_KEYS.adminNotifications);
 }

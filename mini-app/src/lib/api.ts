@@ -1,16 +1,17 @@
-import {
-  Specialist,
-  SessionType,
-  Booking,
-  TimeSlot,
-  WorkingHours,
-  DayOff,
-  ClientProfile,
-  ClientInfo,
-  RecurringSchedule,
-  RecurringPreviewResponse,
-} from './types';
 import { getInitData, getSpecialistId } from './telegram';
+
+import type {
+  TBooking,
+  TClientInfo,
+  TClientProfile,
+  TDayOff,
+  TRecurringPreviewResponse,
+  TRecurringSchedule,
+  TSessionType,
+  TSpecialist,
+  TTimeSlot,
+  TWorkingHours,
+} from './types';
 
 // API calls use relative URLs — Next.js rewrites proxy them to the backend
 const API_BASE_URL = '';
@@ -52,7 +53,9 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
 export function getPhotoUrl(fileIdOrUrl: string): string {
   // Direct URLs (e.g. Telegram profile photos) — use as-is
-  if (fileIdOrUrl.startsWith('http')) return fileIdOrUrl;
+  if (fileIdOrUrl.startsWith('http')) {
+    return fileIdOrUrl;
+  }
   // File IDs — proxy through our API
   const specialistId = getSpecialistId();
   const query = specialistId ? `?specialist=${specialistId}` : '';
@@ -60,32 +63,32 @@ export function getPhotoUrl(fileIdOrUrl: string): string {
 }
 
 export const api = {
-  async getSpecialist(): Promise<Specialist> {
-    return fetchAPI<Specialist>('/api/specialist');
+  async getSpecialist(): Promise<TSpecialist> {
+    return fetchAPI<TSpecialist>('/api/specialist');
   },
 
-  async getSessionTypes(): Promise<SessionType[]> {
-    return fetchAPI<SessionType[]>('/api/services');
+  async getSessionTypes(): Promise<TSessionType[]> {
+    return fetchAPI<TSessionType[]>('/api/services');
   },
 
-  async getWorkingHours(): Promise<WorkingHours[]> {
-    return fetchAPI<WorkingHours[]>('/api/working-hours');
+  async getWorkingHours(): Promise<TWorkingHours[]> {
+    return fetchAPI<TWorkingHours[]>('/api/working-hours');
   },
 
   async getDaysOff(): Promise<{ date: string }[]> {
     return fetchAPI<{ date: string }[]>('/api/days-off');
   },
 
-  async getAvailableSlots(date: string, duration: number): Promise<TimeSlot[]> {
-    return fetchAPI<TimeSlot[]>(`/api/availability?date=${date}&duration=${duration}`);
+  async getAvailableSlots(date: string, duration: number): Promise<TTimeSlot[]> {
+    return fetchAPI<TTimeSlot[]>(`/api/availability?date=${date}&duration=${duration}`);
   },
 
   async getDurations(): Promise<number[]> {
     return fetchAPI<number[]>('/api/durations');
   },
 
-  async getBookings(): Promise<Booking[]> {
-    return fetchAPI<Booking[]>('/api/bookings');
+  async getBookings(): Promise<TBooking[]> {
+    return fetchAPI<TBooking[]>('/api/bookings');
   },
 
   async createBooking(
@@ -94,28 +97,28 @@ export const api = {
     time: string,
     name: string,
     message?: string,
-  ): Promise<Booking> {
-    return fetchAPI<Booking>('/api/bookings', {
+  ): Promise<TBooking> {
+    return fetchAPI<TBooking>('/api/bookings', {
       method: 'POST',
       body: JSON.stringify({ duration, date, time, name, message }),
     });
   },
 
-  async cancelBooking(bookingId: string, reason?: string): Promise<Booking> {
-    return fetchAPI<Booking>(`/api/bookings/${bookingId}`, {
+  async cancelBooking(bookingId: string, reason?: string): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/bookings/${bookingId}`, {
       method: 'DELETE',
       body: JSON.stringify({ reason }),
     });
   },
 
-  async confirmBooking(bookingId: string): Promise<Booking> {
-    return fetchAPI<Booking>(`/api/bookings/${bookingId}/confirm`, {
+  async confirmBooking(bookingId: string): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/bookings/${bookingId}/confirm`, {
       method: 'PUT',
     });
   },
 
-  async declineBooking(bookingId: string): Promise<Booking> {
-    return fetchAPI<Booking>(`/api/bookings/${bookingId}/decline`, {
+  async declineBooking(bookingId: string): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/bookings/${bookingId}/decline`, {
       method: 'PUT',
     });
   },
@@ -133,8 +136,8 @@ export const api = {
 
   // ========== Client Profile ==========
 
-  async getProfile(): Promise<ClientProfile> {
-    return fetchAPI<ClientProfile>('/api/profile');
+  async getProfile(): Promise<TClientProfile> {
+    return fetchAPI<TClientProfile>('/api/profile');
   },
 
   async updateProfile(data: {
@@ -142,8 +145,8 @@ export const api = {
     phone?: string;
     preferredDuration?: number;
     language?: string;
-  }): Promise<ClientProfile> {
-    return fetchAPI<ClientProfile>('/api/profile', {
+  }): Promise<TClientProfile> {
+    return fetchAPI<TClientProfile>('/api/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -154,8 +157,8 @@ export const api = {
     notifyReminders?: boolean;
     notifyDaysOff?: boolean;
     notifyCancellations?: boolean;
-  }): Promise<ClientProfile> {
-    return fetchAPI<ClientProfile>('/api/profile/notifications', {
+  }): Promise<TClientProfile> {
+    return fetchAPI<TClientProfile>('/api/profile/notifications', {
       method: 'PUT',
       body: JSON.stringify(prefs),
     });
@@ -163,20 +166,20 @@ export const api = {
 
   // ========== Recurring Schedules (Client) ==========
 
-  async getRecurringSchedules(): Promise<RecurringSchedule[]> {
-    return fetchAPI<RecurringSchedule[]>('/api/recurring');
+  async getRecurringSchedules(): Promise<TRecurringSchedule[]> {
+    return fetchAPI<TRecurringSchedule[]>('/api/recurring');
   },
 
-  async getRecurringScheduleDetail(id: string): Promise<RecurringSchedule> {
-    return fetchAPI<RecurringSchedule>(`/api/recurring/${id}`);
+  async getRecurringScheduleDetail(id: string): Promise<TRecurringSchedule> {
+    return fetchAPI<TRecurringSchedule>(`/api/recurring/${id}`);
   },
 
   async createRecurringSchedule(data: {
     sessionTypeId: string;
     dayTimes: Record<string, string>;
     period: string;
-  }): Promise<RecurringSchedule> {
-    return fetchAPI<RecurringSchedule>('/api/recurring', {
+  }): Promise<TRecurringSchedule> {
+    return fetchAPI<TRecurringSchedule>('/api/recurring', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -186,8 +189,8 @@ export const api = {
     sessionTypeId: string;
     dayTimes: Record<string, string>;
     period: string;
-  }): Promise<RecurringPreviewResponse> {
-    return fetchAPI<RecurringPreviewResponse>('/api/recurring/preview', {
+  }): Promise<TRecurringPreviewResponse> {
+    return fetchAPI<TRecurringPreviewResponse>('/api/recurring/preview', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -199,8 +202,8 @@ export const api = {
 
   // ========== Recurring Individual Booking Management ==========
 
-  async requestCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
-    return fetchAPI<Booking>(`/api/recurring/${scheduleId}/bookings/${bookingId}/cancel-request`, {
+  async requestCancelBooking(scheduleId: string, bookingId: string): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/recurring/${scheduleId}/bookings/${bookingId}/cancel-request`, {
       method: 'PUT',
     });
   },
@@ -209,8 +212,8 @@ export const api = {
     scheduleId: string,
     bookingId: string,
     data: { date: string; time: string },
-  ): Promise<Booking> {
-    return fetchAPI<Booking>(`/api/recurring/${scheduleId}/bookings/${bookingId}/move`, {
+  ): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/recurring/${scheduleId}/bookings/${bookingId}/move`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -220,12 +223,12 @@ export const api = {
 
   admin: {
     // Profile
-    async getProfile(): Promise<Specialist> {
-      return fetchAPI<Specialist>('/api/admin/profile');
+    async getProfile(): Promise<TSpecialist> {
+      return fetchAPI<TSpecialist>('/api/admin/profile');
     },
 
-    async updateProfile(data: Partial<Specialist>): Promise<Specialist> {
-      return fetchAPI<Specialist>('/api/admin/profile', {
+    async updateProfile(data: Partial<TSpecialist>): Promise<TSpecialist> {
+      return fetchAPI<TSpecialist>('/api/admin/profile', {
         method: 'PUT',
         body: JSON.stringify(data),
       });
@@ -242,8 +245,8 @@ export const api = {
     },
 
     // Services
-    async getServices(): Promise<SessionType[]> {
-      return fetchAPI<SessionType[]>('/api/admin/services');
+    async getServices(): Promise<TSessionType[]> {
+      return fetchAPI<TSessionType[]>('/api/admin/services');
     },
 
     async createService(data: {
@@ -253,15 +256,15 @@ export const api = {
       price: number;
       currency?: string;
       imageUrl?: string;
-    }): Promise<SessionType> {
-      return fetchAPI<SessionType>('/api/admin/services', {
+    }): Promise<TSessionType> {
+      return fetchAPI<TSessionType>('/api/admin/services', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
-    async updateService(id: string, data: Partial<SessionType>): Promise<SessionType> {
-      return fetchAPI<SessionType>(`/api/admin/services/${id}`, {
+    async updateService(id: string, data: Partial<TSessionType>): Promise<TSessionType> {
+      return fetchAPI<TSessionType>(`/api/admin/services/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
@@ -274,12 +277,12 @@ export const api = {
     },
 
     // Working Hours
-    async getWorkingHours(): Promise<WorkingHours[]> {
-      return fetchAPI<WorkingHours[]>('/api/admin/working-hours');
+    async getWorkingHours(): Promise<TWorkingHours[]> {
+      return fetchAPI<TWorkingHours[]>('/api/admin/working-hours');
     },
 
-    async updateWorkingHours(hours: WorkingHours[]): Promise<WorkingHours[]> {
-      return fetchAPI<WorkingHours[]>('/api/admin/working-hours', {
+    async updateWorkingHours(hours: TWorkingHours[]): Promise<TWorkingHours[]> {
+      return fetchAPI<TWorkingHours[]>('/api/admin/working-hours', {
         method: 'PUT',
         body: JSON.stringify({ hours }),
       });
@@ -289,8 +292,8 @@ export const api = {
       day: number,
       startTime: string,
       endTime: string,
-    ): Promise<WorkingHours[]> {
-      return fetchAPI<WorkingHours[]>(`/api/admin/working-hours/${day}`, {
+    ): Promise<TWorkingHours[]> {
+      return fetchAPI<TWorkingHours[]>(`/api/admin/working-hours/${day}`, {
         method: 'PUT',
         body: JSON.stringify({ startTime, endTime }),
       });
@@ -303,12 +306,12 @@ export const api = {
     },
 
     // Days Off
-    async getDaysOff(): Promise<DayOff[]> {
-      return fetchAPI<DayOff[]>('/api/admin/days-off');
+    async getDaysOff(): Promise<TDayOff[]> {
+      return fetchAPI<TDayOff[]>('/api/admin/days-off');
     },
 
-    async createDayOff(date: string, reason?: string): Promise<DayOff> {
-      return fetchAPI<DayOff>('/api/admin/days-off', {
+    async createDayOff(date: string, reason?: string): Promise<TDayOff> {
+      return fetchAPI<TDayOff>('/api/admin/days-off', {
         method: 'POST',
         body: JSON.stringify({ date, reason }),
       });
@@ -321,31 +324,31 @@ export const api = {
     },
 
     // Bookings
-    async getBookings(status?: string): Promise<Booking[]> {
+    async getBookings(status?: string): Promise<TBooking[]> {
       const query = status ? `?status=${status}` : '';
-      return fetchAPI<Booking[]>(`/api/admin/bookings${query}`);
+      return fetchAPI<TBooking[]>(`/api/admin/bookings${query}`);
     },
 
     async updateBookingStatus(
       bookingId: string,
       status: string,
       reason?: string,
-    ): Promise<Booking> {
-      return fetchAPI<Booking>(`/api/admin/bookings/${bookingId}/status`, {
+    ): Promise<TBooking> {
+      return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status, reason }),
       });
     },
 
-    async cancelBooking(bookingId: string, reason?: string): Promise<Booking> {
+    async cancelBooking(bookingId: string, reason?: string): Promise<TBooking> {
       return this.updateBookingStatus(bookingId, 'cancelled', reason);
     },
 
     async rescheduleBooking(
       bookingId: string,
       data: { date: string; time: string },
-    ): Promise<Booking> {
-      return fetchAPI<Booking>(`/api/admin/bookings/${bookingId}/reschedule`, {
+    ): Promise<TBooking> {
+      return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/reschedule`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
@@ -357,19 +360,19 @@ export const api = {
     },
 
     // Clients
-    async getClients(): Promise<ClientInfo[]> {
-      return fetchAPI<ClientInfo[]>('/api/admin/clients');
+    async getClients(): Promise<TClientInfo[]> {
+      return fetchAPI<TClientInfo[]>('/api/admin/clients');
     },
 
-    async createGhostClient(name: string): Promise<ClientInfo> {
-      return fetchAPI<ClientInfo>('/api/admin/clients', {
+    async createGhostClient(name: string): Promise<TClientInfo> {
+      return fetchAPI<TClientInfo>('/api/admin/clients', {
         method: 'POST',
         body: JSON.stringify({ name }),
       });
     },
 
-    async updateClient(id: string, name: string): Promise<ClientInfo> {
-      return fetchAPI<ClientInfo>(`/api/admin/clients/${id}`, {
+    async updateClient(id: string, name: string): Promise<TClientInfo> {
+      return fetchAPI<TClientInfo>(`/api/admin/clients/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ name }),
       });
@@ -386,20 +389,20 @@ export const api = {
       date: string;
       time: string;
       message?: string;
-    }): Promise<Booking> {
-      return fetchAPI<Booking>('/api/admin/bookings', {
+    }): Promise<TBooking> {
+      return fetchAPI<TBooking>('/api/admin/bookings', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
     // Recurring schedules (admin)
-    async getRecurringSchedules(): Promise<RecurringSchedule[]> {
-      return fetchAPI<RecurringSchedule[]>('/api/admin/recurring');
+    async getRecurringSchedules(): Promise<TRecurringSchedule[]> {
+      return fetchAPI<TRecurringSchedule[]>('/api/admin/recurring');
     },
 
-    async getRecurringScheduleDetail(id: string): Promise<RecurringSchedule> {
-      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}`);
+    async getRecurringScheduleDetail(id: string): Promise<TRecurringSchedule> {
+      return fetchAPI<TRecurringSchedule>(`/api/admin/recurring/${id}`);
     },
 
     async createRecurringSchedule(data: {
@@ -407,8 +410,8 @@ export const api = {
       sessionTypeId: string;
       dayTimes: Record<string, string>;
       period: string;
-    }): Promise<RecurringSchedule> {
-      return fetchAPI<RecurringSchedule>('/api/admin/recurring', {
+    }): Promise<TRecurringSchedule> {
+      return fetchAPI<TRecurringSchedule>('/api/admin/recurring', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -419,21 +422,21 @@ export const api = {
       sessionTypeId: string;
       dayTimes: Record<string, string>;
       period: string;
-    }): Promise<RecurringPreviewResponse> {
-      return fetchAPI<RecurringPreviewResponse>('/api/admin/recurring/preview', {
+    }): Promise<TRecurringPreviewResponse> {
+      return fetchAPI<TRecurringPreviewResponse>('/api/admin/recurring/preview', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
-    async approveRecurringSchedule(id: string): Promise<RecurringSchedule> {
-      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}/approve`, {
+    async approveRecurringSchedule(id: string): Promise<TRecurringSchedule> {
+      return fetchAPI<TRecurringSchedule>(`/api/admin/recurring/${id}/approve`, {
         method: 'PUT',
       });
     },
 
-    async declineRecurringSchedule(id: string): Promise<RecurringSchedule> {
-      return fetchAPI<RecurringSchedule>(`/api/admin/recurring/${id}/decline`, {
+    async declineRecurringSchedule(id: string): Promise<TRecurringSchedule> {
+      return fetchAPI<TRecurringSchedule>(`/api/admin/recurring/${id}/decline`, {
         method: 'PUT',
       });
     },
@@ -443,8 +446,8 @@ export const api = {
     },
 
     // Recurring individual booking management (admin)
-    async requestCancelBooking(scheduleId: string, bookingId: string): Promise<Booking> {
-      return fetchAPI<Booking>(
+    async requestCancelBooking(scheduleId: string, bookingId: string): Promise<TBooking> {
+      return fetchAPI<TBooking>(
         `/api/admin/recurring/${scheduleId}/bookings/${bookingId}/cancel-request`,
         {
           method: 'PUT',
@@ -456,15 +459,15 @@ export const api = {
       scheduleId: string,
       bookingId: string,
       data: { date: string; time: string },
-    ): Promise<Booking> {
-      return fetchAPI<Booking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/move`, {
+    ): Promise<TBooking> {
+      return fetchAPI<TBooking>(`/api/admin/recurring/${scheduleId}/bookings/${bookingId}/move`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
-    async approveMoveBooking(scheduleId: string, bookingId: string): Promise<Booking> {
-      return fetchAPI<Booking>(
+    async approveMoveBooking(scheduleId: string, bookingId: string): Promise<TBooking> {
+      return fetchAPI<TBooking>(
         `/api/admin/recurring/${scheduleId}/bookings/${bookingId}/approve-move`,
         {
           method: 'PUT',

@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export default function AdminBookingsRedirect() {
+import type { ReactNode } from 'react';
+
+export default function AdminBookingsRedirect(): ReactNode {
   const router = useRouter();
   useEffect(() => {
     router.replace('/admin');

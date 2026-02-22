@@ -2,12 +2,14 @@
 
 import { MonthGrid } from '@/components/Calendar';
 
-interface MonthCalendarProps {
+import type { ReactNode } from 'react';
+
+type TMonthCalendarProps = {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   bookingDates?: Date[];
   daysOff?: Date[];
-}
+};
 
 function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -18,20 +20,20 @@ export function MonthCalendar({
   onSelectDate,
   bookingDates = [],
   daysOff = [],
-}: MonthCalendarProps) {
+}: TMonthCalendarProps): ReactNode {
   const daysOffISO = daysOff.map(toISODate);
 
   const dotDatesSet = new Set(bookingDates.map(toISODate));
 
-  const prevMonth = () => {
+  const prevMonth = (): void => {
     onSelectDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1));
   };
 
-  const nextMonth = () => {
+  const nextMonth = (): void => {
     onSelectDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1));
   };
 
-  const goToToday = () => {
+  const goToToday = (): void => {
     onSelectDate(new Date());
   };
 

@@ -2,6 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
+import type { ReactNode } from 'react';
+
 const statusColors: Record<string, string> = {
   pending: 'bg-status-pending-bg text-status-pending-text',
   confirmed: 'bg-status-confirmed-bg text-status-confirmed-text',
@@ -33,16 +35,16 @@ export const statusBorders: Record<string, string> = {
   cancelled: 'border-status-cancelled-border',
 };
 
-export function getStatusColor(status: string) {
+export function getStatusColor(status: string): string {
   return statusColors[status] || statusColors.pending;
 }
 
-interface StatusBadgeProps {
+type TStatusBadgeProps = {
   status: string;
   className?: string;
-}
+};
 
-export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
+export function StatusBadge({ status, className = '' }: TStatusBadgeProps): ReactNode {
   const ts = useTranslations('Status');
   const color = statusColors[status] || statusColors.pending;
   const key = statusKeyMap[status] || 'pending';
