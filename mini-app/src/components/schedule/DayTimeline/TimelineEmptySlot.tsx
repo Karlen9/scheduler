@@ -1,20 +1,8 @@
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import type { TTimelineEmptySlotProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-export type TEmptySlot = {
-  startMin: number;
-  endMin: number;
-};
-
-type TTimelineEmptySlotProps = {
-  slot: TEmptySlot;
-  date: Date;
-  top: number;
-  height: number;
-  onEmptySlotClick?: (date: Date, time: string) => void;
-};
 
 function formatMinutes(totalMin: number): string {
   const h = Math.floor(totalMin / 60);

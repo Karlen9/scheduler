@@ -1,11 +1,5 @@
-import type { TSessionType } from '@/lib/types';
+import type { TServiceSelectorProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TServiceSelectorProps = {
-  services: TSessionType[];
-  selectedId: string;
-  onChange: (service: TSessionType) => void;
-};
 
 export function ServiceSelector({
   services,

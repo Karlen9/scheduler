@@ -3,13 +3,8 @@
 import { Pencil } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import type { TSessionType, TVoidFunction } from '@/lib/types';
+import type { TServiceCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TServiceCardProps = {
-  service: TSessionType;
-  onEdit?: TVoidFunction;
-};
 
 export function ServiceCard({ service, onEdit }: TServiceCardProps): ReactNode {
   const t = useTranslations('ServiceCard');

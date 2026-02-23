@@ -1,15 +1,5 @@
+import type { TTimeSlotGridProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TTimeSlot = {
-  time: string;
-  available: boolean;
-};
-
-type TTimeSlotGridProps = {
-  slots: TTimeSlot[];
-  selected: string | null;
-  onSelect: (time: string) => void;
-};
 
 export function TimeSlotGrid({ slots, selected, onSelect }: TTimeSlotGridProps): ReactNode {
   return (

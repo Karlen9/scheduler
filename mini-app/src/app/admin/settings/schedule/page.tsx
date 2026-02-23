@@ -11,16 +11,10 @@ import { invalidateWorkingHours } from '@/hooks/mutations';
 import { useAdminWorkingHours } from '@/hooks/queries';
 import { api } from '@/lib/api';
 
-import type { TWorkingHours } from '@/lib/types';
+import type { TDaySchedule, TWorkingHours } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
-
-type TDaySchedule = {
-  enabled: boolean;
-  startTime: string;
-  endTime: string;
-};
 
 const defaultSchedule: Record<number, TDaySchedule> = {
   0: { enabled: false, startTime: '09:00', endTime: '18:00' },

@@ -4,14 +4,8 @@ import { useTranslations } from 'next-intl';
 import { formatTime } from '@/lib/helpers';
 import { bookingStatusColors, bookingStatusKeys } from '@/lib/mappings';
 
-import type { TBooking } from '@/lib/types';
+import type { TBookingCardItemProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TBookingCardItemProps = {
-  booking: TBooking;
-  onRequestCancel: (booking: TBooking) => void;
-  formatBookingDate: (iso: string) => string;
-};
 
 export function BookingCardItem({
   booking,

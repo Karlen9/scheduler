@@ -5,15 +5,8 @@ import { useTranslations } from 'next-intl';
 
 import { StatCard } from '@/components/StatCard';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TStatsSectionProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TStatsSectionProps = {
-  pendingCount: number;
-  clientsCount: number;
-  onPendingClick?: TVoidFunction;
-  onClientsClick: TVoidFunction;
-};
 
 export function StatsSection({
   pendingCount,

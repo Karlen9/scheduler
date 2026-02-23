@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TMonthGridProps, TWeekStripProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 const monthNomKeys = [
@@ -66,40 +66,6 @@ function getMonthGrid(year: number, month: number, fillOuter: boolean): (Date | 
 }
 
 // ──────────────── Month Grid ────────────────
-
-export type TMonthGridProps = {
-  /** Currently displayed month/year (year, month derived from this) */
-  displayDate: Date;
-  /** Selected date (highlighted) */
-  selectedDate: Date | null;
-  /** Multiple selected dates (for multi-select mode) */
-  selectedDates?: Date[];
-  onSelectDate: (date: Date) => void;
-  onPrevMonth: TVoidFunction;
-  onNextMonth: TVoidFunction;
-  /** Days of week (0=Sun..6=Sat) that are non-working */
-  nonWorkingDays?: number[];
-  /** ISO date strings that are days off */
-  daysOff?: string[];
-  /** Disable past dates */
-  disablePast?: boolean;
-  /** ISO date strings (or a Set) that have a dot indicator */
-  dotDates?: Set<string>;
-  /** ISO date strings of dates already booked by this client */
-  bookedDates?: Set<string>;
-  /** Fill outer-month days instead of empty cells */
-  fillOuterDays?: boolean;
-  /** Wrap in bg-card container */
-  card?: boolean;
-  /** Show legend for days off */
-  showLegend?: boolean;
-  /** Title click handler (e.g. go to today) */
-  onTitleClick?: TVoidFunction;
-  /** When false, non-working days/days-off are styled but remain clickable (default: true) */
-  disableNonWorking?: boolean;
-  /** Maximum allowed date (dates after this are disabled) */
-  maxDate?: Date;
-};
 
 export function MonthGrid({
   displayDate,
@@ -288,16 +254,6 @@ export function MonthGrid({
 }
 
 // ──────────────── Week Strip ────────────────
-
-export type TWeekStripProps = {
-  selectedDate: Date;
-  onSelectDate: (date: Date) => void;
-  onPrevWeek: TVoidFunction;
-  onNextWeek: TVoidFunction;
-  nonWorkingDays?: number[];
-  daysOff?: string[];
-  dotDates?: Set<string>;
-};
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);

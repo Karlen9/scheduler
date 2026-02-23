@@ -2,13 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
+import type { TDurationSelectorProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TDurationSelectorProps = {
-  durations: number[];
-  selected: number;
-  onChange: (duration: number) => void;
-};
 
 export function formatDuration(minutes: number, hourLabel = 'h'): string {
   const hours = minutes / 60;

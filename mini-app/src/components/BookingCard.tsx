@@ -5,15 +5,8 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { StatusBadge } from '@/components/StatusBadge';
 
-import type { TBooking } from '@/lib/types';
+import type { TBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TBookingCardProps = {
-  booking: TBooking;
-  onCancel?: (booking: TBooking) => void;
-  onConfirm?: (booking: TBooking) => void;
-  onDecline?: (booking: TBooking) => void;
-};
 
 const monthGenKeys = [
   'jan',

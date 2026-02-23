@@ -12,20 +12,8 @@ import { ServiceCard } from './ServiceCard';
 import { TimeSlotLegend } from './TimeSlotLegend';
 import { useOnetimeBooking } from './useOnetimeBooking';
 
-import type { TClientInfo, TCreateBookingParams, TSessionType } from '@/lib/types';
+import type { TOnetimeBookingFlowProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-export type TOnetimeBookingFlowProps = {
-  services: TSessionType[];
-  daysOff: string[];
-  bookedDates?: string[];
-  showRecurring: boolean;
-  selectedClient: TClientInfo | null;
-  hasClientSelector: boolean;
-  nonWorkingDays: number[];
-  onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
-  successRedirect: string;
-};
 
 export function OnetimeBookingFlow({
   services,

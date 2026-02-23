@@ -1,18 +1,7 @@
 import { Calendar, Clock, Repeat } from 'lucide-react';
 
-import type { TRecurringSchedule } from '@/lib/types';
+import type { TClientScheduleInfoCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TScheduleInfoCardProps = {
-  schedule: TRecurringSchedule;
-  scheduleStatus: { color: string; border: string };
-  scheduleStatusLabel: string;
-  serviceName: string;
-  daysLabel: string;
-  dateRange: string | null;
-  durationLabel: string;
-  dayTimes: Record<string, string> | null;
-};
 
 export function ScheduleInfoCard({
   schedule,
@@ -23,7 +12,7 @@ export function ScheduleInfoCard({
   dateRange,
   durationLabel,
   dayTimes,
-}: TScheduleInfoCardProps): ReactNode {
+}: TClientScheduleInfoCardProps): ReactNode {
   return (
     <div className={`bg-card rounded-xl border-l-4 p-4 ${scheduleStatus.border}`}>
       <div className={'mb-3 flex items-start justify-between'}>

@@ -9,11 +9,8 @@ import { getTelegramWebApp } from '@/lib/telegram';
 
 import { BottomTabBar } from './BottomTabBar';
 
+import type { TAdminLayoutProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TAdminLayoutProps = {
-  children: ReactNode;
-};
 
 export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   const pathname = usePathname();

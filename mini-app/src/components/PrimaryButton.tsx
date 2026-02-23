@@ -1,12 +1,5 @@
-import type { TVoidFunction } from '@/lib/types';
+import type { TPrimaryButtonProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TPrimaryButtonProps = {
-  children: React.ReactNode;
-  onClick?: TVoidFunction;
-  disabled?: boolean;
-  fullWidth?: boolean;
-};
 
 export function PrimaryButton({
   children,

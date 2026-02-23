@@ -6,13 +6,8 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 
-import type { TBooking } from '@/lib/types';
+import type { TNextBookingBannerProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TNextBookingBannerProps = {
-  booking: TBooking | null;
-  onBookingClick?: (booking: TBooking) => void;
-};
 
 export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBannerProps): ReactNode {
   const router = useRouter();

@@ -5,13 +5,8 @@ import { useState } from 'react';
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 
+import type { TClientAvatarProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TClientAvatarProps = {
-  name: string;
-  photoUrl?: string;
-  size?: 'sm' | 'md' | 'lg';
-};
 
 const sizeClasses = {
   sm: 'w-8 h-8 text-sm',

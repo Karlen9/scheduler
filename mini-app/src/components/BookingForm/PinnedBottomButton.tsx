@@ -3,20 +3,8 @@ import { addMinutesToTime, formatDateISO } from '@/lib/helpers';
 import { DateChip } from './DateChip';
 import { PrimaryButton } from '../PrimaryButton';
 
-import type { TSessionType, TVoidFunction } from '@/lib/types';
+import type { TPinnedBottomButtonProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-export type TPinnedBottomButtonProps = {
-  mode: 'single' | 'multi';
-  selectedDates: Date[];
-  timeAssignments: Record<string, string>;
-  selectedService: TSessionType | null;
-  handleChipTap: (date: Date) => void;
-  handleOnetimeSubmit: TVoidFunction;
-  activeDateISO: string | null;
-  onetimeButtonDisabled: boolean;
-  onetimeButtonText: string;
-};
 
 export function PinnedBottomButton({
   mode,

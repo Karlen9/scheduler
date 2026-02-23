@@ -4,16 +4,8 @@ import { useMemo, useState } from 'react';
 
 import { MonthGrid } from '@/components/Calendar';
 
+import type { TCalendarViewProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TCalendarViewProps = {
-  selectedDate: Date | null;
-  selectedDates?: Date[];
-  onSelectDate: (date: Date) => void;
-  nonWorkingDays?: number[];
-  daysOff?: string[];
-  bookedDates?: string[];
-};
 
 export function CalendarView({
   selectedDate,

@@ -6,12 +6,8 @@ import { useState } from 'react';
 
 import { TopBar } from '@/components/TopBar';
 
+import type { TFAQItem } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TFAQItem = {
-  question: string;
-  answer: string;
-};
 
 function FAQAccordion({ item }: { item: TFAQItem }): ReactNode {
   const [isOpen, setIsOpen] = useState(false);

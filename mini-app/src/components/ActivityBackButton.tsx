@@ -4,11 +4,8 @@ import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+import type { TActivityBackButtonProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TActivityBackButtonProps = {
-  href: string;
-};
 
 export function ActivityBackButton({ href }: TActivityBackButtonProps): ReactNode {
   const tc = useTranslations('Common');

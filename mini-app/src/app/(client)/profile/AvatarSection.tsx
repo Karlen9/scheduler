@@ -5,19 +5,8 @@ import { Camera } from 'lucide-react';
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TAvatarSectionProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TAvatarSectionProps = {
-  name: string;
-  photoUrl: string;
-  photoError: boolean;
-  isUploading: boolean;
-  onPhotoError: TVoidFunction;
-  onClickUpload: TVoidFunction;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-};
 
 export function AvatarSection({
   name,

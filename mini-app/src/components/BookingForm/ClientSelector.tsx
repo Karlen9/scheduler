@@ -6,15 +6,8 @@ import { toast } from 'sonner';
 import { ClientAvatar } from '../ClientAvatar';
 import { EmptyState } from '../EmptyState';
 
-import type { TClientInfo } from '@/lib/types';
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
-
-export type TClientSelectorProps = {
-  clients?: TClientInfo[];
-  selectedClient: TClientInfo | null;
-  onCreateGhostClient: ((name: string) => Promise<TClientInfo>) | undefined;
-  setSelectedClient: Dispatch<SetStateAction<TClientInfo | null>>;
-};
+import type { TClientSelectorProps } from '@/lib/types';
+import type { ReactNode } from 'react';
 
 export function ClientSelector({
   selectedClient,

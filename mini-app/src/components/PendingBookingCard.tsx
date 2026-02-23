@@ -5,14 +5,8 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 
-import type { TBooking } from '@/lib/types';
+import type { TPendingBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TPendingBookingCardProps = {
-  booking: TBooking;
-  onAccept: (booking: TBooking) => void;
-  onReject: (booking: TBooking) => void;
-};
 
 const monthShortKeys = [
   'jan',

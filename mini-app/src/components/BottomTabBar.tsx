@@ -4,23 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import type { TBottomTabBarProps } from '@/lib/types';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-
-type TTab = {
-  key: string;
-  label: string;
-  icon: LucideIcon;
-  href: string;
-  isCenter?: boolean;
-  matchPaths?: string[];
-};
-
-type TSubTab = {
-  icon: LucideIcon;
-  href: string;
-  label?: string;
-};
 
 function PlusButton({
   href,
@@ -83,11 +69,6 @@ function TabButton({
     </Link>
   );
 }
-
-type TBottomTabBarProps = {
-  tabs: TTab[];
-  subTabs?: TSubTab[];
-};
 
 export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
   const pathname = usePathname();

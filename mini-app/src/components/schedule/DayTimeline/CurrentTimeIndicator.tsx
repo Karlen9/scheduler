@@ -1,8 +1,5 @@
+import type { TCurrentTimeIndicatorProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TCurrentTimeIndicatorProps = {
-  top: number;
-};
 
 export function CurrentTimeIndicator({ top }: TCurrentTimeIndicatorProps): ReactNode {
   return (

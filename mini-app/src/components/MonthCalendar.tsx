@@ -2,14 +2,8 @@
 
 import { MonthGrid } from '@/components/Calendar';
 
+import type { TMonthCalendarProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TMonthCalendarProps = {
-  selectedDate: Date;
-  onSelectDate: (date: Date) => void;
-  bookingDates?: Date[];
-  daysOff?: Date[];
-};
 
 function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

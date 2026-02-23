@@ -8,18 +8,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { dayFullLowerKeysJS } from '@/lib/constants';
 import { monthGenKeys } from '@/lib/mappings';
 
-import type { TBooking, TVoidFunction } from '@/lib/types';
+import type { TBookingDetailModalProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TBookingDetailModalProps = {
-  booking: TBooking | null;
-  isOpen: boolean;
-  onClose: TVoidFunction;
-  onReschedule?: (booking: TBooking) => void;
-  onCancel?: (booking: TBooking) => void;
-  onAccept?: (booking: TBooking) => void;
-  onReject?: (booking: TBooking) => void;
-};
 
 export function BookingDetailModal({
   booking,

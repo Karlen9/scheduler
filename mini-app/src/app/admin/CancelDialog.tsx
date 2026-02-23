@@ -4,17 +4,8 @@ import { useTranslations } from 'next-intl';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TCancelDialogProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TCancelDialogProps = {
-  isOpen: boolean;
-  targetName: string;
-  reason: string;
-  onReasonChange: (value: string) => void;
-  onConfirm: TVoidFunction;
-  onClose: TVoidFunction;
-};
 
 export function CancelDialog({
   isOpen,

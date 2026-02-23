@@ -5,15 +5,9 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import Cropper from 'react-easy-crop';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TPhotoEditorProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 import type { Area } from 'react-easy-crop';
-
-type TPhotoEditorProps = {
-  imageSrc: string;
-  onConfirm: (blob: Blob) => void;
-  onCancel: TVoidFunction;
-};
 
 export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps): ReactNode {
   const t = useTranslations('PhotoEditor');
