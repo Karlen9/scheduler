@@ -8,17 +8,8 @@ import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 import { TimelineBookingCard } from './TimelineBookingCard';
 import { TimelineEmptySlot } from './TimelineEmptySlot';
 
-import type { TEmptySlot } from './TimelineEmptySlot';
-import type { TBooking, TWorkingHours } from '@/lib/types';
+import type { TDayTimelineProps, TEmptySlot } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TDayTimelineProps = {
-  bookings: TBooking[];
-  date: Date;
-  onBookingClick?: (booking: TBooking) => void;
-  workingHours?: TWorkingHours[];
-  onEmptySlotClick?: (date: Date, time: string) => void;
-};
 
 const HOUR_HEIGHT = 72;
 

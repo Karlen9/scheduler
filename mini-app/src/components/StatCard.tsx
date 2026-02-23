@@ -1,15 +1,5 @@
-import type { TVoidFunction } from '@/lib/types';
-import type { LucideIcon } from 'lucide-react';
+import type { TStatCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TStatCardProps = {
-  icon: LucideIcon;
-  iconColor: string;
-  iconBg: string;
-  value: number;
-  label: string;
-  onClick?: TVoidFunction;
-};
 
 export function StatCard({
   icon: Icon,

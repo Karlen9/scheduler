@@ -3,22 +3,8 @@ import { ArrowRight, Calendar, Check, Clock, X } from 'lucide-react';
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { bookingStatusColors, bookingStatusKeys } from '@/lib/mappings';
 
-import type { TBooking } from '@/lib/types';
-import type { useTranslations } from 'next-intl';
+import type { TBookingRowProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TBookingRowProps = {
-  booking: TBooking;
-  actionLoading: string | null;
-  onRequestCancel: (booking: TBooking) => void;
-  onApproveMoveBooking: (booking: TBooking) => void;
-  onDeclineMoveBooking: (booking: TBooking) => void;
-  formatDate: (iso: string) => string;
-  formatTime: (iso: string) => string;
-  tst: ReturnType<typeof useTranslations>;
-  tc: ReturnType<typeof useTranslations>;
-  t: ReturnType<typeof useTranslations>;
-};
 
 export function BookingRow({
   booking,

@@ -8,17 +8,8 @@ import { ClientAvatar } from '@/components/ClientAvatar';
 import { formatDuration } from '@/components/DurationSelector';
 import { StatusBadge, statusBorders } from '@/components/StatusBadge';
 
-import type { TRecurringSchedule, TSessionType } from '@/lib/types';
+import type { TRecurringSchedule, TRecurringScheduleCardProps, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TRecurringScheduleCardProps = {
-  schedule: TRecurringSchedule;
-  services?: TSessionType[];
-  onCancel?: (schedule: TRecurringSchedule) => void;
-  onApprove?: (schedule: TRecurringSchedule) => void;
-  onDecline?: (schedule: TRecurringSchedule) => void;
-  detailPath?: string; // e.g. "/recurring" or "/admin/recurring"
-};
 
 const dayShortKeysMap: Record<number, string> = {
   0: 'sun',

@@ -4,15 +4,8 @@ import { useTranslations } from 'next-intl';
 
 import { BottomSheet } from '@/components/BottomSheet';
 
+import type { TTimePickerModalProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TTimePickerModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (time: string) => void;
-  selectedTime?: string;
-  title?: string;
-};
 
 const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 

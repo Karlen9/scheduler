@@ -12,16 +12,8 @@ import { invalidateServices } from '@/hooks/mutations';
 import { useAdminServices } from '@/hooks/queries';
 import { api, getPhotoUrl } from '@/lib/api';
 
-import type { TSessionType } from '@/lib/types';
+import type { TServiceFormData, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TServiceFormData = {
-  type: string;
-  name: string;
-  price: string;
-  duration: string;
-  imageUrl: string;
-};
 
 export default function ServicesPage(): ReactNode {
   const t = useTranslations('AdminServices');

@@ -2,16 +2,8 @@ import { useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 
-import type { TBooking } from '@/lib/types';
+import type { TTimelineBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TTimelineBookingCardProps = {
-  booking: TBooking;
-  top: number;
-  height: number;
-  onBookingClick?: (booking: TBooking) => void;
-  formatTime: (iso: string) => string;
-};
 
 function getCardStyle(status: string): { bg: string; text: string; subtext: string } {
   switch (status) {

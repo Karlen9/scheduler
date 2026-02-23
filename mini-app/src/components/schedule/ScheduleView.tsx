@@ -8,19 +8,8 @@ import { MonthGrid, WeekStrip } from '@/components/Calendar';
 
 import { DayTimeline } from './DayTimeline';
 
-import type { TBooking, TWorkingHours } from '@/lib/types';
+import type { TScheduleViewProps, TViewMode } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TViewMode = 'day' | 'week' | 'month';
-
-type TScheduleViewProps = {
-  bookings: TBooking[];
-  onBookingClick?: (booking: TBooking) => void;
-  nonWorkingDays?: number[];
-  daysOff?: string[];
-  workingHours?: TWorkingHours[];
-  onEmptySlotClick?: (date: Date, time: string) => void;
-};
 
 const monthGenKeys = [
   'jan',

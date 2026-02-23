@@ -3,16 +3,8 @@
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
-import type { LucideIcon } from 'lucide-react';
+import type { TSettingsGroupProps, TSettingsMenuItemProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TSettingsMenuItemProps = {
-  icon: LucideIcon;
-  label: string;
-  value?: string;
-  href: string;
-  iconColor?: string;
-};
 
 export function SettingsMenuItem({
   icon: Icon,
@@ -35,11 +27,6 @@ export function SettingsMenuItem({
     </Link>
   );
 }
-
-type TSettingsGroupProps = {
-  title?: string;
-  children: React.ReactNode;
-};
 
 export function SettingsGroup({ title, children }: TSettingsGroupProps): ReactNode {
   return (

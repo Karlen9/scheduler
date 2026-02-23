@@ -10,15 +10,8 @@ import { TimeSlotGrid } from '@/components/TimeSlotGrid';
 import { useDaysOff, useWorkingHours } from '@/hooks/queries';
 import { api } from '@/lib/api';
 
-import type { TBooking, TTimeSlot, TVoidFunction } from '@/lib/types';
+import type { TRescheduleSheetProps, TTimeSlot } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TRescheduleSheetProps = {
-  booking: TBooking | null;
-  isOpen: boolean;
-  onClose: TVoidFunction;
-  onSuccess: TVoidFunction;
-};
 
 function formatDateISO(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

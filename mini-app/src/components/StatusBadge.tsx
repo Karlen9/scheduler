@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
+import type { TStatusBadgeProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 const statusColors: Record<string, string> = {
@@ -38,11 +39,6 @@ export const statusBorders: Record<string, string> = {
 export function getStatusColor(status: string): string {
   return statusColors[status] || statusColors.pending;
 }
-
-type TStatusBadgeProps = {
-  status: string;
-  className?: string;
-};
 
 export function StatusBadge({ status, className = '' }: TStatusBadgeProps): ReactNode {
   const ts = useTranslations('Status');

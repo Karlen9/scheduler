@@ -11,24 +11,8 @@ import { generateTimeSlotsForDay } from '@/lib/helpers';
 
 import { RecurringDayForm } from './RecurringDayForm';
 
-import type {
-  TClientInfo,
-  TCreateRecurringParams,
-  TPreviewRecurringParams,
-  TSessionType,
-  TWorkingHours,
-} from '@/lib/types';
+import type { TRecurringBookingFlowProps, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-export type TRecurringBookingFlowProps = {
-  services: TSessionType[];
-  workingHours: TWorkingHours[];
-  selectedClient: TClientInfo | null;
-  hasClientSelector: boolean;
-  onCreateRecurring: (params: TCreateRecurringParams) => Promise<void>;
-  onPreviewRecurring: (params: TPreviewRecurringParams) => Promise<{ dates: string[] }>;
-  successRedirect: string;
-};
 
 export function RecurringBookingFlow({
   services,

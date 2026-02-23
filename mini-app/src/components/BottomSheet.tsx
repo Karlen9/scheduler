@@ -2,19 +2,8 @@
 
 import { X } from 'lucide-react';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TBottomSheetProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TBottomSheetProps = {
-  isOpen: boolean;
-  onClose: TVoidFunction;
-  children: React.ReactNode;
-  title?: string;
-  /** Show close X button (top-right). Default: true */
-  showClose?: boolean;
-  /** Extra classes on the content container */
-  className?: string;
-};
 
 export function BottomSheet({
   isOpen,

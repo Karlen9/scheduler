@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { applyTheme, getThemePreference, setThemePreference } from '@/lib/telegram';
 
-import type { TThemePreference } from '@/lib/telegram';
+import type { TThemePreference } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 export function ThemeSelector(): ReactNode {

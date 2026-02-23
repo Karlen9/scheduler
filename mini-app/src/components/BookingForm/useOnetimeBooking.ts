@@ -11,46 +11,11 @@ import { formatDateISO } from '@/lib/helpers';
 import { monthGenKeys } from '@/lib/mappings';
 
 import type {
-  TClientInfo,
-  TCreateBookingParams,
   TSessionType,
   TTimeSlot,
-  TVoidFunction,
+  TUseOnetimeBookingParams,
+  TUseOnetimeBookingReturn,
 } from '@/lib/types';
-
-type TUseOnetimeBookingParams = {
-  services: TSessionType[];
-  selectedClient: TClientInfo | null;
-  hasClientSelector: boolean;
-  onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
-  successRedirect: string;
-};
-
-type TUseOnetimeBookingReturn = {
-  mode: 'single' | 'multi';
-  setMode: (mode: 'single' | 'multi') => void;
-  selectedService: TSessionType | null;
-  selectedDate: Date | null;
-  selectedTime: string | null;
-  selectedDates: Date[];
-  activeDateISO: string | null;
-  timeAssignments: Record<string, string>;
-  timeSlots: TTimeSlot[];
-  isLoadingSlots: boolean;
-  message: string;
-  setMessage: (message: string) => void;
-  multiActiveTime: string | null;
-  onetimeButtonText: string;
-  onetimeButtonDisabled: boolean;
-  handleServiceSelect: (service: TSessionType) => void;
-  handleEditService: TVoidFunction;
-  handleSingleDateSelect: (date: Date) => void;
-  handleSingleTimeSelect: (time: string) => void;
-  handleMultiDateToggle: (date: Date) => void;
-  handleChipTap: (date: Date) => void;
-  handleMultiTimeSelect: (time: string) => void;
-  handleOnetimeSubmit: TVoidFunction;
-};
 
 export function useOnetimeBooking({
   services,

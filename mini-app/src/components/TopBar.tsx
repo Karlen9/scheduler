@@ -4,14 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TTopBarProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TTopBarProps = {
-  title: string;
-  showBack?: boolean;
-  onBack?: TVoidFunction;
-};
 
 export function TopBar({ title, showBack = false, onBack }: TTopBarProps): ReactNode {
   const router = useRouter();

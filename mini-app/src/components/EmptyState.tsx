@@ -1,11 +1,5 @@
+import type { TEmptyStateProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TEmptyStateProps = {
-  icon: React.ReactNode;
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-};
 
 export function EmptyState({ icon, title, description, action }: TEmptyStateProps): ReactNode {
   return (

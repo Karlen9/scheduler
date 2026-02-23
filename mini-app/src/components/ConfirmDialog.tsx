@@ -4,23 +4,8 @@ import { useTranslations } from 'next-intl';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 
-import type { TVoidFunction } from '@/lib/types';
+import type { TConfirmDialogProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TConfirmDialogProps = {
-  isOpen: boolean;
-  onClose: TVoidFunction;
-  onConfirm: TVoidFunction;
-  title: string;
-  description?: string;
-  confirmText?: string;
-  cancelText?: string;
-  destructive?: boolean;
-  showInput?: boolean;
-  inputPlaceholder?: string;
-  inputValue?: string;
-  onInputChange?: (value: string) => void;
-};
 
 export function ConfirmDialog({
   isOpen,

@@ -2,18 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
+import type { TNotificationPreferencesProps } from '@/lib/types';
 import type { ReactNode } from 'react';
-
-type TNotificationPreferencesProps = {
-  notifyBookingStatus: boolean;
-  notifyReminders: boolean;
-  notifyDaysOff: boolean;
-  notifyCancellations: boolean;
-  onToggle: (
-    key: 'notifyBookingStatus' | 'notifyReminders' | 'notifyDaysOff' | 'notifyCancellations',
-    value: boolean,
-  ) => void;
-};
 
 export function NotificationPreferences({
   notifyBookingStatus,
