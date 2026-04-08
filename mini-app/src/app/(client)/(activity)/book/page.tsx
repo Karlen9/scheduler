@@ -4,21 +4,64 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 
 import { BookingForm } from '@/components/BookingForm';
-import { useBookings, useDaysOff, useSessionTypes, useWorkingHours } from '@/hooks/queries';
+import { useBookings, useScheduleContext, useSessionTypes } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { getUserName } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the client book content UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function ClientBookContent(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingForm');
-  const { data: workingHours, isLoading: whLoading } = useWorkingHours();
-  const { data: daysOffData, isLoading: doLoading } = useDaysOff();
+  const { data: scheduleContext, isLoading: scheduleLoading } = useScheduleContext();
+  /***************************************************************************************************
+   * Defines the working hours value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const workingHours = scheduleContext?.workingHours ?? [];
+  /***************************************************************************************************
+   * Defines the days off data value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const daysOffData = scheduleContext?.daysOff ?? [];
   const { data: services, isLoading: svcLoading } = useSessionTypes();
   const { data: bookings } = useBookings();
 
+  /***************************************************************************************************
+   * Defines the days off value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const daysOff = daysOffData.map((d) => d.date);
 
+  /***************************************************************************************************
+   * Defines the booked dates value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const bookedDates = useMemo(() => {
     return bookings
       .filter((b) => b.status === 'pending' || b.status === 'confirmed')
@@ -31,11 +74,17 @@ function ClientBookContent(): ReactNode {
       workingHours={workingHours}
       daysOff={daysOff}
       bookedDates={bookedDates}
-      isLoading={whLoading || doLoading || svcLoading}
+      isLoading={scheduleLoading || svcLoading}
       showRecurring={false}
       successRedirect={'/bookings'}
       title={t('title')}
       onCreateBooking={async (params) => {
+        /***************************************************************************************************
+         * Defines the name value used by the page layer.
+         *
+         * Usage context:
+         * - Reused by the page layer to keep shared values centralized.
+         ***************************************************************************************************/
         const name = getUserName();
         await api.createBooking(params.duration, params.date, params.time, name, params.message);
       }}
@@ -57,7 +106,25 @@ function ClientBookContent(): ReactNode {
   );
 }
 
+/***************************************************************************************************
+ * Renders the booking fallback UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function BookingFallback(): ReactNode {
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
   return (
     <div className={'bg-background flex min-h-screen items-center justify-center'}>
@@ -66,6 +133,18 @@ function BookingFallback(): ReactNode {
   );
 }
 
+/***************************************************************************************************
+ * Renders the booking page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function BookingPage(): ReactNode {
   return (
     <Suspense fallback={<BookingFallback />}>

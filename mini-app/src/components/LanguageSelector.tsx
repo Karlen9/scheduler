@@ -11,17 +11,59 @@ import { api } from '@/lib/api';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Defines the options value used by the component layer.
+ *
+ * Usage context:
+ * - Reused by the component layer to keep shared values centralized.
+ ***************************************************************************************************/
 const options = [
   { value: 'ru', label: 'RU' },
   { value: 'en', label: 'EN' },
 ];
 
+/***************************************************************************************************
+ * Renders the language selector UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function LanguageSelector({ isAdmin }: { isAdmin?: boolean }): ReactNode {
+  /***************************************************************************************************
+   * Defines the locale value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
+  /***************************************************************************************************
+   * Defines the router value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
+  /***************************************************************************************************
+   * Defines the te value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
   const [loading, setLoading] = useState(false);
 
+  /***************************************************************************************************
+   * Handles select.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleSelect = async (lang: string): Promise<void> => {
     if (lang === locale || loading) {
       return;
@@ -33,8 +75,10 @@ export function LanguageSelector({ isAdmin }: { isAdmin?: boolean }): ReactNode 
       } else {
         await api.updateProfile({ language: lang });
       }
-      // Invalidate SWR profile cache BEFORE refresh to prevent
-      // cross-device sync from reading stale language and bouncing back
+      /***************************************************************************************************
+       * Invalidate SWR profile cache BEFORE refresh to prevent cross-device sync from reading
+       * stale language and bouncing back.
+       ***************************************************************************************************/
       if (isAdmin) {
         invalidateSpecialist();
       } else {

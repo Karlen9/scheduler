@@ -8,6 +8,12 @@ import { ClientAvatar } from '@/components/ClientAvatar';
 import type { TPendingBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the component layer.
+ *
+ * Usage context:
+ * - Reused by the component layer to keep shared values centralized.
+ ***************************************************************************************************/
 const monthShortKeys = [
   'jan',
   'feb',
@@ -22,27 +28,117 @@ const monthShortKeys = [
   'nov',
   'dec',
 ];
+/***************************************************************************************************
+ * Defines the day short keys js value used by the component layer.
+ *
+ * Usage context:
+ * - Reused by the component layer to keep shared values centralized.
+ ***************************************************************************************************/
 const dayShortKeysJS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+/***************************************************************************************************
+ * Renders the pending booking card UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function PendingBookingCard({
   booking,
   onAccept,
   onReject,
 }: TPendingBookingCardProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('PendingBookingCard');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the td value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Dates');
+  /***************************************************************************************************
+   * Defines the locale value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
 
+  /***************************************************************************************************
+   * Defines the starts at value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const startsAt = new Date(booking.startsAt);
+  /***************************************************************************************************
+   * Defines the ends at value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const endsAt = new Date(booking.endsAt);
 
+  /***************************************************************************************************
+   * Formats date.
+   *
+   * Parameters:
+   * - date: Date value used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function formatDate(date: Date): string {
+    /***************************************************************************************************
+     * Defines the day key value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const dayKey = dayShortKeysJS[date.getUTCDay()];
+    /***************************************************************************************************
+     * Defines the month key value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const monthKey = monthShortKeys[date.getUTCMonth()];
     return `${td(`daysShort.${dayKey}`)}, ${date.getUTCDate()} ${td(`monthsShort.${monthKey}`)}`;
   }
 
+  /***************************************************************************************************
+   * Formats time.
+   *
+   * Parameters:
+   * - date: Date value used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function formatTime(date: Date): string {
     return date.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ru-RU', {
       hour: '2-digit',

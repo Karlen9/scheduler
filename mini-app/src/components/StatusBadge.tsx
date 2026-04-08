@@ -36,13 +36,55 @@ export const statusBorders: Record<string, string> = {
   cancelled: 'border-status-cancelled-border',
 };
 
+/***************************************************************************************************
+ * Returns status color.
+ *
+ * Parameters:
+ * - status: Status used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as string.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function getStatusColor(status: string): string {
   return statusColors[status] || statusColors.pending;
 }
 
+/***************************************************************************************************
+ * Renders the status badge UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function StatusBadge({ status, className = '' }: TStatusBadgeProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the ts value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ts = useTranslations('Status');
+  /***************************************************************************************************
+   * Defines the color value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const color = statusColors[status] || statusColors.pending;
+  /***************************************************************************************************
+   * Defines the key value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const key = statusKeyMap[status] || 'pending';
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-medium ${color} ${className}`}>

@@ -4,6 +4,18 @@ import { useLocale } from 'next-intl';
 import type { TSessionType, TVoidFunction } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the service card UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function ServiceCard({
   service,
   selected,
@@ -17,9 +29,34 @@ export function ServiceCard({
   onEdit?: TVoidFunction;
   minLabel: string;
 }): ReactNode {
+  /***************************************************************************************************
+   * Defines the locale value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
 
+  /***************************************************************************************************
+   * Formats price.
+   *
+   * Parameters:
+   * - price: Price used by the current operation.
+   * - currency: Currency used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function formatPrice(price: number, currency: string): string {
+    /***************************************************************************************************
+     * Defines the formatted value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const formatted = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU').format(price);
     return `${formatted} ${currency}`;
   }

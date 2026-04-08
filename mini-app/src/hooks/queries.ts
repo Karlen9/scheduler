@@ -5,21 +5,40 @@ import { api } from '@/lib/api';
 import { CACHE_KEYS } from './cache-keys';
 
 import type {
+  TAdminScheduleContext,
   TBooking,
   TClientInfo,
   TClientProfile,
   TDayOff,
   TRecurringSchedule,
+  TScheduleContext,
   TSessionType,
   TSpecialist,
   TWorkingHours,
 } from '@/lib/types';
 import type { KeyedMutator, SWRConfiguration } from 'swr';
 
-// ========== Static data hooks (cached aggressively) ==========
+/***************************************************************************************************
+ * Static data hooks (cached aggressively).
+ ***************************************************************************************************/
+const staticConfig: SWRConfiguration = {
+  dedupingInterval: 60000,
+  revalidateOnFocus: false,
+  revalidateIfStale: false,
+};
 
-const staticConfig: SWRConfiguration = { dedupingInterval: 60000 };
-
+/***************************************************************************************************
+ * Loads and exposes specialist data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useSpecialist(): {
   data: TSpecialist | null;
   isLoading: boolean;
@@ -34,6 +53,18 @@ export function useSpecialist(): {
   return { data: data ?? null, isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes working hours data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useWorkingHours(): {
   data: TWorkingHours[];
   isLoading: boolean;
@@ -48,6 +79,44 @@ export function useWorkingHours(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes schedule context data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
+export function useScheduleContext(): {
+  data: TScheduleContext | null;
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TScheduleContext>;
+} {
+  const { data, isLoading, error, mutate } = useSWR<TScheduleContext>(
+    CACHE_KEYS.scheduleContext,
+    async () => api.getScheduleContext(),
+    staticConfig,
+  );
+  return { data: data ?? null, isLoading, error, mutate };
+}
+
+/***************************************************************************************************
+ * Loads and exposes days off data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useDaysOff(): {
   data: { date: string }[];
   isLoading: boolean;
@@ -62,20 +131,18 @@ export function useDaysOff(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
-export function useDurations(): {
-  data: number[];
-  isLoading: boolean;
-  error: Error | undefined;
-  mutate: KeyedMutator<number[]>;
-} {
-  const { data, isLoading, error, mutate } = useSWR<number[]>(
-    CACHE_KEYS.durations,
-    async () => api.getDurations(),
-    staticConfig,
-  );
-  return { data: data ?? [], isLoading, error, mutate };
-}
-
+/***************************************************************************************************
+ * Loads and exposes session types data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useSessionTypes(): {
   data: TSessionType[];
   isLoading: boolean;
@@ -90,10 +157,26 @@ export function useSessionTypes(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
-// ========== User data hooks (moderate caching) ==========
+/***************************************************************************************************
+ * User data hooks (moderate caching).
+ ***************************************************************************************************/
+const userConfig: SWRConfiguration = {
+  dedupingInterval: 30000,
+  revalidateOnFocus: false,
+};
 
-const userConfig: SWRConfiguration = { dedupingInterval: 30000 };
-
+/***************************************************************************************************
+ * Loads and exposes profile data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useProfile(): {
   data: TClientProfile | null;
   isLoading: boolean;
@@ -108,6 +191,18 @@ export function useProfile(): {
   return { data: data ?? null, isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes clients data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useClients(): {
   data: TClientInfo[];
   isLoading: boolean;
@@ -122,8 +217,18 @@ export function useClients(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
-// ========== Dynamic data hooks ==========
-
+/***************************************************************************************************
+ * Dynamic data hooks.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useBookings(): {
   data: TBooking[];
   isLoading: boolean;
@@ -136,6 +241,18 @@ export function useBookings(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes admin bookings data for consuming components.
+ *
+ * Parameters:
+ * - opts: Opts used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminBookings(opts?: { refreshInterval?: number }): {
   data: TBooking[];
   isLoading: boolean;
@@ -150,6 +267,18 @@ export function useAdminBookings(opts?: { refreshInterval?: number }): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes recurring schedules data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useRecurringSchedules(): {
   data: TRecurringSchedule[];
   isLoading: boolean;
@@ -163,6 +292,18 @@ export function useRecurringSchedules(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes recurring detail data for consuming components.
+ *
+ * Parameters:
+ * - id: Identifier used to target the current record.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useRecurringDetail(id: string): {
   data: TRecurringSchedule | null;
   isLoading: boolean;
@@ -176,6 +317,18 @@ export function useRecurringDetail(id: string): {
   return { data: data ?? null, isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes admin recurring schedules data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminRecurringSchedules(): {
   data: TRecurringSchedule[];
   isLoading: boolean;
@@ -189,6 +342,18 @@ export function useAdminRecurringSchedules(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes admin recurring detail data for consuming components.
+ *
+ * Parameters:
+ * - id: Identifier used to target the current record.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminRecurringDetail(id: string): {
   data: TRecurringSchedule | null;
   isLoading: boolean;
@@ -202,8 +367,18 @@ export function useAdminRecurringDetail(id: string): {
   return { data: data ?? null, isLoading, error, mutate };
 }
 
-// ========== Admin settings hooks ==========
-
+/***************************************************************************************************
+ * Admin settings hooks.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminWorkingHours(): {
   data: TWorkingHours[];
   isLoading: boolean;
@@ -218,6 +393,44 @@ export function useAdminWorkingHours(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes admin schedule context data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
+export function useAdminScheduleContext(): {
+  data: TAdminScheduleContext | null;
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TAdminScheduleContext>;
+} {
+  const { data, isLoading, error, mutate } = useSWR<TAdminScheduleContext>(
+    CACHE_KEYS.adminScheduleContext,
+    async () => api.admin.getScheduleContext(),
+    staticConfig,
+  );
+  return { data: data ?? null, isLoading, error, mutate };
+}
+
+/***************************************************************************************************
+ * Loads and exposes admin days off data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminDaysOff(): {
   data: TDayOff[];
   isLoading: boolean;
@@ -232,6 +445,18 @@ export function useAdminDaysOff(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes admin services data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminServices(): {
   data: TSessionType[];
   isLoading: boolean;
@@ -246,6 +471,18 @@ export function useAdminServices(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes admin profile data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminProfile(): {
   data: TSpecialist | null;
   isLoading: boolean;
@@ -260,6 +497,18 @@ export function useAdminProfile(): {
   return { data: data ?? null, isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads and exposes admin notifications data for consuming components.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
 export function useAdminNotifications(): {
   data: { notifyNewBookings: boolean; notifyCancellations: boolean } | null;
   isLoading: boolean;

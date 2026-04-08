@@ -7,6 +7,18 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import type { TConfirmDialogProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the confirm dialog UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function ConfirmDialog({
   isOpen,
   onClose,
@@ -21,15 +33,39 @@ export function ConfirmDialog({
   inputValue,
   onInputChange,
 }: TConfirmDialogProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
 
   if (!isOpen) {
     return null;
   }
 
+  /***************************************************************************************************
+   * Defines the resolved confirm text value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const resolvedConfirmText = confirmText ?? tc('confirm');
+  /***************************************************************************************************
+   * Defines the resolved cancel text value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const resolvedCancelText = cancelText ?? tc('cancel');
 
+  /***************************************************************************************************
+   * Handles confirm.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleConfirm = (): void => {
     onConfirm();
     onClose();

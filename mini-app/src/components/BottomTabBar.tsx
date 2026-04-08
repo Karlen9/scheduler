@@ -8,6 +8,18 @@ import type { TBottomTabBarProps } from '@/lib/types';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the plus button UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function PlusButton({
   href,
   isActive,
@@ -41,6 +53,18 @@ function PlusButton({
   );
 }
 
+/***************************************************************************************************
+ * Renders the tab button UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function TabButton({
   href,
   isActive,
@@ -70,11 +94,41 @@ function TabButton({
   );
 }
 
+/***************************************************************************************************
+ * Renders the bottom tab bar UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the pathname value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const pathname = usePathname();
+  /***************************************************************************************************
+   * Defines the prev path ref value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const prevPathRef = useRef(pathname);
   const [animatingKey, setAnimatingKey] = useState<string | null>(null);
 
+  /***************************************************************************************************
+   * Defines the active index value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const activeIndex = tabs.findIndex((tab) => {
     if (tab.matchPaths) {
       return tab.matchPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
@@ -85,33 +139,99 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
     return pathname === tab.href || pathname.startsWith(tab.href + '/');
   });
 
+  /***************************************************************************************************
+   * Defines the current index value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const currentIndex = activeIndex === -1 ? 0 : activeIndex;
+  /***************************************************************************************************
+   * Defines the is center active value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isCenterActive = tabs[currentIndex]?.isCenter;
+  /***************************************************************************************************
+   * Defines the show sub tabs value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const showSubTabs = isCenterActive && subTabs && subTabs.length > 0;
 
+  /***************************************************************************************************
+   * Defines the side tabs value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const sideTabs = tabs.filter((t) => !t.isCenter);
+  /***************************************************************************************************
+   * Defines the has center button value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const hasCenterButton = tabs.some((t) => t.isCenter);
+  /***************************************************************************************************
+   * Defines the active side index value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const activeSideIndex = isCenterActive
     ? -1
     : sideTabs.findIndex((t) => t.key === tabs[currentIndex]?.key);
 
+  /***************************************************************************************************
+   * Defines the active sub index value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const activeSubIndex = showSubTabs
     ? subTabs.findIndex((t) => pathname === t.href || pathname.startsWith(t.href + '/'))
     : -1;
 
+  /***************************************************************************************************
+   * Defines the tabs ref value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tabsRef = useRef<HTMLDivElement>(null);
+  /***************************************************************************************************
+   * Defines the sub tabs ref value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const subTabsRef = useRef<HTMLDivElement>(null);
   const [sideTabW, setSideTabW] = useState(0);
   const [subTabW, setSubTabW] = useState(0);
 
   useEffect(() => {
     if (tabsRef.current) {
+      /***************************************************************************************************
+       * Defines the first value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const first = tabsRef.current.firstElementChild as HTMLElement | null;
       if (first) {
         setSideTabW(first.offsetWidth);
       }
     }
     if (subTabsRef.current) {
+      /***************************************************************************************************
+       * Defines the first value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const first = subTabsRef.current.firstElementChild as HTMLElement | null;
       if (first) {
         setSubTabW(first.offsetWidth);
@@ -119,13 +239,27 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
     }
   }, [subTabsRef]);
 
-  // Trigger bounce animation on route change
+  /***************************************************************************************************
+   * Trigger bounce animation on route change.
+   ***************************************************************************************************/
   useEffect(() => {
     if (pathname !== prevPathRef.current) {
       prevPathRef.current = pathname;
+      /***************************************************************************************************
+       * Defines the key value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const key = showSubTabs ? pathname : tabs[currentIndex]?.key;
       if (key) {
         setAnimatingKey(key);
+        /***************************************************************************************************
+         * Defines the timer value used by the component layer.
+         *
+         * Usage context:
+         * - Reused by the component layer to keep shared values centralized.
+         ***************************************************************************************************/
         const timer = setTimeout(() => setAnimatingKey(null), 300);
         return () => clearTimeout(timer);
       }
@@ -141,7 +275,9 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
       >
         {showSubTabs ? (
           <>
-            {/* Sliding indicator for sub-tabs */}
+            {/***************************************************************************************************
+             * Sliding indicator for sub-tabs.
+             ***************************************************************************************************/}
             {activeSubIndex >= 0 && subTabW > 0 && (
               <div
                 className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
@@ -155,7 +291,19 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
 
             <div ref={subTabsRef} className={'relative flex items-center'}>
               {subTabs.map((tab) => {
+                /***************************************************************************************************
+                 * Defines the is active value used by the component layer.
+                 *
+                 * Usage context:
+                 * - Reused by the component layer to keep shared values centralized.
+                 ***************************************************************************************************/
                 const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
+                /***************************************************************************************************
+                 * Defines the bouncing value used by the component layer.
+                 *
+                 * Usage context:
+                 * - Reused by the component layer to keep shared values centralized.
+                 ***************************************************************************************************/
                 const bouncing = animatingKey === tab.href;
                 return (
                   <TabButton
@@ -173,7 +321,9 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
           </>
         ) : (
           <>
-            {/* Active indicator for side tabs */}
+            {/***************************************************************************************************
+             * Active indicator for side tabs.
+             ***************************************************************************************************/}
             {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
               <div
                 className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
@@ -185,11 +335,31 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
               />
             )}
 
-            {/* Tab buttons */}
+            {/***************************************************************************************************
+             * Tab buttons.
+             ***************************************************************************************************/}
             <div ref={tabsRef} className={'relative flex items-center'}>
               {tabs.map((tab, index) => {
+                /***************************************************************************************************
+                 * Defines the is active value used by the component layer.
+                 *
+                 * Usage context:
+                 * - Reused by the component layer to keep shared values centralized.
+                 ***************************************************************************************************/
                 const isActive = index === currentIndex;
+                /***************************************************************************************************
+                 * Defines the icon value used by the component layer.
+                 *
+                 * Usage context:
+                 * - Reused by the component layer to keep shared values centralized.
+                 ***************************************************************************************************/
                 const Icon = tab.icon;
+                /***************************************************************************************************
+                 * Defines the bouncing value used by the component layer.
+                 *
+                 * Usage context:
+                 * - Reused by the component layer to keep shared values centralized.
+                 ***************************************************************************************************/
                 const bouncing = animatingKey === tab.key;
 
                 if (tab.isCenter) {
@@ -219,7 +389,9 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
           </>
         )}
       </div>
-      {/* Bottom safe area */}
+      {/***************************************************************************************************
+       * Bottom safe area.
+       ***************************************************************************************************/}
       <div className={'h-[env(safe-area-inset-bottom)]'} />
     </div>
   );

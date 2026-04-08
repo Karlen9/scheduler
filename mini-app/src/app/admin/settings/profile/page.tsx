@@ -15,10 +15,46 @@ import { getAvatarColor } from '@/lib/colors';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the profile page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function ProfilePage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminProfile');
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
+  /***************************************************************************************************
+   * Defines the ts value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ts = useTranslations('Success');
   const { data: profile, isLoading } = useAdminProfile();
   const [name, setName] = useState('');
@@ -33,6 +69,12 @@ export default function ProfilePage(): ReactNode {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editorImage, setEditorImage] = useState<string | null>(null);
+  /***************************************************************************************************
+   * Defines the file input ref value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,11 +94,29 @@ export default function ProfilePage(): ReactNode {
     setInitialized(true);
   }, [profile, isLoading, initialized]);
 
+  /***************************************************************************************************
+   * Handles file select.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    /***************************************************************************************************
+     * Defines the file value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const file = e.target.files?.[0];
     if (!file) {
       return;
     }
+    /***************************************************************************************************
+     * Defines the url value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const url = URL.createObjectURL(file);
     setEditorImage(url);
     if (fileInputRef.current) {
@@ -64,11 +124,29 @@ export default function ProfilePage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles editor confirm.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleEditorConfirm = async (blob: Blob): Promise<void> => {
     setEditorImage(null);
     setIsUploading(true);
     try {
+      /***************************************************************************************************
+       * Defines the file value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+      /***************************************************************************************************
+       * Defines the result value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const result = await api.admin.uploadPhoto(file);
       setPhotoUrl(result.fileId);
       setPhotoError(false);
@@ -82,12 +160,36 @@ export default function ProfilePage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles save.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);
     try {
+      /***************************************************************************************************
+       * Defines the location latitude value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       let locationLatitude = 0;
+      /***************************************************************************************************
+       * Defines the location longitude value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       let locationLongitude = 0;
       if (gymCoords.trim()) {
+        /***************************************************************************************************
+         * Defines the parts value used by the page layer.
+         *
+         * Usage context:
+         * - Reused by the page layer to keep shared values centralized.
+         ***************************************************************************************************/
         const parts = gymCoords.split(',').map((s) => parseFloat(s.trim()));
         if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
           locationLatitude = parts[0];
@@ -140,7 +242,9 @@ export default function ProfilePage(): ReactNode {
       <TopBar title={t('title')} showBack />
 
       <div className={'space-y-6 p-4'}>
-        {/* Avatar */}
+        {/***************************************************************************************************
+         * Avatar.
+         ***************************************************************************************************/}
         <div className={'flex justify-center'}>
           <div className={'relative cursor-pointer'} onClick={() => fileInputRef.current?.click()}>
             {photoUrl && !photoError ? (
@@ -182,7 +286,9 @@ export default function ProfilePage(): ReactNode {
           </div>
         </div>
 
-        {/* Form */}
+        {/***************************************************************************************************
+         * Form.
+         ***************************************************************************************************/}
         <div className={'space-y-4'}>
           <div>
             <label className={'text-muted-foreground mb-1 block text-sm'}>{t('nameLabel')}</label>
@@ -259,7 +365,9 @@ export default function ProfilePage(): ReactNode {
             />
           </div>
 
-          {/* Location */}
+          {/***************************************************************************************************
+           * Location.
+           ***************************************************************************************************/}
           <div className={'pt-2'}>
             <label className={'text-muted-foreground mb-1 block text-sm'}>
               {t('gymCoordsLabel')}
@@ -277,7 +385,9 @@ export default function ProfilePage(): ReactNode {
           </div>
         </div>
 
-        {/* Save Button */}
+        {/***************************************************************************************************
+         * Save Button.
+         ***************************************************************************************************/}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>
           {isSaving ? tc('saving') : tc('save')}
         </PrimaryButton>

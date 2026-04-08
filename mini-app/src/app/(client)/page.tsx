@@ -5,36 +5,98 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-import { formatDuration } from '@/components/DurationSelector';
 import { useSessionTypes, useSpecialist } from '@/hooks/queries';
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
+import { formatDuration } from '@/lib/helpers';
 import { getSpecialistId } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the home page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function HomePage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the router value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('HomePage');
+  /***************************************************************************************************
+   * Defines the td value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Duration');
+  /***************************************************************************************************
+   * Defines the locale value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
   const { data: specialist, isLoading: specialistLoading } = useSpecialist();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const [bioExpanded, setBioExpanded] = useState(false);
   const [heroError, setHeroError] = useState(false);
 
-  // Redirect specialist to admin panel
+  /***************************************************************************************************
+   * Redirect specialist to admin panel.
+   ***************************************************************************************************/
   useEffect(() => {
     if (specialist?.isOwner) {
+      /***************************************************************************************************
+       * Defines the specialist id value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const specialistId = getSpecialistId();
       router.replace(`/admin${specialistId ? `?specialist=${specialistId}` : ''}`);
     }
   }, [specialist, router]);
 
+  /***************************************************************************************************
+   * Defines the is loading value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isLoading = specialistLoading || servicesLoading;
 
+  /***************************************************************************************************
+   * Handles message.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleMessage = (): void => {
     if (specialist?.telegramHandle) {
+      /***************************************************************************************************
+       * Defines the handle value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const handle = specialist.telegramHandle.replace('@', '');
       window.open(`https://t.me/${handle}`, '_blank');
     } else if (specialist?.botUsername) {
@@ -42,9 +104,27 @@ export default function HomePage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles share.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleShare = (): void => {
+    /***************************************************************************************************
+     * Defines the url value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const url = `https://t.me/${specialist?.botUsername}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    /***************************************************************************************************
+     * Defines the web app value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const webApp = window.Telegram?.WebApp as any;
     if (webApp?.openTelegramLink) {
       webApp.openTelegramLink(
@@ -58,9 +138,13 @@ export default function HomePage(): ReactNode {
   if (isLoading) {
     return (
       <div className={'animate-pulse'}>
-        {/* Hero skeleton */}
+        {/***************************************************************************************************
+         * Hero skeleton.
+         ***************************************************************************************************/}
         <div className={'bg-border h-[280px] w-full'} />
-        {/* Card skeleton */}
+        {/***************************************************************************************************
+         * Card skeleton.
+         ***************************************************************************************************/}
         <div className={'bg-card relative -mt-6 space-y-4 rounded-t-2xl px-4 pt-6 pb-4'}>
           <div className={'bg-border h-7 w-2/3 rounded'} />
           <div className={'bg-border h-4 w-1/2 rounded'} />
@@ -90,11 +174,19 @@ export default function HomePage(): ReactNode {
     );
   }
 
+  /***************************************************************************************************
+   * Defines the has photo value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const hasPhoto = specialist.photoUrl && !heroError;
 
   return (
     <div>
-      {/* Hero Section */}
+      {/***************************************************************************************************
+       * Hero Section.
+       ***************************************************************************************************/}
       <div className={'relative h-[280px] w-full overflow-hidden'}>
         {hasPhoto ? (
           <>
@@ -119,10 +211,14 @@ export default function HomePage(): ReactNode {
         )}
       </div>
 
-      {/* Specialist Info Card */}
+      {/***************************************************************************************************
+       * Specialist Info Card.
+       ***************************************************************************************************/}
       <div className={'bg-card relative z-10 -mt-6 rounded-t-2xl'}>
         <div className={'space-y-4 px-4 pt-6 pb-4'}>
-          {/* Name & specialization */}
+          {/***************************************************************************************************
+           * Name & specialization.
+           ***************************************************************************************************/}
           <div>
             <h1 className={'text-foreground text-2xl leading-tight font-bold'}>
               {specialist.name}
@@ -132,7 +228,9 @@ export default function HomePage(): ReactNode {
             )}
           </div>
 
-          {/* Contact row */}
+          {/***************************************************************************************************
+           * Contact row.
+           ***************************************************************************************************/}
           {(specialist.phone || specialist.telegramHandle) && (
             <div className={'flex items-center gap-4'}>
               {specialist.phone && (
@@ -153,7 +251,9 @@ export default function HomePage(): ReactNode {
             </div>
           )}
 
-          {/* Bio Section */}
+          {/***************************************************************************************************
+           * Bio Section.
+           ***************************************************************************************************/}
           {specialist.bio && (
             <div>
               <p
@@ -174,7 +274,9 @@ export default function HomePage(): ReactNode {
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/***************************************************************************************************
+           * Action Buttons.
+           ***************************************************************************************************/}
           <div className={'flex gap-2'}>
             {(specialist.telegramHandle || specialist.botUsername) && (
               <button
@@ -205,7 +307,9 @@ export default function HomePage(): ReactNode {
           </div>
         </div>
 
-        {/* Services Section */}
+        {/***************************************************************************************************
+         * Services Section.
+         ***************************************************************************************************/}
         {services.length > 0 && (
           <div className={'px-4 pb-4'}>
             <h3 className={'text-foreground mb-2 text-sm font-semibold'}>{t('servicesTitle')}</h3>
@@ -215,7 +319,9 @@ export default function HomePage(): ReactNode {
                   key={service.id}
                   className={'bg-background flex items-center gap-3 rounded-xl p-3'}
                 >
-                  {/* Service thumbnail */}
+                  {/***************************************************************************************************
+                   * Service thumbnail.
+                   ***************************************************************************************************/}
                   <div
                     className={
                       'bg-border flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full'
@@ -231,7 +337,9 @@ export default function HomePage(): ReactNode {
                       <Dumbbell className={'text-muted-foreground h-4 w-4'} />
                     )}
                   </div>
-                  {/* Service info */}
+                  {/***************************************************************************************************
+                   * Service info.
+                   ***************************************************************************************************/}
                   <div className={'min-w-0 flex-1'}>
                     <p className={'text-foreground text-sm font-medium'}>{service.name}</p>
                     <div className={'mt-0.5 flex items-center gap-1'}>
@@ -253,7 +361,9 @@ export default function HomePage(): ReactNode {
           </div>
         )}
 
-        {/* Location Section */}
+        {/***************************************************************************************************
+         * Location Section.
+         ***************************************************************************************************/}
         {specialist.locationLatitude && specialist.locationLongitude && (
           <div className={'px-4 pb-4'}>
             <h3 className={'text-foreground mb-2 text-sm font-semibold'}>{t('locationTitle')}</h3>

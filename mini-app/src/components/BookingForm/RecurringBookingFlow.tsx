@@ -14,6 +14,18 @@ import { RecurringDayForm } from './RecurringDayForm';
 import type { TRecurringBookingFlowProps, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the recurring booking flow UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function RecurringBookingFlow({
   services,
   workingHours,
@@ -23,12 +35,38 @@ export function RecurringBookingFlow({
   onPreviewRecurring,
   successRedirect,
 }: TRecurringBookingFlowProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the router value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingForm');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the te value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
 
-  // ── State ──
+  /***************************************************************************************************
+   * State.
+   ***************************************************************************************************/
   const [recService, setRecService] = useState<TSessionType | null>(null);
   const [dayTimeMap, setDayTimeMap] = useState<Record<number, string>>({});
   const [activeDay, setActiveDay] = useState<number | null>(null);
@@ -37,15 +75,19 @@ export function RecurringBookingFlow({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // ── Effects ──
-
-  // Reset recurring preview when config changes
+  /***************************************************************************************************
+   * Reset recurring preview when config changes.
+   ***************************************************************************************************/
   useEffect(() => {
     setPreviewDates(null);
   }, [recService, dayTimeMap, selectedPeriod]);
 
-  // ── Computed ──
-
+  /***************************************************************************************************
+   * Computed.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const timeSlotsForActiveDay = useMemo(
     () =>
       activeDay !== null
@@ -54,8 +96,26 @@ export function RecurringBookingFlow({
     [workingHours, activeDay, recService],
   );
 
+  /***************************************************************************************************
+   * Defines the configured days value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const configuredDays = Object.keys(dayTimeMap).map(Number);
+  /***************************************************************************************************
+   * Defines the has day times value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const hasDayTimes = configuredDays.length > 0;
+  /***************************************************************************************************
+   * Defines the rec form ready value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const recFormReady = !!(
     recService &&
     hasDayTimes &&
@@ -63,11 +123,21 @@ export function RecurringBookingFlow({
     (!hasClientSelector || selectedClient)
   );
 
-  // ── Handlers ──
-
+  /***************************************************************************************************
+   * Handlers.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleDayClick = (day: number): void => {
     if (activeDay === day) {
       setDayTimeMap((prev) => {
+        /***************************************************************************************************
+         * Defines the next value used by the component layer.
+         *
+         * Usage context:
+         * - Reused by the component layer to keep shared values centralized.
+         ***************************************************************************************************/
         const next = { ...prev };
         delete next[day];
         return next;
@@ -80,6 +150,12 @@ export function RecurringBookingFlow({
     }
   };
 
+  /***************************************************************************************************
+   * Handles rec time select.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleRecTimeSelect = (time: string): void => {
     if (activeDay === null) {
       return;
@@ -88,6 +164,12 @@ export function RecurringBookingFlow({
     setActiveDay(null);
   };
 
+  /***************************************************************************************************
+   * Builds day times payload.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const buildDayTimesPayload = (): Record<string, string> => {
     const result: Record<string, string> = {};
     for (const [day, time] of Object.entries(dayTimeMap)) {
@@ -96,12 +178,24 @@ export function RecurringBookingFlow({
     return result;
   };
 
+  /***************************************************************************************************
+   * Handles preview.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handlePreview = async (): Promise<void> => {
     if (!recFormReady || !recService) {
       return;
     }
     setIsPreviewing(true);
     try {
+      /***************************************************************************************************
+       * Defines the result value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const result = await onPreviewRecurring({
         sessionTypeId: recService.id,
         dayTimes: buildDayTimesPayload(),
@@ -115,6 +209,12 @@ export function RecurringBookingFlow({
     }
   };
 
+  /***************************************************************************************************
+   * Handles create schedule.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleCreateSchedule = async (): Promise<void> => {
     if (!recFormReady || !recService) {
       return;
@@ -133,6 +233,12 @@ export function RecurringBookingFlow({
       setSelectedPeriod('');
       setPreviewDates(null);
       invalidateRecurring();
+      /***************************************************************************************************
+       * Defines the rec desc value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const recDesc = selectedClient
         ? t('successRecurringForClient', {
             name: selectedClient.displayName || selectedClient.name,
@@ -141,6 +247,12 @@ export function RecurringBookingFlow({
       toast.success(t('successRecurringTitle'), { description: recDesc });
       router.push(successRedirect);
     } catch (err) {
+      /***************************************************************************************************
+       * Defines the msg value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const msg = err instanceof Error ? err.message : te('scheduleCreateFailed');
       toast.error(msg);
     } finally {
@@ -148,8 +260,9 @@ export function RecurringBookingFlow({
     }
   };
 
-  // ── Render ──
-
+  /***************************************************************************************************
+   * Render.
+   ***************************************************************************************************/
   return (
     <>
       <RecurringDayForm

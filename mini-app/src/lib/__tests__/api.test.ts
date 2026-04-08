@@ -7,6 +7,12 @@ vi.mock('../telegram', () => ({
   getSpecialistId: () => 'mock-specialist-id',
 }));
 
+/***************************************************************************************************
+ * Defines the mock fetch value used by the shared utility layer.
+ *
+ * Usage context:
+ * - Reused by the shared utility layer to keep shared values centralized.
+ ***************************************************************************************************/
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -16,6 +22,12 @@ beforeEach(() => {
 
 describe('api.getSpecialist', () => {
   it('fetches specialist with correct URL and headers', async () => {
+    /***************************************************************************************************
+     * Defines the specialist data value used by the shared utility layer.
+     *
+     * Usage context:
+     * - Reused by the shared utility layer to keep shared values centralized.
+     ***************************************************************************************************/
     const specialistData = {
       id: '1',
       name: 'Test Specialist',
@@ -28,6 +40,12 @@ describe('api.getSpecialist', () => {
       json: async () => Promise.resolve(specialistData),
     });
 
+    /***************************************************************************************************
+     * Defines the result value used by the shared utility layer.
+     *
+     * Usage context:
+     * - Reused by the shared utility layer to keep shared values centralized.
+     ***************************************************************************************************/
     const result = await api.getSpecialist();
 
     expect(result).toEqual(specialistData);
@@ -39,10 +57,42 @@ describe('api.getSpecialist', () => {
     expect(options.headers['X-Telegram-Init-Data']).toBe('mock-init-data');
     expect(options.headers['X-Specialist-ID']).toBe('mock-specialist-id');
   });
+
+  it('deduplicates concurrent GET requests', async () => {
+    /***************************************************************************************************
+     * Defines the specialist data value used by the shared utility layer.
+     *
+     * Usage context:
+     * - Reused by the shared utility layer to keep shared values centralized.
+     ***************************************************************************************************/
+    const specialistData = {
+      id: '1',
+      name: 'Test Specialist',
+      timezone: 'UTC',
+      cancelCutoffHours: 2,
+    };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => Promise.resolve(specialistData),
+    });
+
+    const [first, second] = await Promise.all([api.getSpecialist(), api.getSpecialist()]);
+
+    expect(first).toEqual(specialistData);
+    expect(second).toEqual(specialistData);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('api.createBooking', () => {
   it('sends POST request with correct body', async () => {
+    /***************************************************************************************************
+     * Defines the booking data value used by the shared utility layer.
+     *
+     * Usage context:
+     * - Reused by the shared utility layer to keep shared values centralized.
+     ***************************************************************************************************/
     const bookingData = {
       id: 'b1',
       startsAt: '2026-06-15T10:00:00Z',
@@ -57,6 +107,12 @@ describe('api.createBooking', () => {
       json: async () => Promise.resolve(bookingData),
     });
 
+    /***************************************************************************************************
+     * Defines the result value used by the shared utility layer.
+     *
+     * Usage context:
+     * - Reused by the shared utility layer to keep shared values centralized.
+     ***************************************************************************************************/
     const result = await api.createBooking(60, '2026-06-15', '10:00', 'Client', 'Hello');
 
     expect(result).toEqual(bookingData);
@@ -64,6 +120,12 @@ describe('api.createBooking', () => {
     expect(url).toBe('/api/bookings');
     expect(options.method).toBe('POST');
 
+    /***************************************************************************************************
+     * Defines the body value used by the shared utility layer.
+     *
+     * Usage context:
+     * - Reused by the shared utility layer to keep shared values centralized.
+     ***************************************************************************************************/
     const body = JSON.parse(options.body);
     expect(body).toEqual({
       duration: 60,

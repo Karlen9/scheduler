@@ -8,6 +8,12 @@ import { StatusBadge } from '@/components/StatusBadge';
 import type { TBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the component layer.
+ *
+ * Usage context:
+ * - Reused by the component layer to keep shared values centralized.
+ ***************************************************************************************************/
 const monthGenKeys = [
   'jan',
   'feb',
@@ -23,26 +29,110 @@ const monthGenKeys = [
   'dec',
 ];
 
+/***************************************************************************************************
+ * Renders the booking card UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function BookingCard({
   booking,
   onCancel,
   onConfirm,
   onDecline,
 }: TBookingCardProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the tb value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tb = useTranslations('BookingsPage');
+  /***************************************************************************************************
+   * Defines the td value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Dates');
+  /***************************************************************************************************
+   * Defines the locale value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
 
+  /***************************************************************************************************
+   * Defines the starts at value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const startsAt = new Date(booking.startsAt);
+  /***************************************************************************************************
+   * Defines the ends at value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const endsAt = new Date(booking.endsAt);
+  /***************************************************************************************************
+   * Defines the is active value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isActive = booking.status === 'pending' || booking.status === 'confirmed';
+  /***************************************************************************************************
+   * Defines the is specialist pending value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isSpecialistPending = booking.status === 'pending' && booking.createdBy === 'specialist';
 
+  /***************************************************************************************************
+   * Formats date.
+   *
+   * Parameters:
+   * - date: Date value used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function formatDate(date: Date): string {
     return `${date.getUTCDate()} ${td(`monthsGen.${monthGenKeys[date.getUTCMonth()]}`)} ${date.getUTCFullYear()}`;
   }
 
+  /***************************************************************************************************
+   * Formats time.
+   *
+   * Parameters:
+   * - date: Date value used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function formatTime(date: Date): string {
     return date.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ru-RU', {
       hour: '2-digit',

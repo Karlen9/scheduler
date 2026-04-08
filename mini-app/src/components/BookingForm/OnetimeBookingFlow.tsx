@@ -15,6 +15,18 @@ import { useOnetimeBooking } from './useOnetimeBooking';
 import type { TOnetimeBookingFlowProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the onetime booking flow UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function OnetimeBookingFlow({
   services,
   daysOff,
@@ -26,7 +38,19 @@ export function OnetimeBookingFlow({
   onCreateBooking,
   successRedirect,
 }: TOnetimeBookingFlowProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingForm');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
 
   const {
@@ -63,7 +87,9 @@ export function OnetimeBookingFlow({
 
   return (
     <>
-      {/* Service Selection */}
+      {/***************************************************************************************************
+       * Service Selection.
+       ***************************************************************************************************/}
       {!selectedService ? (
         <div className={'space-y-3'}>
           {services.map((service) => (
@@ -89,7 +115,9 @@ export function OnetimeBookingFlow({
             minLabel={tc('min')}
           />
 
-          {/* Single/Multi mode toggle */}
+          {/***************************************************************************************************
+           * Single/Multi mode toggle.
+           ***************************************************************************************************/}
           <div>
             <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
               {mode === 'single' ? t('selectDay') : t('selectDays')}
@@ -133,7 +161,9 @@ export function OnetimeBookingFlow({
             )}
           </div>
 
-          {/* Time Slots Loading */}
+          {/***************************************************************************************************
+           * Time Slots Loading.
+           ***************************************************************************************************/}
           {isLoadingSlots && timeSlots.length === 0 && (
             <div>
               <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
@@ -154,7 +184,9 @@ export function OnetimeBookingFlow({
             </div>
           )}
 
-          {/* Single Mode: Time Slots */}
+          {/***************************************************************************************************
+           * Single Mode: Time Slots.
+           ***************************************************************************************************/}
           {mode === 'single' && selectedDate && timeSlots.length > 0 && (
             <div
               className={`transition-opacity duration-200 ${isLoadingSlots ? 'pointer-events-none opacity-40' : ''}`}
@@ -171,7 +203,9 @@ export function OnetimeBookingFlow({
             </div>
           )}
 
-          {/* Single Mode: Summary */}
+          {/***************************************************************************************************
+           * Single Mode: Summary.
+           ***************************************************************************************************/}
           {mode === 'single' && selectedDate && selectedService && (
             <BookingSummary
               date={selectedDate}
@@ -181,7 +215,9 @@ export function OnetimeBookingFlow({
             />
           )}
 
-          {/* Multi Mode: Time Slots */}
+          {/***************************************************************************************************
+           * Multi Mode: Time Slots.
+           ***************************************************************************************************/}
           {mode === 'multi' &&
             selectedDates.length > 0 &&
             activeDateISO &&
@@ -201,7 +237,9 @@ export function OnetimeBookingFlow({
               </div>
             )}
 
-          {/* Comment */}
+          {/***************************************************************************************************
+           * Comment.
+           ***************************************************************************************************/}
           {((mode === 'single' && selectedTime) ||
             (mode === 'multi' &&
               selectedDates.length > 0 &&

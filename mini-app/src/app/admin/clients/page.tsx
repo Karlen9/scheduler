@@ -16,14 +16,44 @@ import { api } from '@/lib/api';
 import type { TClientInfo } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the admin clients page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function AdminClientsPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminClients');
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
   const { data: clients, isLoading } = useClients();
   const [deleteTarget, setDeleteTarget] = useState<TClientInfo | null>(null);
   const [editTarget, setEditTarget] = useState<TClientInfo | null>(null);
   const [editName, setEditName] = useState('');
 
+  /***************************************************************************************************
+   * Handles delete.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleDelete = async (): Promise<void> => {
     if (!deleteTarget) {
       return;
@@ -33,21 +63,45 @@ export default function AdminClientsPage(): ReactNode {
       invalidateClients();
       toast.success(t('deleteSuccess', { name: deleteTarget.name }));
     } catch (err) {
+      /***************************************************************************************************
+       * Defines the msg value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const msg = err instanceof Error ? err.message : t('deleteError');
       toast.error(msg);
     }
     setDeleteTarget(null);
   };
 
+  /***************************************************************************************************
+   * Handles edit.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleEdit = (client: TClientInfo): void => {
     setEditTarget(client);
     setEditName(client.isGhost ? client.name : client.displayName || client.name);
   };
 
+  /***************************************************************************************************
+   * Handles edit confirm.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleEditConfirm = async (): Promise<void> => {
     if (!editTarget) {
       return;
     }
+    /***************************************************************************************************
+     * Defines the trimmed value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const trimmed = editName.trim();
     if (!trimmed) {
       return;
@@ -59,12 +113,24 @@ export default function AdminClientsPage(): ReactNode {
       invalidateRecurring();
       toast.success(t('renameSuccess'));
     } catch (err) {
+      /***************************************************************************************************
+       * Defines the msg value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const msg = err instanceof Error ? err.message : t('renameError');
       toast.error(msg);
     }
     setEditTarget(null);
   };
 
+  /***************************************************************************************************
+   * Defines the client display name value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const clientDisplayName = (client: TClientInfo): string => client.displayName || client.name;
 
   if (isLoading) {

@@ -5,6 +5,18 @@ import { monthShortCapKeys } from '@/lib/mappings';
 import type { TVoidFunction } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the date chip UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function DateChip({
   date,
   time,
@@ -18,7 +30,19 @@ export function DateChip({
   active: boolean;
   onClick: TVoidFunction;
 }): ReactNode {
+  /***************************************************************************************************
+   * Defines the td value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Dates');
+  /***************************************************************************************************
+   * Defines the month key value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const monthKey = monthShortCapKeys[date.getMonth()];
 
   return (

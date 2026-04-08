@@ -3,17 +3,47 @@
 import { Clock, Dumbbell } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { formatDuration } from '@/components/DurationSelector';
 import { TopBar } from '@/components/TopBar';
 import { useSessionTypes } from '@/hooks/queries';
 import { getPhotoUrl } from '@/lib/api';
+import { formatDuration } from '@/lib/helpers';
 
 import type { TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the services page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function ServicesPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('ServicesPage');
+  /***************************************************************************************************
+   * Defines the td value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Duration');
+  /***************************************************************************************************
+   * Defines the locale value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
   const { data: services, isLoading: loading } = useSessionTypes();
 
@@ -46,7 +76,9 @@ export default function ServicesPage(): ReactNode {
         ) : (
           services.map((service: TSessionType) => (
             <div key={service.id} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
-              {/* Service thumbnail */}
+              {/***************************************************************************************************
+               * Service thumbnail.
+               ***************************************************************************************************/}
               <div
                 className={
                   'bg-border flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full'
@@ -62,7 +94,9 @@ export default function ServicesPage(): ReactNode {
                   <Dumbbell className={'text-muted-foreground h-4 w-4'} />
                 )}
               </div>
-              {/* Service info */}
+              {/***************************************************************************************************
+               * Service info.
+               ***************************************************************************************************/}
               <div className={'min-w-0 flex-1'}>
                 <h3 className={'text-foreground mb-1 text-base font-medium'}>{service.name}</h3>
                 <div className={'flex items-center gap-1'}>

@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { CalendarSkeleton } from '@/components/LoadingSkeleton';
+import { getNonWorkingDays } from '@/lib/helpers';
 
 import { ClientSelector } from './ClientSelector';
 import { OnetimeBookingFlow } from './OnetimeBookingFlow';
@@ -13,8 +14,18 @@ import { RecurringBookingFlow } from './RecurringBookingFlow';
 import type { TBookingFormProps, TClientInfo } from '@/lib/types';
 import type { ReactNode } from 'react';
 
-// ──── Main Component ────
-
+/***************************************************************************************************
+ * Renders the booking form UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function BookingForm({
   services,
   workingHours: workingHoursData,
@@ -30,34 +41,65 @@ export function BookingForm({
   successRedirect,
   title,
 }: TBookingFormProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingForm');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
 
+  /***************************************************************************************************
+   * Defines the has client selector value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const hasClientSelector = !!clients;
+  /***************************************************************************************************
+   * Defines the resolved title value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const resolvedTitle = title ?? t('title');
 
-  // ── Client selection (admin only) ──
+  /***************************************************************************************************
+   * Client selection (admin only).
+   ***************************************************************************************************/
   const [selectedClient, setSelectedClient] = useState<TClientInfo | null>(null);
 
-  // ── Top-level mode ──
+  /***************************************************************************************************
+   * Top-level mode.
+   ***************************************************************************************************/
   const [bookingType, setBookingType] = useState<'onetime' | 'recurring'>('onetime');
 
-  // ── Shared computed ──
-  const nonWorkingDays = useMemo(() => {
-    const workingDaySet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
-    const result: number[] = [];
-    for (let i = 0; i < 7; i++) {
-      if (!workingDaySet.has(i)) {
-        result.push(i);
-      }
-    }
-    return result;
-  }, [workingHoursData]);
+  /***************************************************************************************************
+   * Defines the non working days value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const nonWorkingDays = useMemo(() => getNonWorkingDays(workingHoursData), [workingHoursData]);
 
+  /***************************************************************************************************
+   * Defines the show form value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const showForm = !hasClientSelector || selectedClient;
 
-  // ── Render ──
-
+  /***************************************************************************************************
+   * Render.
+   ***************************************************************************************************/
   return (
     <div className={'flex flex-col'}>
       <div className={'flex-1 space-y-4 p-4 pb-48'}>
@@ -70,7 +112,9 @@ export function BookingForm({
           selectedClient={selectedClient}
         />
 
-        {/* Selected client header (admin) */}
+        {/***************************************************************************************************
+         * Selected client header (admin).
+         ***************************************************************************************************/}
         {hasClientSelector && selectedClient && (
           <div className={'bg-card flex items-center gap-3 rounded-xl p-3'}>
             <ClientAvatar
@@ -99,10 +143,14 @@ export function BookingForm({
           </div>
         )}
 
-        {/* Booking form */}
+        {/***************************************************************************************************
+         * Booking form.
+         ***************************************************************************************************/}
         {showForm && (
           <>
-            {/* Top-level toggle: one-time / recurring */}
+            {/***************************************************************************************************
+             * Top-level toggle: one-time / recurring.
+             ***************************************************************************************************/}
             {showRecurring && (
               <div className={'bg-card flex rounded-xl p-1'}>
                 <button

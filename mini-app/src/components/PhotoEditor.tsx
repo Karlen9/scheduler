@@ -9,7 +9,25 @@ import type { TPhotoEditorProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 import type { Area } from 'react-easy-crop';
 
+/***************************************************************************************************
+ * Renders the photo editor UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('PhotoEditor');
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -23,14 +41,32 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
     };
   }, []);
 
+  /***************************************************************************************************
+   * Defines the on crop complete value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const onCropComplete = useCallback((_: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
+  /***************************************************************************************************
+   * Handles confirm.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleConfirm = async (): Promise<void> => {
     if (!croppedAreaPixels) {
       return;
     }
+    /***************************************************************************************************
+     * Defines the blob value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const blob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
     if (blob) {
       onConfirm(blob);
@@ -42,7 +78,9 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
       className={'bg-background fixed inset-0 z-60 flex flex-col overflow-hidden'}
       style={{ touchAction: 'none' }}
     >
-      {/* Header */}
+      {/***************************************************************************************************
+       * Header.
+       ***************************************************************************************************/}
       <div className={'border-border flex items-center justify-between border-b px-4 py-3'}>
         <button onClick={onCancel} className={'text-muted-foreground -m-2 p-2'}>
           <X className={'h-6 w-6'} />
@@ -53,7 +91,9 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
         </button>
       </div>
 
-      {/* Crop area */}
+      {/***************************************************************************************************
+       * Crop area.
+       ***************************************************************************************************/}
       <div className={'relative flex-1 overflow-hidden'}>
         <Cropper
           image={imageSrc}
@@ -70,9 +110,13 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
         />
       </div>
 
-      {/* Controls */}
+      {/***************************************************************************************************
+       * Controls.
+       ***************************************************************************************************/}
       <div className={'border-border bg-background space-y-4 border-t px-4 py-4'}>
-        {/* Zoom slider */}
+        {/***************************************************************************************************
+         * Zoom slider.
+         ***************************************************************************************************/}
         <div className={'flex items-center gap-3'}>
           <span className={'text-muted-foreground w-14 text-xs'}>{t('zoom')}</span>
           <input
@@ -86,7 +130,9 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
           />
         </div>
 
-        {/* Rotation buttons */}
+        {/***************************************************************************************************
+         * Rotation buttons.
+         ***************************************************************************************************/}
         <div className={'flex items-center justify-center gap-4'}>
           <button
             onClick={() => setRotation((r) => r - 90)}
@@ -118,31 +164,98 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
   );
 }
 
-// Canvas-based crop + rotation
+/***************************************************************************************************
+ * Canvas-based crop + rotation.
+ *
+ * Parameters:
+ * - imageSrc: Image src used by the current operation.
+ * - crop: Crop used by the current operation.
+ * - rotation: Rotation used by the current operation.
+ *
+ * Returns:
+ * - A promise that resolves with Blob | null.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 async function getCroppedImg(imageSrc: string, crop: Area, rotation: number): Promise<Blob | null> {
+  /***************************************************************************************************
+   * Defines the image value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const image = await createImage(imageSrc);
+  /***************************************************************************************************
+   * Defines the canvas value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const canvas = document.createElement('canvas');
+  /***************************************************************************************************
+   * Defines the ctx value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     return null;
   }
 
+  /***************************************************************************************************
+   * Defines the radians value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const radians = (rotation * Math.PI) / 180;
 
-  // Calculate bounding box of rotated image
+  /***************************************************************************************************
+   * Calculate bounding box of rotated image.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const sin = Math.abs(Math.sin(radians));
+  /***************************************************************************************************
+   * Defines the cos value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const cos = Math.abs(Math.cos(radians));
+  /***************************************************************************************************
+   * Defines the rot w value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const rotW = image.width * cos + image.height * sin;
+  /***************************************************************************************************
+   * Defines the rot h value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const rotH = image.width * sin + image.height * cos;
 
-  // Draw rotated image on temp canvas
+  /***************************************************************************************************
+   * Draw rotated image on temp canvas.
+   ***************************************************************************************************/
   canvas.width = rotW;
   canvas.height = rotH;
   ctx.translate(rotW / 2, rotH / 2);
   ctx.rotate(radians);
   ctx.drawImage(image, -image.width / 2, -image.height / 2);
 
-  // Extract cropped area
+  /***************************************************************************************************
+   * Extract cropped area.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const data = ctx.getImageData(crop.x, crop.y, crop.width, crop.height);
   canvas.width = crop.width;
   canvas.height = crop.height;
@@ -153,8 +266,26 @@ async function getCroppedImg(imageSrc: string, crop: Area, rotation: number): Pr
   });
 }
 
+/***************************************************************************************************
+ * Creates image.
+ *
+ * Parameters:
+ * - url: Url used by the current operation.
+ *
+ * Returns:
+ * - A promise that resolves with HTMLImageElement.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 async function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
+    /***************************************************************************************************
+     * Defines the img value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const img = new Image();
     img.addEventListener('load', () => resolve(img));
     img.addEventListener('error', reject);

@@ -16,18 +16,66 @@ import { api } from '@/lib/api';
 import type { TRecurringSchedule } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the admin recurring page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function AdminRecurringPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('RecurringPage');
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
+  /***************************************************************************************************
+   * Defines the ts value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ts = useTranslations('Success');
   const { data: schedules, isLoading: schedulesLoading } = useAdminRecurringSchedules();
   const { data: services, isLoading: servicesLoading } = useAdminServices();
 
+  /***************************************************************************************************
+   * Defines the is loading value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isLoading = schedulesLoading || servicesLoading;
 
   const [cancelTarget, setCancelTarget] = useState<TRecurringSchedule | null>(null);
 
+  /***************************************************************************************************
+   * Handles approve.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleApprove = async (schedule: TRecurringSchedule): Promise<void> => {
     try {
       await api.admin.approveRecurringSchedule(schedule.id);
@@ -38,6 +86,12 @@ export default function AdminRecurringPage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles decline.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleDecline = async (schedule: TRecurringSchedule): Promise<void> => {
     try {
       await api.admin.declineRecurringSchedule(schedule.id);
@@ -48,6 +102,12 @@ export default function AdminRecurringPage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles cancel.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleCancel = async (): Promise<void> => {
     if (!cancelTarget) {
       return;
@@ -62,10 +122,40 @@ export default function AdminRecurringPage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Defines the pending schedules value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const pendingSchedules = schedules.filter((s) => s.status === 'pending');
+  /***************************************************************************************************
+   * Defines the active schedules value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const activeSchedules = schedules.filter((s) => s.status === 'active');
+  /***************************************************************************************************
+   * Defines the declined schedules value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const declinedSchedules = schedules.filter((s) => s.status === 'declined');
+  /***************************************************************************************************
+   * Defines the cancelled schedules value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const cancelledSchedules = schedules.filter((s) => s.status === 'cancelled');
+  /***************************************************************************************************
+   * Defines the has schedules value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const hasSchedules = schedules.length > 0;
 
   if (isLoading) {

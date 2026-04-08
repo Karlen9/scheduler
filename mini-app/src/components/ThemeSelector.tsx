@@ -9,7 +9,25 @@ import { applyTheme, getThemePreference, setThemePreference } from '@/lib/telegr
 import type { TThemePreference } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the theme selector UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function ThemeSelector(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('ThemeSelector');
   const [current, setCurrent] = useState<TThemePreference>(getThemePreference);
 
@@ -19,6 +37,12 @@ export function ThemeSelector(): ReactNode {
     { value: 'dark', label: t('dark'), icon: Moon },
   ];
 
+  /***************************************************************************************************
+   * Handles select.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleSelect = (pref: TThemePreference): void => {
     setCurrent(pref);
     setThemePreference(pref);

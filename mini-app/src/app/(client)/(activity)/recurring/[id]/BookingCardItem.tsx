@@ -7,18 +7,72 @@ import { bookingStatusColors, bookingStatusKeys } from '@/lib/mappings';
 import type { TBookingCardItemProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the booking card item UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function BookingCardItem({
   booking,
   onRequestCancel,
   formatBookingDate,
 }: TBookingCardItemProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the tst value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tst = useTranslations('Status');
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('RecurringDetail');
 
+  /***************************************************************************************************
+   * Defines the status color value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const statusColor = bookingStatusColors[booking.status] || bookingStatusColors.pending;
+  /***************************************************************************************************
+   * Defines the status key value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const statusKey = bookingStatusKeys[booking.status] || 'pending';
+  /***************************************************************************************************
+   * Defines the is confirmed value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isConfirmed = booking.status === 'confirmed';
+  /***************************************************************************************************
+   * Defines the is reschedule pending value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isReschedulePending = booking.status === 'reschedule_pending';
 
   return (
@@ -56,7 +110,9 @@ export function BookingCardItem({
         </span>
       </div>
 
-      {/* Action area */}
+      {/***************************************************************************************************
+       * Action area.
+       ***************************************************************************************************/}
       {isConfirmed && (
         <div className={'border-border border-t pt-3'}>
           <button

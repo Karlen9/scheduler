@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BookingDetailModal } from '@/components/BookingDetailModal';
@@ -12,13 +12,9 @@ import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { NextBookingBanner } from '@/components/schedule/NextBookingBanner';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { invalidateBookings } from '@/hooks/mutations';
-import {
-  useAdminBookings,
-  useAdminDaysOff,
-  useAdminWorkingHours,
-  useClients,
-} from '@/hooks/queries';
+import { useAdminBookings, useAdminScheduleContext, useClients } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { getNonWorkingDays } from '@/lib/helpers';
 
 import { CancelDialog } from './CancelDialog';
 import { RejectDialog } from './RejectDialog';
@@ -27,31 +23,83 @@ import { StatsSection } from './StatsSection';
 import type { TBooking } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the admin home page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function AdminHomePage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the router value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminDashboard');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
+  /***************************************************************************************************
+   * Defines the ts value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ts = useTranslations('Success');
   const {
     data: bookings,
     isLoading,
     error: fetchError,
   } = useAdminBookings({ refreshInterval: 15000 });
-  const { data: workingHoursData } = useAdminWorkingHours();
-  const { data: daysOffData } = useAdminDaysOff();
+  const { data: scheduleContext } = useAdminScheduleContext();
+  /***************************************************************************************************
+   * Defines the working hours data value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const workingHoursData = scheduleContext?.workingHours ?? [];
+  /***************************************************************************************************
+   * Defines the days off data value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const daysOffData = scheduleContext?.daysOff ?? [];
   const { data: clients } = useClients();
 
-  const nonWorkingDays = useMemo(() => {
-    const workingSet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
-    const result: number[] = [];
-    for (let i = 0; i < 7; i++) {
-      if (!workingSet.has(i)) {
-        result.push(i);
-      }
-    }
-    return result;
-  }, [workingHoursData]);
+  /***************************************************************************************************
+   * Defines the non working days value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const nonWorkingDays = useMemo(() => getNonWorkingDays(workingHoursData), [workingHoursData]);
 
+  /***************************************************************************************************
+   * Defines the days off value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const daysOff = useMemo(() => daysOffData.map((d) => d.date), [daysOffData]);
   const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -62,12 +110,24 @@ export default function AdminHomePage(): ReactNode {
   const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
   const [showPendingSheet, setShowPendingSheet] = useState(false);
 
+  /***************************************************************************************************
+   * Defines the error value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const error = fetchError
     ? fetchError instanceof Error
       ? fetchError.message
       : t('loadError')
     : null;
 
+  /***************************************************************************************************
+   * Defines the pending bookings value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const pendingBookings = useMemo(
     () =>
       bookings
@@ -76,14 +136,38 @@ export default function AdminHomePage(): ReactNode {
     [bookings],
   );
 
+  /***************************************************************************************************
+   * Defines the pending count value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const pendingCount = pendingBookings.length;
 
+  /***************************************************************************************************
+   * Defines the schedule bookings value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const scheduleBookings = useMemo(
     () => bookings.filter((b) => b.status === 'confirmed' || b.status === 'pending'),
     [bookings],
   );
 
+  /***************************************************************************************************
+   * Defines the next booking value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const nextBooking = useMemo(() => {
+    /***************************************************************************************************
+     * Defines the now value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const now = Date.now();
     return (
       bookings
@@ -92,6 +176,12 @@ export default function AdminHomePage(): ReactNode {
     );
   }, [bookings]);
 
+  /***************************************************************************************************
+   * Handles accept.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleAccept = async (booking: TBooking): Promise<void> => {
     try {
       await api.admin.updateBookingStatus(booking.id, 'confirmed');
@@ -103,12 +193,24 @@ export default function AdminHomePage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles reject click.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleRejectClick = (booking: TBooking): void => {
     setSelectedBooking(null);
     setRejectTarget(booking);
     setShowRejectDialog(true);
   };
 
+  /***************************************************************************************************
+   * Handles confirm reject.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleConfirmReject = async (): Promise<void> => {
     if (!rejectTarget) {
       return;
@@ -125,19 +227,43 @@ export default function AdminHomePage(): ReactNode {
     setRejectReason('');
   };
 
+  /***************************************************************************************************
+   * Handles booking click.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleBookingClick = (booking: TBooking): void => {
     setSelectedBooking(booking);
   };
 
+  /***************************************************************************************************
+   * Handles reschedule click.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleRescheduleClick = (booking: TBooking): void => {
     setSelectedBooking(null);
     setRescheduleBooking(booking);
   };
 
+  /***************************************************************************************************
+   * Handles cancel click.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleCancelClick = (): void => {
     setShowCancelDialog(true);
   };
 
+  /***************************************************************************************************
+   * Handles confirm cancel.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleConfirmCancel = async (): Promise<void> => {
     if (!selectedBooking) {
       return;
@@ -158,6 +284,12 @@ export default function AdminHomePage(): ReactNode {
     setCancelReason('');
   };
 
+  /***************************************************************************************************
+   * Handles empty slot click.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleEmptySlotClick = (_date: Date, _time: string): void => {
     router.push('/admin/book');
   };
@@ -195,10 +327,14 @@ export default function AdminHomePage(): ReactNode {
   return (
     <div>
       <div className={'space-y-6 p-4'}>
-        {/* Next upcoming booking */}
+        {/***************************************************************************************************
+         * Next upcoming booking.
+         ***************************************************************************************************/}
         <NextBookingBanner booking={nextBooking} onBookingClick={handleBookingClick} />
 
-        {/* Stats row */}
+        {/***************************************************************************************************
+         * Stats row.
+         ***************************************************************************************************/}
         <StatsSection
           pendingCount={pendingCount}
           clientsCount={clients.length}
@@ -206,7 +342,9 @@ export default function AdminHomePage(): ReactNode {
           onClientsClick={() => router.push('/admin/clients')}
         />
 
-        {/* Schedule */}
+        {/***************************************************************************************************
+         * Schedule.
+         ***************************************************************************************************/}
         <ScheduleView
           bookings={scheduleBookings}
           onBookingClick={handleBookingClick}
@@ -217,7 +355,9 @@ export default function AdminHomePage(): ReactNode {
         />
       </div>
 
-      {/* Reject dialog */}
+      {/***************************************************************************************************
+       * Reject dialog.
+       ***************************************************************************************************/}
       <RejectDialog
         isOpen={showRejectDialog}
         targetName={rejectTarget?.clientDisplayName || rejectTarget?.clientName || ''}
@@ -231,7 +371,9 @@ export default function AdminHomePage(): ReactNode {
         }}
       />
 
-      {/* Booking detail modal */}
+      {/***************************************************************************************************
+       * Booking detail modal.
+       ***************************************************************************************************/}
       <BookingDetailModal
         booking={selectedBooking}
         isOpen={!!selectedBooking}
@@ -242,7 +384,9 @@ export default function AdminHomePage(): ReactNode {
         onReject={handleRejectClick}
       />
 
-      {/* Reschedule sheet */}
+      {/***************************************************************************************************
+       * Reschedule sheet.
+       ***************************************************************************************************/}
       <RescheduleSheet
         booking={rescheduleBooking}
         isOpen={!!rescheduleBooking}
@@ -253,7 +397,9 @@ export default function AdminHomePage(): ReactNode {
         }}
       />
 
-      {/* Cancel dialog */}
+      {/***************************************************************************************************
+       * Cancel dialog.
+       ***************************************************************************************************/}
       <CancelDialog
         isOpen={showCancelDialog}
         targetName={selectedBooking?.clientDisplayName || selectedBooking?.clientName || ''}
@@ -266,7 +412,9 @@ export default function AdminHomePage(): ReactNode {
         }}
       />
 
-      {/* Pending requests sheet */}
+      {/***************************************************************************************************
+       * Pending requests sheet.
+       ***************************************************************************************************/}
       <BottomSheet
         isOpen={showPendingSheet}
         onClose={() => setShowPendingSheet(false)}

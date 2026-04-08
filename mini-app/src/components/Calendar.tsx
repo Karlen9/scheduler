@@ -7,6 +7,12 @@ import { useMemo } from 'react';
 import type { TMonthGridProps, TWeekStripProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the component layer.
+ *
+ * Usage context:
+ * - Reused by the component layer to keep shared values centralized.
+ ***************************************************************************************************/
 const monthNomKeys = [
   'jan',
   'feb',
@@ -21,8 +27,27 @@ const monthNomKeys = [
   'nov',
   'dec',
 ];
+/***************************************************************************************************
+ * Defines the day short keys mon value used by the component layer.
+ *
+ * Usage context:
+ * - Reused by the component layer to keep shared values centralized.
+ ***************************************************************************************************/
 const dayShortKeysMon = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
+/***************************************************************************************************
+ * Checks whether same day.
+ *
+ * Parameters:
+ * - a: A used by the current operation.
+ * - b: B used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as boolean.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -31,15 +56,59 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
+/***************************************************************************************************
+ * Implements the to isodate logic used by this module.
+ *
+ * Parameters:
+ * - d: D used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as string.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/***************************************************************************************************
+ * Returns month grid.
+ *
+ * Parameters:
+ * - year: Year used by the current operation.
+ * - month: Month used by the current operation.
+ * - fillOuter: Fill outer used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as (Date | null)[].
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function getMonthGrid(year: number, month: number, fillOuter: boolean): (Date | null)[] {
   const days: (Date | null)[] = [];
+  /***************************************************************************************************
+   * Defines the first value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const first = new Date(year, month, 1);
+  /***************************************************************************************************
+   * Defines the last value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const last = new Date(year, month + 1, 0);
 
+  /***************************************************************************************************
+   * Defines the start day value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   let startDay = first.getDay();
   if (startDay === 0) {
     startDay = 7;
@@ -54,6 +123,12 @@ function getMonthGrid(year: number, month: number, fillOuter: boolean): (Date | 
   }
 
   if (fillOuter) {
+    /***************************************************************************************************
+     * Defines the remainder value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const remainder = 7 - (days.length % 7);
     if (remainder < 7) {
       for (let i = 1; i <= remainder; i++) {
@@ -65,8 +140,18 @@ function getMonthGrid(year: number, month: number, fillOuter: boolean): (Date | 
   return days;
 }
 
-// ──────────────── Month Grid ────────────────
-
+/***************************************************************************************************
+ * Month Grid.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function MonthGrid({
   displayDate,
   selectedDate,
@@ -86,25 +171,97 @@ export function MonthGrid({
   disableNonWorking = true,
   maxDate,
 }: TMonthGridProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the td value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Dates');
+  /***************************************************************************************************
+   * Defines the month names value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const MONTH_NAMES = monthNomKeys.map((k) => td(`monthsNom.${k}`));
+  /***************************************************************************************************
+   * Defines the day names value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const DAY_NAMES = dayShortKeysMon.map((k) => td(`daysShort.${k}`));
 
+  /***************************************************************************************************
+   * Defines the today value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const today = useMemo(() => {
+    /***************************************************************************************************
+     * Defines the d value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }, []);
 
+  /***************************************************************************************************
+   * Defines the days off set value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const daysOffSet = useMemo(() => new Set(daysOff ?? []), [daysOff]);
+  /***************************************************************************************************
+   * Defines the non working set value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const nonWorkingSet = useMemo(() => new Set(nonWorkingDays ?? []), [nonWorkingDays]);
 
+  /***************************************************************************************************
+   * Defines the month value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const month = displayDate.getMonth();
+  /***************************************************************************************************
+   * Defines the year value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const year = displayDate.getFullYear();
+  /***************************************************************************************************
+   * Defines the grid value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const grid = useMemo(
     () => getMonthGrid(year, month, fillOuterDays),
     [year, month, fillOuterDays],
   );
 
+  /***************************************************************************************************
+   * Checks whether non working.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isNonWorking(d: Date): boolean {
     if (nonWorkingSet.has(d.getDay())) {
       return true;
@@ -112,22 +269,82 @@ export function MonthGrid({
     return daysOffSet.has(toISODate(d));
   }
 
+  /***************************************************************************************************
+   * Checks whether day off date.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isDayOffDate(d: Date): boolean {
     return daysOffSet.has(toISODate(d));
   }
 
+  /***************************************************************************************************
+   * Checks whether past.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isPast(d: Date): boolean {
     return d < today;
   }
 
+  /***************************************************************************************************
+   * Checks whether booked.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isBooked(d: Date): boolean {
     return bookedDates?.has(toISODate(d)) ?? false;
   }
 
+  /***************************************************************************************************
+   * Checks whether beyond max.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isBeyondMax(d: Date): boolean {
     return maxDate ? d > maxDate : false;
   }
 
+  /***************************************************************************************************
+   * Checks whether disabled.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isDisabled(d: Date): boolean {
     if (disablePast && isPast(d)) {
       return true;
@@ -149,9 +366,17 @@ export function MonthGrid({
     return false;
   }
 
+  /***************************************************************************************************
+   * Defines the content value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const content = (
     <>
-      {/* Header */}
+      {/***************************************************************************************************
+       * Header.
+       ***************************************************************************************************/}
       <div className={'mb-3 flex items-center justify-between'}>
         <button onClick={onPrevMonth} className={'text-muted-foreground p-2'}>
           <ChevronLeft className={'h-5 w-5'} />
@@ -167,7 +392,9 @@ export function MonthGrid({
         </button>
       </div>
 
-      {/* Day names */}
+      {/***************************************************************************************************
+       * Day names.
+       ***************************************************************************************************/}
       <div className={'mb-1 grid grid-cols-7'}>
         {DAY_NAMES.map((name, i) => (
           <div key={i} className={'text-muted-foreground py-1 text-center text-[11px]'}>
@@ -176,22 +403,72 @@ export function MonthGrid({
         ))}
       </div>
 
-      {/* Grid */}
+      {/***************************************************************************************************
+       * Grid.
+       ***************************************************************************************************/}
       <div className={`grid grid-cols-7 ${fillOuterDays ? '' : 'gap-1'}`}>
         {grid.map((date, i) => {
           if (!date) {
             return <div key={`e-${i}`} className={'aspect-square'} />;
           }
 
+          /***************************************************************************************************
+           * Defines the is current month value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const isCurrentMonth = date.getMonth() === month;
+          /***************************************************************************************************
+           * Defines the selected value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const selected =
             (selectedDate ? isSameDay(date, selectedDate) : false) ||
             (selectedDates?.some((sd) => isSameDay(date, sd)) ?? false);
+          /***************************************************************************************************
+           * Defines the is day today value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const isDayToday = isSameDay(date, today);
+          /***************************************************************************************************
+           * Defines the disabled value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const disabled = isDisabled(date);
+          /***************************************************************************************************
+           * Defines the day off value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const dayOff = isDayOffDate(date);
+          /***************************************************************************************************
+           * Defines the non working value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const nonWorking = isNonWorking(date);
+          /***************************************************************************************************
+           * Defines the booked value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const booked = isBooked(date);
+          /***************************************************************************************************
+           * Defines the has dot value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const hasDot = dotDates?.has(toISODate(date)) && !selected && !nonWorking;
 
           return (
@@ -234,7 +511,9 @@ export function MonthGrid({
         })}
       </div>
 
-      {/* Legend */}
+      {/***************************************************************************************************
+       * Legend.
+       ***************************************************************************************************/}
       {showLegend && daysOff && daysOff.length > 0 && (
         <div className={'border-border mt-3 flex items-center gap-4 border-t pt-3'}>
           <div className={'flex items-center gap-1.5'}>
@@ -253,16 +532,56 @@ export function MonthGrid({
   return <div>{content}</div>;
 }
 
-// ──────────────── Week Strip ────────────────
-
+/***************************************************************************************************
+ * Week Strip.
+ *
+ * Parameters:
+ * - date: Date value used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as Date.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function getWeekStart(date: Date): Date {
+  /***************************************************************************************************
+   * Defines the d value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const d = new Date(date);
+  /***************************************************************************************************
+   * Defines the day value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const day = d.getDay();
+  /***************************************************************************************************
+   * Defines the diff value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+/***************************************************************************************************
+ * Renders the week strip UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function WeekStrip({
   selectedDate,
   onSelectDate,
@@ -272,26 +591,92 @@ export function WeekStrip({
   daysOff,
   dotDates,
 }: TWeekStripProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the td value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Dates');
+  /***************************************************************************************************
+   * Defines the day names value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const DAY_NAMES = dayShortKeysMon.map((k) => td(`daysShort.${k}`));
 
+  /***************************************************************************************************
+   * Defines the today value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const today = useMemo(() => {
+    /***************************************************************************************************
+     * Defines the d value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }, []);
 
+  /***************************************************************************************************
+   * Defines the days off set value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const daysOffSet = useMemo(() => new Set(daysOff ?? []), [daysOff]);
+  /***************************************************************************************************
+   * Defines the non working set value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const nonWorkingSet = useMemo(() => new Set(nonWorkingDays ?? []), [nonWorkingDays]);
 
+  /***************************************************************************************************
+   * Defines the week days value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const weekDays = useMemo(() => {
+    /***************************************************************************************************
+     * Defines the start value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const start = getWeekStart(selectedDate);
     return Array.from({ length: 7 }, (_, i) => {
+      /***************************************************************************************************
+       * Defines the d value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const d = new Date(start);
       d.setDate(d.getDate() + i);
       return d;
     });
   }, [selectedDate]);
 
+  /***************************************************************************************************
+   * Checks whether non working.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isNonWorking(d: Date): boolean {
     if (nonWorkingSet.has(d.getDay())) {
       return true;
@@ -299,6 +684,18 @@ export function WeekStrip({
     return daysOffSet.has(toISODate(d));
   }
 
+  /***************************************************************************************************
+   * Checks whether day off.
+   *
+   * Parameters:
+   * - d: D used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as boolean.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function isDayOff(d: Date): boolean {
     return daysOffSet.has(toISODate(d));
   }
@@ -310,10 +707,40 @@ export function WeekStrip({
       </button>
       <div className={'grid flex-1 grid-cols-7 gap-0.5'}>
         {weekDays.map((day, i) => {
+          /***************************************************************************************************
+           * Defines the selected value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const selected = isSameDay(day, selectedDate);
+          /***************************************************************************************************
+           * Defines the is day today value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const isDayToday = isSameDay(day, today);
+          /***************************************************************************************************
+           * Defines the non working value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const nonWorking = isNonWorking(day);
+          /***************************************************************************************************
+           * Defines the day off value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const dayOff = isDayOff(day);
+          /***************************************************************************************************
+           * Defines the has dot value used by the component layer.
+           *
+           * Usage context:
+           * - Reused by the component layer to keep shared values centralized.
+           ***************************************************************************************************/
           const hasDot = dotDates?.has(toISODate(day)) && !selected && !nonWorking;
 
           return (

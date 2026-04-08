@@ -16,15 +16,51 @@ import { api } from '@/lib/api';
 import type { TBooking } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the bookings page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function BookingsPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingsPage');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
+  /***************************************************************************************************
+   * Defines the ts value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ts = useTranslations('Success');
   const { data: bookings, isLoading, error } = useBookings();
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
 
+  /***************************************************************************************************
+   * Defines the active bookings value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const activeBookings = bookings
     .filter(
       (b) =>
@@ -34,10 +70,22 @@ export default function BookingsPage(): ReactNode {
         b.status === 'reschedule_pending',
     )
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  /***************************************************************************************************
+   * Defines the past bookings value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const pastBookings = bookings
     .filter((b) => b.status === 'completed' || b.status === 'cancelled' || b.status === 'rejected')
     .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
 
+  /***************************************************************************************************
+   * Handles cancel booking.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleCancelBooking = async (): Promise<void> => {
     if (!cancelBookingTarget) {
       return;
@@ -53,6 +101,12 @@ export default function BookingsPage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles confirm.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleConfirm = async (booking: TBooking): Promise<void> => {
     try {
       await api.confirmBooking(booking.id);
@@ -63,6 +117,12 @@ export default function BookingsPage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles decline.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleDecline = async (booking: TBooking): Promise<void> => {
     try {
       await api.declineBooking(booking.id);

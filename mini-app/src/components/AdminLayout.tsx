@@ -12,13 +12,61 @@ import { BottomTabBar } from './BottomTabBar';
 import type { TAdminLayoutProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the admin layout UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the pathname value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const pathname = usePathname();
+  /***************************************************************************************************
+   * Defines the router value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
+  /***************************************************************************************************
+   * Defines the tn value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tn = useTranslations('Navigation');
+  /***************************************************************************************************
+   * Defines the is home value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isHome = pathname === '/admin' || pathname === '/admin/';
+  /***************************************************************************************************
+   * Defines the is book page value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isBookPage = pathname === '/admin/book';
 
+  /***************************************************************************************************
+   * Defines the admin tabs value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const adminTabs = [
     {
       key: 'home',
@@ -32,6 +80,12 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   ];
 
   useEffect(() => {
+    /***************************************************************************************************
+     * Defines the web app value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const webApp = getTelegramWebApp();
     if (!webApp) {
       return;
@@ -41,6 +95,12 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
       webApp.BackButton.hide();
     } else {
       webApp.BackButton.show();
+      /***************************************************************************************************
+       * Defines the handler value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const handler = (): void => router.push('/admin');
       webApp.BackButton.onClick(handler);
       return () => webApp.BackButton.offClick(handler);
