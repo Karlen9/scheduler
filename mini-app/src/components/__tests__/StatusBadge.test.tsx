@@ -37,6 +37,12 @@ describe('StatusBadge', () => {
 
   it('applies correct CSS classes for confirmed status', () => {
     renderWithIntl(<StatusBadge status={'confirmed'} />);
+    /***************************************************************************************************
+     * Defines the badge value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const badge = screen.getByText('Подтверждено');
     expect(badge.className).toContain('bg-status-confirmed-bg');
     expect(badge.className).toContain('text-status-confirmed-text');
@@ -44,6 +50,12 @@ describe('StatusBadge', () => {
 
   it('applies pending CSS classes for unknown status', () => {
     renderWithIntl(<StatusBadge status={'nonexistent'} />);
+    /***************************************************************************************************
+     * Defines the badge value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const badge = screen.getByText('Ожидание');
     expect(badge.className).toContain('bg-status-pending-bg');
     expect(badge.className).toContain('text-status-pending-text');
@@ -51,12 +63,24 @@ describe('StatusBadge', () => {
 
   it('applies custom className prop', () => {
     renderWithIntl(<StatusBadge status={'pending'} className={'my-custom-class'} />);
+    /***************************************************************************************************
+     * Defines the badge value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const badge = screen.getByText('Ожидание');
     expect(badge.className).toContain('my-custom-class');
   });
 
   it('always includes base badge classes', () => {
     renderWithIntl(<StatusBadge status={'pending'} />);
+    /***************************************************************************************************
+     * Defines the badge value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const badge = screen.getByText('Ожидание');
     expect(badge.className).toContain('rounded-full');
     expect(badge.className).toContain('text-xs');

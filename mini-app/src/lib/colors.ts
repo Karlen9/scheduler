@@ -1,3 +1,9 @@
+/***************************************************************************************************
+ * Defines the avatar colors value used by the shared utility layer.
+ *
+ * Usage context:
+ * - Reused by the shared utility layer to keep shared values centralized.
+ ***************************************************************************************************/
 const AVATAR_COLORS = [
   'bg-[#f87171] text-white',
   'bg-[#fb923c] text-white',
@@ -11,7 +17,25 @@ const AVATAR_COLORS = [
   'bg-[#fb7185] text-white',
 ];
 
+/***************************************************************************************************
+ * Returns avatar color.
+ *
+ * Parameters:
+ * - name: Name used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as string.
+ *
+ * Side effects:
+ * - May read browser state, call shared helpers, or perform network requests.
+ ***************************************************************************************************/
 export function getAvatarColor(name: string): string {
+  /***************************************************************************************************
+   * Defines the hash value used by the shared utility layer.
+   *
+   * Usage context:
+   * - Reused by the shared utility layer to keep shared values centralized.
+   ***************************************************************************************************/
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);

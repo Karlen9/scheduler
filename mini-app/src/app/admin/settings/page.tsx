@@ -14,14 +14,55 @@ import { useAdminProfile } from '@/hooks/queries';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the settings page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function SettingsPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminSettings');
+  /***************************************************************************************************
+   * Defines the tl value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tl = useTranslations('LanguageSelector');
+  /***************************************************************************************************
+   * Defines the locale value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
+  /***************************************************************************************************
+   * Defines the router value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
   const { data: specialistProfile } = useAdminProfile();
 
-  // Cross-device language sync
+  /***************************************************************************************************
+   * Cross-device language sync.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const syncedRef = useRef(false);
   useEffect(() => {
     if (

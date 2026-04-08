@@ -9,6 +9,18 @@ import { DaysOfWeek } from './DaysOfWeek';
 import type { TRecurringDayFormProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the recurring day form UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function RecurringDayForm({
   services,
   recService,
@@ -26,10 +38,34 @@ export function RecurringDayForm({
   previewDates,
   handleRecTimeSelect,
 }: TRecurringDayFormProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingForm');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the td value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Date');
 
+  /***************************************************************************************************
+   * Defines the days value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const DAYS = [
     { label: td('daysShort.mon'), value: 1 },
     { label: td('daysShort.tue'), value: 2 },
@@ -40,26 +76,82 @@ export function RecurringDayForm({
     { label: td('daysShort.sun'), value: 0 },
   ];
 
+  /***************************************************************************************************
+   * Defines the periods value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const PERIODS = [
     { label: t('period1week'), value: '1week' },
     { label: t('period1month'), value: '1month' },
     { label: t('period3months'), value: '3months' },
   ];
 
+  /***************************************************************************************************
+   * Returns day name short.
+   *
+   * Parameters:
+   * - dayNum: Day num used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function getDayNameShort(dayNum: number): string {
+    /***************************************************************************************************
+     * Defines the key value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const key = dayKeyMap[dayNum];
     return key ? td(`daysShort.${key}`) : '?';
   }
 
+  /***************************************************************************************************
+   * Formats preview date.
+   *
+   * Parameters:
+   * - dateStr: Date value used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function formatPreviewDate(dateStr: string): string {
+    /***************************************************************************************************
+     * Defines the d value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const d = new Date(dateStr);
+    /***************************************************************************************************
+     * Defines the day name value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const dayName = getDayNameShort(d.getDay());
+    /***************************************************************************************************
+     * Defines the month key value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const monthKey = monthShortCapKeys[d.getMonth()];
     return `${dayName}, ${d.getDate()} ${td(`monthsShort.${monthKey}`)}`;
   }
   return (
     <div className={'space-y-4'}>
-      {/* Service */}
+      {/***************************************************************************************************
+       * Service.
+       ***************************************************************************************************/}
       {services.length > 0 && (
         <div>
           <label className={'text-muted-foreground mb-2 block text-sm'}>{t('service')}</label>
@@ -71,7 +163,9 @@ export function RecurringDayForm({
         </div>
       )}
 
-      {/* Days of week */}
+      {/***************************************************************************************************
+       * Days of week.
+       ***************************************************************************************************/}
       <DaysOfWeek
         activeDay={activeDay}
         handleDayClick={handleDayClick}
@@ -79,7 +173,9 @@ export function RecurringDayForm({
         DAYS={DAYS}
       />
 
-      {/* Time slots for active day */}
+      {/***************************************************************************************************
+       * Time slots for active day.
+       ***************************************************************************************************/}
       {recService && activeDay !== null && (
         <div>
           <label className={'text-muted-foreground mb-2 block text-sm'}>
@@ -109,7 +205,9 @@ export function RecurringDayForm({
         </div>
       )}
 
-      {/* Configured days summary */}
+      {/***************************************************************************************************
+       * Configured days summary.
+       ***************************************************************************************************/}
       {hasDayTimes && activeDay === null && (
         <div className={'space-y-1'}>
           {DAYS.filter((d) => d.value in dayTimeMap).map((d) => (
@@ -121,7 +219,9 @@ export function RecurringDayForm({
         </div>
       )}
 
-      {/* Period */}
+      {/***************************************************************************************************
+       * Period.
+       ***************************************************************************************************/}
       {recService && hasDayTimes && (
         <div>
           <label className={'text-muted-foreground mb-2 block text-sm'}>{t('period')}</label>
@@ -143,7 +243,9 @@ export function RecurringDayForm({
         </div>
       )}
 
-      {/* Preview & Submit */}
+      {/***************************************************************************************************
+       * Preview & Submit.
+       ***************************************************************************************************/}
       {recFormReady && (
         <div className={'space-y-2'}>
           {!previewDates && (

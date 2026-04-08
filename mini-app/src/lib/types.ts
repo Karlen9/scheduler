@@ -2,14 +2,19 @@ import type { LucideIcon } from 'lucide-react';
 import type { useTranslations } from 'next-intl';
 import type { ChangeEvent, Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 
-// ─── Utility Types ───────────────────────────────────────────────────────────
-
+/***************************************************************************************************
+ * Utility Types.
+ ***************************************************************************************************/
 export type TVoidFunction = () => void;
 
+/***************************************************************************************************
+ * Defines the translate function shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTranslateFunction = ReturnType<typeof useTranslations>;
 
-// ─── Core Data Models ────────────────────────────────────────────────────────
-
+/***************************************************************************************************
+ * Core Data Models.
+ ***************************************************************************************************/
 export type TSpecialist = {
   id: string;
   name: string;
@@ -27,6 +32,9 @@ export type TSpecialist = {
   language?: string;
 };
 
+/***************************************************************************************************
+ * Defines the session type shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TSessionType = {
   id: string;
   type: string;
@@ -37,12 +45,18 @@ export type TSessionType = {
   imageUrl?: string;
 };
 
+/***************************************************************************************************
+ * Defines the working hours shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TWorkingHours = {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
 };
 
+/***************************************************************************************************
+ * Defines the booking shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBooking = {
   id: string;
   sessionType?: TSessionType;
@@ -68,12 +82,18 @@ export type TBooking = {
   replacesBookingId?: string;
 };
 
+/***************************************************************************************************
+ * Defines the time slot shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTimeSlot = {
   time: string;
   endTime?: string;
   available: boolean;
 };
 
+/***************************************************************************************************
+ * Defines the client profile shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TClientProfile = {
   id: string;
   name: string;
@@ -87,6 +107,9 @@ export type TClientProfile = {
   language?: string;
 };
 
+/***************************************************************************************************
+ * Defines the client info shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TClientInfo = {
   id: string;
   telegramUserId: number;
@@ -99,6 +122,9 @@ export type TClientInfo = {
   createdAt: string;
 };
 
+/***************************************************************************************************
+ * Defines the day off shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TDayOff = {
   id: string;
   date: string;
@@ -106,6 +132,25 @@ export type TDayOff = {
   createdAt: string;
 };
 
+/***************************************************************************************************
+ * Defines the schedule context shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TScheduleContext = {
+  workingHours: TWorkingHours[];
+  daysOff: { date: string }[];
+};
+
+/***************************************************************************************************
+ * Defines the admin schedule context shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TAdminScheduleContext = {
+  workingHours: TWorkingHours[];
+  daysOff: TDayOff[];
+};
+
+/***************************************************************************************************
+ * Defines the recurring schedule shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TRecurringSchedule = {
   id: string;
   clientName: string;
@@ -126,13 +171,17 @@ export type TRecurringSchedule = {
   bookings?: TBooking[];
 };
 
+/***************************************************************************************************
+ * Defines the recurring preview response shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TRecurringPreviewResponse = {
   dates: string[];
   count: number;
 };
 
-// ─── Telegram Types ──────────────────────────────────────────────────────────
-
+/***************************************************************************************************
+ * Telegram Types.
+ ***************************************************************************************************/
 export type TTelegramWebApp = {
   ready: TVoidFunction;
   expand: TVoidFunction;
@@ -177,10 +226,14 @@ export type TTelegramWebApp = {
   offEvent: (event: string, callback: TVoidFunction) => void;
 };
 
+/***************************************************************************************************
+ * Defines the theme preference shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TThemePreference = 'auto' | 'light' | 'dark';
 
-// ─── API / Form Params ──────────────────────────────────────────────────────
-
+/***************************************************************************************************
+ * API / Form Params.
+ ***************************************************************************************************/
 export type TCreateBookingParams = {
   clientId?: string;
   duration: number;
@@ -189,6 +242,9 @@ export type TCreateBookingParams = {
   message?: string;
 };
 
+/***************************************************************************************************
+ * Defines the create recurring params shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TCreateRecurringParams = {
   clientId?: string;
   sessionTypeId: string;
@@ -196,20 +252,27 @@ export type TCreateRecurringParams = {
   period: string;
 };
 
+/***************************************************************************************************
+ * Defines the preview recurring params shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TPreviewRecurringParams = {
   sessionTypeId: string;
   dayTimes: Record<string, string>;
   period: string;
 };
 
-// ─── Page-Specific Types ─────────────────────────────────────────────────────
-
+/***************************************************************************************************
+ * Page-Specific Types.
+ ***************************************************************************************************/
 export type TDaySchedule = {
   enabled: boolean;
   startTime: string;
   endTime: string;
 };
 
+/***************************************************************************************************
+ * Defines the service form data shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TServiceFormData = {
   type: string;
   name: string;
@@ -218,28 +281,44 @@ export type TServiceFormData = {
   imageUrl: string;
 };
 
+/***************************************************************************************************
+ * Defines the faqitem shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TFAQItem = {
   question: string;
   answer: string;
 };
 
+/***************************************************************************************************
+ * Defines the view mode shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TViewMode = 'day' | 'week' | 'month';
 
+/***************************************************************************************************
+ * Defines the empty slot shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TEmptySlot = {
   startMin: number;
   endMin: number;
 };
 
-// ─── Component Prop Types ────────────────────────────────────────────────────
-
+/***************************************************************************************************
+ * Component Prop Types.
+ ***************************************************************************************************/
 export type TActivityBackButtonProps = {
   href: string;
 };
 
+/***************************************************************************************************
+ * Defines the admin layout props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TAdminLayoutProps = {
   children: ReactNode;
 };
 
+/***************************************************************************************************
+ * Defines the admin schedule info card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TAdminScheduleInfoCardProps = {
   schedule: TRecurringSchedule;
   scheduleStatus: { color: string; border: string };
@@ -252,6 +331,9 @@ export type TAdminScheduleInfoCardProps = {
   dayTimes: Record<string, string> | null;
 };
 
+/***************************************************************************************************
+ * Defines the avatar section props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TAvatarSectionProps = {
   name: string;
   photoUrl: string;
@@ -263,12 +345,18 @@ export type TAvatarSectionProps = {
   onFileSelect: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
+/***************************************************************************************************
+ * Defines the booking card item props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBookingCardItemProps = {
   booking: TBooking;
   onRequestCancel: (booking: TBooking) => void;
   formatBookingDate: (iso: string) => string;
 };
 
+/***************************************************************************************************
+ * Defines the booking card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBookingCardProps = {
   booking: TBooking;
   onCancel?: (booking: TBooking) => void;
@@ -276,6 +364,9 @@ export type TBookingCardProps = {
   onDecline?: (booking: TBooking) => void;
 };
 
+/***************************************************************************************************
+ * Defines the booking detail modal props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBookingDetailModalProps = {
   booking: TBooking | null;
   isOpen: boolean;
@@ -286,6 +377,9 @@ export type TBookingDetailModalProps = {
   onReject?: (booking: TBooking) => void;
 };
 
+/***************************************************************************************************
+ * Defines the booking form props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBookingFormProps = {
   services: TSessionType[];
   workingHours: TWorkingHours[];
@@ -302,6 +396,9 @@ export type TBookingFormProps = {
   title?: string;
 };
 
+/***************************************************************************************************
+ * Defines the booking row props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBookingRowProps = {
   booking: TBooking;
   actionLoading: string | null;
@@ -315,6 +412,9 @@ export type TBookingRowProps = {
   t: TTranslateFunction;
 };
 
+/***************************************************************************************************
+ * Defines the bottom sheet props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBottomSheetProps = {
   isOpen: boolean;
   onClose: TVoidFunction;
@@ -324,11 +424,17 @@ export type TBottomSheetProps = {
   className?: string;
 };
 
+/***************************************************************************************************
+ * Defines the bottom tab bar props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TBottomTabBarProps = {
   tabs: TTab[];
   subTabs?: TSubTab[];
 };
 
+/***************************************************************************************************
+ * Defines the calendar view props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TCalendarViewProps = {
   selectedDate: Date | null;
   selectedDates?: Date[];
@@ -338,6 +444,9 @@ export type TCalendarViewProps = {
   bookedDates?: string[];
 };
 
+/***************************************************************************************************
+ * Defines the cancel dialog props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TCancelDialogProps = {
   isOpen: boolean;
   targetName: string;
@@ -347,12 +456,18 @@ export type TCancelDialogProps = {
   onClose: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the client avatar props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TClientAvatarProps = {
   name: string;
   photoUrl?: string;
   size?: 'sm' | 'md' | 'lg';
 };
 
+/***************************************************************************************************
+ * Defines the client schedule info card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TClientScheduleInfoCardProps = {
   schedule: TRecurringSchedule;
   scheduleStatus: { color: string; border: string };
@@ -364,6 +479,9 @@ export type TClientScheduleInfoCardProps = {
   dayTimes: Record<string, string> | null;
 };
 
+/***************************************************************************************************
+ * Defines the client selector props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TClientSelectorProps = {
   clients?: TClientInfo[];
   selectedClient: TClientInfo | null;
@@ -371,6 +489,9 @@ export type TClientSelectorProps = {
   setSelectedClient: Dispatch<SetStateAction<TClientInfo | null>>;
 };
 
+/***************************************************************************************************
+ * Defines the confirm dialog props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TConfirmDialogProps = {
   isOpen: boolean;
   onClose: TVoidFunction;
@@ -386,10 +507,16 @@ export type TConfirmDialogProps = {
   onInputChange?: (value: string) => void;
 };
 
+/***************************************************************************************************
+ * Defines the current time indicator props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TCurrentTimeIndicatorProps = {
   top: number;
 };
 
+/***************************************************************************************************
+ * Defines the day timeline props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TDayTimelineProps = {
   bookings: TBooking[];
   date: Date;
@@ -398,12 +525,9 @@ export type TDayTimelineProps = {
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 
-export type TDurationSelectorProps = {
-  durations: number[];
-  selected: number;
-  onChange: (duration: number) => void;
-};
-
+/***************************************************************************************************
+ * Defines the empty state props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TEmptyStateProps = {
   icon: ReactNode;
   title: string;
@@ -411,6 +535,9 @@ export type TEmptyStateProps = {
   action?: ReactNode;
 };
 
+/***************************************************************************************************
+ * Defines the month calendar props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TMonthCalendarProps = {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
@@ -418,6 +545,9 @@ export type TMonthCalendarProps = {
   daysOff?: Date[];
 };
 
+/***************************************************************************************************
+ * Defines the month grid props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TMonthGridProps = {
   displayDate: Date;
   selectedDate: Date | null;
@@ -438,11 +568,17 @@ export type TMonthGridProps = {
   maxDate?: Date;
 };
 
+/***************************************************************************************************
+ * Defines the next booking banner props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TNextBookingBannerProps = {
   booking: TBooking | null;
   onBookingClick?: (booking: TBooking) => void;
 };
 
+/***************************************************************************************************
+ * Defines the notification preferences props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TNotificationPreferencesProps = {
   notifyBookingStatus: boolean;
   notifyReminders: boolean;
@@ -454,6 +590,9 @@ export type TNotificationPreferencesProps = {
   ) => void;
 };
 
+/***************************************************************************************************
+ * Defines the onetime booking flow props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TOnetimeBookingFlowProps = {
   services: TSessionType[];
   daysOff: string[];
@@ -466,18 +605,27 @@ export type TOnetimeBookingFlowProps = {
   successRedirect: string;
 };
 
+/***************************************************************************************************
+ * Defines the pending booking card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TPendingBookingCardProps = {
   booking: TBooking;
   onAccept: (booking: TBooking) => void;
   onReject: (booking: TBooking) => void;
 };
 
+/***************************************************************************************************
+ * Defines the photo editor props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TPhotoEditorProps = {
   imageSrc: string;
   onConfirm: (blob: Blob) => void;
   onCancel: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the pinned bottom button props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TPinnedBottomButtonProps = {
   mode: 'single' | 'multi';
   selectedDates: Date[];
@@ -490,6 +638,9 @@ export type TPinnedBottomButtonProps = {
   onetimeButtonText: string;
 };
 
+/***************************************************************************************************
+ * Defines the primary button props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TPrimaryButtonProps = {
   children: ReactNode;
   onClick?: TVoidFunction;
@@ -497,6 +648,9 @@ export type TPrimaryButtonProps = {
   fullWidth?: boolean;
 };
 
+/***************************************************************************************************
+ * Defines the recurring booking flow props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TRecurringBookingFlowProps = {
   services: TSessionType[];
   workingHours: TWorkingHours[];
@@ -507,6 +661,9 @@ export type TRecurringBookingFlowProps = {
   successRedirect: string;
 };
 
+/***************************************************************************************************
+ * Defines the recurring day form props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TRecurringDayFormProps = {
   services: TSessionType[];
   recService: TSessionType | null;
@@ -525,6 +682,9 @@ export type TRecurringDayFormProps = {
   handleRecTimeSelect: (time: string) => void;
 };
 
+/***************************************************************************************************
+ * Defines the recurring schedule card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TRecurringScheduleCardProps = {
   schedule: TRecurringSchedule;
   services?: TSessionType[];
@@ -534,6 +694,9 @@ export type TRecurringScheduleCardProps = {
   detailPath?: string;
 };
 
+/***************************************************************************************************
+ * Defines the reject dialog props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TRejectDialogProps = {
   isOpen: boolean;
   targetName: string;
@@ -543,6 +706,9 @@ export type TRejectDialogProps = {
   onClose: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the reschedule sheet props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TRescheduleSheetProps = {
   booking: TBooking | null;
   isOpen: boolean;
@@ -550,6 +716,9 @@ export type TRescheduleSheetProps = {
   onSuccess: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the schedule view props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TScheduleViewProps = {
   bookings: TBooking[];
   onBookingClick?: (booking: TBooking) => void;
@@ -559,22 +728,34 @@ export type TScheduleViewProps = {
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 
+/***************************************************************************************************
+ * Defines the service card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TServiceCardProps = {
   service: TSessionType;
   onEdit?: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the service selector props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TServiceSelectorProps = {
   services: TSessionType[];
   selectedId: string;
   onChange: (service: TSessionType) => void;
 };
 
+/***************************************************************************************************
+ * Defines the settings group props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TSettingsGroupProps = {
   title?: string;
   children: ReactNode;
 };
 
+/***************************************************************************************************
+ * Defines the settings menu item props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TSettingsMenuItemProps = {
   icon: LucideIcon;
   label: string;
@@ -583,6 +764,9 @@ export type TSettingsMenuItemProps = {
   iconColor?: string;
 };
 
+/***************************************************************************************************
+ * Defines the stat card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TStatCardProps = {
   icon: LucideIcon;
   iconColor: string;
@@ -592,6 +776,9 @@ export type TStatCardProps = {
   onClick?: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the stats section props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TStatsSectionProps = {
   pendingCount: number;
   clientsCount: number;
@@ -599,17 +786,26 @@ export type TStatsSectionProps = {
   onClientsClick: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the status badge props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TStatusBadgeProps = {
   status: string;
   className?: string;
 };
 
+/***************************************************************************************************
+ * Defines the sub tab shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TSubTab = {
   icon: LucideIcon;
   href: string;
   label?: string;
 };
 
+/***************************************************************************************************
+ * Defines the tab shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTab = {
   key: string;
   label: string;
@@ -619,6 +815,9 @@ export type TTab = {
   matchPaths?: string[];
 };
 
+/***************************************************************************************************
+ * Defines the time picker modal props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTimePickerModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -627,12 +826,18 @@ export type TTimePickerModalProps = {
   title?: string;
 };
 
+/***************************************************************************************************
+ * Defines the time slot grid props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTimeSlotGridProps = {
   slots: TTimeSlot[];
   selected: string | null;
   onSelect: (time: string) => void;
 };
 
+/***************************************************************************************************
+ * Defines the timeline booking card props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTimelineBookingCardProps = {
   booking: TBooking;
   top: number;
@@ -641,6 +846,9 @@ export type TTimelineBookingCardProps = {
   formatTime: (iso: string) => string;
 };
 
+/***************************************************************************************************
+ * Defines the timeline empty slot props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTimelineEmptySlotProps = {
   slot: TEmptySlot;
   date: Date;
@@ -649,12 +857,18 @@ export type TTimelineEmptySlotProps = {
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 
+/***************************************************************************************************
+ * Defines the top bar props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TTopBarProps = {
   title: string;
   showBack?: boolean;
   onBack?: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the use onetime booking params shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TUseOnetimeBookingParams = {
   services: TSessionType[];
   selectedClient: TClientInfo | null;
@@ -663,6 +877,9 @@ export type TUseOnetimeBookingParams = {
   successRedirect: string;
 };
 
+/***************************************************************************************************
+ * Defines the use onetime booking return shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TUseOnetimeBookingReturn = {
   mode: 'single' | 'multi';
   setMode: (mode: 'single' | 'multi') => void;
@@ -689,6 +906,9 @@ export type TUseOnetimeBookingReturn = {
   handleOnetimeSubmit: TVoidFunction;
 };
 
+/***************************************************************************************************
+ * Defines the week strip props shape shared by the shared utility layer.
+ ***************************************************************************************************/
 export type TWeekStripProps = {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;

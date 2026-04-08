@@ -11,8 +11,32 @@ import { api } from '@/lib/api';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the admin notifications page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function AdminNotificationsPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminNotifications');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
   const { data: prefs, isLoading } = useAdminNotifications();
   const [notifyNewBookings, setNotifyNewBookings] = useState(true);
@@ -29,10 +53,22 @@ export default function AdminNotificationsPage(): ReactNode {
     setInitialized(true);
   }, [prefs, isLoading, initialized]);
 
+  /***************************************************************************************************
+   * Defines the handle toggle value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleToggle = async (
     key: 'notifyNewBookings' | 'notifyCancellations',
     value: boolean,
   ): Promise<void> => {
+    /***************************************************************************************************
+     * Defines the setters value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const setters = {
       notifyNewBookings: setNotifyNewBookings,
       notifyCancellations: setNotifyCancellations,
@@ -59,6 +95,12 @@ export default function AdminNotificationsPage(): ReactNode {
     );
   }
 
+  /***************************************************************************************************
+   * Defines the items value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const items = [
     {
       key: 'notifyNewBookings' as const,

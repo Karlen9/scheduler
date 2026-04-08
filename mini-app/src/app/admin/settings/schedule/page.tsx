@@ -14,6 +14,12 @@ import { api } from '@/lib/api';
 import type { TDaySchedule, TWorkingHours } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the page layer.
+ *
+ * Usage context:
+ * - Reused by the page layer to keep shared values centralized.
+ ***************************************************************************************************/
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 const defaultSchedule: Record<number, TDaySchedule> = {
@@ -26,11 +32,53 @@ const defaultSchedule: Record<number, TDaySchedule> = {
   6: { enabled: false, startTime: '09:00', endTime: '18:00' },
 };
 
+/***************************************************************************************************
+ * Renders the schedule page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function SchedulePage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminSchedule');
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the tdat value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tdat = useTranslations('Dates');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
+  /***************************************************************************************************
+   * Defines the ts value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ts = useTranslations('Success');
   const { data: workingHours, isLoading } = useAdminWorkingHours();
   const [schedule, setSchedule] = useState<Record<number, TDaySchedule>>(defaultSchedule);
@@ -68,6 +116,12 @@ export default function SchedulePage(): ReactNode {
     setInitialized(true);
   }, [workingHours, isLoading, initialized]);
 
+  /***************************************************************************************************
+   * Handles day toggle.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleDayToggle = (day: number): void => {
     setSchedule((prev) => ({
       ...prev,
@@ -75,12 +129,24 @@ export default function SchedulePage(): ReactNode {
     }));
   };
 
+  /***************************************************************************************************
+   * Defines the open time picker value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const openTimePicker = (day: number, type: 'start' | 'end'): void => {
     setPickerDay(day);
     setPickerType(type);
     setShowPicker(true);
   };
 
+  /***************************************************************************************************
+   * Handles time select.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleTimeSelect = (time: string): void => {
     if (pickerDay === null) {
       return;
@@ -96,6 +162,12 @@ export default function SchedulePage(): ReactNode {
     setShowPicker(false);
   };
 
+  /***************************************************************************************************
+   * Handles save.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);
 
@@ -138,7 +210,9 @@ export default function SchedulePage(): ReactNode {
       <TopBar title={t('title')} showBack />
 
       <div className={'space-y-6 p-4'}>
-        {/* Working Hours per Day */}
+        {/***************************************************************************************************
+         * Working Hours per Day.
+         ***************************************************************************************************/}
         <div>
           <h3 className={'text-muted-foreground mb-3 text-sm'}>{t('workingDays')}</h3>
           <div className={'space-y-2'}>
@@ -175,13 +249,17 @@ export default function SchedulePage(): ReactNode {
           </div>
         </div>
 
-        {/* Save Button */}
+        {/***************************************************************************************************
+         * Save Button.
+         ***************************************************************************************************/}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>
           {isSaving ? tc('saving') : tc('saveChanges')}
         </PrimaryButton>
       </div>
 
-      {/* Time Picker */}
+      {/***************************************************************************************************
+       * Time Picker.
+       ***************************************************************************************************/}
       <TimePickerModal
         isOpen={showPicker}
         onClose={() => setShowPicker(false)}

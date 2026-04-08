@@ -6,6 +6,18 @@ import { bookingStatusColors, bookingStatusKeys } from '@/lib/mappings';
 import type { TBookingRowProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the booking row UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function BookingRow({
   booking,
   actionLoading,
@@ -18,11 +30,41 @@ export function BookingRow({
   tc,
   t,
 }: TBookingRowProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the status color value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const statusColor = bookingStatusColors[booking.status] || bookingStatusColors.pending;
+  /***************************************************************************************************
+   * Defines the status key value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const statusKey = bookingStatusKeys[booking.status] || 'pending';
+  /***************************************************************************************************
+   * Defines the is this loading value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isThisLoading = actionLoading === booking.id;
 
+  /***************************************************************************************************
+   * Defines the is confirmed value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isConfirmed = booking.status === 'confirmed';
+  /***************************************************************************************************
+   * Defines the is reschedule pending value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isReschedulePending = booking.status === 'reschedule_pending';
 
   return (
@@ -59,7 +101,9 @@ export function BookingRow({
         </span>
       </div>
 
-      {/* Confirmed: Cancel button */}
+      {/***************************************************************************************************
+       * Confirmed: Cancel button.
+       ***************************************************************************************************/}
       {isConfirmed && (
         <div className={'border-border border-t pt-3'}>
           <button
@@ -74,7 +118,9 @@ export function BookingRow({
         </div>
       )}
 
-      {/* Reschedule pending: Approve/Decline with new time */}
+      {/***************************************************************************************************
+       * Reschedule pending: Approve/Decline with new time.
+       ***************************************************************************************************/}
       {isReschedulePending && (
         <div className={'border-border space-y-2 border-t pt-3'}>
           <div className={'text-status-purple-text flex items-center gap-2 text-xs'}>

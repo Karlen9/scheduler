@@ -5,6 +5,18 @@ import { ClientAvatar } from '@/components/ClientAvatar';
 import type { TTimelineBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Returns card style.
+ *
+ * Parameters:
+ * - status: Status used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as .
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function getCardStyle(status: string): { bg: string; text: string; subtext: string } {
   switch (status) {
     case 'confirmed':
@@ -16,6 +28,18 @@ function getCardStyle(status: string): { bg: string; text: string; subtext: stri
   }
 }
 
+/***************************************************************************************************
+ * Renders the timeline booking card UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function TimelineBookingCard({
   booking,
   top,
@@ -23,7 +47,19 @@ export function TimelineBookingCard({
   onBookingClick,
   formatTime,
 }: TTimelineBookingCardProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the style value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const style = getCardStyle(booking.status);
 
   return (

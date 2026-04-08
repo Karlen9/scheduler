@@ -9,14 +9,74 @@ import { ClientAvatar } from '@/components/ClientAvatar';
 import type { TNextBookingBannerProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the next booking banner UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBannerProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the router value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('NextBookingBanner');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the tu value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tu = useTranslations('TimeUnits');
+  /***************************************************************************************************
+   * Defines the locale value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
 
+  /***************************************************************************************************
+   * Formats time.
+   *
+   * Parameters:
+   * - iso: Boolean flag that influences the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function formatTime(iso: string): string {
+    /***************************************************************************************************
+     * Defines the d value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const d = new Date(iso);
     return d.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ru-RU', {
       hour: '2-digit',
@@ -25,28 +85,106 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
     });
   }
 
+  /***************************************************************************************************
+   * Returns time until.
+   *
+   * Parameters:
+   * - iso: Boolean flag that influences the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function getTimeUntil(iso: string): string {
+    /***************************************************************************************************
+     * Defines the now value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const now = new Date();
+    /***************************************************************************************************
+     * Defines the start value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const start = new Date(iso);
+    /***************************************************************************************************
+     * Defines the diff value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const diff = start.getTime() - now.getTime();
     if (diff <= 0) {
       return tu('now');
     }
+    /***************************************************************************************************
+     * Defines the minutes value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const minutes = Math.floor(diff / 60000);
     if (minutes < 60) {
+      /***************************************************************************************************
+       * Defines the word value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const word = minuteWord(minutes);
       return tu('inMinutes', { count: minutes, word });
     }
+    /***************************************************************************************************
+     * Defines the hours value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const hours = Math.floor(minutes / 60);
     if (hours < 24) {
+      /***************************************************************************************************
+       * Defines the word value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const word = hourWord(hours);
       return tu('inHours', { count: hours, word });
     }
+    /***************************************************************************************************
+     * Defines the days value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const days = Math.floor(hours / 24);
+    /***************************************************************************************************
+     * Defines the word value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const word = dayWord(days);
     return tu('inDays', { count: days, word });
   }
 
+  /***************************************************************************************************
+   * Implements the minute word logic used by this module.
+   *
+   * Parameters:
+   * - n: N used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function minuteWord(n: number): string {
     if (n % 10 === 1 && n % 100 !== 11) {
       return tu('minute1');
@@ -57,6 +195,18 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
     return tu('minute5');
   }
 
+  /***************************************************************************************************
+   * Implements the hour word logic used by this module.
+   *
+   * Parameters:
+   * - n: N used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function hourWord(n: number): string {
     if (n % 10 === 1 && n % 100 !== 11) {
       return tu('hour1');
@@ -67,6 +217,18 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
     return tu('hour5');
   }
 
+  /***************************************************************************************************
+   * Implements the day word logic used by this module.
+   *
+   * Parameters:
+   * - n: N used by the current operation.
+   *
+   * Returns:
+   * - The computed value for the current operation as string.
+   *
+   * Side effects:
+   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+   ***************************************************************************************************/
   function dayWord(n: number): string {
     if (n % 10 === 1 && n % 100 !== 11) {
       return tu('day1');

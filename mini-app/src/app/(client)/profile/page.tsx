@@ -21,16 +21,76 @@ import { NotificationPreferences } from './NotificationPreferences';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the client profile page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function ClientProfilePage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('ProfilePage');
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
+  /***************************************************************************************************
+   * Defines the ts value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const ts = useTranslations('Success');
+  /***************************************************************************************************
+   * Defines the tl value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tl = useTranslations('LanguageSelector');
+  /***************************************************************************************************
+   * Defines the locale value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = useLocale();
+  /***************************************************************************************************
+   * Defines the router value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const router = useRouter();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
+  /***************************************************************************************************
+   * Defines the loading value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const loading = profileLoading || servicesLoading;
 
   const [name, setName] = useState('');
@@ -41,6 +101,12 @@ export default function ClientProfilePage(): ReactNode {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editorImage, setEditorImage] = useState<string | null>(null);
+  /***************************************************************************************************
+   * Defines the file input ref value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notifyBookingStatus, setNotifyBookingStatus] = useState(true);
   const [notifyReminders, setNotifyReminders] = useState(true);
@@ -60,7 +126,12 @@ export default function ClientProfilePage(): ReactNode {
     }
   }, [profile, services]);
 
-  // Cross-device language sync
+  /***************************************************************************************************
+   * Cross-device language sync.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const syncedRef = useRef(false);
   useEffect(() => {
     if (profile?.language && profile.language !== locale && !syncedRef.current) {
@@ -69,11 +140,29 @@ export default function ClientProfilePage(): ReactNode {
     }
   }, [profile?.language, locale, router]);
 
+  /***************************************************************************************************
+   * Handles file select.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    /***************************************************************************************************
+     * Defines the file value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const file = e.target.files?.[0];
     if (!file) {
       return;
     }
+    /***************************************************************************************************
+     * Defines the url value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const url = URL.createObjectURL(file);
     setEditorImage(url);
     if (fileInputRef.current) {
@@ -81,11 +170,29 @@ export default function ClientProfilePage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles editor confirm.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleEditorConfirm = async (blob: Blob): Promise<void> => {
     setEditorImage(null);
     setIsUploading(true);
     try {
+      /***************************************************************************************************
+       * Defines the file value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+      /***************************************************************************************************
+       * Defines the result value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const result = await api.uploadPhoto(file);
       setPhotoUrl(result.fileId);
       setPhotoError(false);
@@ -99,6 +206,12 @@ export default function ClientProfilePage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles save.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);
     try {
@@ -113,10 +226,22 @@ export default function ClientProfilePage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Defines the handle toggle notification value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleToggleNotification = async (
     key: 'notifyBookingStatus' | 'notifyReminders' | 'notifyDaysOff' | 'notifyCancellations',
     value: boolean,
   ): Promise<void> => {
+    /***************************************************************************************************
+     * Defines the setters value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const setters = {
       notifyBookingStatus: setNotifyBookingStatus,
       notifyReminders: setNotifyReminders,
@@ -168,7 +293,9 @@ export default function ClientProfilePage(): ReactNode {
           onFileSelect={handleFileSelect}
         />
 
-        {/* Form */}
+        {/***************************************************************************************************
+         * Form.
+         ***************************************************************************************************/}
         <div className={'space-y-4'}>
           <div>
             <label className={'text-muted-foreground mb-1 block text-sm'}>{t('nameLabel')}</label>
@@ -211,7 +338,9 @@ export default function ClientProfilePage(): ReactNode {
           )}
         </div>
 
-        {/* Save Button */}
+        {/***************************************************************************************************
+         * Save Button.
+         ***************************************************************************************************/}
         <PrimaryButton onClick={handleSave} disabled={isSaving}>
           {isSaving ? tc('saving') : tc('save')}
         </PrimaryButton>
@@ -224,13 +353,17 @@ export default function ClientProfilePage(): ReactNode {
           onToggle={handleToggleNotification}
         />
 
-        {/* Theme */}
+        {/***************************************************************************************************
+         * Theme.
+         ***************************************************************************************************/}
         <div>
           <h3 className={'text-muted-foreground mb-3 text-sm'}>{t('theme')}</h3>
           <ThemeSelector />
         </div>
 
-        {/* Language */}
+        {/***************************************************************************************************
+         * Language.
+         ***************************************************************************************************/}
         <div>
           <h3 className={'text-muted-foreground mb-3 text-sm'}>{tl('language')}</h3>
           <LanguageSelector />

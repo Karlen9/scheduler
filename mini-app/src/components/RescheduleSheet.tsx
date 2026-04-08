@@ -1,45 +1,88 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { CalendarView } from '@/components/CalendarView';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
-import { useDaysOff, useWorkingHours } from '@/hooks/queries';
+import { useAdminScheduleContext } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { formatDateISO, getNonWorkingDays } from '@/lib/helpers';
 
 import type { TRescheduleSheetProps, TTimeSlot } from '@/lib/types';
 import type { ReactNode } from 'react';
 
-function formatDateISO(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
+/***************************************************************************************************
+ * Renders the reschedule sheet UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function RescheduleSheet({
   booking,
   isOpen,
   onClose,
   onSuccess,
 }: TRescheduleSheetProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('RescheduleSheet');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the te value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
-  const { data: workingHoursData } = useWorkingHours();
-  const { data: daysOffData } = useDaysOff();
+  const { data: scheduleContext } = useAdminScheduleContext();
+  /***************************************************************************************************
+   * Defines the working hours data value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const workingHoursData = scheduleContext?.workingHours ?? [];
+  /***************************************************************************************************
+   * Defines the days off data value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const daysOffData = scheduleContext?.daysOff ?? [];
 
-  const nonWorkingDays = useMemo(() => {
-    const workingSet = new Set(workingHoursData.map((wh) => wh.dayOfWeek));
-    const result: number[] = [];
-    for (let i = 0; i < 7; i++) {
-      if (!workingSet.has(i)) {
-        result.push(i);
-      }
-    }
-    return result;
-  }, [workingHoursData]);
+  /***************************************************************************************************
+   * Defines the non working days value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const nonWorkingDays = useMemo(() => getNonWorkingDays(workingHoursData), [workingHoursData]);
 
+  /***************************************************************************************************
+   * Defines the days off value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const daysOff = useMemo(() => daysOffData.map((d) => d.date), [daysOffData]);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -48,32 +91,91 @@ export function RescheduleSheet({
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /***************************************************************************************************
+   * Defines the slots request id ref value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const slotsRequestIdRef = useRef(0);
 
+  /***************************************************************************************************
+   * Defines the duration value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const duration = booking?.durationMinutes || booking?.sessionType?.durationMinutes || 60;
 
+  /***************************************************************************************************
+   * Defines the fetch slots value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const fetchSlots = useCallback(
     async (date: Date) => {
+      /***************************************************************************************************
+       * Defines the request id value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
+      const requestId = slotsRequestIdRef.current + 1;
+      slotsRequestIdRef.current = requestId;
       setIsLoadingSlots(true);
       setSelectedTime(null);
       setError(null);
       try {
+        /***************************************************************************************************
+         * Defines the date str value used by the component layer.
+         *
+         * Usage context:
+         * - Reused by the component layer to keep shared values centralized.
+         ***************************************************************************************************/
         const dateStr = formatDateISO(date);
+        /***************************************************************************************************
+         * Defines the slots value used by the component layer.
+         *
+         * Usage context:
+         * - Reused by the component layer to keep shared values centralized.
+         ***************************************************************************************************/
         const slots = await api.getAvailableSlots(dateStr, duration);
+        if (requestId !== slotsRequestIdRef.current) {
+          return;
+        }
         setTimeSlots(slots);
       } catch {
+        if (requestId !== slotsRequestIdRef.current) {
+          return;
+        }
         setTimeSlots([]);
       } finally {
-        setIsLoadingSlots(false);
+        if (requestId === slotsRequestIdRef.current) {
+          setIsLoadingSlots(false);
+        }
       }
     },
     [duration],
   );
 
+  /***************************************************************************************************
+   * Handles date select.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);
     fetchSlots(date);
   };
 
+  /***************************************************************************************************
+   * Handles submit.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleSubmit = async (): Promise<void> => {
     if (!booking || !selectedDate || !selectedTime) {
       return;
@@ -94,7 +196,14 @@ export function RescheduleSheet({
     }
   };
 
+  /***************************************************************************************************
+   * Handles close.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleClose = (): void => {
+    slotsRequestIdRef.current += 1;
     setSelectedDate(null);
     setSelectedTime(null);
     setTimeSlots([]);
@@ -102,6 +211,12 @@ export function RescheduleSheet({
     onClose();
   };
 
+  /***************************************************************************************************
+   * Defines the has available slots value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const hasAvailableSlots = timeSlots.some((s) => s.available);
 
   return (

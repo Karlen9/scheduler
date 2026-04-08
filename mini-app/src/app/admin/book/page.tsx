@@ -5,18 +5,55 @@ import { useTranslations } from 'next-intl';
 import { ActivityBackButton } from '@/components/ActivityBackButton';
 import { BookingForm } from '@/components/BookingForm';
 import { invalidateClients } from '@/hooks/mutations';
-import { useAdminServices, useClients, useDaysOff, useWorkingHours } from '@/hooks/queries';
+import { useAdminScheduleContext, useAdminServices, useClients } from '@/hooks/queries';
 import { api } from '@/lib/api';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the admin book page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function AdminBookPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingForm');
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: services, isLoading: svcLoading } = useAdminServices();
-  const { data: workingHours, isLoading: whLoading } = useWorkingHours();
-  const { data: daysOffData, isLoading: doLoading } = useDaysOff();
+  const { data: scheduleContext, isLoading: scheduleLoading } = useAdminScheduleContext();
+  /***************************************************************************************************
+   * Defines the working hours value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const workingHours = scheduleContext?.workingHours ?? [];
+  /***************************************************************************************************
+   * Defines the days off data value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const daysOffData = scheduleContext?.daysOff ?? [];
 
+  /***************************************************************************************************
+   * Defines the days off value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const daysOff = daysOffData.map((d) => d.date);
 
   return (
@@ -26,12 +63,18 @@ export default function AdminBookPage(): ReactNode {
         services={services}
         workingHours={workingHours}
         daysOff={daysOff}
-        isLoading={clientsLoading || svcLoading || whLoading || doLoading}
+        isLoading={clientsLoading || svcLoading || scheduleLoading}
         clients={clients}
         showRecurring={false}
         successRedirect={'/admin'}
         title={t('adminTitle')}
         onCreateGhostClient={async (name) => {
+          /***************************************************************************************************
+           * Defines the client value used by the page layer.
+           *
+           * Usage context:
+           * - Reused by the page layer to keep shared values centralized.
+           ***************************************************************************************************/
           const client = await api.admin.createGhostClient(name);
           invalidateClients();
           return client;

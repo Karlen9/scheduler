@@ -26,14 +26,28 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }): Promise<ReactNode> {
+  /***************************************************************************************************
+   * Defines the locale value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const locale = await getLocale();
+  /***************************************************************************************************
+   * Defines the messages value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const messages = await getMessages();
 
   return (
     <html lang={locale}>
       <head>
         <script src={'https://telegram.org/js/telegram-web-app.js'} />
-        {/* Detect dark/light theme early to prevent flash */}
+        {/***************************************************************************************************
+         * Detect dark/light theme early to prevent flash.
+         ***************************************************************************************************/}
         <script
           dangerouslySetInnerHTML={{
             __html:

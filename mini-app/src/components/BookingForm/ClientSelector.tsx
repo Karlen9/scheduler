@@ -9,29 +9,77 @@ import { EmptyState } from '../EmptyState';
 import type { TClientSelectorProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the client selector UI and related interactions.
+ *
+ * Parameters:
+ * - props: Component props that drive rendering and callbacks.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function ClientSelector({
   selectedClient,
   onCreateGhostClient,
   clients,
   setSelectedClient,
 }: TClientSelectorProps): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('BookingForm');
+  /***************************************************************************************************
+   * Defines the tc value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the te value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreatingGhost, setIsCreatingGhost] = useState(false);
 
+  /***************************************************************************************************
+   * Handles create ghost client.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleCreateGhostClient = async (): Promise<void> => {
     if (!onCreateGhostClient || !searchQuery.trim()) {
       return;
     }
     setIsCreatingGhost(true);
     try {
+      /***************************************************************************************************
+       * Defines the client value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const client = await onCreateGhostClient(searchQuery.trim());
       setSelectedClient(client);
       setSearchQuery('');
     } catch (err) {
+      /***************************************************************************************************
+       * Defines the msg value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
       const msg = err instanceof Error ? err.message : te('clientCreateFailed');
       toast.error(msg);
     } finally {
@@ -39,6 +87,12 @@ export function ClientSelector({
     }
   };
 
+  /***************************************************************************************************
+   * Defines the filtered clients value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const filteredClients = useMemo(() => {
     if (!clients) {
       return [];
@@ -46,6 +100,12 @@ export function ClientSelector({
     if (!searchQuery.trim()) {
       return clients;
     }
+    /***************************************************************************************************
+     * Defines the q value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const q = searchQuery.toLowerCase();
     return clients.filter(
       (c) =>
@@ -55,10 +115,18 @@ export function ClientSelector({
     );
   }, [clients, searchQuery]);
 
+  /***************************************************************************************************
+   * Defines the has client selector value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
   const hasClientSelector = !!clients;
   return (
     <>
-      {/* Client Selector (admin only) */}
+      {/***************************************************************************************************
+       * Client Selector (admin only).
+       ***************************************************************************************************/}
       {hasClientSelector && !selectedClient && (
         <div>
           <label className={'text-muted-foreground mb-2 block text-sm'}>{t('selectClient')}</label>

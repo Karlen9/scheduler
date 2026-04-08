@@ -1,5 +1,17 @@
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the loading skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function LoadingSkeleton(): ReactNode {
   return (
     <div className={'animate-pulse'}>
@@ -19,6 +31,18 @@ export function LoadingSkeleton(): ReactNode {
   );
 }
 
+/***************************************************************************************************
+ * Renders the calendar skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function CalendarSkeleton(): ReactNode {
   return (
     <div className={'bg-card animate-pulse rounded-xl p-4'}>
@@ -33,6 +57,18 @@ export function CalendarSkeleton(): ReactNode {
 }
 
 /** Client BookingCard skeleton — matches BookingCard.tsx layout */
+/***************************************************************************************************
+ * Renders the booking card skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function BookingCardSkeleton(): ReactNode {
   return (
     <div className={'bg-card animate-pulse rounded-xl p-4'}>
@@ -61,6 +97,18 @@ export function BookingCardSkeleton(): ReactNode {
 }
 
 /** Admin PendingBookingCard skeleton — avatar + name + info + accept/reject buttons */
+/***************************************************************************************************
+ * Renders the pending booking card skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function PendingBookingCardSkeleton(): ReactNode {
   return (
     <div className={'bg-card border-l-border animate-pulse rounded-xl border-l-4 p-4'}>
@@ -81,6 +129,18 @@ export function PendingBookingCardSkeleton(): ReactNode {
 }
 
 /** Admin UpcomingBookingCard skeleton — avatar + name + time on right */
+/***************************************************************************************************
+ * Renders the upcoming booking card skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function UpcomingBookingCardSkeleton(): ReactNode {
   return (
     <div className={'bg-card border-l-border animate-pulse rounded-xl border-l-4 p-4'}>
@@ -100,6 +160,18 @@ export function UpcomingBookingCardSkeleton(): ReactNode {
 }
 
 /** RecurringScheduleCard skeleton — icon rows + status badge + action buttons */
+/***************************************************************************************************
+ * Renders the recurring schedule card skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function RecurringScheduleCardSkeleton(): ReactNode {
   return (
     <div className={'bg-card border-l-border animate-pulse rounded-xl border-l-4 p-4'}>
@@ -135,6 +207,18 @@ export function RecurringScheduleCardSkeleton(): ReactNode {
 }
 
 /** Admin book page skeleton — search input + client list */
+/***************************************************************************************************
+ * Renders the client list skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function ClientListSkeleton(): ReactNode {
   return (
     <div className={'animate-pulse space-y-4'}>
@@ -156,23 +240,43 @@ export function ClientListSkeleton(): ReactNode {
 }
 
 /** Recurring page skeleton — form card + schedule cards */
+/***************************************************************************************************
+ * Renders the recurring page skeleton UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export function RecurringPageSkeleton(): ReactNode {
   return (
     <div className={'animate-pulse space-y-6 p-4'}>
-      {/* Form card */}
+      {/***************************************************************************************************
+       * Form card.
+       ***************************************************************************************************/}
       <div className={'bg-card space-y-4 rounded-xl p-4'}>
         <div className={'bg-border h-4 w-40 rounded'} />
-        {/* Client select */}
+        {/***************************************************************************************************
+         * Client select.
+         ***************************************************************************************************/}
         <div className={'space-y-2'}>
           <div className={'bg-border h-3.5 w-16 rounded'} />
           <div className={'bg-border h-12 rounded-lg'} />
         </div>
-        {/* Service select */}
+        {/***************************************************************************************************
+         * Service select.
+         ***************************************************************************************************/}
         <div className={'space-y-2'}>
           <div className={'bg-border h-3.5 w-16 rounded'} />
           <div className={'bg-border h-10 rounded-lg'} />
         </div>
-        {/* Day circles */}
+        {/***************************************************************************************************
+         * Day circles.
+         ***************************************************************************************************/}
         <div className={'space-y-2'}>
           <div className={'bg-border h-3.5 w-24 rounded'} />
           <div className={'flex gap-2'}>
@@ -181,10 +285,14 @@ export function RecurringPageSkeleton(): ReactNode {
             ))}
           </div>
         </div>
-        {/* Submit button */}
+        {/***************************************************************************************************
+         * Submit button.
+         ***************************************************************************************************/}
         <div className={'bg-border h-11 rounded-xl'} />
       </div>
-      {/* Schedule cards */}
+      {/***************************************************************************************************
+       * Schedule cards.
+       ***************************************************************************************************/}
       <div className={'space-y-3'}>
         <div className={'bg-card h-4 w-36 rounded'} />
         {Array.from({ length: 2 }).map((_, i) => (

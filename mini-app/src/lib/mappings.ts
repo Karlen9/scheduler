@@ -1,5 +1,17 @@
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the shared utility layer.
+ *
+ * Usage context:
+ * - Reused by the shared utility layer to keep shared values centralized.
+ ***************************************************************************************************/
 export const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the shared utility layer.
+ *
+ * Usage context:
+ * - Reused by the shared utility layer to keep shared values centralized.
+ ***************************************************************************************************/
 export const monthGenKeys = [
   'jan',
   'feb',
@@ -51,6 +63,12 @@ export const dayKeyMap: Record<number, string> = {
   5: 'fri',
   6: 'sat',
 };
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the shared utility layer.
+ *
+ * Usage context:
+ * - Reused by the shared utility layer to keep shared values centralized.
+ ***************************************************************************************************/
 export const monthShortCapKeys = [
   'jan',
   'feb',

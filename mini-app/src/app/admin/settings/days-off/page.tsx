@@ -14,7 +14,19 @@ import { api } from '@/lib/api';
 
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the page layer.
+ *
+ * Usage context:
+ * - Reused by the page layer to keep shared values centralized.
+ ***************************************************************************************************/
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+/***************************************************************************************************
+ * Lists translation or cache keys reused by the page layer.
+ *
+ * Usage context:
+ * - Reused by the page layer to keep shared values centralized.
+ ***************************************************************************************************/
 const monthGenKeys = [
   'jan',
   'feb',
@@ -30,27 +42,111 @@ const monthGenKeys = [
   'dec',
 ] as const;
 
+/***************************************************************************************************
+ * Formats date iso.
+ *
+ * Usage context:
+ * - Reused by the page layer to keep shared values centralized.
+ ***************************************************************************************************/
 const formatDateISO = (date: Date): string => {
+  /***************************************************************************************************
+   * Defines the year value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const year = date.getFullYear();
+  /***************************************************************************************************
+   * Defines the month value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const month = String(date.getMonth() + 1).padStart(2, '0');
+  /***************************************************************************************************
+   * Defines the day value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
 /** Parse "YYYY-MM-DD" as local midnight (avoids UTC timezone shift) */
+/***************************************************************************************************
+ * Parses local date.
+ *
+ * Usage context:
+ * - Reused by the page layer to keep shared values centralized.
+ ***************************************************************************************************/
 const parseLocalDate = (dateStr: string): Date => {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
 };
 
+/***************************************************************************************************
+ * Renders the days off page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function DaysOffPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminDaysOff');
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the tdat value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tdat = useTranslations('Dates');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
 
+  /***************************************************************************************************
+   * Formats date.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const formatDate = (date: Date): string => {
+    /***************************************************************************************************
+     * Defines the day name value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const dayName = tdat(`daysShort.${dayKeys[date.getDay()]}`);
+    /***************************************************************************************************
+     * Defines the month name value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const monthName = tdat(`monthsGen.${monthGenKeys[date.getMonth()]}`);
     return `${dayName}, ${date.getDate()} ${monthName}`;
   };
@@ -61,10 +157,27 @@ export default function DaysOffPage(): ReactNode {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [reason, setReason] = useState('');
 
+  /***************************************************************************************************
+   * Handles add day off.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleAddDayOff = async (): Promise<void> => {
+    /***************************************************************************************************
+     * Defines the date str value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const dateStr = formatDateISO(selectedDate);
 
-    // Check if already exists
+    /***************************************************************************************************
+     * Check if already exists.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const exists = daysOff.some((d) => d.date.startsWith(dateStr));
     if (exists) {
       return;
@@ -86,8 +199,19 @@ export default function DaysOffPage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles remove day off.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleRemoveDayOff = async (id: string): Promise<void> => {
-    // Optimistic local update
+    /***************************************************************************************************
+     * Optimistic local update.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const previousDaysOff = daysOff;
     mutate(
       daysOff.filter((d) => d.id !== id),
@@ -100,17 +224,36 @@ export default function DaysOffPage(): ReactNode {
     } catch (err) {
       console.error('Failed to delete day off:', err);
       toast.error(te('deleteDayOffFailed'));
-      // Rollback on error
+      /***************************************************************************************************
+       * Rollback on error.
+       ***************************************************************************************************/
       mutate(previousDaysOff, false);
     }
   };
 
+  /***************************************************************************************************
+   * Checks whether day off.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const isDayOff = (date: Date): boolean => {
+    /***************************************************************************************************
+     * Defines the date str value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const dateStr = formatDateISO(date);
     return daysOff.some((d) => d.date.startsWith(dateStr));
   };
 
-  // Convert ISO dates to local Date objects for calendar display
+  /***************************************************************************************************
+   * Convert ISO dates to local Date objects for calendar display.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const daysOffDates = daysOff.map((d) => parseLocalDate(d.date));
 
   if (isLoading) {
@@ -162,7 +305,9 @@ export default function DaysOffPage(): ReactNode {
       <TopBar title={t('title')} showBack />
 
       <div className={'space-y-4 p-4'}>
-        {/* Add Button */}
+        {/***************************************************************************************************
+         * Add Button.
+         ***************************************************************************************************/}
         <button
           onClick={() => setShowCalendar(true)}
           className={
@@ -173,7 +318,9 @@ export default function DaysOffPage(): ReactNode {
           <span>{t('addDayOff')}</span>
         </button>
 
-        {/* Days Off List */}
+        {/***************************************************************************************************
+         * Days Off List.
+         ***************************************************************************************************/}
         {daysOff.length === 0 ? (
           <div className={'text-muted-foreground py-8 text-center'}>
             <Calendar className={'mx-auto mb-3 h-12 w-12 opacity-50'} />

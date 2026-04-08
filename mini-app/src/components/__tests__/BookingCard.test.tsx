@@ -7,6 +7,18 @@ import { BookingCard } from '@/components/BookingCard';
 
 import type { TBooking } from '@/lib/types';
 
+/***************************************************************************************************
+ * Implements the make booking logic used by this module.
+ *
+ * Parameters:
+ * - overrides: Overrides used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as TBooking.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 function makeBooking(overrides: Partial<TBooking> = {}): TBooking {
   return {
     id: 'test-booking-1',
@@ -42,9 +54,27 @@ describe('BookingCard', () => {
   });
 
   it('shows cancel button for confirmed bookings', async () => {
+    /***************************************************************************************************
+     * Defines the on cancel value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const onCancel = vi.fn();
+    /***************************************************************************************************
+     * Defines the booking value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const booking = makeBooking({ status: 'confirmed' });
     renderWithIntl(<BookingCard booking={booking} onCancel={onCancel} />);
+    /***************************************************************************************************
+     * Defines the cancel button value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const cancelButton = screen.getByRole('button', { name: 'Отменить' });
     expect(cancelButton).toBeInTheDocument();
     await userEvent.click(cancelButton);
@@ -52,6 +82,12 @@ describe('BookingCard', () => {
   });
 
   it('shows cancel button for pending client-created bookings', () => {
+    /***************************************************************************************************
+     * Defines the on cancel value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const onCancel = vi.fn();
     renderWithIntl(
       <BookingCard
@@ -59,13 +95,37 @@ describe('BookingCard', () => {
         onCancel={onCancel}
       />,
     );
+    /***************************************************************************************************
+     * Defines the cancel button value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const cancelButton = screen.getByRole('button', { name: 'Отменить' });
     expect(cancelButton).toBeInTheDocument();
   });
 
   it('shows confirm and decline for specialist-created pending bookings', async () => {
+    /***************************************************************************************************
+     * Defines the on confirm value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const onConfirm = vi.fn();
+    /***************************************************************************************************
+     * Defines the on decline value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const onDecline = vi.fn();
+    /***************************************************************************************************
+     * Defines the booking value used by the component layer.
+     *
+     * Usage context:
+     * - Reused by the component layer to keep shared values centralized.
+     ***************************************************************************************************/
     const booking = makeBooking({ status: 'pending', createdBy: 'specialist' });
     renderWithIntl(<BookingCard booking={booking} onConfirm={onConfirm} onDecline={onDecline} />);
 

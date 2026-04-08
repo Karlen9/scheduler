@@ -15,17 +15,65 @@ import { api, getPhotoUrl } from '@/lib/api';
 import type { TServiceFormData, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+/***************************************************************************************************
+ * Renders the services page UI and related interactions.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as ReactNode.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
 export default function ServicesPage(): ReactNode {
+  /***************************************************************************************************
+   * Defines the t value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const t = useTranslations('AdminServices');
+  /***************************************************************************************************
+   * Defines the tc value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tc = useTranslations('Common');
+  /***************************************************************************************************
+   * Defines the td value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const td = useTranslations('Duration');
+  /***************************************************************************************************
+   * Defines the te value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const te = useTranslations('Errors');
+  /***************************************************************************************************
+   * Defines the tsp value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const tsp = useTranslations('ServicesPage');
   const { data: services, isLoading, mutate } = useAdminServices();
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<TSessionType | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  /***************************************************************************************************
+   * Defines the file input ref value used by the page layer.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<TServiceFormData>({
     type: 'personal',
@@ -35,12 +83,24 @@ export default function ServicesPage(): ReactNode {
     imageUrl: '',
   });
 
+  /***************************************************************************************************
+   * Handles add click.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleAddClick = (): void => {
     setEditingService(null);
     setFormData({ type: 'personal', name: '', price: '', duration: '60', imageUrl: '' });
     setShowForm(true);
   };
 
+  /***************************************************************************************************
+   * Handles edit click.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleEditClick = (service: TSessionType): void => {
     setEditingService(service);
     setFormData({
@@ -53,7 +113,19 @@ export default function ServicesPage(): ReactNode {
     setShowForm(true);
   };
 
+  /***************************************************************************************************
+   * Handles image upload.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    /***************************************************************************************************
+     * Defines the file value used by the page layer.
+     *
+     * Usage context:
+     * - Reused by the page layer to keep shared values centralized.
+     ***************************************************************************************************/
     const file = e.target.files?.[0];
     if (!file) {
       return;
@@ -61,6 +133,12 @@ export default function ServicesPage(): ReactNode {
 
     setUploading(true);
     try {
+      /***************************************************************************************************
+       * Defines the result value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
       const result = await api.admin.uploadPhoto(file);
       setFormData((prev) => ({ ...prev, imageUrl: result.fileId }));
     } catch (err) {
@@ -71,6 +149,12 @@ export default function ServicesPage(): ReactNode {
     }
   };
 
+  /***************************************************************************************************
+   * Handles save.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
   const handleSave = async (): Promise<void> => {
     if (!formData.name || !formData.price || !formData.duration) {
       return;
@@ -131,7 +215,9 @@ export default function ServicesPage(): ReactNode {
         />
 
         <div className={'space-y-4 p-4'}>
-          {/* Image Upload */}
+          {/***************************************************************************************************
+           * Image Upload.
+           ***************************************************************************************************/}
           <div>
             <label className={'text-muted-foreground mb-1 block text-sm'}>
               {t('servicePhoto')}
@@ -261,7 +347,9 @@ export default function ServicesPage(): ReactNode {
       <div className={'space-y-4 p-4'}>
         <p className={'text-muted-foreground text-xs'}>{tsp('durationDeterminesSlots')}</p>
 
-        {/* Add Button */}
+        {/***************************************************************************************************
+         * Add Button.
+         ***************************************************************************************************/}
         <button
           onClick={handleAddClick}
           className={
@@ -272,7 +360,9 @@ export default function ServicesPage(): ReactNode {
           <span>{tsp('addService')}</span>
         </button>
 
-        {/* Services List */}
+        {/***************************************************************************************************
+         * Services List.
+         ***************************************************************************************************/}
         {services.length === 0 ? (
           <div className={'text-muted-foreground py-8 text-center'}>{tsp('noServices')}</div>
         ) : (
