@@ -7,13 +7,13 @@ module.exports = {
   },
   plugins: ['@typescript-eslint', 'react', 'unused-imports', 'import'],
   extends: [
-    'prettier',
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:@next/next/recommended',
     'plugin:react-hooks/recommended',
     'plugin:import/recommended',
     'plugin:import/typescript',
+    'prettier',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -39,7 +39,7 @@ module.exports = {
     'react/prop-types': 0,
     'no-async-promise-executor': 0,
     quotes: [2, 'single', { avoidEscape: true }],
-    'object-curly-spacing': [2, 'never'],
+    'object-curly-spacing': [2, 'always'],
     'array-bracket-spacing': [2, 'never'],
     semi: 'error',
     'no-else-return': ['error', { allowElseIf: false }],
@@ -64,16 +64,8 @@ module.exports = {
     'import/newline-after-import': 2,
     'import/no-duplicates': 2,
     curly: ['error', 'all'],
-    'object-curly-newline': [
-      'error',
-      {
-        ObjectExpression: { multiline: true, consistent: true },
-        ObjectPattern: { multiline: true, consistent: true },
-        ImportDeclaration: { multiline: true, consistent: true },
-        ExportDeclaration: { multiline: true, minProperties: 3 },
-      },
-    ],
-    'object-property-newline': ['error', { allowAllPropertiesOnSameLine: true }],
+    'object-curly-newline': 'off',
+    'object-property-newline': 'off',
     '@typescript-eslint/consistent-type-imports': [
       2,
       {
@@ -138,7 +130,7 @@ module.exports = {
     '@typescript-eslint/promise-function-async': 'error',
     '@typescript-eslint/require-array-sort-compare': 'error',
     'brace-style': ['error', '1tbs'],
-    'comma-dangle': ['error', 'never'],
+    'comma-dangle': 'off',
     '@typescript-eslint/prefer-optional-chain': 'error',
     indent: 'off',
     'no-multi-spaces': ['error', { ignoreEOLComments: false }],
