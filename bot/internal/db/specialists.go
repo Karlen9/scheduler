@@ -12,12 +12,36 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+/***************************************************************************************************
+* Implements the generate webhook secret logic used by this module.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func generateWebhookSecret() string {
 	bytes := make([]byte, 32)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
 }
 
+/***************************************************************************************************
+* Scans specialist.
+*
+* Parameters:
+* - row: Row used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, error) {
 	var t models.Specialist
 	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language sql.NullString
@@ -51,7 +75,9 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		t.Language = "ru"
 	}
 
-	// Decrypt bot token (passthrough for plain text)
+	/***************************************************************************************************
+	* Decrypt bot token (passthrough for plain text).
+	***************************************************************************************************/
 	t.BotToken, err = crypto.Decrypt(t.BotToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt bot token for specialist %s: %w", t.ID, err)
@@ -60,8 +86,26 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	return &t, nil
 }
 
+/***************************************************************************************************
+* Lists the SQL columns used by the related query helpers.
+*
+* Usage context:
+* - Reused by the database layer to keep shared values centralized.
+***************************************************************************************************/
 const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language`
 
+/***************************************************************************************************
+* Returns specialist by telegram id.
+*
+* Parameters:
+* - telegramUserID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetSpecialistByTelegramID(telegramUserID int64) (*models.Specialist, error) {
 	row := DB.QueryRow(Q(`
 		SELECT `+specialistColumns+`
@@ -71,6 +115,18 @@ func GetSpecialistByTelegramID(telegramUserID int64) (*models.Specialist, error)
 	return scanSpecialist(row)
 }
 
+/***************************************************************************************************
+* Returns specialist by id.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetSpecialistByID(id string) (*models.Specialist, error) {
 	row := DB.QueryRow(Q(`
 		SELECT `+specialistColumns+`
@@ -80,6 +136,18 @@ func GetSpecialistByID(id string) (*models.Specialist, error) {
 	return scanSpecialist(row)
 }
 
+/***************************************************************************************************
+* Returns specialist by webhook secret.
+*
+* Parameters:
+* - secret: Secret used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetSpecialistByWebhookSecret(secret string) (*models.Specialist, error) {
 	row := DB.QueryRow(Q(`
 		SELECT `+specialistColumns+`
@@ -89,6 +157,18 @@ func GetSpecialistByWebhookSecret(secret string) (*models.Specialist, error) {
 	return scanSpecialist(row)
 }
 
+/***************************************************************************************************
+* Returns specialist by bot token.
+*
+* Parameters:
+* - botToken: Bot token used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetSpecialistByBotToken(botToken string) (*models.Specialist, error) {
 	tokenHash := crypto.HashToken(botToken)
 	row := DB.QueryRow(Q(`
@@ -99,6 +179,18 @@ func GetSpecialistByBotToken(botToken string) (*models.Specialist, error) {
 	return scanSpecialist(row)
 }
 
+/***************************************************************************************************
+* Returns first specialist.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetFirstSpecialist() (*models.Specialist, error) {
 	row := DB.QueryRow(`
 		SELECT ` + specialistColumns + `
@@ -109,6 +201,18 @@ func GetFirstSpecialist() (*models.Specialist, error) {
 	return scanSpecialist(row)
 }
 
+/***************************************************************************************************
+* Returns all active specialists.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetAllActiveSpecialists() ([]models.Specialist, error) {
 	rows, err := DB.Query(`
 		SELECT ` + specialistColumns + `
@@ -133,6 +237,23 @@ func GetAllActiveSpecialists() ([]models.Specialist, error) {
 	return specialists, rows.Err()
 }
 
+/***************************************************************************************************
+* Creates specialist.
+*
+* Parameters:
+* - name: Name used by the current operation.
+* - botUsername: Bot username used by the current operation.
+* - botToken: Bot token used by the current operation.
+* - telegramUserID: Identifier used to target the current record.
+* - timezone: Time value used by the current operation.
+* - cancelCutoffHrs: Boolean flag that influences the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezone string, cancelCutoffHrs int) (*models.Specialist, error) {
 	id := uuid.New().String()
 	webhookSecret := generateWebhookSecret()
@@ -154,6 +275,21 @@ func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezon
 	return GetSpecialistByID(id)
 }
 
+/***************************************************************************************************
+* Updates specialist.
+*
+* Parameters:
+* - name: Name used by the current operation.
+* - id: Identifier used to target the current record.
+* - timezone: Time value used by the current operation.
+* - cancelCutoffHrs: Boolean flag that influences the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateSpecialist(id, name, timezone string, cancelCutoffHrs int) (*models.Specialist, error) {
 	_, err := DB.Exec(Q(`
 		UPDATE specialists
@@ -166,6 +302,25 @@ func UpdateSpecialist(id, name, timezone string, cancelCutoffHrs int) (*models.S
 	return GetSpecialistByID(id)
 }
 
+/***************************************************************************************************
+* Updates specialist profile.
+*
+* Parameters:
+* - bio: Bio used by the current operation.
+* - specialization: Specialization used by the current operation.
+* - phone: Phone used by the current operation.
+* - telegramHandle: Telegram handle used by the current operation.
+* - id: Identifier used to target the current record.
+* - locationLatitude: Location latitude used by the current operation.
+* - photoURL: Photo url used by the current operation.
+* - locationLongitude: Location longitude used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateSpecialistProfile(id, telegramHandle, phone, specialization, bio, photoURL string, locationLatitude, locationLongitude float64) (*models.Specialist, error) {
 	_, err := DB.Exec(Q(`
 		UPDATE specialists
@@ -179,11 +334,38 @@ func UpdateSpecialistProfile(id, telegramHandle, phone, specialization, bio, pho
 	return GetSpecialistByID(id)
 }
 
+/***************************************************************************************************
+* Updates specialist available durations.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+* - durations: Duration value used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateSpecialistAvailableDurations(id, durations string) error {
 	_, err := DB.Exec(Q(`UPDATE specialists SET available_durations = ? WHERE id = ?`), durations, id)
 	return err
 }
 
+/***************************************************************************************************
+* Updates specialist notification prefs.
+*
+* Parameters:
+* - notifyNewBookings: Notify new bookings used by the current operation.
+* - id: Identifier used to target the current record.
+* - notifyCancellations: Notify cancellations used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateSpecialistNotificationPrefs(id string, notifyNewBookings, notifyCancellations bool) error {
 	nb := 0
 	if notifyNewBookings {
@@ -197,16 +379,53 @@ func UpdateSpecialistNotificationPrefs(id string, notifyNewBookings, notifyCance
 	return err
 }
 
+/***************************************************************************************************
+* Updates specialist language.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - language: Language used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateSpecialistLanguage(specialistID, language string) error {
 	_, err := DB.Exec(Q(`UPDATE specialists SET language = ? WHERE id = ?`), language, specialistID)
 	return err
 }
 
+/***************************************************************************************************
+* Implements the deactivate specialist logic used by this module.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func DeactivateSpecialist(id string) error {
 	_, err := DB.Exec(Q(`UPDATE specialists SET is_active = 0 WHERE id = ?`), id)
 	return err
 }
 
+/***************************************************************************************************
+* Implements the activate specialist logic used by this module.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func ActivateSpecialist(id string) error {
 	_, err := DB.Exec(Q(`UPDATE specialists SET is_active = 1 WHERE id = ?`), id)
 	return err

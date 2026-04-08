@@ -15,14 +15,35 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-// parseDate parses a date string in YYYY-MM-DD format
+/***************************************************************************************************
+* parseDate parses a date string in YYYY-MM-DD format.
+*
+* Parameters:
+* - dateStr: Date value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func parseDate(dateStr string) (time.Time, error) {
 	return time.Parse("2006-01-02", dateStr)
 }
 
-// ========== Durations ==========
 
-// getDurationsFromServices derives unique durations from active session types
+/***************************************************************************************************
+* getDurationsFromServices derives unique durations from active session types.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as []int.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func getDurationsFromServices(specialistID string) []int {
 	services, err := db.GetSessionTypesBySpecialistID(specialistID)
 	if err != nil || len(services) == 0 {
@@ -43,7 +64,21 @@ func getDurationsFromServices(specialistID string) []int {
 	return durations
 }
 
-// HandleGetDurations returns available durations derived from active session types (public endpoint)
+/***************************************************************************************************
+* HandleGetDurations returns available durations derived from active session types (public
+* endpoint).
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetDurations(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -55,7 +90,21 @@ func HandleGetDurations(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, durations)
 }
 
-// HandleAdminGetDurations returns durations derived from active session types
+/***************************************************************************************************
+* HandleAdminGetDurations returns durations derived from active session types. notification
+* helpers.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetDurations(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -67,14 +116,30 @@ func HandleAdminGetDurations(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, durations)
 }
 
-// ========== Specialist Settings ==========
 
+/***************************************************************************************************
+* Specialist Settings.
+***************************************************************************************************/
 type UpdateSpecialistRequest struct {
 	Name            string `json:"name,omitempty"`
 	Timezone        string `json:"timezone,omitempty"`
 	CancelCutoffHrs *int   `json:"cancelCutoffHours,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles get specialist settings.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetSpecialistSettings(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -85,6 +150,20 @@ func HandleGetSpecialistSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, specialist)
 }
 
+/***************************************************************************************************
+* Handles update specialist settings.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleUpdateSpecialistSettings(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -98,7 +177,9 @@ func HandleUpdateSpecialistSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apply updates
+	/***************************************************************************************************
+	* Apply updates.
+	***************************************************************************************************/
 	name := specialist.Name
 	if req.Name != "" {
 		name = req.Name
@@ -124,8 +205,10 @@ func HandleUpdateSpecialistSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, updated)
 }
 
-// ========== Session Types ==========
 
+/***************************************************************************************************
+* Session Types.
+***************************************************************************************************/
 type CreateSessionTypeRequest struct {
 	Type            string `json:"type"`
 	Name            string `json:"name"`
@@ -135,6 +218,9 @@ type CreateSessionTypeRequest struct {
 	ImageURL        string `json:"imageUrl,omitempty"`
 }
 
+/***************************************************************************************************
+* Defines the update session type request type used by the api layer.
+***************************************************************************************************/
 type UpdateSessionTypeRequest struct {
 	Type            string  `json:"type,omitempty"`
 	Name            string  `json:"name,omitempty"`
@@ -145,6 +231,20 @@ type UpdateSessionTypeRequest struct {
 	IsActive        *bool   `json:"isActive,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles admin get services.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetServices(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -166,6 +266,20 @@ func HandleAdminGetServices(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, services)
 }
 
+/***************************************************************************************************
+* Handles create service.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -205,6 +319,20 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, service)
 }
 
+/***************************************************************************************************
+* Handles update service.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -240,7 +368,9 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apply updates
+	/***************************************************************************************************
+	* Apply updates.
+	***************************************************************************************************/
 	sessionType := existing.Type
 	if req.Type != "" {
 		sessionType = req.Type
@@ -286,6 +416,20 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, updated)
 }
 
+/***************************************************************************************************
+* Handles delete service.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -310,7 +454,9 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Soft delete (deactivate)
+	/***************************************************************************************************
+	* Soft delete (deactivate).
+	***************************************************************************************************/
 	if err := db.DeactivateSessionType(existing.ID); err != nil {
 		log.Printf("Error deactivating service: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -320,18 +466,37 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ========== Working Hours ==========
 
+/***************************************************************************************************
+* Working Hours.
+***************************************************************************************************/
 type WorkingHoursRequest struct {
 	DayOfWeek int    `json:"dayOfWeek"`
 	StartTime string `json:"startTime"`
 	EndTime   string `json:"endTime"`
 }
 
+/***************************************************************************************************
+* Defines the bulk working hours request type used by the api layer.
+***************************************************************************************************/
 type BulkWorkingHoursRequest struct {
 	Hours []WorkingHoursRequest `json:"hours"`
 }
 
+/***************************************************************************************************
+* Handles admin get working hours.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -350,9 +515,99 @@ func HandleAdminGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 		hours = []models.WorkingHours{}
 	}
 
+	setPrivateCache(w, 60, 300)
 	writeJSON(w, hours)
 }
 
+/***************************************************************************************************
+* Defines the admin schedule context response type used by the api layer.
+***************************************************************************************************/
+type AdminScheduleContextResponse struct {
+	WorkingHours []models.WorkingHours `json:"workingHours"`
+	DaysOff      []models.DayOff       `json:"daysOff"`
+}
+
+/***************************************************************************************************
+* Loads admin schedule context.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func loadAdminScheduleContext(specialistID string) (AdminScheduleContextResponse, error) {
+	hours, err := db.GetWorkingHoursBySpecialistID(specialistID)
+	if err != nil {
+		return AdminScheduleContextResponse{}, err
+	}
+	if hours == nil {
+		hours = []models.WorkingHours{}
+	}
+
+	daysOff, err := db.GetDaysOffBySpecialistID(specialistID)
+	if err != nil {
+		return AdminScheduleContextResponse{}, err
+	}
+	if daysOff == nil {
+		daysOff = []models.DayOff{}
+	}
+
+	return AdminScheduleContextResponse{
+		WorkingHours: hours,
+		DaysOff:      daysOff,
+	}, nil
+}
+
+/***************************************************************************************************
+* Handles admin get schedule context.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
+func HandleAdminGetScheduleContext(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	resp, err := loadAdminScheduleContext(specialist.ID)
+	if err != nil {
+		log.Printf("Error getting admin schedule context: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	setPrivateCache(w, 60, 300)
+	writeJSON(w, resp)
+}
+
+/***************************************************************************************************
+* Handles update working hours.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -366,7 +621,9 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Clear existing and set new
+	/***************************************************************************************************
+	* Clear existing and set new.
+	***************************************************************************************************/
 	if err := db.ClearWorkingHours(specialist.ID); err != nil {
 		log.Printf("Error clearing working hours: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -382,6 +639,10 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 			httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
 			return
 		}
+		if err := validateTimeRange(wh.StartTime, wh.EndTime); err != nil {
+			httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+			return
+		}
 
 		if err := db.UpsertWorkingHours(specialist.ID, wh.DayOfWeek, wh.StartTime, wh.EndTime); err != nil {
 			log.Printf("Error setting working hours: %v", err)
@@ -390,11 +651,27 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Return updated hours
+	/***************************************************************************************************
+	* Return updated hours.
+	***************************************************************************************************/
 	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
 	writeJSON(w, hours)
 }
 
+/***************************************************************************************************
+* Handles set working hours for day.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -419,6 +696,10 @@ func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
 		return
 	}
+	if err := validateTimeRange(req.StartTime, req.EndTime); err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
 
 	if err := db.UpsertWorkingHours(specialist.ID, day, req.StartTime, req.EndTime); err != nil {
 		log.Printf("Error setting working hours: %v", err)
@@ -430,6 +711,20 @@ func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, hours)
 }
 
+/***************************************************************************************************
+* Handles delete working hours for day.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -453,8 +748,21 @@ func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ========== Bookings Management ==========
 
+/***************************************************************************************************
+* Bookings Management.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -475,14 +783,32 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 		bookings = []models.Booking{}
 	}
 
+	setNoStore(w)
 	writeJSON(w, bookings)
 }
 
+/***************************************************************************************************
+* Defines the update booking status request type used by the api layer.
+***************************************************************************************************/
 type UpdateBookingStatusRequest struct {
 	Status string `json:"status"`
 	Reason string `json:"reason,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles admin update booking status.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -521,7 +847,9 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Specialist cannot confirm their own bookings — only the client can
+	/***************************************************************************************************
+	* Specialist cannot confirm their own bookings — only the client can.
+	***************************************************************************************************/
 	if booking.CreatedBy == "specialist" && req.Status == "confirmed" {
 		httpError(w, r, "Error.CannotConfirmOwnBooking", http.StatusForbidden)
 		return
@@ -552,17 +880,23 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		specialist.BotUsername,
 	)
 
-	// Refresh booking to get updated status + session type
+	/***************************************************************************************************
+	* Refresh booking to get updated status + session type.
+	***************************************************************************************************/
 	booking, _ = db.GetBookingByID(bookingID)
 
-	// Notify client about status change
+	/***************************************************************************************************
+	* Notify client about status change.
+	***************************************************************************************************/
 	if NotifyStatusChangeFunc != nil && booking != nil {
 		if err := NotifyStatusChangeFunc(booking, req.Status); err != nil {
 			log.Printf("Error notifying client about status change: %v", err)
 		}
 	}
 
-	// Update specialist's Telegram notification message (remove buttons)
+	/***************************************************************************************************
+	* Update specialist's Telegram notification message (remove buttons).
+	***************************************************************************************************/
 	if UpdateSpecialistMessageFunc != nil && booking != nil {
 		if err := UpdateSpecialistMessageFunc(booking); err != nil {
 			log.Printf("Error updating specialist message: %v", err)
@@ -572,13 +906,29 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-// ========== Reschedule Booking ==========
 
+/***************************************************************************************************
+* Reschedule Booking.
+***************************************************************************************************/
 type AdminRescheduleBookingRequest struct {
 	Date string `json:"date"` // "2026-03-10"
 	Time string `json:"time"` // "10:00"
 }
 
+/***************************************************************************************************
+* Handles admin reschedule booking.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -625,13 +975,20 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reject past dates and dates more than 3 months ahead
+	/***************************************************************************************************
+	* Reject past dates and dates more than 3 months ahead.
+	***************************************************************************************************/
 	if errMsg := validateBookingDate(date); errMsg != "" {
 		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
-	timeParts := parseTime(req.Time)
+	hour, minute, err := parseTime(req.Time)
+	if err != nil {
+		httpError(w, r, "Error.SelectTime", http.StatusBadRequest)
+		return
+	}
+
 	duration := booking.DurationMinutes
 	if duration == 0 && booking.SessionType != nil {
 		duration = booking.SessionType.DurationMinutes
@@ -640,10 +997,12 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		duration = 60
 	}
 
-	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
 
-	// Check for conflicts (exclude current booking)
+	/***************************************************************************************************
+	* Check for conflicts (exclude current booking).
+	***************************************************************************************************/
 	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, bookingID)
 	if err != nil {
 		log.Printf("Error checking conflicts: %v", err)
@@ -664,10 +1023,14 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	log.Printf("RESCHEDULE [%s] Specialist: %s moved booking for client: %s | New: %s %s",
 		bookingID[:8], specialist.Name, booking.ClientName, req.Date, req.Time)
 
-	// Refresh booking
+	/***************************************************************************************************
+	* Refresh booking.
+	***************************************************************************************************/
 	booking, _ = db.GetBookingByID(bookingID)
 
-	// Notify client
+	/***************************************************************************************************
+	* Notify client.
+	***************************************************************************************************/
 	if NotifyStatusChangeFunc != nil && booking != nil {
 		if err := NotifyStatusChangeFunc(booking, "rescheduled"); err != nil {
 			log.Printf("Error notifying client about reschedule: %v", err)
@@ -677,11 +1040,18 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-// ========== Specialist-Initiated Bookings ==========
 
-// NotifySpecialistBookingFunc is a callback to notify client about specialist-created booking
+/***************************************************************************************************
+* NotifySpecialistBookingFunc is a callback to notify client about specialist-created booking.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var NotifySpecialistBookingFunc func(booking *models.Booking) error
 
+/***************************************************************************************************
+* Defines the admin create booking request type used by the api layer.
+***************************************************************************************************/
 type AdminCreateBookingRequest struct {
 	ClientID string `json:"clientId"`
 	Duration int    `json:"duration"`
@@ -690,6 +1060,20 @@ type AdminCreateBookingRequest struct {
 	Message  string `json:"message,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles admin create booking.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -708,7 +1092,9 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify client belongs to this specialist
+	/***************************************************************************************************
+	* Verify client belongs to this specialist.
+	***************************************************************************************************/
 	client, err := db.GetClientByID(req.ClientID)
 	if err != nil {
 		log.Printf("Error getting client: %v", err)
@@ -720,24 +1106,35 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse date and time
+	/***************************************************************************************************
+	* Parse date and time.
+	***************************************************************************************************/
 	date, err := parseDate(req.Date)
 	if err != nil {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
 		return
 	}
 
-	// Reject past dates and dates more than 3 months ahead
+	/***************************************************************************************************
+	* Reject past dates and dates more than 3 months ahead.
+	***************************************************************************************************/
 	if errMsg := validateBookingDate(date); errMsg != "" {
 		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
-	timeParts := parseTime(req.Time)
-	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+	hour, minute, err := parseTime(req.Time)
+	if err != nil {
+		httpError(w, r, "Error.SelectTime", http.StatusBadRequest)
+		return
+	}
+
+	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(req.Duration) * time.Minute)
 
-	// Check for conflicts
+	/***************************************************************************************************
+	* Check for conflicts.
+	***************************************************************************************************/
 	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, "")
 	if err != nil {
 		log.Printf("Error checking conflicts: %v", err)
@@ -749,7 +1146,9 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find session type by duration (same pattern as waitlist)
+	/***************************************************************************************************
+	* Find session type by duration (same pattern as waitlist).
+	***************************************************************************************************/
 	services, err := db.GetSessionTypesBySpecialistID(specialist.ID)
 	if err != nil || len(services) == 0 {
 		httpError(w, r, "Error.NoServices", http.StatusBadRequest)
@@ -763,7 +1162,9 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Create booking with created_by = "specialist"
+	/***************************************************************************************************
+	* Create booking with created_by = "specialist".
+	***************************************************************************************************/
 	booking, err := db.CreateBookingBySpecialist(specialist.ID, client.ID, sessionTypeID, startsAt, endsAt, client.Name, req.Message, req.Duration)
 	if err != nil {
 		log.Printf("Error creating booking: %v", err)
@@ -774,14 +1175,18 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	log.Printf("SPECIALIST BOOKING [%s] Specialist: %s booked client: %s | Duration: %dmin | Time: %s %s",
 		booking.ID[:8], specialist.Name, client.Name, req.Duration, req.Date, req.Time)
 
-	// Ghost clients: auto-confirm and skip notification
+	/***************************************************************************************************
+	* Ghost clients: auto-confirm and skip notification.
+	***************************************************************************************************/
 	if client.IsGhost {
 		if err := db.UpdateBookingStatus(booking.ID, models.BookingStatusConfirmed); err != nil {
 			log.Printf("Error auto-confirming ghost booking: %v", err)
 		}
 		booking, _ = db.GetBookingByID(booking.ID)
 	} else {
-		// Notify client about specialist-created booking
+		/***************************************************************************************************
+		* Notify client about specialist-created booking.
+		***************************************************************************************************/
 		if NotifySpecialistBookingFunc != nil {
 			if err := NotifySpecialistBookingFunc(booking); err != nil {
 				log.Printf("Error notifying client about specialist booking: %v", err)
@@ -793,13 +1198,29 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-// ========== Days Off ==========
 
+/***************************************************************************************************
+* Days Off.
+***************************************************************************************************/
 type CreateDayOffRequest struct {
 	Date   string `json:"date"` // YYYY-MM-DD
 	Reason string `json:"reason,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles get days off.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetDaysOff(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -818,9 +1239,24 @@ func HandleGetDaysOff(w http.ResponseWriter, r *http.Request) {
 		daysOff = []models.DayOff{}
 	}
 
+	setPrivateCache(w, 300, 600)
 	writeJSON(w, daysOff)
 }
 
+/***************************************************************************************************
+* Handles create day off.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -845,7 +1281,9 @@ func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if already exists
+	/***************************************************************************************************
+	* Check if already exists.
+	***************************************************************************************************/
 	existing, _ := db.GetDayOff(specialist.ID, date)
 	if existing != nil {
 		httpError(w, r, "Error.DayOffDuplicate", http.StatusConflict)
@@ -863,6 +1301,20 @@ func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, dayOff)
 }
 
+/***************************************************************************************************
+* Handles delete day off.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -885,8 +1337,10 @@ func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ========== Profile ==========
 
+/***************************************************************************************************
+* Profile.
+***************************************************************************************************/
 type UpdateProfileRequest struct {
 	Name              string   `json:"name,omitempty"`
 	TelegramHandle    string   `json:"telegramHandle,omitempty"`
@@ -899,6 +1353,20 @@ type UpdateProfileRequest struct {
 	Language          string   `json:"language,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles get profile.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -924,6 +1392,20 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, resp)
 }
 
+/***************************************************************************************************
+* Handles update profile.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -942,13 +1424,17 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update name if provided
+	/***************************************************************************************************
+	* Update name if provided.
+	***************************************************************************************************/
 	if req.Name != "" {
 		specialist.Name = req.Name
 		db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs)
 	}
 
-	// Update profile fields
+	/***************************************************************************************************
+	* Update profile fields.
+	***************************************************************************************************/
 	telegramHandle := specialist.TelegramHandle
 	if req.TelegramHandle != "" {
 		telegramHandle = req.TelegramHandle
@@ -986,7 +1472,9 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update language if valid
+	/***************************************************************************************************
+	* Update language if valid.
+	***************************************************************************************************/
 	if req.Language == "ru" || req.Language == "en" {
 		db.UpdateSpecialistLanguage(specialist.ID, req.Language)
 		updated.Language = req.Language
@@ -1010,8 +1498,21 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, resp)
 }
 
-// ========== Admin Clients ==========
 
+/***************************************************************************************************
+* Admin Clients.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -1046,6 +1547,20 @@ func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, client)
 }
 
+/***************************************************************************************************
+* Handles admin delete client.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -1080,6 +1595,20 @@ func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+/***************************************************************************************************
+* Handles admin update client.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -1142,6 +1671,20 @@ func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, updated)
 }
 
+/***************************************************************************************************
+* Handles admin get clients.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -1163,18 +1706,37 @@ func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, clients)
 }
 
-// ========== Admin Notification Preferences ==========
 
+/***************************************************************************************************
+* Admin Notification Preferences.
+***************************************************************************************************/
 type AdminNotificationPrefsResponse struct {
 	NotifyNewBookings   bool `json:"notifyNewBookings"`
 	NotifyCancellations bool `json:"notifyCancellations"`
 }
 
+/***************************************************************************************************
+* Defines the update admin notification prefs request type used by the api layer.
+***************************************************************************************************/
 type UpdateAdminNotificationPrefsRequest struct {
 	NotifyNewBookings   *bool `json:"notifyNewBookings"`
 	NotifyCancellations *bool `json:"notifyCancellations"`
 }
 
+/***************************************************************************************************
+* Handles admin get notification prefs.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -1189,6 +1751,20 @@ func HandleAdminGetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, resp)
 }
 
+/***************************************************************************************************
+* Handles admin update notification prefs.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -1224,8 +1800,10 @@ func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, resp)
 }
 
-// ========== Super Admin ==========
 
+/***************************************************************************************************
+* Super Admin.
+***************************************************************************************************/
 type SpecialistListItem struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -1234,6 +1812,20 @@ type SpecialistListItem struct {
 	CreatedAt   string `json:"createdAt"`
 }
 
+/***************************************************************************************************
+* Handles list all specialists.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleListAllSpecialists(w http.ResponseWriter, r *http.Request) {
 	specialists, err := db.GetAllActiveSpecialists()
 	if err != nil {

@@ -10,7 +10,19 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// GlobalRateLimitMiddleware limits total requests per second across all clients.
+/***************************************************************************************************
+* GlobalRateLimitMiddleware limits total requests per second across all clients.
+*
+* Parameters:
+* - rps: Rps used by the current operation.
+* - burst: Burst used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as func(http.Handler) http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func GlobalRateLimitMiddleware(rps float64, burst int) func(http.Handler) http.Handler {
 	limiter := rate.NewLimiter(rate.Limit(rps), burst)
 	return func(next http.Handler) http.Handler {
@@ -25,12 +37,26 @@ func GlobalRateLimitMiddleware(rps float64, burst int) func(http.Handler) http.H
 	}
 }
 
-// PerIPRateLimitMiddleware limits requests per second per client IP.
+/***************************************************************************************************
+* PerIPRateLimitMiddleware limits requests per second per client IP.
+*
+* Parameters:
+* - rps: Rps used by the current operation.
+* - burst: Burst used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as func(http.Handler) http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func PerIPRateLimitMiddleware(rps float64, burst int) func(http.Handler) http.Handler {
 	var mu sync.Mutex
 	limiters := make(map[string]*rateLimiterEntry)
 
-	// Background cleanup every 5 minutes
+	/***************************************************************************************************
+	* Background cleanup every 5 minutes.
+	***************************************************************************************************/
 	go func() {
 		for {
 			time.Sleep(5 * time.Minute)
@@ -74,6 +100,9 @@ func PerIPRateLimitMiddleware(rps float64, burst int) func(http.Handler) http.Ha
 	}
 }
 
+/***************************************************************************************************
+* Defines the rate limiter entry type used by the api layer.
+***************************************************************************************************/
 type rateLimiterEntry struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time

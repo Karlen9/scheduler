@@ -9,6 +9,18 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+/***************************************************************************************************
+* Scans client.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func scanClient(row interface {
 	Scan(dest ...interface{}) error
 }) (*models.Client, error) {
@@ -45,6 +57,19 @@ func scanClient(row interface {
 	return &c, nil
 }
 
+/***************************************************************************************************
+* Returns client by telegram id.
+*
+* Parameters:
+* - telegramUserID: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
 		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
@@ -62,6 +87,18 @@ func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.C
 	return c, nil
 }
 
+/***************************************************************************************************
+* Returns client by id.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
 		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
@@ -79,6 +116,20 @@ func GetClientByID(id string) (*models.Client, error) {
 	return c, nil
 }
 
+/***************************************************************************************************
+* Creates client.
+*
+* Parameters:
+* - telegramUserID: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+* - name: Name used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateClient(telegramUserID int64, specialistID string, name string) (*models.Client, error) {
 	id := uuid.New().String()
 
@@ -93,6 +144,20 @@ func CreateClient(telegramUserID int64, specialistID string, name string) (*mode
 	return GetClientByID(id)
 }
 
+/***************************************************************************************************
+* Returns or create client.
+*
+* Parameters:
+* - telegramUserID: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+* - name: Name used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetOrCreateClient(telegramUserID int64, specialistID string, name string) (*models.Client, error) {
 	client, err := GetClientByTelegramID(telegramUserID, specialistID)
 	if err != nil {
@@ -104,22 +169,78 @@ func GetOrCreateClient(telegramUserID int64, specialistID string, name string) (
 	return CreateClient(telegramUserID, specialistID, name)
 }
 
+/***************************************************************************************************
+* Updates client name.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - name: Name used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateClientName(clientID string, name string) error {
 	_, err := DB.Exec(Q(`UPDATE clients SET name = ? WHERE id = ?`), name, clientID)
 	return err
 }
 
+/***************************************************************************************************
+* Updates client profile.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - name: Name used by the current operation.
+* - phone: Phone used by the current operation.
+* - preferredDuration: Duration value used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateClientProfile(clientID string, name string, phone string, preferredDuration int) error {
 	_, err := DB.Exec(Q(`UPDATE clients SET name = ?, phone = ?, preferred_duration = ? WHERE id = ?`), name, phone, preferredDuration, clientID)
 	return err
 }
 
+/***************************************************************************************************
+* Updates client notification prefs.
+*
+* Parameters:
+* - notifyDaysOff: Notify days off used by the current operation.
+* - notifyReminders: Notify reminders used by the current operation.
+* - notifyBookingStatus: Notify booking status used by the current operation.
+* - clientID: Identifier used to target the current record.
+* - notifyCancellations: Notify cancellations used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateClientNotificationPrefs(clientID string, notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations bool) error {
 	_, err := DB.Exec(Q(`UPDATE clients SET notify_booking_status = ?, notify_reminders = ?, notify_days_off = ?, notify_cancellations = ? WHERE id = ?`),
 		boolToInt(notifyBookingStatus), boolToInt(notifyReminders), boolToInt(notifyDaysOff), boolToInt(notifyCancellations), clientID)
 	return err
 }
 
+/***************************************************************************************************
+* Implements the bool to int logic used by this module.
+*
+* Parameters:
+* - b: B used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as int.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func boolToInt(b bool) int {
 	if b {
 		return 1
@@ -127,16 +248,54 @@ func boolToInt(b bool) int {
 	return 0
 }
 
+/***************************************************************************************************
+* Updates client photo.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - fileID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateClientPhoto(clientID, fileID string) error {
 	_, err := DB.Exec(Q(`UPDATE clients SET photo_url = ? WHERE id = ?`), fileID, clientID)
 	return err
 }
 
+/***************************************************************************************************
+* Updates specialist photo.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - fileID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateSpecialistPhoto(specialistID, fileID string) error {
 	_, err := DB.Exec(Q(`UPDATE specialists SET photo_url = ? WHERE id = ?`), fileID, specialistID)
 	return err
 }
 
+/***************************************************************************************************
+* Returns clients by specialist id.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
 		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
@@ -160,16 +319,54 @@ func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
 	return clients, rows.Err()
 }
 
+/***************************************************************************************************
+* Deletes client.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func DeleteClient(clientID string) error {
 	_, err := DB.Exec(Q(`DELETE FROM clients WHERE id = ?`), clientID)
 	return err
 }
 
+/***************************************************************************************************
+* Updates client display name.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - displayName: Display name used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateClientDisplayName(clientID string, displayName string) error {
 	_, err := DB.Exec(Q(`UPDATE clients SET display_name = ? WHERE id = ?`), displayName, clientID)
 	return err
 }
 
+/***************************************************************************************************
+* Updates ghost client name.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - name: Name used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateGhostClientName(clientID string, name string) error {
 	tx, err := DB.Begin()
 	if err != nil {
@@ -189,11 +386,37 @@ func UpdateGhostClientName(clientID string, name string) error {
 	return tx.Commit()
 }
 
+/***************************************************************************************************
+* Updates client language.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - language: Language used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateClientLanguage(clientID, language string) error {
 	_, err := DB.Exec(Q(`UPDATE clients SET language = ? WHERE id = ?`), language, clientID)
 	return err
 }
 
+/***************************************************************************************************
+* Creates ghost client.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - name: Name used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateGhostClient(specialistID, name string) (*models.Client, error) {
 	id := uuid.New().String()
 	fakeTelegramID := -time.Now().UnixNano()

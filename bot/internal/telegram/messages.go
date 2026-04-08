@@ -13,6 +13,19 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+/***************************************************************************************************
+* Formats date time.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - t: T used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func formatDateTime(loc *i18n.Localizer, t time.Time) string {
 	weekdays := []string{"Date.Sun", "Date.Mon", "Date.Tue", "Date.Wed", "Date.Thu", "Date.Fri", "Date.Sat"}
 	months := []string{"", "Date.Jan", "Date.Feb", "Date.Mar", "Date.Apr", "Date.May", "Date.Jun", "Date.Jul", "Date.Aug", "Date.Sep", "Date.Oct", "Date.Nov", "Date.Dec"}
@@ -25,10 +38,36 @@ func formatDateTime(loc *i18n.Localizer, t time.Time) string {
 	)
 }
 
+/***************************************************************************************************
+* Formats price.
+*
+* Parameters:
+* - price: Price used by the current operation.
+* - currency: Currency used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func formatPrice(price int, currency string) string {
 	return fmt.Sprintf("%d %s", price, currency)
 }
 
+/***************************************************************************************************
+* Formats duration.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - minutes: Minutes used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func formatDuration(loc *i18n.Localizer, minutes int) string {
 	if minutes <= 0 {
 		return ""
@@ -41,6 +80,19 @@ func formatDuration(loc *i18n.Localizer, minutes int) string {
 	return fmt.Sprintf("%.1g %s", hours, unit)
 }
 
+/***************************************************************************************************
+* Implements the booking duration display logic used by this module.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func bookingDurationDisplay(loc *i18n.Localizer, booking *models.Booking) string {
 	if booking.SessionType != nil {
 		return booking.SessionType.Name
@@ -51,6 +103,19 @@ func bookingDurationDisplay(loc *i18n.Localizer, booking *models.Booking) string
 	return myI18n.T(loc, "Hint.DefaultSession")
 }
 
+/***************************************************************************************************
+* Implements the booking service display logic used by this module.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func bookingServiceDisplay(loc *i18n.Localizer, booking *models.Booking) string {
 	if booking.SessionType != nil {
 		if booking.DurationMinutes > 0 {
@@ -64,9 +129,21 @@ func bookingServiceDisplay(loc *i18n.Localizer, booking *models.Booking) string 
 	return myI18n.T(loc, "Hint.DefaultSession")
 }
 
-// localizeCancelReason translates known cancel reason keys stored in the DB.
-// If the reason matches a known i18n key (e.g. "rescheduled" -> "CancelReason.Rescheduled"),
-// it returns the localized string. Otherwise returns the reason as-is.
+/***************************************************************************************************
+* localizeCancelReason translates known cancel reason keys stored in the DB. If the reason matches
+* a known i18n key (e.g. "rescheduled" -> "CancelReason.Rescheduled"), it returns the localized
+* string. Otherwise returns the reason as-is.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - reason: Reason used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func localizeCancelReason(loc *i18n.Localizer, reason string) string {
 	knownKeys := map[string]string{
 		"rescheduled": "CancelReason.Rescheduled",
@@ -77,25 +154,107 @@ func localizeCancelReason(loc *i18n.Localizer, reason string) string {
 	return reason
 }
 
-// BtnOpenApp returns the localized button text for opening the mini-app
+/***************************************************************************************************
+* BtnOpenApp returns the localized button text for opening the mini-app. }.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string { return myI18n.T(loc, "Btn.OpenApp")
+* }.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func BtnOpenApp(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.OpenApp") }
 
-// BtnOpenAdmin returns the localized button text for opening admin panel
+/***************************************************************************************************
+* BtnOpenAdmin returns the localized button text for opening admin panel. }.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string { return myI18n.T(loc, "Btn.OpenAdmin")
+* }.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func BtnOpenAdmin(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.OpenAdmin") }
 
-// BtnConfirm returns the localized confirm button text
+/***************************************************************************************************
+* BtnConfirm returns the localized confirm button text. }.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string { return myI18n.T(loc, "Btn.Confirm")
+* }.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func BtnConfirm(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Confirm") }
 
-// BtnReject returns the localized reject button text
+/***************************************************************************************************
+* BtnReject returns the localized reject button text.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string { return myI18n.T(loc, "Btn.Reject") }.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func BtnReject(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Reject") }
 
-// BtnAccept returns the localized accept button text (for clients)
+/***************************************************************************************************
+* BtnAccept returns the localized accept button text (for clients).
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string { return myI18n.T(loc, "Btn.Accept") }.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func BtnAccept(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Accept") }
 
-// BtnDecline returns the localized decline button text (for clients)
+/***************************************************************************************************
+* BtnDecline returns the localized decline button text (for clients). }.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string { return myI18n.T(loc, "Btn.Decline")
+* }.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func BtnDecline(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Decline") }
 
-// FormatWelcome creates a welcome message with version and changelog
+/***************************************************************************************************
+* FormatWelcome creates a welcome message with version and changelog.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - version: Version used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatWelcome(loc *i18n.Localizer, version string) string {
 	msg := myI18n.T(loc, "Welcome.Client")
 	if version != "" {
@@ -108,7 +267,20 @@ func FormatWelcome(loc *i18n.Localizer, version string) string {
 	return msg
 }
 
-// FormatWelcomeSpecialist creates a specialist welcome message with version and changelog
+/***************************************************************************************************
+* FormatWelcomeSpecialist creates a specialist welcome message with version and changelog.
+*
+* Parameters:
+* - version: Version used by the current operation.
+* - loc: Loc used by the current operation.
+* - miniAppURL: Mini app url used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatWelcomeSpecialist(loc *i18n.Localizer, version, miniAppURL string) string {
 	msg := myI18n.T(loc, "Welcome.Specialist")
 	msg += "\n\n" + myI18n.Tf(loc, "BotFatherLink", map[string]interface{}{"URL": miniAppURL})
@@ -122,12 +294,36 @@ func FormatWelcomeSpecialist(loc *i18n.Localizer, version, miniAppURL string) st
 	return msg
 }
 
-// FormatHelpSpecialist creates the help message for specialists
+/***************************************************************************************************
+* FormatHelpSpecialist creates the help message for specialists.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - clientURL: Client url used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatHelpSpecialist(loc *i18n.Localizer, clientURL string) string {
 	return fmt.Sprintf(myI18n.T(loc, "Help.Specialist"), clientURL)
 }
 
-// FormatNewBookingMessage creates a message for specialist about new booking request
+/***************************************************************************************************
+* FormatNewBookingMessage creates a message for specialist about new booking request.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatNewBookingMessage(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"ClientName": booking.ClientName,
@@ -141,7 +337,19 @@ func FormatNewBookingMessage(loc *i18n.Localizer, booking *models.Booking) strin
 	return msg
 }
 
-// FormatBookingAcceptedSpecialist creates a message for specialist after accepting
+/***************************************************************************************************
+* FormatBookingAcceptedSpecialist creates a message for specialist after accepting.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingAcceptedSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.ConfirmedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,
@@ -150,7 +358,19 @@ func FormatBookingAcceptedSpecialist(loc *i18n.Localizer, booking *models.Bookin
 	})
 }
 
-// FormatBookingRejectedSpecialist creates a message for specialist after rejecting
+/***************************************************************************************************
+* FormatBookingRejectedSpecialist creates a message for specialist after rejecting.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingRejectedSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.RejectedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,
@@ -159,7 +379,19 @@ func FormatBookingRejectedSpecialist(loc *i18n.Localizer, booking *models.Bookin
 	})
 }
 
-// FormatBookingConfirmedClient creates a message for client when booking is confirmed
+/***************************************************************************************************
+* FormatBookingConfirmedClient creates a message for client when booking is confirmed.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingConfirmedClient(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.ConfirmedClient", map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -167,7 +399,19 @@ func FormatBookingConfirmedClient(loc *i18n.Localizer, booking *models.Booking) 
 	})
 }
 
-// FormatBookingRejectedClient creates a message for client when booking is rejected
+/***************************************************************************************************
+* FormatBookingRejectedClient creates a message for client when booking is rejected.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingRejectedClient(loc *i18n.Localizer, booking *models.Booking) string {
 	var msg string
 	if booking.CancelReason != "" {
@@ -179,7 +423,20 @@ func FormatBookingRejectedClient(loc *i18n.Localizer, booking *models.Booking) s
 	return msg
 }
 
-// FormatBookingCancelledBySpecialistClient creates a message for client when specialist cancels a booking
+/***************************************************************************************************
+* FormatBookingCancelledBySpecialistClient creates a message for client when specialist cancels a
+* booking.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingCancelledBySpecialistClient(loc *i18n.Localizer, booking *models.Booking) string {
 	msg := myI18n.Tf(loc, "Booking.CancelledBySpecialistClient", map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -192,7 +449,19 @@ func FormatBookingCancelledBySpecialistClient(loc *i18n.Localizer, booking *mode
 	return msg
 }
 
-// FormatBookingPendingClient creates a message for client after booking creation
+/***************************************************************************************************
+* FormatBookingPendingClient creates a message for client after booking creation.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingPendingClient(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.PendingClient", map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -200,7 +469,19 @@ func FormatBookingPendingClient(loc *i18n.Localizer, booking *models.Booking) st
 	})
 }
 
-// FormatReminderClient creates a reminder message for client 1h before session
+/***************************************************************************************************
+* FormatReminderClient creates a reminder message for client 1h before session.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatReminderClient(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.ReminderClient", map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -208,8 +489,20 @@ func FormatReminderClient(loc *i18n.Localizer, booking *models.Booking) string {
 	})
 }
 
-// ========== Recurring Schedule Messages ==========
 
+/***************************************************************************************************
+* Recurring Schedule Messages.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - day: Day used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func getDayNameShort(loc *i18n.Localizer, day int) string {
 	keys := []string{"Date.Sun", "Date.Mon", "Date.Tue", "Date.Wed", "Date.Thu", "Date.Fri", "Date.Sat"}
 	if day >= 0 && day < len(keys) {
@@ -218,6 +511,19 @@ func getDayNameShort(loc *i18n.Localizer, day int) string {
 	return "?"
 }
 
+/***************************************************************************************************
+* Formats days of week msg.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - daysOfWeek: Days of week used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func formatDaysOfWeekMsg(loc *i18n.Localizer, daysOfWeek string) string {
 	if daysOfWeek == "" {
 		return "?"
@@ -233,7 +539,19 @@ func formatDaysOfWeekMsg(loc *i18n.Localizer, daysOfWeek string) string {
 	return strings.Join(names, ", ")
 }
 
-// formatDayTimesMsg formats per-day times like "Mon 09:00, Wed 10:30"
+/***************************************************************************************************
+* formatDayTimesMsg formats per-day times like "Mon 09:00, Wed 10:30".
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - dayTimesJSON: Time value used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func formatDayTimesMsg(loc *i18n.Localizer, dayTimesJSON string) string {
 	if dayTimesJSON == "" {
 		return ""
@@ -242,7 +560,9 @@ func formatDayTimesMsg(loc *i18n.Localizer, dayTimesJSON string) string {
 	if err := json.Unmarshal([]byte(dayTimesJSON), &m); err != nil {
 		return ""
 	}
-	// Sort by day number
+	/***************************************************************************************************
+	* Sort by day number.
+	***************************************************************************************************/
 	keys := make([]int, 0, len(m))
 	for k := range m {
 		d, _ := strconv.Atoi(k)
@@ -259,7 +579,19 @@ func formatDayTimesMsg(loc *i18n.Localizer, dayTimesJSON string) string {
 	return strings.Join(parts, ", ")
 }
 
-// scheduleTimeLine returns the schedule line for days+time display
+/***************************************************************************************************
+* scheduleTimeLine returns the schedule line for days+time display.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func scheduleTimeLine(loc *i18n.Localizer, schedule *models.RecurringSchedule) string {
 	if schedule.DayTimes != "" {
 		if s := formatDayTimesMsg(loc, schedule.DayTimes); s != "" {
@@ -269,6 +601,20 @@ func scheduleTimeLine(loc *i18n.Localizer, schedule *models.RecurringSchedule) s
 	return formatDaysOfWeekMsg(loc, schedule.DaysOfWeek) + " · " + schedule.Time
 }
 
+/***************************************************************************************************
+* Formats schedule date range.
+*
+* Parameters:
+* - startDate: Date value used by the current operation.
+* - loc: Loc used by the current operation.
+* - endDate: Date value used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func formatScheduleDateRange(loc *i18n.Localizer, startDate, endDate string) string {
 	if startDate == "" || endDate == "" {
 		return ""
@@ -284,6 +630,19 @@ func formatScheduleDateRange(loc *i18n.Localizer, startDate, endDate string) str
 		end.Day(), myI18n.T(loc, months[end.Month()]))
 }
 
+/***************************************************************************************************
+* Implements the schedule service display logic used by this module.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func scheduleServiceDisplay(loc *i18n.Localizer, schedule *models.RecurringSchedule) string {
 	if schedule.SessionType != nil {
 		if schedule.DurationMinutes > 0 {
@@ -297,7 +656,21 @@ func scheduleServiceDisplay(loc *i18n.Localizer, schedule *models.RecurringSched
 	return myI18n.T(loc, "Hint.DefaultSession")
 }
 
-// FormatRecurringScheduleRequest creates a message for specialist about new recurring schedule request from client
+/***************************************************************************************************
+* FormatRecurringScheduleRequest creates a message for specialist about new recurring schedule
+* request from client.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+* - count: Count used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatRecurringScheduleRequest(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
 	data := map[string]interface{}{
 		"ClientName": schedule.ClientName,
@@ -313,7 +686,21 @@ func FormatRecurringScheduleRequest(loc *i18n.Localizer, schedule *models.Recurr
 	return msg
 }
 
-// FormatRecurringScheduleRequestForClient creates a message for client about specialist-created schedule
+/***************************************************************************************************
+* FormatRecurringScheduleRequestForClient creates a message for client about specialist-created
+* schedule.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+* - count: Count used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatRecurringScheduleRequestForClient(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
 	data := map[string]interface{}{
 		"Service":   scheduleServiceDisplay(loc, schedule),
@@ -328,7 +715,21 @@ func FormatRecurringScheduleRequestForClient(loc *i18n.Localizer, schedule *mode
 	return msg
 }
 
-// FormatRecurringScheduleApproved creates a message shown to specialist after approving (or shown to specialist when client approves)
+/***************************************************************************************************
+* FormatRecurringScheduleApproved creates a message shown to specialist after approving (or shown
+* to specialist when client approves).
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+* - count: Count used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatRecurringScheduleApproved(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
 	return myI18n.Tf(loc, "Recurring.Approved", map[string]interface{}{
 		"ClientName": schedule.ClientName,
@@ -339,7 +740,20 @@ func FormatRecurringScheduleApproved(loc *i18n.Localizer, schedule *models.Recur
 	})
 }
 
-// FormatRecurringScheduleApprovedClient creates a message for client about approved schedule
+/***************************************************************************************************
+* FormatRecurringScheduleApprovedClient creates a message for client about approved schedule.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+* - count: Count used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatRecurringScheduleApprovedClient(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
 	return myI18n.Tf(loc, "Recurring.ApprovedClient", map[string]interface{}{
 		"Service":   scheduleServiceDisplay(loc, schedule),
@@ -349,7 +763,19 @@ func FormatRecurringScheduleApprovedClient(loc *i18n.Localizer, schedule *models
 	})
 }
 
-// FormatRecurringScheduleDeclined creates a message shown to specialist after declining
+/***************************************************************************************************
+* FormatRecurringScheduleDeclined creates a message shown to specialist after declining.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatRecurringScheduleDeclined(loc *i18n.Localizer, schedule *models.RecurringSchedule) string {
 	return myI18n.Tf(loc, "Recurring.Declined", map[string]interface{}{
 		"ClientName": schedule.ClientName,
@@ -359,7 +785,19 @@ func FormatRecurringScheduleDeclined(loc *i18n.Localizer, schedule *models.Recur
 	})
 }
 
-// FormatRecurringScheduleDeclinedClient creates a message for client about declined schedule
+/***************************************************************************************************
+* FormatRecurringScheduleDeclinedClient creates a message for client about declined schedule.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - schedule: Schedule used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatRecurringScheduleDeclinedClient(loc *i18n.Localizer, schedule *models.RecurringSchedule) string {
 	return myI18n.Tf(loc, "Recurring.DeclinedClient", map[string]interface{}{
 		"Service":   scheduleServiceDisplay(loc, schedule),
@@ -368,9 +806,20 @@ func FormatRecurringScheduleDeclinedClient(loc *i18n.Localizer, schedule *models
 	})
 }
 
-// ========== Cancellation Notification Messages ==========
 
-// FormatBookingCancelledForSpecialist creates a notification for specialist when client cancels
+/***************************************************************************************************
+* FormatBookingCancelledForSpecialist creates a notification for specialist when client cancels.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingCancelledForSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"ClientName": booking.ClientName,
@@ -384,7 +833,19 @@ func FormatBookingCancelledForSpecialist(loc *i18n.Localizer, booking *models.Bo
 	return msg
 }
 
-// FormatBookingCancelledForClient creates a notification for client when specialist cancels
+/***************************************************************************************************
+* FormatBookingCancelledForClient creates a notification for client when specialist cancels.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatBookingCancelledForClient(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -397,7 +858,21 @@ func FormatBookingCancelledForClient(loc *i18n.Localizer, booking *models.Bookin
 	return msg
 }
 
-// FormatMoveRequestForSpecialist creates a message for specialist when client requests booking move
+/***************************************************************************************************
+* FormatMoveRequestForSpecialist creates a message for specialist when client requests booking
+* move.
+*
+* Parameters:
+* - newBooking: New booking used by the current operation.
+* - loc: Loc used by the current operation.
+* - oldBooking: Old booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatMoveRequestForSpecialist(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
 	msg := myI18n.Tf(loc, "Move.RequestForSpecialist", map[string]interface{}{
 		"ClientName":  oldBooking.ClientName,
@@ -409,7 +884,20 @@ func FormatMoveRequestForSpecialist(loc *i18n.Localizer, newBooking, oldBooking 
 	return msg
 }
 
-// FormatMoveRequestForClient creates a message for client when specialist requests booking move
+/***************************************************************************************************
+* FormatMoveRequestForClient creates a message for client when specialist requests booking move.
+*
+* Parameters:
+* - newBooking: New booking used by the current operation.
+* - loc: Loc used by the current operation.
+* - oldBooking: Old booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatMoveRequestForClient(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
 	msg := myI18n.Tf(loc, "Move.RequestForClient", map[string]interface{}{
 		"Service":     bookingServiceDisplay(loc, oldBooking),
@@ -420,7 +908,20 @@ func FormatMoveRequestForClient(loc *i18n.Localizer, newBooking, oldBooking *mod
 	return msg
 }
 
-// FormatMoveApproved creates a message after move is approved
+/***************************************************************************************************
+* FormatMoveApproved creates a message after move is approved.
+*
+* Parameters:
+* - newBooking: New booking used by the current operation.
+* - loc: Loc used by the current operation.
+* - oldBooking: Old booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatMoveApproved(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
 	return myI18n.Tf(loc, "Move.Approved", map[string]interface{}{
 		"ClientName":  oldBooking.ClientName,
@@ -430,7 +931,19 @@ func FormatMoveApproved(loc *i18n.Localizer, newBooking, oldBooking *models.Book
 	})
 }
 
-// FormatMoveDeclined creates a message after move is declined
+/***************************************************************************************************
+* FormatMoveDeclined creates a message after move is declined.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - oldBooking: Old booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatMoveDeclined(loc *i18n.Localizer, oldBooking *models.Booking) string {
 	return myI18n.Tf(loc, "Move.Declined", map[string]interface{}{
 		"ClientName": oldBooking.ClientName,
@@ -439,9 +952,20 @@ func FormatMoveDeclined(loc *i18n.Localizer, oldBooking *models.Booking) string 
 	})
 }
 
-// ========== Specialist-Initiated Booking Messages ==========
 
-// FormatSpecialistCreatedBookingClient creates a message for client when specialist books them
+/***************************************************************************************************
+* FormatSpecialistCreatedBookingClient creates a message for client when specialist books them.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatSpecialistCreatedBookingClient(loc *i18n.Localizer, booking *models.Booking) string {
 	data := map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -454,7 +978,19 @@ func FormatSpecialistCreatedBookingClient(loc *i18n.Localizer, booking *models.B
 	return msg
 }
 
-// FormatSpecialistCreatedBookingClientAccepted creates the edited message after client accepts
+/***************************************************************************************************
+* FormatSpecialistCreatedBookingClientAccepted creates the edited message after client accepts.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatSpecialistCreatedBookingClientAccepted(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientAccepted", map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -462,7 +998,19 @@ func FormatSpecialistCreatedBookingClientAccepted(loc *i18n.Localizer, booking *
 	})
 }
 
-// FormatSpecialistCreatedBookingClientDeclined creates the edited message after client declines
+/***************************************************************************************************
+* FormatSpecialistCreatedBookingClientDeclined creates the edited message after client declines.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatSpecialistCreatedBookingClientDeclined(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientDeclined", map[string]interface{}{
 		"Service":  bookingServiceDisplay(loc, booking),
@@ -470,7 +1018,19 @@ func FormatSpecialistCreatedBookingClientDeclined(loc *i18n.Localizer, booking *
 	})
 }
 
-// FormatClientAcceptedBookingSpecialist creates a message for specialist when client accepts
+/***************************************************************************************************
+* FormatClientAcceptedBookingSpecialist creates a message for specialist when client accepts.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatClientAcceptedBookingSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.ClientAcceptedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,
@@ -479,7 +1039,19 @@ func FormatClientAcceptedBookingSpecialist(loc *i18n.Localizer, booking *models.
 	})
 }
 
-// FormatClientDeclinedBookingSpecialist creates a message for specialist when client declines
+/***************************************************************************************************
+* FormatClientDeclinedBookingSpecialist creates a message for specialist when client declines.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func FormatClientDeclinedBookingSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
 	return myI18n.Tf(loc, "Booking.ClientDeclinedSpecialist", map[string]interface{}{
 		"ClientName": booking.ClientName,

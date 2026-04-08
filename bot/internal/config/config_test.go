@@ -4,6 +4,18 @@ import (
 	"testing"
 )
 
+/***************************************************************************************************
+* Implements the test parse admin ids logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestParseAdminIDs(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -62,11 +74,27 @@ func TestParseAdminIDs(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test load defaults logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestLoadDefaults(t *testing.T) {
-	// PUBLIC_BASE_URL is required (log.Fatal if empty), always set it.
+	/***************************************************************************************************
+	* PUBLIC_BASE_URL is required (log.Fatal if empty), always set it.
+	***************************************************************************************************/
 	t.Setenv("PUBLIC_BASE_URL", "https://example.com")
 
-	// Clear vars that have defaults so we test the defaults.
+	/***************************************************************************************************
+	* Clear vars that have defaults so we test the defaults.
+	***************************************************************************************************/
 	t.Setenv("PORT", "")
 	t.Setenv("DATABASE_PATH", "")
 	t.Setenv("SPECIALIST_NAME", "")
@@ -91,6 +119,18 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test load with env vars logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestLoadWithEnvVars(t *testing.T) {
 	t.Setenv("PUBLIC_BASE_URL", "https://my-app.com")
 	t.Setenv("PORT", "9090")

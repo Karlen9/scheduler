@@ -5,12 +5,36 @@ import (
 	"testing"
 )
 
+/***************************************************************************************************
+* Implements the test init logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestInit(t *testing.T) {
 	if err := Init(); err != nil {
 		t.Fatalf("Init() returned error: %v", err)
 	}
 }
 
+/***************************************************************************************************
+* Implements the test new localizer logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestNewLocalizer(t *testing.T) {
 	Init()
 
@@ -29,6 +53,18 @@ func TestNewLocalizer(t *testing.T) {
 	})
 }
 
+/***************************************************************************************************
+* Implements the test t logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestT(t *testing.T) {
 	Init()
 
@@ -69,6 +105,18 @@ func TestT(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test tf logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestTf(t *testing.T) {
 	Init()
 
@@ -120,6 +168,18 @@ func TestTf(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test default logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestDefault(t *testing.T) {
 	Init()
 
@@ -128,13 +188,27 @@ func TestDefault(t *testing.T) {
 		t.Fatal("Default() returned nil")
 	}
 
-	// Default localizer should use Russian
+	/***************************************************************************************************
+	* Default localizer should use Russian.
+	***************************************************************************************************/
 	got := T(loc, "Btn.OpenApp")
 	if got != "Запись" {
 		t.Errorf("Default localizer T(\"Btn.OpenApp\") = %q, want %q", got, "Запись")
 	}
 }
 
+/***************************************************************************************************
+* Implements the test with localizer and l logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestWithLocalizerAndL(t *testing.T) {
 	Init()
 
@@ -147,7 +221,9 @@ func TestWithLocalizerAndL(t *testing.T) {
 			t.Fatal("L(ctx) returned nil")
 		}
 
-		// The retrieved localizer should produce English output
+		/***************************************************************************************************
+		* The retrieved localizer should produce English output.
+		***************************************************************************************************/
 		result := T(got, "Btn.OpenApp")
 		if result != "Book" {
 			t.Errorf("T with context localizer = %q, want %q", result, "Book")
@@ -161,7 +237,9 @@ func TestWithLocalizerAndL(t *testing.T) {
 			t.Fatal("L(ctx) returned nil for empty context")
 		}
 
-		// Fallback should be Russian (the default)
+		/***************************************************************************************************
+		* Fallback should be Russian (the default).
+		***************************************************************************************************/
 		result := T(got, "Btn.OpenApp")
 		if result != "Запись" {
 			t.Errorf("T with fallback localizer = %q, want %q", result, "Запись")
@@ -169,10 +247,36 @@ func TestWithLocalizerAndL(t *testing.T) {
 	})
 }
 
+/***************************************************************************************************
+* Implements the contains str logic used by this module.
+*
+* Parameters:
+* - s: S used by the current operation.
+* - substr: Substr used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as bool.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func containsStr(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsLoop(s, substr))
 }
 
+/***************************************************************************************************
+* Implements the contains loop logic used by this module.
+*
+* Parameters:
+* - s: S used by the current operation.
+* - substr: Substr used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as bool.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func containsLoop(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {

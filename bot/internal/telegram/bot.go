@@ -11,32 +11,48 @@ import (
 	"strconv"
 )
 
+/***************************************************************************************************
+* Defines the telegram api value used by the telegram bot layer.
+*
+* Usage context:
+* - Reused by the telegram bot layer to keep shared values centralized.
+***************************************************************************************************/
 const telegramAPI = "https://api.telegram.org/bot"
 
-// Bot represents a Telegram bot
+/***************************************************************************************************
+* Bot represents a Telegram bot.
+***************************************************************************************************/
 type Bot struct {
 	Token    string
 	Username string
 }
 
-// WebAppInfo holds web app URL
+/***************************************************************************************************
+* WebAppInfo holds web app URL.
+***************************************************************************************************/
 type WebAppInfo struct {
 	URL string `json:"url"`
 }
 
-// InlineKeyboardButton represents an inline keyboard button
+/***************************************************************************************************
+* InlineKeyboardButton represents an inline keyboard button.
+***************************************************************************************************/
 type InlineKeyboardButton struct {
 	Text         string      `json:"text"`
 	WebApp       *WebAppInfo `json:"web_app,omitempty"`
 	CallbackData string      `json:"callback_data,omitempty"`
 }
 
-// InlineKeyboardMarkup represents an inline keyboard
+/***************************************************************************************************
+* InlineKeyboardMarkup represents an inline keyboard.
+***************************************************************************************************/
 type InlineKeyboardMarkup struct {
 	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
 }
 
-// SendMessageRequest is the request body for sendMessage
+/***************************************************************************************************
+* SendMessageRequest is the request body for sendMessage.
+***************************************************************************************************/
 type SendMessageRequest struct {
 	ChatID      int64                 `json:"chat_id"`
 	Text        string                `json:"text"`
@@ -44,7 +60,9 @@ type SendMessageRequest struct {
 	ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
 }
 
-// EditMessageTextRequest is the request body for editMessageText
+/***************************************************************************************************
+* EditMessageTextRequest is the request body for editMessageText.
+***************************************************************************************************/
 type EditMessageTextRequest struct {
 	ChatID      int64                 `json:"chat_id"`
 	MessageID   int                   `json:"message_id"`
@@ -53,14 +71,18 @@ type EditMessageTextRequest struct {
 	ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
 }
 
-// Update represents a Telegram update
+/***************************************************************************************************
+* Update represents a Telegram update.
+***************************************************************************************************/
 type Update struct {
 	UpdateID      int            `json:"update_id"`
 	Message       *Message       `json:"message,omitempty"`
 	CallbackQuery *CallbackQuery `json:"callback_query,omitempty"`
 }
 
-// Message represents a Telegram message
+/***************************************************************************************************
+* Message represents a Telegram message.
+***************************************************************************************************/
 type Message struct {
 	MessageID int    `json:"message_id"`
 	Chat      Chat   `json:"chat"`
@@ -68,12 +90,16 @@ type Message struct {
 	Text      string `json:"text,omitempty"`
 }
 
-// Chat represents a Telegram chat
+/***************************************************************************************************
+* Chat represents a Telegram chat.
+***************************************************************************************************/
 type Chat struct {
 	ID int64 `json:"id"`
 }
 
-// User represents a Telegram user
+/***************************************************************************************************
+* User represents a Telegram user.
+***************************************************************************************************/
 type User struct {
 	ID           int64  `json:"id"`
 	FirstName    string `json:"first_name"`
@@ -82,7 +108,9 @@ type User struct {
 	LanguageCode string `json:"language_code,omitempty"`
 }
 
-// CallbackQuery represents a callback query
+/***************************************************************************************************
+* CallbackQuery represents a callback query.
+***************************************************************************************************/
 type CallbackQuery struct {
 	ID      string   `json:"id"`
 	From    User     `json:"from"`
@@ -90,13 +118,17 @@ type CallbackQuery struct {
 	Data    string   `json:"data"`
 }
 
-// GetUpdatesResponse is the response from getUpdates
+/***************************************************************************************************
+* GetUpdatesResponse is the response from getUpdates.
+***************************************************************************************************/
 type GetUpdatesResponse struct {
 	OK     bool     `json:"ok"`
 	Result []Update `json:"result"`
 }
 
-// GetMeResponse is the response from getMe
+/***************************************************************************************************
+* GetMeResponse is the response from getMe.
+***************************************************************************************************/
 type GetMeResponse struct {
 	OK     bool `json:"ok"`
 	Result struct {
@@ -104,26 +136,43 @@ type GetMeResponse struct {
 	} `json:"result"`
 }
 
-// SetWebhookRequest is the request body for setWebhook
+/***************************************************************************************************
+* SetWebhookRequest is the request body for setWebhook.
+***************************************************************************************************/
 type SetWebhookRequest struct {
 	URL         string `json:"url"`
 	SecretToken string `json:"secret_token,omitempty"`
 }
 
-// SetWebhookResponse is the response from setWebhook
+/***************************************************************************************************
+* SetWebhookResponse is the response from setWebhook.
+***************************************************************************************************/
 type SetWebhookResponse struct {
 	OK          bool   `json:"ok"`
 	Result      bool   `json:"result"`
 	Description string `json:"description,omitempty"`
 }
 
-// SendMessageResponse is the response from sendMessage
+/***************************************************************************************************
+* SendMessageResponse is the response from sendMessage.
+***************************************************************************************************/
 type SendMessageResponse struct {
 	OK     bool    `json:"ok"`
 	Result Message `json:"result"`
 }
 
-// NewBot creates a new Bot instance
+/***************************************************************************************************
+* NewBot creates a new Bot instance.
+*
+* Parameters:
+* - token: Token used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func NewBot(token string) (*Bot, error) {
 	bot := &Bot{Token: token}
 
@@ -146,7 +195,18 @@ func NewBot(token string) (*Bot, error) {
 	return bot, nil
 }
 
-// GetUpdates fetches updates from Telegram
+/***************************************************************************************************
+* GetUpdates fetches updates from Telegram.
+*
+* Parameters:
+* - offset: Offset used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) GetUpdates(offset int) ([]Update, error) {
 	resp, err := http.Get(fmt.Sprintf("%s%s/getUpdates?offset=%d&timeout=60", telegramAPI, b.Token, offset))
 	if err != nil {
@@ -166,7 +226,18 @@ func (b *Bot) GetUpdates(offset int) ([]Update, error) {
 	return result.Result, nil
 }
 
-// DeleteWebhook removes the current webhook and optionally drops pending updates
+/***************************************************************************************************
+* DeleteWebhook removes the current webhook and optionally drops pending updates.
+*
+* Parameters:
+* - dropPending: Drop pending used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) DeleteWebhook(dropPending bool) error {
 	data := map[string]interface{}{
 		"drop_pending_updates": dropPending,
@@ -198,7 +269,19 @@ func (b *Bot) DeleteWebhook(dropPending bool) error {
 	return nil
 }
 
-// SetWebhook sets the webhook URL for the bot
+/***************************************************************************************************
+* SetWebhook sets the webhook URL for the bot.
+*
+* Parameters:
+* - url: Url used by the current operation.
+* - secretToken: Secret token used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) SetWebhook(url string, secretToken string) error {
 	req := SetWebhookRequest{
 		URL:         url,
@@ -239,7 +322,18 @@ func (b *Bot) SetWebhook(url string, secretToken string) error {
 	return nil
 }
 
-// GetWebhookInfo returns current webhook info for debugging
+/***************************************************************************************************
+* GetWebhookInfo returns current webhook info for debugging.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The computed value for the current operation as (string, int, string).
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) GetWebhookInfo() (string, int, string) {
 	resp, err := http.Get(telegramAPI + b.Token + "/getWebhookInfo")
 	if err != nil {
@@ -262,7 +356,20 @@ func (b *Bot) GetWebhookInfo() (string, int, string) {
 	return result.Result.URL, result.Result.PendingUpdateCount, result.Result.LastErrorMessage
 }
 
-// SendMessageHTML sends a message with HTML parse mode
+/***************************************************************************************************
+* SendMessageHTML sends a message with HTML parse mode.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+* - replyMarkup: Reply markup used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) SendMessageHTML(chatID int64, text string, replyMarkup *InlineKeyboardMarkup) (*Message, error) {
 	req := SendMessageRequest{
 		ChatID:      chatID,
@@ -273,7 +380,20 @@ func (b *Bot) SendMessageHTML(chatID int64, text string, replyMarkup *InlineKeyb
 	return b.sendMessageRequest(req)
 }
 
-// SendMessage sends a message
+/***************************************************************************************************
+* SendMessage sends a message.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+* - replyMarkup: Reply markup used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) SendMessage(chatID int64, text string, replyMarkup *InlineKeyboardMarkup) (*Message, error) {
 	req := SendMessageRequest{
 		ChatID:      chatID,
@@ -283,6 +403,18 @@ func (b *Bot) SendMessage(chatID int64, text string, replyMarkup *InlineKeyboard
 	return b.sendMessageRequest(req)
 }
 
+/***************************************************************************************************
+* Implements the send message request logic used by this module.
+*
+* Parameters:
+* - req: Req used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) sendMessageRequest(req SendMessageRequest) (*Message, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
@@ -311,7 +443,20 @@ func (b *Bot) sendMessageRequest(req SendMessageRequest) (*Message, error) {
 	return &result.Result, nil
 }
 
-// SetChatMenuButton sets a web_app menu button for a specific user chat
+/***************************************************************************************************
+* SetChatMenuButton sets a web_app menu button for a specific user chat.
+*
+* Parameters:
+* - text: Text used by the current operation.
+* - chatID: Identifier used to target the current record.
+* - url: Url used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) SetChatMenuButton(chatID int64, text, url string) error {
 	data := map[string]interface{}{
 		"chat_id": chatID,
@@ -337,7 +482,21 @@ func (b *Bot) SetChatMenuButton(chatID int64, text, url string) error {
 	return nil
 }
 
-// EditMessageText edits a message's text
+/***************************************************************************************************
+* EditMessageText edits a message's text.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+* - replyMarkup: Reply markup used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) EditMessageText(chatID int64, messageID int, text string, replyMarkup *InlineKeyboardMarkup) error {
 	req := EditMessageTextRequest{
 		ChatID:      chatID,
@@ -368,7 +527,19 @@ func (b *Bot) EditMessageText(chatID int64, messageID int, text string, replyMar
 	return nil
 }
 
-// AnswerCallbackQuery answers a callback query
+/***************************************************************************************************
+* AnswerCallbackQuery answers a callback query.
+*
+* Parameters:
+* - callbackQueryID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) AnswerCallbackQuery(callbackQueryID string, text string) error {
 	data := map[string]interface{}{
 		"callback_query_id": callbackQueryID,
@@ -395,12 +566,38 @@ func (b *Bot) AnswerCallbackQuery(callbackQueryID string, text string) error {
 	return nil
 }
 
-// SendNotification sends a plain notification message (no inline buttons)
+/***************************************************************************************************
+* SendNotification sends a plain notification message (no inline buttons).
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) SendNotification(chatID int64, text string) (*Message, error) {
 	return b.SendMessage(chatID, text, nil)
 }
 
-// SendWebAppButton sends a message with web app button
+/***************************************************************************************************
+* SendWebAppButton sends a message with web app button.
+*
+* Parameters:
+* - text: Text used by the current operation.
+* - chatID: Identifier used to target the current record.
+* - webAppURL: Web app url used by the current operation.
+* - buttonLabel: Button label used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) SendWebAppButton(chatID int64, text, webAppURL string, buttonLabel ...string) (*Message, error) {
 	label := "📅"
 	if len(buttonLabel) > 0 && buttonLabel[0] != "" {
@@ -417,7 +614,20 @@ func (b *Bot) SendWebAppButton(chatID int64, text, webAppURL string, buttonLabel
 	return b.SendMessage(chatID, text, keyboard)
 }
 
-// SendPhoto sends a photo to a chat via multipart upload and returns the file_id and message_id
+/***************************************************************************************************
+* SendPhoto sends a photo to a chat via multipart upload and returns the file_id and message_id.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - photoData: Photo data used by the current operation.
+* - filename: Filename used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) SendPhoto(chatID int64, photoData []byte, filename string) (string, int, error) {
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
@@ -463,12 +673,26 @@ func (b *Bot) SendPhoto(chatID int64, photoData []byte, filename string) (string
 		return "", 0, fmt.Errorf("sendPhoto returned no photo sizes")
 	}
 
-	// Use the largest photo size (last in the array)
+	/***************************************************************************************************
+	* Use the largest photo size (last in the array).
+	***************************************************************************************************/
 	fileID := result.Result.Photo[len(result.Result.Photo)-1].FileID
 	return fileID, result.Result.MessageID, nil
 }
 
-// DeleteMessage deletes a message from a chat
+/***************************************************************************************************
+* DeleteMessage deletes a message from a chat.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) DeleteMessage(chatID int64, messageID int) error {
 	data := map[string]interface{}{
 		"chat_id":    chatID,
@@ -491,9 +715,22 @@ func (b *Bot) DeleteMessage(chatID int64, messageID int) error {
 	return nil
 }
 
-// GetFile downloads a file from Telegram by file_id. Returns file bytes and content type.
+/***************************************************************************************************
+* GetFile downloads a file from Telegram by file_id. Returns file bytes and content type.
+*
+* Parameters:
+* - fileID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
-	// Step 1: get file path via POST (avoids URL-encoding issues with file_id)
+	/***************************************************************************************************
+	* Step 1: get file path via POST (avoids URL-encoding issues with file_id).
+	***************************************************************************************************/
 	body := map[string]string{"file_id": fileID}
 	jsonBody, _ := json.Marshal(body)
 	resp, err := http.Post(
@@ -525,7 +762,9 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("getFile failed: %s", result.Description)
 	}
 
-	// Step 2: download the file
+	/***************************************************************************************************
+	* Step 2: download the file.
+	***************************************************************************************************/
 	fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.Token, result.Result.FilePath)
 	fileResp, err := http.Get(fileURL)
 	if err != nil {
@@ -546,7 +785,18 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 	return data, contentType, nil
 }
 
-// PollUpdates starts polling for updates
+/***************************************************************************************************
+* PollUpdates starts polling for updates.
+*
+* Parameters:
+* - handler: Handler used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (b *Bot) PollUpdates(handler func(Update)) {
 	offset := 0
 

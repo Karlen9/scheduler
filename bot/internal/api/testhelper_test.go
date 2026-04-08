@@ -22,31 +22,66 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+/***************************************************************************************************
+* Groups related module-level variables declared together for this module.
+***************************************************************************************************/
 var (
+	/***************************************************************************************************
+	* Defines the router value used by the api layer.
+	*
+	* Usage context:
+	* - Reused by the api layer to keep shared values centralized.
+	***************************************************************************************************/
 	router         http.Handler
+	/***************************************************************************************************
+	* Defines the test specialist value used by the api layer.
+	*
+	* Usage context:
+	* - Reused by the api layer to keep shared values centralized.
+	***************************************************************************************************/
 	testSpecialist *models.Specialist
 )
 
+/***************************************************************************************************
+* Implements the test main logic used by this module.
+*
+* Parameters:
+* - m: M used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestMain(m *testing.M) {
-	// Passthrough mode — no encryption
+	/***************************************************************************************************
+	* Passthrough mode — no encryption.
+	***************************************************************************************************/
 	if err := crypto.Init(""); err != nil {
 		fmt.Fprintf(os.Stderr, "crypto.Init: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Load locale files
+	/***************************************************************************************************
+	* Load locale files.
+	***************************************************************************************************/
 	if err := myI18n.Init(); err != nil {
 		fmt.Fprintf(os.Stderr, "i18n.Init: %v\n", err)
 		os.Exit(1)
 	}
 
-	// In-memory SQLite with shared cache
+	/***************************************************************************************************
+	* In-memory SQLite with shared cache.
+	***************************************************************************************************/
 	if err := db.Init("file::memory:?cache=shared"); err != nil {
 		fmt.Fprintf(os.Stderr, "db.Init: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Create a test specialist
+	/***************************************************************************************************
+	* Create a test specialist.
+	***************************************************************************************************/
 	var err error
 	testSpecialist, err = db.CreateSpecialist(111111, "test-bot-token", "testbot", "Test Specialist", "UTC", 24)
 	if err != nil {
@@ -54,7 +89,9 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// Set all notification callbacks to no-ops
+	/***************************************************************************************************
+	* Set all notification callbacks to no-ops.
+	***************************************************************************************************/
 	api.NotifyBookingFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyStatusChangeFunc = func(booking *models.Booking, newStatus string) error { return nil }
 	api.UpdateSpecialistMessageFunc = func(booking *models.Booking) error { return nil }
@@ -65,18 +102,54 @@ func TestMain(m *testing.M) {
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error { return nil }
 	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error { return nil }
 
-	// Create the router
+	/***************************************************************************************************
+	* Create the router.
+	***************************************************************************************************/
 	router = api.NewRouter()
 
 	os.Exit(m.Run())
 }
 
-// buildInitData generates a valid Telegram-signed initData string for testing.
+/***************************************************************************************************
+* buildInitData generates a valid Telegram-signed initData string for testing.
+*
+* Parameters:
+* - userID: Identifier used to target the current record.
+* - firstName: First name used by the current operation.
+* - botToken: Bot token used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func buildInitData(userID int64, firstName string, botToken string) string {
-	user := fmt.Sprintf(`{"id":%d,"first_name":"%s","last_name":"","username":"test_%d"}`, userID, firstName, userID)
-	authDate := fmt.Sprintf("%d", time.Now().Unix())
+	return buildInitDataAt(userID, firstName, botToken, time.Now().Unix())
+}
 
-	// Build data check string (sorted keys)
+/***************************************************************************************************
+* Builds init data at.
+*
+* Parameters:
+* - userID: Identifier used to target the current record.
+* - firstName: First name used by the current operation.
+* - botToken: Bot token used by the current operation.
+* - authUnix: Auth unix used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func buildInitDataAt(userID int64, firstName string, botToken string, authUnix int64) string {
+	user := fmt.Sprintf(`{"id":%d,"first_name":"%s","last_name":"","username":"test_%d"}`, userID, firstName, userID)
+	authDate := fmt.Sprintf("%d", authUnix)
+
+	/***************************************************************************************************
+	* Build data check string (sorted keys).
+	***************************************************************************************************/
 	parts := []string{
 		"auth_date=" + authDate,
 		"user=" + user,
@@ -84,7 +157,9 @@ func buildInitData(userID int64, firstName string, botToken string) string {
 	sort.Strings(parts)
 	dataCheckString := strings.Join(parts, "\n")
 
-	// Calculate HMAC using Telegram's algorithm
+	/***************************************************************************************************
+	* Calculate HMAC using Telegram's algorithm.
+	***************************************************************************************************/
 	secretKey := hmac.New(sha256.New, []byte("WebAppData"))
 	secretKey.Write([]byte(botToken))
 	secret := secretKey.Sum(nil)
@@ -93,7 +168,9 @@ func buildInitData(userID int64, firstName string, botToken string) string {
 	h.Write([]byte(dataCheckString))
 	hash := hex.EncodeToString(h.Sum(nil))
 
-	// Build query string
+	/***************************************************************************************************
+	* Build query string.
+	***************************************************************************************************/
 	v := url.Values{}
 	v.Set("user", user)
 	v.Set("auth_date", authDate)
@@ -101,6 +178,22 @@ func buildInitData(userID int64, firstName string, botToken string) string {
 	return v.Encode()
 }
 
+/***************************************************************************************************
+* Implements the do request logic used by this module.
+*
+* Parameters:
+* - method: Method used by the current operation.
+* - t: T used by the current operation.
+* - path: Path used by the current operation.
+* - body: Body used by the current operation.
+* - telegramUserID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as *httptest.ResponseRecorder.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func doRequest(t *testing.T, method, path string, body *string, telegramUserID int64) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -115,7 +208,9 @@ func doRequest(t *testing.T, method, path string, body *string, telegramUserID i
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
 
-	// Generate valid Telegram initData (signed HMAC)
+	/***************************************************************************************************
+	* Generate valid Telegram initData (signed HMAC).
+	***************************************************************************************************/
 	initData := buildInitData(telegramUserID, "Test User", testSpecialist.BotToken)
 	req.Header.Set("X-Telegram-Init-Data", initData)
 
@@ -124,19 +219,59 @@ func doRequest(t *testing.T, method, path string, body *string, telegramUserID i
 	return w
 }
 
-// doAdminRequest sends a request as the specialist (admin).
+/***************************************************************************************************
+* doAdminRequest sends a request as the specialist (admin).
+*
+* Parameters:
+* - method: Method used by the current operation.
+* - t: T used by the current operation.
+* - path: Path used by the current operation.
+* - body: Body used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *httptest.ResponseRecorder.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func doAdminRequest(t *testing.T, method, path string, body *string) *httptest.ResponseRecorder {
 	t.Helper()
 	return doRequest(t, method, path, body, testSpecialist.TelegramUserID)
 }
 
-// doClientRequest sends a request as a regular client with the given Telegram user ID.
+/***************************************************************************************************
+* doClientRequest sends a request as a regular client with the given Telegram user ID.
+*
+* Parameters:
+* - method: Method used by the current operation.
+* - t: T used by the current operation.
+* - path: Path used by the current operation.
+* - body: Body used by the current operation.
+* - clientTelegramID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as *httptest.ResponseRecorder.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func doClientRequest(t *testing.T, method, path string, body *string, clientTelegramID int64) *httptest.ResponseRecorder {
 	t.Helper()
 	return doRequest(t, method, path, body, clientTelegramID)
 }
 
-// jsonBody marshals v to a JSON string and returns a pointer to it.
+/***************************************************************************************************
+* jsonBody marshals v to a JSON string and returns a pointer to it.
+*
+* Parameters:
+* - v: V used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func jsonBody(v interface{}) *string {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -146,7 +281,20 @@ func jsonBody(v interface{}) *string {
 	return &s
 }
 
-// parseJSON decodes the response body into target and fails the test on error.
+/***************************************************************************************************
+* parseJSON decodes the response body into target and fails the test on error.
+*
+* Parameters:
+* - t: T used by the current operation.
+* - w: HTTP response writer used to send the reply.
+* - target: Target used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func parseJSON(t *testing.T, w *httptest.ResponseRecorder, target interface{}) {
 	t.Helper()
 	if err := json.NewDecoder(w.Body).Decode(target); err != nil {

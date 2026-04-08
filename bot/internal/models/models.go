@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+/***************************************************************************************************
+* Defines the specialist type used by the shared model layer.
+***************************************************************************************************/
 type Specialist struct {
 	ID                  string    `json:"id"`
 	TelegramUserID      int64     `json:"telegramUserId"`
@@ -29,6 +32,9 @@ type Specialist struct {
 	CreatedAt           time.Time `json:"createdAt"`
 }
 
+/***************************************************************************************************
+* Defines the client type used by the shared model layer.
+***************************************************************************************************/
 type Client struct {
 	ID                  string    `json:"id"`
 	TelegramUserID      int64     `json:"telegramUserId"`
@@ -47,6 +53,9 @@ type Client struct {
 	CreatedAt           time.Time `json:"createdAt"`
 }
 
+/***************************************************************************************************
+* Defines the session type type used by the shared model layer.
+***************************************************************************************************/
 type SessionType struct {
 	ID              string `json:"id"`
 	SpecialistID    string `json:"-"`
@@ -59,6 +68,9 @@ type SessionType struct {
 	IsActive        bool   `json:"-"`
 }
 
+/***************************************************************************************************
+* Defines the working hours type used by the shared model layer.
+***************************************************************************************************/
 type WorkingHours struct {
 	ID           string `json:"id"`
 	SpecialistID string `json:"-"`
@@ -67,25 +79,94 @@ type WorkingHours struct {
 	EndTime      string `json:"endTime"`
 }
 
+/***************************************************************************************************
+* Defines the booking status type used by the shared model layer.
+***************************************************************************************************/
 type BookingStatus string
 
+/***************************************************************************************************
+* Groups related constants declared together for this module.
+***************************************************************************************************/
 const (
+	/***************************************************************************************************
+	* Defines the booking status pending value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	BookingStatusPending           BookingStatus = "pending"
+	/***************************************************************************************************
+	* Defines the booking status confirmed value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	BookingStatusConfirmed         BookingStatus = "confirmed"
+	/***************************************************************************************************
+	* Defines the booking status rejected value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	BookingStatusRejected          BookingStatus = "rejected"
+	/***************************************************************************************************
+	* Defines the booking status cancelled value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	BookingStatusCancelled         BookingStatus = "cancelled"
+	/***************************************************************************************************
+	* Defines the booking status completed value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	BookingStatusCompleted         BookingStatus = "completed"
+	/***************************************************************************************************
+	* Defines the booking status cancel requested value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	BookingStatusCancelRequested   BookingStatus = "cancel_requested"
+	/***************************************************************************************************
+	* Defines the booking status reschedule pending value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	BookingStatusReschedulePending BookingStatus = "reschedule_pending"
 )
 
+/***************************************************************************************************
+* Defines the cancelled by type used by the shared model layer.
+***************************************************************************************************/
 type CancelledBy string
 
+/***************************************************************************************************
+* Groups related constants declared together for this module.
+***************************************************************************************************/
 const (
+	/***************************************************************************************************
+	* Defines the cancelled by client value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	CancelledByClient     CancelledBy = "client"
+	/***************************************************************************************************
+	* Defines the cancelled by specialist value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	CancelledBySpecialist CancelledBy = "specialist"
 )
 
+/***************************************************************************************************
+* Defines the booking type used by the shared model layer.
+***************************************************************************************************/
 type Booking struct {
 	ID                  string        `json:"id"`
 	SpecialistID        string        `json:"-"`
@@ -104,24 +185,57 @@ type Booking struct {
 	RecurringScheduleID string        `json:"recurringScheduleId,omitempty"`
 	ReplacesBookingID   string        `json:"replacesBookingId,omitempty"`
 
-	// Joined fields for API responses
+	/***************************************************************************************************
+	* Joined fields for API responses.
+	***************************************************************************************************/
 	SessionType       *SessionType `json:"sessionType,omitempty"`
 	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
 	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
 	Client            *Client      `json:"-"`
 }
 
-// RecurringScheduleStatus represents the status of a recurring schedule
+/***************************************************************************************************
+* RecurringScheduleStatus represents the status of a recurring schedule.
+***************************************************************************************************/
 type RecurringScheduleStatus string
 
+/***************************************************************************************************
+* Groups related constants declared together for this module.
+***************************************************************************************************/
 const (
+	/***************************************************************************************************
+	* Defines the recurring schedule status pending value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	RecurringScheduleStatusPending   RecurringScheduleStatus = "pending"
+	/***************************************************************************************************
+	* Defines the recurring schedule status active value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	RecurringScheduleStatusActive    RecurringScheduleStatus = "active"
+	/***************************************************************************************************
+	* Defines the recurring schedule status declined value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	RecurringScheduleStatusDeclined  RecurringScheduleStatus = "declined"
+	/***************************************************************************************************
+	* Defines the recurring schedule status cancelled value used by the shared model layer.
+	*
+	* Usage context:
+	* - Reused by the shared model layer to keep shared values centralized.
+	***************************************************************************************************/
 	RecurringScheduleStatusCancelled RecurringScheduleStatus = "cancelled"
 )
 
-// RecurringSchedule represents a recurring weekly booking schedule
+/***************************************************************************************************
+* RecurringSchedule represents a recurring weekly booking schedule.
+***************************************************************************************************/
 type RecurringSchedule struct {
 	ID              string                  `json:"id"`
 	SpecialistID    string                  `json:"-"`
@@ -133,27 +247,35 @@ type RecurringSchedule struct {
 	Status          RecurringScheduleStatus `json:"status"`
 	CreatedBy       string                  `json:"createdBy"`
 	CreatedAt       time.Time               `json:"createdAt"`
-	// Phase 2 fields
+	/***************************************************************************************************
+	* Phase 2 fields.
+	***************************************************************************************************/
 	SessionTypeID string `json:"sessionTypeId,omitempty"`
 	DaysOfWeek    string `json:"daysOfWeek,omitempty"`
 	StartDate     string `json:"startDate,omitempty"`
 	EndDate       string `json:"endDate,omitempty"`
 	DayTimes      string `json:"dayTimes,omitempty"`
-	// Joined fields
+	/***************************************************************************************************
+	* Joined fields.
+	***************************************************************************************************/
 	SessionType       *SessionType `json:"sessionType,omitempty"`
 	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
 	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
 	Bookings          []Booking    `json:"bookings,omitempty"`
 }
 
-// TimeSlot represents an available time slot for booking
+/***************************************************************************************************
+* TimeSlot represents an available time slot for booking.
+***************************************************************************************************/
 type TimeSlot struct {
 	Time      string `json:"time"`
 	EndTime   string `json:"endTime,omitempty"`
 	Available bool   `json:"available"`
 }
 
-// DayOff represents a day when specialist is not available
+/***************************************************************************************************
+* DayOff represents a day when specialist is not available.
+***************************************************************************************************/
 type DayOff struct {
 	ID           string    `json:"id"`
 	SpecialistID string    `json:"-"`
@@ -162,7 +284,18 @@ type DayOff struct {
 	CreatedAt    time.Time `json:"createdAt"`
 }
 
-// MarshalJSON serializes DayOff with date as "YYYY-MM-DD" string (not RFC3339 timestamp)
+/***************************************************************************************************
+* MarshalJSON serializes DayOff with date as "YYYY-MM-DD" string (not RFC3339 timestamp).
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func (d DayOff) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ID        string    `json:"id"`

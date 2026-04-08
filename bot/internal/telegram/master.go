@@ -12,23 +12,50 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-// OnboardingState tracks where a user is in the onboarding flow
+/***************************************************************************************************
+* OnboardingState tracks where a user is in the onboarding flow.
+***************************************************************************************************/
 type OnboardingState int
 
+/***************************************************************************************************
+* Groups related constants declared together for this module.
+***************************************************************************************************/
 const (
+	/***************************************************************************************************
+	* Defines the state none value used by the telegram bot layer.
+	*
+	* Usage context:
+	* - Reused by the telegram bot layer to keep shared values centralized.
+	***************************************************************************************************/
 	StateNone OnboardingState = iota
+	/***************************************************************************************************
+	* Defines the state awaiting token value used by the telegram bot layer.
+	*
+	* Usage context:
+	* - Reused by the telegram bot layer to keep shared values centralized.
+	***************************************************************************************************/
 	StateAwaitingToken
+	/***************************************************************************************************
+	* Defines the state awaiting name value used by the telegram bot layer.
+	*
+	* Usage context:
+	* - Reused by the telegram bot layer to keep shared values centralized.
+	***************************************************************************************************/
 	StateAwaitingName
 )
 
-// OnboardingSession holds temporary data during onboarding
+/***************************************************************************************************
+* OnboardingSession holds temporary data during onboarding.
+***************************************************************************************************/
 type OnboardingSession struct {
 	State       OnboardingState
 	BotToken    string
 	BotUsername string
 }
 
-// MasterHandler handles the master bot for specialist onboarding
+/***************************************************************************************************
+* MasterHandler handles the master bot for specialist onboarding.
+***************************************************************************************************/
 type MasterHandler struct {
 	bot           *Bot
 	sessions      map[int64]*OnboardingSession // telegramUserID -> session
@@ -38,7 +65,21 @@ type MasterHandler struct {
 	adminIDs      []int64
 }
 
-// NewMasterHandler creates a new master bot handler
+/***************************************************************************************************
+* NewMasterHandler creates a new master bot handler.
+*
+* Parameters:
+* - publicBaseURL: Public base url used by the current operation.
+* - bot: Bot used by the current operation.
+* - webAppURL: Web app url used by the current operation.
+* - adminIDs: Identifiers used to target the related records.
+*
+* Returns:
+* - The computed value for the current operation as *MasterHandler.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int64) *MasterHandler {
 	return &MasterHandler{
 		bot:           bot,
@@ -49,12 +90,37 @@ func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int6
 	}
 }
 
+/***************************************************************************************************
+* Returns session.
+*
+* Parameters:
+* - userID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as *OnboardingSession.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) getSession(userID int64) *OnboardingSession {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return h.sessions[userID]
 }
 
+/***************************************************************************************************
+* Sets session.
+*
+* Parameters:
+* - userID: Identifier used to target the current record.
+* - session: Session used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) setSession(userID int64, session *OnboardingSession) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -65,7 +131,18 @@ func (h *MasterHandler) setSession(userID int64, session *OnboardingSession) {
 	}
 }
 
-// HandleUpdate processes incoming updates for the master bot
+/***************************************************************************************************
+* HandleUpdate processes incoming updates for the master bot.
+*
+* Parameters:
+* - update: Date value used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) HandleUpdate(update Update) {
 	if update.Message == nil {
 		return
@@ -76,16 +153,22 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 	chatID := msg.Chat.ID
 	text := strings.TrimSpace(msg.Text)
 
-	// Handle commands
+	/***************************************************************************************************
+	* Handle commands.
+	***************************************************************************************************/
 	if strings.HasPrefix(text, "/") {
 		h.handleCommand(chatID, userID, text, msg.From.LanguageCode)
 		return
 	}
 
-	// Handle conversation flow
+	/***************************************************************************************************
+	* Handle conversation flow.
+	***************************************************************************************************/
 	session := h.getSession(userID)
 	if session == nil {
-		// No active session, prompt to start
+		/***************************************************************************************************
+		* No active session, prompt to start.
+		***************************************************************************************************/
 		loc := myI18n.NewLocalizer(msg.From.LanguageCode)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 		return
@@ -101,6 +184,21 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 	}
 }
 
+/***************************************************************************************************
+* Handles command.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+* - langCode: Lang code used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) handleCommand(chatID, userID int64, text string, langCode string) {
 	cmd := strings.Split(text, " ")[0]
 	loc := myI18n.NewLocalizer(langCode)
@@ -125,6 +223,18 @@ func (h *MasterHandler) handleCommand(chatID, userID int64, text string, langCod
 	}
 }
 
+/***************************************************************************************************
+* Checks whether admin.
+*
+* Parameters:
+* - userID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as bool.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) isAdmin(userID int64) bool {
 	for _, id := range h.adminIDs {
 		if id == userID {
@@ -134,6 +244,20 @@ func (h *MasterHandler) isAdmin(userID int64) bool {
 	return false
 }
 
+/***************************************************************************************************
+* Handles admin specialists.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) handleAdminSpecialists(chatID, userID int64, loc *localizerType) {
 	if !h.isAdmin(userID) {
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
@@ -166,6 +290,20 @@ func (h *MasterHandler) handleAdminSpecialists(chatID, userID int64, loc *locali
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
+/***************************************************************************************************
+* Handles admin stats.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) handleAdminStats(chatID, userID int64, loc *localizerType) {
 	if !h.isAdmin(userID) {
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
@@ -185,8 +323,24 @@ func (h *MasterHandler) handleAdminStats(chatID, userID int64, loc *localizerTyp
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
+/***************************************************************************************************
+* Handles start.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
-	// Check if already registered
+	/***************************************************************************************************
+	* Check if already registered.
+	***************************************************************************************************/
 	existing, err := db.GetSpecialistByTelegramID(userID)
 	if err != nil {
 		log.Printf("Error checking existing specialist: %v", err)
@@ -195,7 +349,9 @@ func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 	}
 
 	if existing != nil && existing.IsActive {
-		// Already registered and active — re-register handler in case it was lost
+		/***************************************************************************************************
+		* Already registered and active — re-register handler in case it was lost.
+		***************************************************************************************************/
 		log.Printf("Specialist @%s already exists, re-registering handler", existing.BotUsername)
 		if OnSpecialistCreated != nil {
 			if err := OnSpecialistCreated(existing); err != nil {
@@ -209,24 +365,60 @@ func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 		return
 	}
 
-	// Start onboarding
+	/***************************************************************************************************
+	* Start onboarding.
+	***************************************************************************************************/
 	h.setSession(userID, &OnboardingSession{State: StateAwaitingToken})
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Welcome"), nil)
 }
 
+/***************************************************************************************************
+* Handles cancel.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) handleCancel(chatID, userID int64, loc *localizerType) {
 	h.setSession(userID, nil)
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Cancelled"), nil)
 }
 
+/***************************************************************************************************
+* Handles token input.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+* - session: Session used by the current operation.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, session *OnboardingSession, loc *localizerType) {
-	// Validate token format (basic check)
+	/***************************************************************************************************
+	* Validate token format (basic check).
+	***************************************************************************************************/
 	if !strings.Contains(text, ":") {
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.InvalidToken"), nil)
 		return
 	}
 
-	// Check if token already registered
+	/***************************************************************************************************
+	* Check if token already registered.
+	***************************************************************************************************/
 	existing, err := db.GetSpecialistByBotToken(text)
 	if err != nil {
 		log.Printf("Error checking existing bot: %v", err)
@@ -235,7 +427,9 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 	}
 	if existing != nil {
 		if existing.TelegramUserID == userID {
-			// Same user's bot — re-register handler and confirm
+			/***************************************************************************************************
+			* Same user's bot — re-register handler and confirm.
+			***************************************************************************************************/
 			log.Printf("Token for @%s already exists for same user, re-registering", existing.BotUsername)
 			if OnSpecialistCreated != nil {
 				if err := OnSpecialistCreated(existing); err != nil {
@@ -254,7 +448,9 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 		return
 	}
 
-	// Validate with Telegram
+	/***************************************************************************************************
+	* Validate with Telegram.
+	***************************************************************************************************/
 	bot, err := NewBot(text)
 	if err != nil {
 		log.Printf("Invalid bot token: %v", err)
@@ -262,7 +458,9 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 		return
 	}
 
-	// Token valid, save and ask for name
+	/***************************************************************************************************
+	* Token valid, save and ask for name.
+	***************************************************************************************************/
 	session.BotToken = text
 	session.BotUsername = bot.Username
 	session.State = StateAwaitingName
@@ -272,6 +470,23 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 	h.bot.SendMessage(chatID, msg, nil)
 }
 
+/***************************************************************************************************
+* Handles name input.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+* - session: Session used by the current operation.
+* - username: Username used by the current operation.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, session *OnboardingSession, username string, loc *localizerType) {
 	name := strings.TrimSpace(text)
 	if len(name) < 2 {
@@ -279,7 +494,9 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		return
 	}
 
-	// Create specialist
+	/***************************************************************************************************
+	* Create specialist.
+	***************************************************************************************************/
 	specialist, err := db.CreateSpecialist(
 		userID,
 		session.BotToken,
@@ -294,17 +511,23 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		return
 	}
 
-	// Save specialist's personal Telegram handle
+	/***************************************************************************************************
+	* Save specialist's personal Telegram handle.
+	***************************************************************************************************/
 	if username != "" {
 		if _, err := db.UpdateSpecialistProfile(specialist.ID, username, "", "", "", "", 0, 0); err != nil {
 			log.Printf("Error saving telegram handle: %v", err)
 		}
 	}
 
-	// Seed default data
+	/***************************************************************************************************
+	* Seed default data.
+	***************************************************************************************************/
 	h.seedDefaults(specialist.ID, loc)
 
-	// Register bot handler + webhook via main.go callback
+	/***************************************************************************************************
+	* Register bot handler + webhook via main.go callback.
+	***************************************************************************************************/
 	if OnSpecialistCreated != nil {
 		if err := OnSpecialistCreated(specialist); err != nil {
 			log.Printf("Error registering bot for @%s: %v", session.BotUsername, err)
@@ -314,18 +537,37 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		}
 	}
 
-	// Clear session
+	/***************************************************************************************************
+	* Clear session.
+	***************************************************************************************************/
 	h.setSession(userID, nil)
 
-	// Send success message
+	/***************************************************************************************************
+	* Send success message.
+	***************************************************************************************************/
 	msg := fmt.Sprintf(myI18n.T(loc, "Master.Success"), name, session.BotUsername, session.BotUsername, session.BotUsername)
 	h.bot.SendMessage(chatID, msg, nil)
 
 	log.Printf("New specialist registered: %s (@%s)", name, session.BotUsername)
 }
 
+/***************************************************************************************************
+* Implements the seed defaults logic used by this module.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *MasterHandler) seedDefaults(specialistID string, loc *localizerType) {
-	// Session types
+	/***************************************************************************************************
+	* Session types.
+	***************************************************************************************************/
 	sessionTypes := []struct {
 		typeCode string
 		name     string
@@ -341,7 +583,9 @@ func (h *MasterHandler) seedDefaults(specialistID string, loc *localizerType) {
 		db.CreateSessionType(specialistID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
 	}
 
-	// Working hours (Mon-Fri 9-18, Sat 10-15)
+	/***************************************************************************************************
+	* Working hours (Mon-Fri 9-18, Sat 10-15).
+	***************************************************************************************************/
 	workingHours := []struct {
 		day   int
 		start string
@@ -360,9 +604,16 @@ func (h *MasterHandler) seedDefaults(specialistID string, loc *localizerType) {
 	}
 }
 
-// OnSpecialistCreated is called when a new specialist is created or re-registered.
-// Set by main.go to register the new bot dynamically. Returns error if registration fails.
+/***************************************************************************************************
+* OnSpecialistCreated is called when a new specialist is created or re-registered. Set by main.go
+* to register the new bot dynamically. Returns error if registration fails.
+*
+* Usage context:
+* - Reused by the telegram bot layer to keep shared values centralized.
+***************************************************************************************************/
 var OnSpecialistCreated func(specialist *models.Specialist) error
 
-// localizerType is an alias for the go-i18n Localizer type used in master handler signatures
+/***************************************************************************************************
+* localizerType is an alias for the go-i18n Localizer type used in master handler signatures.
+***************************************************************************************************/
 type localizerType = i18n.Localizer

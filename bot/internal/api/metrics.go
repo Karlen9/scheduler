@@ -11,10 +11,37 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+/***************************************************************************************************
+* Groups related module-level variables declared together for this module.
+***************************************************************************************************/
 var (
+	/***************************************************************************************************
+	* Defines the http requests total value used by the api layer.
+	*
+	* Usage context:
+	* - Reused by the api layer to keep shared values centralized.
+	***************************************************************************************************/
 	httpRequestsTotal = promauto.NewCounterVec(
+		/***************************************************************************************************
+		* Defines the prometheus value used by the api layer.
+		*
+		* Usage context:
+		* - Reused by the api layer to keep shared values centralized.
+		***************************************************************************************************/
 		prometheus.CounterOpts{
+			/***************************************************************************************************
+			* Defines the name value used by the api layer.
+			*
+			* Usage context:
+			* - Reused by the api layer to keep shared values centralized.
+			***************************************************************************************************/
 			Name: "http_requests_total",
+			/***************************************************************************************************
+			* Defines the help value used by the api layer.
+			*
+			* Usage context:
+			* - Reused by the api layer to keep shared values centralized.
+			***************************************************************************************************/
 			Help: "Total number of HTTP requests",
 		},
 		[]string{"method", "path", "status"},
@@ -37,7 +64,18 @@ var (
 	)
 )
 
-// PrometheusMiddleware records request metrics.
+/***************************************************************************************************
+* PrometheusMiddleware records request metrics.
+*
+* Parameters:
+* - next: Next used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func PrometheusMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/metrics" || r.URL.Path == "/health" {
@@ -60,12 +98,27 @@ func PrometheusMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+/***************************************************************************************************
+* Defines the status writer type used by the api layer.
+***************************************************************************************************/
 type statusWriter struct {
 	http.ResponseWriter
 	status  int
 	written bool
 }
 
+/***************************************************************************************************
+* Implements the write header logic used by this module.
+*
+* Parameters:
+* - code: Code used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func (w *statusWriter) WriteHeader(code int) {
 	if !w.written {
 		w.status = code
@@ -74,6 +127,18 @@ func (w *statusWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
+/***************************************************************************************************
+* Implements the write logic used by this module.
+*
+* Parameters:
+* - b: B used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func (w *statusWriter) Write(b []byte) (int, error) {
 	if !w.written {
 		w.written = true
@@ -81,14 +146,28 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-// normalizeRoute extracts the chi route pattern to avoid high-cardinality labels.
-// Falls back to a truncated path if no pattern is found.
+/***************************************************************************************************
+* normalizeRoute extracts the chi route pattern to avoid high-cardinality labels. Falls back to a
+* truncated path if no pattern is found.
+*
+* Parameters:
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func normalizeRoute(r *http.Request) string {
 	rctx := chi.RouteContext(r.Context())
 	if rctx != nil && rctx.RoutePattern() != "" {
 		return rctx.RoutePattern()
 	}
-	// Fallback: collapse path segments that look like IDs
+	/***************************************************************************************************
+	* Fallback: collapse path segments that look like IDs.
+	***************************************************************************************************/
 	parts := strings.Split(r.URL.Path, "/")
 	for i, p := range parts {
 		if len(p) > 8 && !strings.HasPrefix(p, "api") {

@@ -11,14 +11,28 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-// Handler handles Telegram updates
+/***************************************************************************************************
+* Handler handles Telegram updates.
+***************************************************************************************************/
 type Handler struct {
 	Bot       *Bot
 	WebAppURL string
 	Version   string
 }
 
-// NewHandler creates a new Handler
+/***************************************************************************************************
+* NewHandler creates a new Handler.
+*
+* Parameters:
+* - bot: Bot used by the current operation.
+* - webAppURL: Web app url used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *Handler.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func NewHandler(bot *Bot, webAppURL string) *Handler {
 	return &Handler{
 		Bot:       bot,
@@ -26,7 +40,18 @@ func NewHandler(bot *Bot, webAppURL string) *Handler {
 	}
 }
 
-// HandleUpdate processes an incoming update
+/***************************************************************************************************
+* HandleUpdate processes an incoming update.
+*
+* Parameters:
+* - update: Date value used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) HandleUpdate(update Update) {
 	if update.Message != nil {
 		h.handleMessage(update.Message)
@@ -36,6 +61,18 @@ func (h *Handler) HandleUpdate(update Update) {
 	}
 }
 
+/***************************************************************************************************
+* Handles message.
+*
+* Parameters:
+* - msg: Msg used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) handleMessage(msg *Message) {
 	switch msg.Text {
 	case "/start":
@@ -47,8 +84,22 @@ func (h *Handler) handleMessage(msg *Message) {
 	}
 }
 
+/***************************************************************************************************
+* Handles start.
+*
+* Parameters:
+* - msg: Msg used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) handleStart(msg *Message) {
-	// Get specialist by bot token to include specialist ID in URL
+	/***************************************************************************************************
+	* Get specialist by bot token to include specialist ID in URL.
+	***************************************************************************************************/
 	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
 	if err != nil || specialist == nil {
 		log.Printf("Error getting specialist for bot: %v", err)
@@ -57,7 +108,9 @@ func (h *Handler) handleStart(msg *Message) {
 		return
 	}
 
-	// Check if the user is the specialist (owner of this bot)
+	/***************************************************************************************************
+	* Check if the user is the specialist (owner of this bot).
+	***************************************************************************************************/
 	if specialist.TelegramUserID == msg.From.ID {
 		lang := specialist.Language
 		if lang == "" {
@@ -67,7 +120,9 @@ func (h *Handler) handleStart(msg *Message) {
 		adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
 		clientURL := h.WebAppURL + "?specialist=" + specialist.ID + "&lang=" + lang
 
-		// Set persistent menu button for specialist (opens admin panel)
+		/***************************************************************************************************
+		* Set persistent menu button for specialist (opens admin panel).
+		***************************************************************************************************/
 		if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenAdmin(loc), adminURL); err != nil {
 			log.Printf("Error setting specialist menu button: %v", err)
 		}
@@ -85,11 +140,15 @@ func (h *Handler) handleStart(msg *Message) {
 		return
 	}
 
-	// Check if client exists
+	/***************************************************************************************************
+	* Check if client exists.
+	***************************************************************************************************/
 	client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
 	if client == nil {
-		// New user — show language selection (using Default() since language is not yet chosen;
-		// Lang.* keys are bilingual and identical in both locales)
+		/***************************************************************************************************
+		* New user — show language selection (using Default() since language is not yet chosen; Lang.*
+		* keys are bilingual and identical in both locales).
+		***************************************************************************************************/
 		defLoc := myI18n.Default()
 		keyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
@@ -103,7 +162,9 @@ func (h *Handler) handleStart(msg *Message) {
 		return
 	}
 
-	// Existing client
+	/***************************************************************************************************
+	* Existing client.
+	***************************************************************************************************/
 	lang := client.Language
 	if lang == "" {
 		lang = "ru"
@@ -111,7 +172,9 @@ func (h *Handler) handleStart(msg *Message) {
 	loc := myI18n.NewLocalizer(lang)
 	webAppURL := h.WebAppURL + "?specialist=" + specialist.ID + "&lang=" + lang
 
-	// Set persistent menu button for client (opens booking app)
+	/***************************************************************************************************
+	* Set persistent menu button for client (opens booking app).
+	***************************************************************************************************/
 	if err := h.Bot.SetChatMenuButton(msg.Chat.ID, BtnOpenApp(loc), webAppURL); err != nil {
 		log.Printf("Error setting client menu button: %v", err)
 	}
@@ -122,8 +185,22 @@ func (h *Handler) handleStart(msg *Message) {
 	}
 }
 
+/***************************************************************************************************
+* Handles admin.
+*
+* Parameters:
+* - msg: Msg used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) handleAdmin(msg *Message) {
-	// Check if user is the specialist (owner of this bot)
+	/***************************************************************************************************
+	* Check if user is the specialist (owner of this bot).
+	***************************************************************************************************/
 	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
 	if err != nil {
 		log.Printf("Error getting specialist: %v", err)
@@ -133,7 +210,9 @@ func (h *Handler) handleAdmin(msg *Message) {
 	if specialist == nil || specialist.TelegramUserID != msg.From.ID {
 		loc := myI18n.Default()
 		if specialist != nil {
-			// Try to get client language
+			/***************************************************************************************************
+			* Try to get client language.
+			***************************************************************************************************/
 			client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
 			if client != nil {
 				loc = myI18n.NewLocalizer(client.Language)
@@ -152,7 +231,9 @@ func (h *Handler) handleAdmin(msg *Message) {
 	}
 	loc := myI18n.NewLocalizer(lang)
 
-	// Open admin panel with specialist ID
+	/***************************************************************************************************
+	* Open admin panel with specialist ID.
+	***************************************************************************************************/
 	adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
 	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, myI18n.T(loc, "Handler.OpenAdmin"), adminURL, BtnOpenAdmin(loc))
 	if err != nil {
@@ -160,6 +241,18 @@ func (h *Handler) handleAdmin(msg *Message) {
 	}
 }
 
+/***************************************************************************************************
+* Handles help.
+*
+* Parameters:
+* - msg: Msg used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) handleHelp(msg *Message) {
 	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
 	if err != nil || specialist == nil {
@@ -185,17 +278,33 @@ func (h *Handler) handleHelp(msg *Message) {
 	}
 }
 
+/***************************************************************************************************
+* Handles callback query.
+*
+* Parameters:
+* - update: Date value used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) handleCallbackQuery(update Update) {
 	cq := update.CallbackQuery
 	data := cq.Data
 
-	// Handle language selection callback
+	/***************************************************************************************************
+	* Handle language selection callback.
+	***************************************************************************************************/
 	if strings.HasPrefix(data, "lang:") {
 		h.handleLanguageCallback(update)
 		return
 	}
 
-	// Handle client accept/decline callback
+	/***************************************************************************************************
+	* Handle client accept/decline callback.
+	***************************************************************************************************/
 	if strings.HasPrefix(data, "client_accept:") || strings.HasPrefix(data, "client_decline:") {
 		h.handleClientBookingCallback(update)
 		return
@@ -213,7 +322,9 @@ func (h *Handler) handleCallbackQuery(update Update) {
 		return
 	}
 
-	// Get specialist for localizer
+	/***************************************************************************************************
+	* Get specialist for localizer.
+	***************************************************************************************************/
 	specialist, _ := db.GetSpecialistByBotToken(h.Bot.Token)
 	loc := myI18n.Default()
 	if specialist != nil {
@@ -228,7 +339,9 @@ func (h *Handler) handleCallbackQuery(update Update) {
 
 	if booking.Status != models.BookingStatusPending {
 		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.AlreadyProcessed"))
-		// Remove stale buttons
+		/***************************************************************************************************
+		* Remove stale buttons.
+		***************************************************************************************************/
 		if cq.Message != nil {
 			h.UpdateBookingNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, booking)
 		}
@@ -253,21 +366,39 @@ func (h *Handler) handleCallbackQuery(update Update) {
 
 	h.Bot.AnswerCallbackQuery(cq.ID, toastText)
 
-	// Refresh booking for notification messages
+	/***************************************************************************************************
+	* Refresh booking for notification messages.
+	***************************************************************************************************/
 	booking, _ = db.GetBookingByID(bookingID)
 	if booking == nil {
 		return
 	}
 
-	// Edit the specialist's message to remove buttons and show new status
+	/***************************************************************************************************
+	* Edit the specialist's message to remove buttons and show new status.
+	***************************************************************************************************/
 	if cq.Message != nil {
 		h.UpdateBookingNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, booking)
 	}
 
-	// Notify client about status change
+	/***************************************************************************************************
+	* Notify client about status change.
+	***************************************************************************************************/
 	h.NotifyClientStatusChange(booking, string(newStatus))
 }
 
+/***************************************************************************************************
+* Handles language callback.
+*
+* Parameters:
+* - update: Date value used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) handleLanguageCallback(update Update) {
 	cq := update.CallbackQuery
 	data := cq.Data
@@ -280,7 +411,9 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	lang := parts[1]
 	specialistID := parts[2]
 
-	// Validate lang
+	/***************************************************************************************************
+	* Validate lang.
+	***************************************************************************************************/
 	if lang != "ru" && lang != "en" {
 		lang = "ru"
 	}
@@ -290,20 +423,28 @@ func (h *Handler) handleLanguageCallback(update Update) {
 		firstName = "User"
 	}
 
-	// Create or get client
+	/***************************************************************************************************
+	* Create or get client.
+	***************************************************************************************************/
 	client, err := db.GetOrCreateClient(cq.From.ID, specialistID, firstName)
 	if err != nil {
 		log.Printf("Error creating client: %v", err)
 		return
 	}
 
-	// Update language
+	/***************************************************************************************************
+	* Update language.
+	***************************************************************************************************/
 	db.UpdateClientLanguage(client.ID, lang)
 
-	// Answer callback
+	/***************************************************************************************************
+	* Answer callback.
+	***************************************************************************************************/
 	h.Bot.AnswerCallbackQuery(cq.ID, "")
 
-	// Get specialist for URL
+	/***************************************************************************************************
+	* Get specialist for URL.
+	***************************************************************************************************/
 	specialist, _ := db.GetSpecialistByID(specialistID)
 	if specialist == nil {
 		return
@@ -319,6 +460,18 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	_, _ = h.Bot.SendWebAppButton(cq.From.ID, FormatWelcome(loc, h.Version), webAppURL, BtnOpenApp(loc))
 }
 
+/***************************************************************************************************
+* Handles client booking callback.
+*
+* Parameters:
+* - update: Date value used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) handleClientBookingCallback(update Update) {
 	cq := update.CallbackQuery
 	data := cq.Data
@@ -331,14 +484,18 @@ func (h *Handler) handleClientBookingCallback(update Update) {
 
 	action, bookingID := parts[0], parts[1]
 
-	// Get specialist to identify which bot this is
+	/***************************************************************************************************
+	* Get specialist to identify which bot this is.
+	***************************************************************************************************/
 	specialist, _ := db.GetSpecialistByBotToken(h.Bot.Token)
 	if specialist == nil {
 		h.Bot.AnswerCallbackQuery(cq.ID, "")
 		return
 	}
 
-	// Get client by telegram user ID
+	/***************************************************************************************************
+	* Get client by telegram user ID.
+	***************************************************************************************************/
 	client, _ := db.GetClientByTelegramID(cq.From.ID, specialist.ID)
 	if client == nil {
 		h.Bot.AnswerCallbackQuery(cq.ID, "")
@@ -353,7 +510,9 @@ func (h *Handler) handleClientBookingCallback(update Update) {
 		return
 	}
 
-	// Validate: client owns booking, booking is pending, and was created by specialist
+	/***************************************************************************************************
+	* Validate: client owns booking, booking is pending, and was created by specialist.
+	***************************************************************************************************/
 	if booking.ClientID != client.ID {
 		h.Bot.AnswerCallbackQuery(cq.ID, "")
 		return
@@ -387,22 +546,43 @@ func (h *Handler) handleClientBookingCallback(update Update) {
 
 	h.Bot.AnswerCallbackQuery(cq.ID, toastText)
 
-	// Refresh booking
+	/***************************************************************************************************
+	* Refresh booking.
+	***************************************************************************************************/
 	booking, _ = db.GetBookingByID(bookingID)
 	if booking == nil {
 		return
 	}
 
-	// Edit client's message to remove buttons and show result
+	/***************************************************************************************************
+	* Edit client's message to remove buttons and show result.
+	***************************************************************************************************/
 	if cq.Message != nil {
 		h.UpdateClientNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, booking)
 	}
 
-	// Notify specialist about client's response
+	/***************************************************************************************************
+	* Notify specialist about client's response.
+	***************************************************************************************************/
 	h.notifySpecialistClientResponse(booking, accepted)
 }
 
-// UpdateClientNotificationMessage edits the client's booking notification to reflect the new status
+/***************************************************************************************************
+* UpdateClientNotificationMessage edits the client's booking notification to reflect the new
+* status.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) UpdateClientNotificationMessage(loc *i18n.Localizer, chatID int64, messageID int, booking *models.Booking) error {
 	var text string
 	switch booking.Status {
@@ -416,7 +596,18 @@ func (h *Handler) UpdateClientNotificationMessage(loc *i18n.Localizer, chatID in
 	return h.Bot.EditMessageText(chatID, messageID, text, nil)
 }
 
-// localizerForClient returns a localizer for the client's language
+/***************************************************************************************************
+* localizerForClient returns a localizer for the client's language.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as *i18n.Localizer.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func localizerForClient(clientID string) *i18n.Localizer {
 	client, err := db.GetClientByID(clientID)
 	if err != nil || client == nil {
@@ -425,7 +616,18 @@ func localizerForClient(clientID string) *i18n.Localizer {
 	return myI18n.NewLocalizer(client.Language)
 }
 
-// localizerForSpecialist returns a localizer for the specialist's language
+/***************************************************************************************************
+* localizerForSpecialist returns a localizer for the specialist's language.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as *i18n.Localizer.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func localizerForSpecialist(specialistID string) *i18n.Localizer {
 	specialist, err := db.GetSpecialistByID(specialistID)
 	if err != nil || specialist == nil {
@@ -434,7 +636,20 @@ func localizerForSpecialist(specialistID string) *i18n.Localizer {
 	return myI18n.NewLocalizer(specialist.Language)
 }
 
-// NotifyClientStatusChange sends a notification to client when booking status changes via admin panel
+/***************************************************************************************************
+* NotifyClientStatusChange sends a notification to client when booking status changes via admin
+* panel.
+*
+* Parameters:
+* - booking: Booking used by the current operation.
+* - newStatus: New status used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus string) error {
 	client, err := db.GetClientByID(booking.ClientID)
 	if err != nil || client == nil {
@@ -459,7 +674,18 @@ func (h *Handler) NotifyClientStatusChange(booking *models.Booking, newStatus st
 	return err
 }
 
-// NotifySpecialistNewBooking sends a notification to specialist about a new booking
+/***************************************************************************************************
+* NotifySpecialistNewBooking sends a notification to specialist about a new booking.
+*
+* Parameters:
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifySpecialistNewBooking(booking *models.Booking) error {
 	specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 	if err != nil || specialist == nil {
@@ -482,15 +708,31 @@ func (h *Handler) NotifySpecialistNewBooking(booking *models.Booking) error {
 		return err
 	}
 
-	// Save message info so admin panel can edit it later
+	/***************************************************************************************************
+	* Save message info so admin panel can edit it later.
+	***************************************************************************************************/
 	if msg != nil {
 		db.SaveBookingNotificationInfo(booking.ID, specialist.TelegramUserID, msg.MessageID)
 	}
 	return nil
 }
 
-// UpdateBookingNotificationMessage edits the specialist's original booking notification
-// to reflect the new status (removes inline buttons)
+/***************************************************************************************************
+* UpdateBookingNotificationMessage edits the specialist's original booking notification to reflect
+* the new status (removes inline buttons).
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) UpdateBookingNotificationMessage(loc *i18n.Localizer, chatID int64, messageID int, booking *models.Booking) error {
 	var text string
 	switch booking.Status {
@@ -510,13 +752,38 @@ func (h *Handler) UpdateBookingNotificationMessage(loc *i18n.Localizer, chatID i
 	return h.Bot.EditMessageText(chatID, messageID, text, nil)
 }
 
-// UpdateBookingNotificationMessageByIDs looks up specialist language and edits the notification
+/***************************************************************************************************
+* UpdateBookingNotificationMessageByIDs looks up specialist language and edits the notification.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) UpdateBookingNotificationMessageByIDs(chatID int64, messageID int, booking *models.Booking) error {
 	loc := localizerForSpecialist(booking.SpecialistID)
 	return h.UpdateBookingNotificationMessage(loc, chatID, messageID, booking)
 }
 
-// NotifySpecialistRecurringSchedule sends a recurring schedule approval request to specialist
+/***************************************************************************************************
+* NotifySpecialistRecurringSchedule sends a recurring schedule approval request to specialist.
+*
+* Parameters:
+* - schedule: Schedule used by the current operation.
+* - previewCount: Preview count used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifySpecialistRecurringSchedule(schedule *models.RecurringSchedule, previewCount int) error {
 	specialist, err := db.GetSpecialistByID(schedule.SpecialistID)
 	if err != nil || specialist == nil {
@@ -528,7 +795,19 @@ func (h *Handler) NotifySpecialistRecurringSchedule(schedule *models.RecurringSc
 	return err
 }
 
-// NotifyClientRecurringSchedule sends a recurring schedule confirmation request to client
+/***************************************************************************************************
+* NotifyClientRecurringSchedule sends a recurring schedule confirmation request to client.
+*
+* Parameters:
+* - schedule: Schedule used by the current operation.
+* - previewCount: Preview count used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifyClientRecurringSchedule(schedule *models.RecurringSchedule, previewCount int) error {
 	client, err := db.GetClientByID(schedule.ClientID)
 	if err != nil || client == nil {
@@ -540,9 +819,19 @@ func (h *Handler) NotifyClientRecurringSchedule(schedule *models.RecurringSchedu
 	return err
 }
 
-// ========== Specialist-Initiated Booking Handlers ==========
 
-// NotifyClientSpecialistBooking sends a specialist-created booking confirmation request to client
+/***************************************************************************************************
+* NotifyClientSpecialistBooking sends a specialist-created booking confirmation request to client.
+*
+* Parameters:
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifyClientSpecialistBooking(booking *models.Booking) error {
 	client, err := db.GetClientByID(booking.ClientID)
 	if err != nil || client == nil {
@@ -564,14 +853,27 @@ func (h *Handler) NotifyClientSpecialistBooking(booking *models.Booking) error {
 		return err
 	}
 
-	// Save message info so we can edit it later (remove buttons)
+	/***************************************************************************************************
+	* Save message info so we can edit it later (remove buttons).
+	***************************************************************************************************/
 	if msg != nil {
 		db.SaveClientNotificationInfo(booking.ID, client.TelegramUserID, msg.MessageID)
 	}
 	return nil
 }
 
-// NotifySpecialistBookingCancelled sends a cancellation notification to the specialist
+/***************************************************************************************************
+* NotifySpecialistBookingCancelled sends a cancellation notification to the specialist.
+*
+* Parameters:
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifySpecialistBookingCancelled(booking *models.Booking) error {
 	specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 	if err != nil || specialist == nil {
@@ -583,7 +885,18 @@ func (h *Handler) NotifySpecialistBookingCancelled(booking *models.Booking) erro
 	return err
 }
 
-// NotifyClientBookingCancelled sends a cancellation notification to the client
+/***************************************************************************************************
+* NotifyClientBookingCancelled sends a cancellation notification to the client.
+*
+* Parameters:
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifyClientBookingCancelled(booking *models.Booking) error {
 	client, err := db.GetClientByID(booking.ClientID)
 	if err != nil || client == nil {
@@ -595,10 +908,25 @@ func (h *Handler) NotifyClientBookingCancelled(booking *models.Booking) error {
 	return err
 }
 
-// NotifyMoveRequest sends a move request notification with approval buttons
+/***************************************************************************************************
+* NotifyMoveRequest sends a move request notification with approval buttons.
+*
+* Parameters:
+* - newBooking: New booking used by the current operation.
+* - oldBooking: Old booking used by the current operation.
+* - requestedBy: Requested by used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requestedBy string) error {
 	if requestedBy == "client" {
-		// Notify specialist
+		/***************************************************************************************************
+		* Notify specialist.
+		***************************************************************************************************/
 		specialist, err := db.GetSpecialistByID(oldBooking.SpecialistID)
 		if err != nil || specialist == nil {
 			return fmt.Errorf("specialist not found")
@@ -608,7 +936,9 @@ func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requ
 		_, err = h.Bot.SendNotification(specialist.TelegramUserID, text)
 		return err
 	}
-	// Notify client
+	/***************************************************************************************************
+	* Notify client.
+	***************************************************************************************************/
 	client, err := db.GetClientByID(oldBooking.ClientID)
 	if err != nil || client == nil {
 		return fmt.Errorf("client not found")
@@ -619,13 +949,38 @@ func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requ
 	return err
 }
 
-// NotifySpecialistClientBookingResponse is the public API for notifying the specialist
-// when a client confirms or declines a specialist-created booking via the REST API.
+/***************************************************************************************************
+* NotifySpecialistClientBookingResponse is the public API for notifying the specialist when a
+* client confirms or declines a specialist-created booking via the REST API.
+*
+* Parameters:
+* - booking: Booking used by the current operation.
+* - accepted: Accepted used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) NotifySpecialistClientBookingResponse(booking *models.Booking, accepted bool) error {
 	h.notifySpecialistClientResponse(booking, accepted)
 	return nil
 }
 
+/***************************************************************************************************
+* Implements the notify specialist client response logic used by this module.
+*
+* Parameters:
+* - booking: Booking used by the current operation.
+* - accepted: Accepted used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
 func (h *Handler) notifySpecialistClientResponse(booking *models.Booking, accepted bool) {
 	specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 	if err != nil || specialist == nil {

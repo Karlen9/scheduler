@@ -17,16 +17,28 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-// NotifyRecurringScheduleFunc notifies the approval side about a new recurring schedule request.
-// Called with the schedule and the number of preview dates (expected bookings).
+/***************************************************************************************************
+* NotifyRecurringScheduleFunc notifies the approval side about a new recurring schedule request.
+* Called with the schedule and the number of preview dates (expected bookings).
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var NotifyRecurringScheduleFunc func(schedule *models.RecurringSchedule, previewCount int) error
 
-// NotifyMoveRequestFunc notifies the other side about a move/reschedule request for a recurring booking.
-// Called with (newBooking, oldBooking, requestedBy "client"/"specialist").
+/***************************************************************************************************
+* NotifyMoveRequestFunc notifies the other side about a move/reschedule request for a recurring
+* booking. Called with (newBooking, oldBooking, requestedBy "client"/"specialist").
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var NotifyMoveRequestFunc func(newBooking, oldBooking *models.Booking, requestedBy string) error
 
-// ========== Shared Types & Helpers ==========
 
+/***************************************************************************************************
+* Shared Types & Helpers.
+***************************************************************************************************/
 type CreateRecurringScheduleRequest struct {
 	SessionTypeID string            `json:"sessionTypeId"`
 	DaysOfWeek    []int             `json:"daysOfWeek"`
@@ -35,6 +47,9 @@ type CreateRecurringScheduleRequest struct {
 	DayTimes      map[string]string `json:"dayTimes,omitempty"`
 }
 
+/***************************************************************************************************
+* Defines the admin create recurring schedule request type used by the api layer.
+***************************************************************************************************/
 type AdminCreateRecurringScheduleRequest struct {
 	ClientID      string            `json:"clientId"`
 	SessionTypeID string            `json:"sessionTypeId"`
@@ -44,6 +59,9 @@ type AdminCreateRecurringScheduleRequest struct {
 	DayTimes      map[string]string `json:"dayTimes,omitempty"`
 }
 
+/***************************************************************************************************
+* Defines the preview recurring schedule request type used by the api layer.
+***************************************************************************************************/
 type PreviewRecurringScheduleRequest struct {
 	SessionTypeID string            `json:"sessionTypeId"`
 	DaysOfWeek    []int             `json:"daysOfWeek"`
@@ -52,10 +70,25 @@ type PreviewRecurringScheduleRequest struct {
 	DayTimes      map[string]string `json:"dayTimes,omitempty"`
 }
 
+/***************************************************************************************************
+* Defines the recurring preview response type used by the api layer.
+***************************************************************************************************/
 type RecurringPreviewResponse struct {
 	Dates []string `json:"dates"`
 }
 
+/***************************************************************************************************
+* Implements the calculate date range logic used by this module.
+*
+* Parameters:
+* - period: Period used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func calculateDateRange(period string) (string, string, error) {
 	now := time.Now().UTC()
 	startDate := now.AddDate(0, 0, 1)
@@ -73,6 +106,24 @@ func calculateDateRange(period string) (string, string, error) {
 	return startDate.Format("2006-01-02"), endDate.Format("2006-01-02"), nil
 }
 
+/***************************************************************************************************
+* Implements the generate preview dates logic used by this module.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - daysOfWeek: Days of week used by the current operation.
+* - timeStr: Time value used by the current operation.
+* - startDateStr: Date value used by the current operation.
+* - durationMinutes: Duration value used by the current operation.
+* - endDateStr: Date value used by the current operation.
+* - dayTimes: Time value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func generatePreviewDates(specialistID string, daysOfWeek []int, timeStr string, durationMinutes int, startDateStr, endDateStr string, dayTimes map[string]string) ([]string, error) {
 	startDate, err := time.Parse("2006-01-02", startDateStr)
 	if err != nil {
@@ -99,7 +150,10 @@ func generatePreviewDates(specialistID string, daysOfWeek []int, timeStr string,
 		requestedDays[d] = true
 	}
 
-	fallbackTimeParts := parseTime(timeStr)
+	fallbackHour, fallbackMinute, err := parseTime(timeStr)
+	if err != nil {
+		return nil, err
+	}
 	var dates []string
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dow := int(d.Weekday())
@@ -112,13 +166,19 @@ func generatePreviewDates(specialistID string, daysOfWeek []int, timeStr string,
 		if dayOffSet[d.Format("2006-01-02")] {
 			continue
 		}
-		// Use per-day time if available
-		timeParts := fallbackTimeParts
+		/***************************************************************************************************
+		* Use per-day time if available.
+		***************************************************************************************************/
+		hour := fallbackHour
+		minute := fallbackMinute
 		dowStr := strconv.Itoa(dow)
 		if t, ok := dayTimes[dowStr]; ok {
-			timeParts = parseTime(t)
+			hour, minute, err = parseTime(t)
+			if err != nil {
+				return nil, err
+			}
 		}
-		startsAt := time.Date(d.Year(), d.Month(), d.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+		startsAt := time.Date(d.Year(), d.Month(), d.Day(), hour, minute, 0, 0, time.UTC)
 		endsAt := startsAt.Add(time.Duration(durationMinutes) * time.Minute)
 		hasConflict, _ := db.HasConflictingBooking(specialistID, startsAt, endsAt, "")
 		if hasConflict {
@@ -129,6 +189,22 @@ func generatePreviewDates(specialistID string, daysOfWeek []int, timeStr string,
 	return dates, nil
 }
 
+/***************************************************************************************************
+* Validates recurring request.
+*
+* Parameters:
+* - sessionTypeID: Identifier used to target the current record.
+* - timeStr: Time value used by the current operation.
+* - daysOfWeek: Days of week used by the current operation.
+* - period: Period used by the current operation.
+* - dayTimes: Time value used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func validateRecurringRequest(sessionTypeID string, daysOfWeek []int, timeStr, period string, dayTimes map[string]string) error {
 	if sessionTypeID == "" {
 		return fmt.Errorf("Error.SelectService")
@@ -143,7 +219,10 @@ func validateRecurringRequest(sessionTypeID string, daysOfWeek []int, timeStr, p
 				return fmt.Errorf("Error.InvalidDayOfWeek")
 			}
 		}
-		if timeStr == "" || len(timeStr) < 5 {
+		if timeStr == "" {
+			return fmt.Errorf("Error.SelectTime")
+		}
+		if _, _, err := parseTime(timeStr); err != nil {
 			return fmt.Errorf("Error.SelectTime")
 		}
 	} else {
@@ -152,7 +231,10 @@ func validateRecurringRequest(sessionTypeID string, daysOfWeek []int, timeStr, p
 			if err != nil || d < 0 || d > 6 {
 				return fmt.Errorf("Error.InvalidDayOfWeek")
 			}
-			if t == "" || len(t) < 5 {
+			if t == "" {
+				return fmt.Errorf("Error.SelectTime")
+			}
+			if _, _, err := parseTime(t); err != nil {
 				return fmt.Errorf("Error.SelectTime")
 			}
 		}
@@ -164,6 +246,18 @@ func validateRecurringRequest(sessionTypeID string, daysOfWeek []int, timeStr, p
 	return nil
 }
 
+/***************************************************************************************************
+* Implements the days of week to string logic used by this module.
+*
+* Parameters:
+* - days: Days used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func daysOfWeekToString(days []int) string {
 	sort.Ints(days)
 	parts := make([]string, len(days))
@@ -173,21 +267,43 @@ func daysOfWeekToString(days []int) string {
 	return strings.Join(parts, ",")
 }
 
-// extractFromDayTimes extracts daysOfWeek list and first time from a dayTimes map
+/***************************************************************************************************
+* extractFromDayTimes extracts daysOfWeek list and first time from a dayTimes map.
+*
+* Parameters:
+* - dayTimes: Time value used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as ([]int, string).
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func extractFromDayTimes(dayTimes map[string]string) ([]int, string) {
 	days := make([]int, 0, len(dayTimes))
-	firstTime := ""
-	for dayStr, t := range dayTimes {
+	for dayStr := range dayTimes {
 		d, _ := strconv.Atoi(dayStr)
 		days = append(days, d)
-		if firstTime == "" {
-			firstTime = t
-		}
 	}
 	sort.Ints(days)
-	return days, firstTime
+	if len(days) == 0 {
+		return days, ""
+	}
+	return days, dayTimes[strconv.Itoa(days[0])]
 }
 
+/***************************************************************************************************
+* Implements the day times to json logic used by this module.
+*
+* Parameters:
+* - dayTimes: Time value used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func dayTimesToJSON(dayTimes map[string]string) string {
 	if len(dayTimes) == 0 {
 		return ""
@@ -196,16 +312,43 @@ func dayTimesToJSON(dayTimes map[string]string) string {
 	return string(b)
 }
 
-// handleValidationError sends a localized error from validateRecurringRequest.
-// The error message is an i18n key like "Error.SelectService".
+/***************************************************************************************************
+* handleValidationError sends a localized error from validateRecurringRequest. The error message
+* is an i18n key like "Error.SelectService".
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+* - err: Err used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func handleValidationError(w http.ResponseWriter, r *http.Request, err error) {
 	loc := myI18n.L(r.Context())
 	msgID := err.Error()
 	http.Error(w, myI18n.T(loc, msgID), http.StatusBadRequest)
 }
 
-// ========== Client Recurring Endpoints ==========
 
+/***************************************************************************************************
+* Client Recurring Endpoints.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -224,9 +367,24 @@ func HandleGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 		schedules = []models.RecurringSchedule{}
 	}
 
+	setNoStore(w)
 	writeJSON(w, schedules)
 }
 
+/***************************************************************************************************
+* Handles get recurring schedule detail.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -246,9 +404,24 @@ func HandleGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	setNoStore(w)
 	writeJSON(w, schedule)
 }
 
+/***************************************************************************************************
+* Handles create recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -268,7 +441,9 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// When dayTimes is provided, extract days and first time for backward compat
+	/***************************************************************************************************
+	* When dayTimes is provided, extract days and first time for backward compat.
+	***************************************************************************************************/
 	if len(req.DayTimes) > 0 {
 		days, firstTime := extractFromDayTimes(req.DayTimes)
 		req.DaysOfWeek = days
@@ -314,7 +489,9 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	log.Printf("RECURRING CREATE (CLIENT) [%s] Client: %s | Days: %s | Time: %s | Period: %s",
 		schedule.ID[:8], client.Name, daysStr, req.Time, req.Period)
 
-	// Notify specialist
+	/***************************************************************************************************
+	* Notify specialist.
+	***************************************************************************************************/
 	if NotifyRecurringScheduleFunc != nil {
 		schedule.SessionType = sessionType
 		previewDates, _ := generatePreviewDates(specialist.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
@@ -327,6 +504,20 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, schedule)
 }
 
+/***************************************************************************************************
+* Handles preview recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -385,6 +576,20 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, RecurringPreviewResponse{Dates: dates})
 }
 
+/***************************************************************************************************
+* Handles cancel recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -419,8 +624,21 @@ func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ========== Admin Recurring Schedule Endpoints ==========
 
+/***************************************************************************************************
+* Admin Recurring Schedule Endpoints.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -439,9 +657,24 @@ func HandleAdminGetRecurringSchedules(w http.ResponseWriter, r *http.Request) {
 		schedules = []models.RecurringSchedule{}
 	}
 
+	setNoStore(w)
 	writeJSON(w, schedules)
 }
 
+/***************************************************************************************************
+* Handles admin get recurring schedule detail.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -461,9 +694,24 @@ func HandleAdminGetRecurringScheduleDetail(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	setNoStore(w)
 	writeJSON(w, schedule)
 }
 
+/***************************************************************************************************
+* Handles admin create recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -482,7 +730,9 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// When dayTimes is provided, extract days and first time for backward compat
+	/***************************************************************************************************
+	* When dayTimes is provided, extract days and first time for backward compat.
+	***************************************************************************************************/
 	if len(req.DayTimes) > 0 {
 		days, firstTime := extractFromDayTimes(req.DayTimes)
 		req.DaysOfWeek = days
@@ -539,13 +789,17 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	log.Printf("RECURRING CREATE (ADMIN) [%s] Client: %s | Days: %s | Time: %s | Period: %s",
 		schedule.ID[:8], client.Name, daysStr, req.Time, req.Period)
 
-	// Ghost clients: auto-approve and generate bookings immediately
+	/***************************************************************************************************
+	* Ghost clients: auto-approve and generate bookings immediately.
+	***************************************************************************************************/
 	if client.IsGhost {
 		if _, err := db.ApproveAndGenerateBookings(schedule.ID); err != nil {
 			log.Printf("Error auto-approving ghost recurring schedule: %v", err)
 		}
 	} else {
-		// Notify client
+		/***************************************************************************************************
+		* Notify client.
+		***************************************************************************************************/
 		if NotifyRecurringScheduleFunc != nil {
 			schedule.SessionType = sessionType
 			previewDates, _ := generatePreviewDates(specialist.ID, req.DaysOfWeek, req.Time, sessionType.DurationMinutes, startDate, endDate, req.DayTimes)
@@ -559,6 +813,20 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, schedule)
 }
 
+/***************************************************************************************************
+* Handles admin preview recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -611,6 +879,20 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, RecurringPreviewResponse{Dates: dates})
 }
 
+/***************************************************************************************************
+* Handles admin approve recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -647,6 +929,20 @@ func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, updated)
 }
 
+/***************************************************************************************************
+* Handles admin decline recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -682,14 +978,30 @@ func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, updated)
 }
 
-// ========== Phase 3: Individual Booking Management ==========
 
+/***************************************************************************************************
+* Phase 3: Individual Booking Management.
+***************************************************************************************************/
 type MoveBookingRequest struct {
 	Date string `json:"date"` // "2026-03-10"
 	Time string `json:"time"` // "10:00"
 }
 
-// getScheduleBooking validates and returns a booking belonging to a schedule
+/***************************************************************************************************
+* getScheduleBooking validates and returns a booking belonging to a schedule. notification
+* helpers.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - The computed value for the current operation as (*models.Booking, string).
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func getScheduleBooking(w http.ResponseWriter, r *http.Request) (*models.Booking, string) {
 	scheduleID := chi.URLParam(r, "scheduleId")
 	bookingID := chi.URLParam(r, "bookingId")
@@ -707,8 +1019,21 @@ func getScheduleBooking(w http.ResponseWriter, r *http.Request) (*models.Booking
 	return booking, scheduleID
 }
 
-// --- Client: Request Cancel ---
 
+/***************************************************************************************************
+* Client: Request Cancel.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -748,8 +1073,21 @@ func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, updated)
 }
 
-// --- Client: Request Move ---
 
+/***************************************************************************************************
+* Client: Request Move.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -793,8 +1131,21 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, newBooking)
 }
 
-// --- Admin: Request Cancel ---
 
+/***************************************************************************************************
+* Admin: Request Cancel.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -834,8 +1185,21 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, updated)
 }
 
-// --- Admin: Request Move ---
 
+/***************************************************************************************************
+* Admin: Request Move.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -879,8 +1243,21 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, newBooking)
 }
 
-// --- Admin: Approve/Decline Move ---
 
+/***************************************************************************************************
+* Admin: Approve/Decline Move.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -912,6 +1289,20 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, updated)
 }
 
+/***************************************************************************************************
+* Handles admin decline move booking.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -942,8 +1333,23 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// createMoveBooking is a shared helper for creating a reschedule booking.
-// Errors returned are i18n message IDs suitable for handleValidationError.
+/***************************************************************************************************
+* createMoveBooking is a shared helper for creating a reschedule booking. Errors returned are i18n
+* message IDs suitable for handleValidationError.
+*
+* Parameters:
+* - r: HTTP request carrying headers, params, query values, and body data.
+* - booking: Booking used by the current operation.
+* - scheduleID: Identifier used to target the current record.
+* - req: Req used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID string, req MoveBookingRequest) (*models.Booking, error) {
 	if req.Date == "" || req.Time == "" {
 		return nil, fmt.Errorf("Error.MissingDateTime")
@@ -954,11 +1360,16 @@ func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID stri
 		return nil, fmt.Errorf("Error.InvalidDate")
 	}
 
-	timeParts := parseTime(req.Time)
-	startsAt := time.Date(newDate.Year(), newDate.Month(), newDate.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+	hour, minute, err := parseTime(req.Time)
+	if err != nil {
+		return nil, fmt.Errorf("Error.SelectTime")
+	}
+	startsAt := time.Date(newDate.Year(), newDate.Month(), newDate.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(booking.DurationMinutes) * time.Minute)
 
-	// Check conflicts
+	/***************************************************************************************************
+	* Check conflicts.
+	***************************************************************************************************/
 	hasConflict, _ := db.HasConflictingBooking(booking.SpecialistID, startsAt, endsAt, booking.ID)
 	if hasConflict {
 		return nil, fmt.Errorf("Error.TimeSlotTaken")
@@ -975,6 +1386,20 @@ func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID stri
 	return newBooking, nil
 }
 
+/***************************************************************************************************
+* Handles admin cancel recurring schedule.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {

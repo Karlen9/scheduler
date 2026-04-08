@@ -14,19 +14,57 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-// httpError writes a localized error message using the localizer from request context.
+/***************************************************************************************************
+* httpError writes a localized error message using the localizer from request context.
+*
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+* - msgID: Identifier used to target the current record.
+* - code: Code used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func httpError(w http.ResponseWriter, r *http.Request, msgID string, code int) {
 	loc := myI18n.L(r.Context())
 	http.Error(w, myI18n.T(loc, msgID), code)
 }
 
-// maxBookingDate returns the latest allowed booking date (3 months from today).
+/***************************************************************************************************
+* maxBookingDate returns the latest allowed booking date (3 months from today).
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The computed value for the current operation as time.Time.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func maxBookingDate() time.Time {
 	return time.Now().AddDate(0, 3, 0)
 }
 
-// validateBookingDate checks that a date is not in the past and not more than 3 months ahead.
-// Returns an error message ID or "" if valid.
+/***************************************************************************************************
+* validateBookingDate checks that a date is not in the past and not more than 3 months ahead.
+* Returns an error message ID or "" if valid.
+*
+* Parameters:
+* - date: Date value used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func validateBookingDate(date time.Time) string {
 	today := time.Now().Truncate(24 * time.Hour)
 	if date.Before(today) {
@@ -38,28 +76,61 @@ func validateBookingDate(date time.Time) string {
 	return ""
 }
 
-// NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin panel
+/***************************************************************************************************
+* NotifyStatusChangeFunc is a callback to notify client when booking status changes via admin
+* panel.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 
-// NotifyBookingFunc is a callback to notify specialist about a new client-created booking
+/***************************************************************************************************
+* NotifyBookingFunc is a callback to notify specialist about a new client-created booking.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var NotifyBookingFunc func(booking *models.Booking) error
 
-// UpdateSpecialistMessageFunc is a callback to edit the specialist's Telegram notification message
-// when a booking status changes via the admin panel
+/***************************************************************************************************
+* UpdateSpecialistMessageFunc is a callback to edit the specialist's Telegram notification message
+* when a booking status changes via the admin panel.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var UpdateSpecialistMessageFunc func(booking *models.Booking) error
 
-// NotifyClientBookingResponseFunc is a callback to notify the specialist when a client
-// confirms or declines a specialist-created booking via the REST API
+/***************************************************************************************************
+* NotifyClientBookingResponseFunc is a callback to notify the specialist when a client confirms or
+* declines a specialist-created booking via the REST API.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
 
-// UpdateClientMessageFunc is a callback to edit the client's Telegram notification message
+/***************************************************************************************************
+* UpdateClientMessageFunc is a callback to edit the client's Telegram notification message.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var UpdateClientMessageFunc func(booking *models.Booking) error
 
-// NotifyCancellationFunc is a callback to notify the other side about an immediate cancellation.
-// cancelledBy is "client" or "specialist".
+/***************************************************************************************************
+* NotifyCancellationFunc is a callback to notify the other side about an immediate cancellation.
+* cancelledBy is "client" or "specialist".
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
 
-// SpecialistResponse is the API response for specialist info
+/***************************************************************************************************
+* SpecialistResponse is the API response for specialist info.
+***************************************************************************************************/
 type SpecialistResponse struct {
 	ID                string  `json:"id"`
 	Name              string  `json:"name"`
@@ -77,6 +148,20 @@ type SpecialistResponse struct {
 	Language          string  `json:"language,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles get specialist.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -104,9 +189,24 @@ func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 		Language:          specialist.Language,
 	}
 
+	setPrivateCache(w, 60, 300)
 	writeJSON(w, resp)
 }
 
+/***************************************************************************************************
+* Handles get services.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetServices(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -125,9 +225,24 @@ func HandleGetServices(w http.ResponseWriter, r *http.Request) {
 		services = []models.SessionType{}
 	}
 
+	setPrivateCache(w, 60, 300)
 	writeJSON(w, services)
 }
 
+/***************************************************************************************************
+* Handles get working hours.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -146,9 +261,118 @@ func HandleGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 		hours = []models.WorkingHours{}
 	}
 
+	setPrivateCache(w, 60, 300)
 	writeJSON(w, hours)
 }
 
+/***************************************************************************************************
+* Defines the public schedule context response type used by the api layer.
+***************************************************************************************************/
+type PublicScheduleContextResponse struct {
+	WorkingHours []models.WorkingHours `json:"workingHours"`
+	DaysOff      []PublicDayOff        `json:"daysOff"`
+}
+
+/***************************************************************************************************
+* Builds public day offs.
+*
+* Parameters:
+* - daysOff: Days off used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as []PublicDayOff.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func buildPublicDayOffs(daysOff []models.DayOff) []PublicDayOff {
+	result := make([]PublicDayOff, 0, len(daysOff))
+	for _, dayOff := range daysOff {
+		result = append(result, PublicDayOff{
+			Date: dayOff.Date.Format("2006-01-02"),
+		})
+	}
+	return result
+}
+
+/***************************************************************************************************
+* Loads public schedule context.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func loadPublicScheduleContext(specialistID string) (PublicScheduleContextResponse, error) {
+	hours, err := db.GetWorkingHoursBySpecialistID(specialistID)
+	if err != nil {
+		return PublicScheduleContextResponse{}, err
+	}
+	if hours == nil {
+		hours = []models.WorkingHours{}
+	}
+
+	daysOff, err := db.GetDaysOffBySpecialistID(specialistID)
+	if err != nil {
+		return PublicScheduleContextResponse{}, err
+	}
+
+	return PublicScheduleContextResponse{
+		WorkingHours: hours,
+		DaysOff:      buildPublicDayOffs(daysOff),
+	}, nil
+}
+
+/***************************************************************************************************
+* Handles get schedule context.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
+func HandleGetScheduleContext(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	resp, err := loadPublicScheduleContext(specialist.ID)
+	if err != nil {
+		log.Printf("Error getting public schedule context: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	setPrivateCache(w, 60, 300)
+	writeJSON(w, resp)
+}
+
+/***************************************************************************************************
+* Handles get availability.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -158,7 +382,9 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 
 	dateStr := r.URL.Query().Get("date")
 
-	// Support both duration (new) and sessionType (legacy)
+	/***************************************************************************************************
+	* Support both duration (new) and sessionType (legacy).
+	***************************************************************************************************/
 	durationParam := r.URL.Query().Get("duration")
 	sessionTypeParam := r.URL.Query().Get("sessionType")
 
@@ -176,7 +402,9 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if sessionTypeParam != "" {
-		// Legacy: look up duration from session type
+		/***************************************************************************************************
+		* Legacy: look up duration from session type.
+		***************************************************************************************************/
 		sessionType, err := db.GetSessionTypeByType(specialist.ID, sessionTypeParam)
 		if err != nil || sessionType == nil {
 			httpError(w, r, "Error.InvalidServiceType", http.StatusBadRequest)
@@ -194,13 +422,17 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reject past dates and dates more than 3 months ahead
+	/***************************************************************************************************
+	* Reject past dates and dates more than 3 months ahead.
+	***************************************************************************************************/
 	if errMsg := validateBookingDate(date); errMsg != "" {
 		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
-	// Check if this date is a day off
+	/***************************************************************************************************
+	* Check if this date is a day off.
+	***************************************************************************************************/
 	isDayOff, err := db.IsDayOff(specialist.ID, date)
 	if err != nil {
 		log.Printf("Error checking day off: %v", err)
@@ -208,11 +440,14 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isDayOff {
+		setPrivateCache(w, 15, 30)
 		writeJSON(w, []models.TimeSlot{})
 		return
 	}
 
-	// Get working hours for this day
+	/***************************************************************************************************
+	* Get working hours for this day.
+	***************************************************************************************************/
 	hours, err := db.GetWorkingHoursBySpecialistID(specialist.ID)
 	if err != nil {
 		log.Printf("Error getting working hours: %v", err)
@@ -230,11 +465,14 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if workingHour == nil {
+		setPrivateCache(w, 15, 30)
 		writeJSON(w, []models.TimeSlot{})
 		return
 	}
 
-	// Get existing bookings for this date
+	/***************************************************************************************************
+	* Get existing bookings for this date.
+	***************************************************************************************************/
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	endOfDay := startOfDay.AddDate(0, 0, 1)
 	bookings, err := db.GetBookingsBySpecialistIDAndDateRange(specialist.ID, startOfDay, endOfDay)
@@ -244,20 +482,44 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate time slots
+	/***************************************************************************************************
+	* Generate time slots.
+	***************************************************************************************************/
 	slots := generateTimeSlots(date, workingHour, duration, bookings)
 
+	setPrivateCache(w, 15, 30)
 	writeJSON(w, slots)
 }
 
+/***************************************************************************************************
+* Implements the generate time slots logic used by this module.
+*
+* Parameters:
+* - date: Date value used by the current operation.
+* - wh: Wh used by the current operation.
+* - duration: Duration value used by the current operation.
+* - bookings: Bookings used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as []models.TimeSlot.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func generateTimeSlots(date time.Time, wh *models.WorkingHours, duration int, bookings []models.Booking) []models.TimeSlot {
 	var slots []models.TimeSlot
 
-	startParts := parseTime(wh.StartTime)
-	endParts := parseTime(wh.EndTime)
+	startHour, startMinute, err := parseTime(wh.StartTime)
+	if err != nil {
+		return slots
+	}
+	endHour, endMinute, err := parseTime(wh.EndTime)
+	if err != nil {
+		return slots
+	}
 
-	startMinutes := startParts[0]*60 + startParts[1]
-	endMinutes := endParts[0]*60 + endParts[1]
+	startMinutes := startHour*60 + startMinute
+	endMinutes := endHour*60 + endMinute
 
 	for minutes := startMinutes; minutes+duration <= endMinutes; minutes += 30 {
 		hour := minutes / 60
@@ -288,19 +550,37 @@ func generateTimeSlots(date time.Time, wh *models.WorkingHours, duration int, bo
 	return slots
 }
 
-func parseTime(t string) []int {
-	parts := make([]int, 2)
-	if len(t) >= 5 {
-		parts[0], _ = strconv.Atoi(t[0:2])
-		parts[1], _ = strconv.Atoi(t[3:5])
-	}
-	return parts
-}
-
+/***************************************************************************************************
+* Formats time.
+*
+* Parameters:
+* - hour: Hour used by the current operation.
+* - min: Min used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func formatTime(hour, min int) string {
 	return strconv.Itoa(hour/10) + strconv.Itoa(hour%10) + ":" + strconv.Itoa(min/10) + strconv.Itoa(min%10)
 }
 
+/***************************************************************************************************
+* Handles get bookings.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -319,14 +599,31 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 		bookings = []models.Booking{}
 	}
 
+	setNoStore(w)
 	writeJSON(w, bookings)
 }
 
-// CancelBookingRequest is the request body for cancelling a booking
+/***************************************************************************************************
+* CancelBookingRequest is the request body for cancelling a booking.
+***************************************************************************************************/
 type CancelBookingRequest struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles cancel booking.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -351,13 +648,17 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify booking belongs to client
+	/***************************************************************************************************
+	* Verify booking belongs to client.
+	***************************************************************************************************/
 	if booking.ClientID != client.ID {
 		httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 		return
 	}
 
-	// Check if booking can be cancelled
+	/***************************************************************************************************
+	* Check if booking can be cancelled.
+	***************************************************************************************************/
 	if booking.Status != models.BookingStatusPending && booking.Status != models.BookingStatusConfirmed {
 		httpError(w, r, "Error.BookingCannotCancel", http.StatusBadRequest)
 		return
@@ -389,8 +690,10 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-// ========== Client Create Booking ==========
 
+/***************************************************************************************************
+* Client Create Booking.
+***************************************************************************************************/
 type CreateBookingRequest struct {
 	Duration int    `json:"duration"`
 	Date     string `json:"date"`
@@ -399,6 +702,20 @@ type CreateBookingRequest struct {
 	Message  string `json:"message,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles create booking.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -423,20 +740,26 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse date and time
+	/***************************************************************************************************
+	* Parse date and time.
+	***************************************************************************************************/
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
 		return
 	}
 
-	// Reject past dates and dates more than 3 months ahead
+	/***************************************************************************************************
+	* Reject past dates and dates more than 3 months ahead.
+	***************************************************************************************************/
 	if errMsg := validateBookingDate(date); errMsg != "" {
 		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
-	// Check one booking per client per day
+	/***************************************************************************************************
+	* Check one booking per client per day.
+	***************************************************************************************************/
 	hasBooking, err := db.ClientHasBookingOnDate(client.ID, date)
 	if err != nil {
 		log.Printf("Error checking existing bookings: %v", err)
@@ -448,11 +771,18 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timeParts := parseTime(req.Time)
-	startsAt := time.Date(date.Year(), date.Month(), date.Day(), timeParts[0], timeParts[1], 0, 0, time.UTC)
+	hour, minute, err := parseTime(req.Time)
+	if err != nil {
+		httpError(w, r, "Error.SelectTime", http.StatusBadRequest)
+		return
+	}
+
+	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(req.Duration) * time.Minute)
 
-	// Check for conflicts
+	/***************************************************************************************************
+	* Check for conflicts.
+	***************************************************************************************************/
 	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, "")
 	if err != nil {
 		log.Printf("Error checking conflicts: %v", err)
@@ -464,7 +794,9 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find session type by duration
+	/***************************************************************************************************
+	* Find session type by duration.
+	***************************************************************************************************/
 	services, err := db.GetSessionTypesBySpecialistID(specialist.ID)
 	if err != nil || len(services) == 0 {
 		httpError(w, r, "Error.NoServices", http.StatusBadRequest)
@@ -478,7 +810,9 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Use client name from request or from DB
+	/***************************************************************************************************
+	* Use client name from request or from DB.
+	***************************************************************************************************/
 	clientName := req.Name
 	if clientName == "" {
 		clientName = client.Name
@@ -494,7 +828,9 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	log.Printf("BOOKING CREATED [%s] Client: %s | Duration: %dmin | Time: %s %s",
 		booking.ID[:8], clientName, req.Duration, req.Date, req.Time)
 
-	// Notify specialist
+	/***************************************************************************************************
+	* Notify specialist.
+	***************************************************************************************************/
 	if NotifyBookingFunc != nil {
 		if err := NotifyBookingFunc(booking); err != nil {
 			log.Printf("Error notifying specialist about booking: %v", err)
@@ -505,11 +841,27 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-// PublicDayOff is the public response for days off (no reason exposed)
+/***************************************************************************************************
+* PublicDayOff is the public response for days off (no reason exposed).
+***************************************************************************************************/
 type PublicDayOff struct {
 	Date string `json:"date"`
 }
 
+/***************************************************************************************************
+* Handles get public days off.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -524,18 +876,16 @@ func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := make([]PublicDayOff, 0, len(daysOff))
-	for _, d := range daysOff {
-		result = append(result, PublicDayOff{
-			Date: d.Date.Format("2006-01-02"),
-		})
-	}
+	result := buildPublicDayOffs(daysOff)
 
+	setPrivateCache(w, 300, 600)
 	writeJSON(w, result)
 }
 
-// ========== Client Profile ==========
 
+/***************************************************************************************************
+* Client Profile.
+***************************************************************************************************/
 type ClientProfileResponse struct {
 	ID                  string `json:"id"`
 	Name                string `json:"name"`
@@ -549,6 +899,9 @@ type ClientProfileResponse struct {
 	NotifyCancellations bool   `json:"notifyCancellations"`
 }
 
+/***************************************************************************************************
+* Defines the update client profile request type used by the api layer.
+***************************************************************************************************/
 type UpdateClientProfileRequest struct {
 	Name              string `json:"name,omitempty"`
 	Phone             string `json:"phone,omitempty"`
@@ -556,6 +909,20 @@ type UpdateClientProfileRequest struct {
 	Language          string `json:"language,omitempty"`
 }
 
+/***************************************************************************************************
+* Handles get client profile.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -576,9 +943,24 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyCancellations: client.NotifyCancellations,
 	}
 
+	setNoStore(w)
 	writeJSON(w, resp)
 }
 
+/***************************************************************************************************
+* Handles update client profile.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -618,7 +1000,9 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update language if valid
+	/***************************************************************************************************
+	* Update language if valid.
+	***************************************************************************************************/
 	if req.Language == "ru" || req.Language == "en" {
 		db.UpdateClientLanguage(client.ID, req.Language)
 	}
@@ -645,8 +1029,10 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, resp)
 }
 
-// ========== Client Notification Preferences ==========
 
+/***************************************************************************************************
+* Client Notification Preferences.
+***************************************************************************************************/
 type UpdateClientNotificationPrefsRequest struct {
 	NotifyBookingStatus *bool `json:"notifyBookingStatus"`
 	NotifyReminders     *bool `json:"notifyReminders"`
@@ -654,6 +1040,20 @@ type UpdateClientNotificationPrefsRequest struct {
 	NotifyCancellations *bool `json:"notifyCancellations"`
 }
 
+/***************************************************************************************************
+* Handles update client notification prefs.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -711,7 +1111,21 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, resp)
 }
 
-// HandleClientConfirmBooking lets a client confirm a specialist-created booking
+/***************************************************************************************************
+* HandleClientConfirmBooking lets a client confirm a specialist-created booking. notification
+* helpers.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -758,7 +1172,9 @@ func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Update client's Telegram notification message (remove buttons)
+	/***************************************************************************************************
+	* Update client's Telegram notification message (remove buttons).
+	***************************************************************************************************/
 	if UpdateClientMessageFunc != nil {
 		if err := UpdateClientMessageFunc(booking); err != nil {
 			log.Printf("Error updating client message: %v", err)
@@ -768,7 +1184,21 @@ func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-// HandleClientDeclineBooking lets a client decline a specialist-created booking
+/***************************************************************************************************
+* HandleClientDeclineBooking lets a client decline a specialist-created booking. notification
+* helpers.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	if client == nil {
@@ -815,7 +1245,9 @@ func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Update client's Telegram notification message (remove buttons)
+	/***************************************************************************************************
+	* Update client's Telegram notification message (remove buttons).
+	***************************************************************************************************/
 	if UpdateClientMessageFunc != nil {
 		if err := UpdateClientMessageFunc(booking); err != nil {
 			log.Printf("Error updating client message: %v", err)
@@ -825,6 +1257,20 @@ func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
+/***************************************************************************************************
+* Implements the write json logic used by this module.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - data: Input data consumed by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func writeJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)

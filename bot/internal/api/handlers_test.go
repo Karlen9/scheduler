@@ -1,21 +1,25 @@
 package api_test
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"sort"
-	"strings"
 	"testing"
 	"time"
 )
 
-// ========== Task 2: Health + Specialist tests ==========
 
+/***************************************************************************************************
+* Task 2: Health + Specialist tests.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestHealthEndpoint(t *testing.T) {
 	w := doRequest(t, http.MethodGet, "/health", nil, 111111)
 
@@ -27,6 +31,18 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test get specialist logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestGetSpecialist(t *testing.T) {
 	w := doAdminRequest(t, http.MethodGet, "/api/specialist", nil)
 
@@ -45,6 +61,18 @@ func TestGetSpecialist(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test get specialist as client logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestGetSpecialistAsClient(t *testing.T) {
 	w := doClientRequest(t, http.MethodGet, "/api/specialist", nil, 999999)
 
@@ -60,9 +88,20 @@ func TestGetSpecialistAsClient(t *testing.T) {
 	}
 }
 
-// ========== Task 3: Booking CRUD tests ==========
 
-// nextWeekday returns the next date (from tomorrow) that falls on the given weekday (time.Monday=1, etc.)
+/***************************************************************************************************
+* nextWeekday returns the next date (from tomorrow) that falls on the given weekday
+* (time.Monday=1, etc.).
+*
+* Parameters:
+* - wd: Wd used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func nextWeekday(wd time.Weekday) string {
 	d := time.Now().AddDate(0, 0, 1)
 	for d.Weekday() != wd {
@@ -71,12 +110,25 @@ func nextWeekday(wd time.Weekday) string {
 	return d.Format("2006-01-02")
 }
 
-// setupWorkingHoursAndService sets working hours for days 1-5 and creates a session type
-// so that booking creation can succeed.
+/***************************************************************************************************
+* setupWorkingHoursAndService sets working hours for days 1-5 and creates a session type so that
+* booking creation can succeed.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func setupWorkingHoursAndService(t *testing.T) {
 	t.Helper()
 
-	// Set working hours (Mon-Fri, 09:00-18:00)
+	/***************************************************************************************************
+	* Set working hours (Mon-Fri, 09:00-18:00).
+	***************************************************************************************************/
 	body := jsonBody(map[string]interface{}{
 		"hours": []map[string]interface{}{
 			{"dayOfWeek": 1, "startTime": "09:00", "endTime": "18:00"},
@@ -91,7 +143,9 @@ func setupWorkingHoursAndService(t *testing.T) {
 		t.Fatalf("failed to set working hours: %d %s", w.Code, w.Body.String())
 	}
 
-	// Create a session type (needed for booking creation)
+	/***************************************************************************************************
+	* Create a session type (needed for booking creation).
+	***************************************************************************************************/
 	serviceBody := jsonBody(map[string]interface{}{
 		"type":            "personal",
 		"name":            "Personal Training",
@@ -104,11 +158,27 @@ func setupWorkingHoursAndService(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test create and get booking logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestCreateAndGetBooking(t *testing.T) {
-	// Setup working hours and session type
+	/***************************************************************************************************
+	* Setup working hours and session type.
+	***************************************************************************************************/
 	setupWorkingHoursAndService(t)
 
-	// Create a booking as client 222222 on next Monday
+	/***************************************************************************************************
+	* Create a booking as client 222222 on next Monday.
+	***************************************************************************************************/
 	body := jsonBody(map[string]interface{}{
 		"date":     nextWeekday(time.Monday),
 		"time":     "10:00",
@@ -136,7 +206,9 @@ func TestCreateAndGetBooking(t *testing.T) {
 		t.Fatal("expected booking to have an id")
 	}
 
-	// GET /api/bookings as same client -> find the booking
+	/***************************************************************************************************
+	* GET /api/bookings as same client -> find the booking.
+	***************************************************************************************************/
 	w = doClientRequest(t, http.MethodGet, "/api/bookings", nil, 222222)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
@@ -157,8 +229,22 @@ func TestCreateAndGetBooking(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test cancel booking logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestCancelBooking(t *testing.T) {
-	// Create a booking as client 333333 on next Tuesday
+	/***************************************************************************************************
+	* Create a booking as client 333333 on next Tuesday.
+	***************************************************************************************************/
 	body := jsonBody(map[string]interface{}{
 		"date":     nextWeekday(time.Tuesday),
 		"time":     "11:00",
@@ -175,7 +261,9 @@ func TestCancelBooking(t *testing.T) {
 	parseJSON(t, w, &booking)
 	bookingID, _ := booking["id"].(string)
 
-	// Cancel the booking
+	/***************************************************************************************************
+	* Cancel the booking.
+	***************************************************************************************************/
 	cancelBody := jsonBody(map[string]interface{}{
 		"reason": "test cancel",
 	})
@@ -193,6 +281,18 @@ func TestCancelBooking(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test admin get bookings logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestAdminGetBookings(t *testing.T) {
 	w := doAdminRequest(t, http.MethodGet, "/api/admin/bookings", nil)
 
@@ -208,10 +308,23 @@ func TestAdminGetBookings(t *testing.T) {
 	}
 }
 
-// ========== Task 4: Admin auth + client profile tests ==========
 
+/***************************************************************************************************
+* Task 4: Admin auth + client profile tests.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestAdminUnauthorized(t *testing.T) {
-	// Regular client (888888) should get 403 on admin endpoint
+	/***************************************************************************************************
+	* Regular client (888888) should get 403 on admin endpoint.
+	***************************************************************************************************/
 	w := doClientRequest(t, http.MethodGet, "/api/admin/settings", nil, 888888)
 
 	if w.Code != http.StatusForbidden {
@@ -219,8 +332,22 @@ func TestAdminUnauthorized(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test get client profile logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestGetClientProfile(t *testing.T) {
-	// GET /api/profile as client 444444 -> should create via DevAuthMiddleware with name "Dev User"
+	/***************************************************************************************************
+	* GET /api/profile as client 444444 -> should create via DevAuthMiddleware with name "Dev User".
+	***************************************************************************************************/
 	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, 444444)
 
 	if w.Code != http.StatusOK {
@@ -235,14 +362,30 @@ func TestGetClientProfile(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test update client profile logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestUpdateClientProfile(t *testing.T) {
-	// Step 1: GET /api/profile to create client 555555
+	/***************************************************************************************************
+	* Step 1: GET /api/profile to create client 555555.
+	***************************************************************************************************/
 	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, 555555)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	// Step 2: PUT /api/profile with updated fields
+	/***************************************************************************************************
+	* Step 2: PUT /api/profile with updated fields.
+	***************************************************************************************************/
 	body := jsonBody(map[string]interface{}{
 		"name":              "Updated Name",
 		"phone":             "+1234567890",
@@ -253,7 +396,9 @@ func TestUpdateClientProfile(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	// Step 3: GET /api/profile -> verify updates
+	/***************************************************************************************************
+	* Step 3: GET /api/profile -> verify updates.
+	***************************************************************************************************/
 	w = doClientRequest(t, http.MethodGet, "/api/profile", nil, 555555)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
@@ -273,6 +418,18 @@ func TestUpdateClientProfile(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test get working hours logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestGetWorkingHours(t *testing.T) {
 	w := doClientRequest(t, http.MethodGet, "/api/working-hours", nil, 444444)
 
@@ -281,6 +438,18 @@ func TestGetWorkingHours(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test get services logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestGetServices(t *testing.T) {
 	w := doClientRequest(t, http.MethodGet, "/api/services", nil, 444444)
 
@@ -289,14 +458,29 @@ func TestGetServices(t *testing.T) {
 	}
 }
 
-// ========== Security tests ==========
 
+/***************************************************************************************************
+* Security tests.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestRejectNoInitData(t *testing.T) {
-	// Request without X-Telegram-Init-Data should get 401
+	/***************************************************************************************************
+	* Request without X-Telegram-Init-Data should get 401.
+	***************************************************************************************************/
 	req := httptest.NewRequest(http.MethodGet, "/api/specialist", nil)
 	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
-	// No X-Telegram-Init-Data header
 
+	/***************************************************************************************************
+	* No X-Telegram-Init-Data header.
+	***************************************************************************************************/
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -305,6 +489,18 @@ func TestRejectNoInitData(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test reject invalid init data logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestRejectInvalidInitData(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/specialist", nil)
 	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
@@ -318,33 +514,20 @@ func TestRejectInvalidInitData(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test reject expired init data logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestRejectExpiredInitData(t *testing.T) {
-	// Generate initData with auth_date 2 hours ago
-	userID := int64(777777)
-	user := fmt.Sprintf(`{"id":%d,"first_name":"Expired","last_name":"","username":"expired"}`, userID)
-	authDate := fmt.Sprintf("%d", time.Now().Unix()-7200) // 2 hours ago
-
-	parts := []string{
-		"auth_date=" + authDate,
-		"user=" + user,
-	}
-	sort.Strings(parts)
-	dataCheckString := strings.Join(parts, "\n")
-
-	secretKey := hmac.New(sha256.New, []byte("WebAppData"))
-	secretKey.Write([]byte(testSpecialist.BotToken))
-	secret := secretKey.Sum(nil)
-
-	h := hmac.New(sha256.New, secret)
-	h.Write([]byte(dataCheckString))
-	hash := hex.EncodeToString(h.Sum(nil))
-
-	v := url.Values{}
-	v.Set("user", user)
-	v.Set("auth_date", authDate)
-	v.Set("hash", hash)
-	initData := v.Encode()
-
+	initData := buildInitDataAt(777777, "Expired", testSpecialist.BotToken, time.Now().Unix()-7200)
 	req := httptest.NewRequest(http.MethodGet, "/api/specialist", nil)
 	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
 	req.Header.Set("X-Telegram-Init-Data", initData)
@@ -357,13 +540,129 @@ func TestRejectExpiredInitData(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test reject future init data logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestRejectFutureInitData(t *testing.T) {
+	initData := buildInitDataAt(787878, "Future", testSpecialist.BotToken, time.Now().Unix()+900)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/specialist", nil)
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
+	req.Header.Set("X-Telegram-Init-Data", initData)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 with future initData, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+/***************************************************************************************************
+* Implements the test superadmin requires auth logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TestSuperadminRequiresAuth(t *testing.T) {
-	// Without bearer token -> 404 (no SUPERADMIN_SECRET set in test)
+	/***************************************************************************************************
+	* Without bearer token -> 404 (no SUPERADMIN_SECRET set in test).
+	***************************************************************************************************/
 	req := httptest.NewRequest(http.MethodGet, "/superadmin/specialists", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusNotFound && w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 404 or 401 for superadmin without auth, got %d", w.Code)
+	}
+}
+
+/***************************************************************************************************
+* Implements the test metrics require internal access logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestMetricsRequireInternalAccess(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.RemoteAddr = "203.0.113.10:54321"
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound && w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 404 or 401 for public metrics access, got %d", w.Code)
+	}
+}
+
+/***************************************************************************************************
+* Implements the test reject invalid booking time logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestRejectInvalidBookingTime(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"date":     nextWeekday(time.Wednesday),
+		"time":     "25:99",
+		"duration": 60,
+		"name":     "Bad Time",
+	})
+
+	w := doClientRequest(t, http.MethodPost, "/api/bookings", body, 989898)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid booking time, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+/***************************************************************************************************
+* Implements the test reject invalid working hours range logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestRejectInvalidWorkingHoursRange(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"hours": []map[string]interface{}{
+			{"dayOfWeek": 1, "startTime": "18:00", "endTime": "09:00"},
+		},
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours", body)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid working hours range, got %d: %s", w.Code, w.Body.String())
 	}
 }

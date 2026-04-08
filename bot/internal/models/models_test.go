@@ -6,6 +6,18 @@ import (
 	"time"
 )
 
+/***************************************************************************************************
+* Implements the test day off marshal json logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestDayOffMarshalJSON(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -63,12 +75,16 @@ func TestDayOffMarshalJSON(t *testing.T) {
 				t.Errorf("date = %q, want %q", gotDate, tt.expectedDate)
 			}
 
-			// Verify id is present
+			/***************************************************************************************************
+			* Verify id is present.
+			***************************************************************************************************/
 			if gotID, _ := result["id"].(string); gotID != tt.dayOff.ID {
 				t.Errorf("id = %q, want %q", gotID, tt.dayOff.ID)
 			}
 
-			// Verify reason omitted when empty
+			/***************************************************************************************************
+			* Verify reason omitted when empty.
+			***************************************************************************************************/
 			if tt.dayOff.Reason == "" {
 				if _, exists := result["reason"]; exists {
 					t.Error("expected reason to be omitted when empty")
