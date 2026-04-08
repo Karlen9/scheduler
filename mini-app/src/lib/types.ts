@@ -224,6 +224,7 @@ export type TTelegramWebApp = {
   };
   onEvent: (event: string, callback: TVoidFunction) => void;
   offEvent: (event: string, callback: TVoidFunction) => void;
+  openTelegramLink?: (url: string) => void;
 };
 
 /***************************************************************************************************

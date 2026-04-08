@@ -1,6 +1,7 @@
 'use client';
 
 import { Clock, Dumbbell } from 'lucide-react';
+import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { TopBar } from '@/components/TopBar';
@@ -54,7 +55,7 @@ export default function ServicesPage(): ReactNode {
         <div className={'animate-pulse space-y-3 p-4'}>
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
-              <div className={'bg-border h-10 w-10 flex-shrink-0 rounded-full'} />
+              <div className={'bg-border h-10 w-10 shrink-0 rounded-full'} />
               <div className={'flex-1'}>
                 <div className={'bg-border mb-2 h-5 w-2/3 rounded'} />
                 <div className={'bg-border h-4 w-1/3 rounded'} />
@@ -81,11 +82,13 @@ export default function ServicesPage(): ReactNode {
                ***************************************************************************************************/}
               <div
                 className={
-                  'bg-border flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full'
+                  'bg-border flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full'
                 }
               >
                 {service.imageUrl ? (
-                  <img
+                  <Image
+                    width={40}
+                    height={40}
                     src={getPhotoUrl(service.imageUrl)}
                     alt={service.name}
                     className={'h-full w-full object-cover'}

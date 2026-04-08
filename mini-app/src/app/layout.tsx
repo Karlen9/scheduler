@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
@@ -44,7 +45,7 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <head>
-        <script src={'https://telegram.org/js/telegram-web-app.js'} />
+        <Script src={'https://telegram.org/js/telegram-web-app.js'} />
         {/***************************************************************************************************
          * Detect dark/light theme early to prevent flash.
          ***************************************************************************************************/}
