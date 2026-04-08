@@ -8,6 +8,18 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+/***************************************************************************************************
+* Returns working hours by specialist id.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetWorkingHoursBySpecialistID(specialistID string) ([]models.WorkingHours, error) {
 	rows, err := DB.Query(Q(`
 		SELECT id, specialist_id, day_of_week, start_time, end_time
@@ -32,8 +44,25 @@ func GetWorkingHoursBySpecialistID(specialistID string) ([]models.WorkingHours, 
 	return hours, rows.Err()
 }
 
+/***************************************************************************************************
+* Implements the upsert working hours logic used by this module.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - startTime: Time value used by the current operation.
+* - dayOfWeek: Day of week used by the current operation.
+* - endTime: Time value used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpsertWorkingHours(specialistID string, dayOfWeek int, startTime, endTime string) error {
-	// Check if exists
+	/***************************************************************************************************
+	* Check if exists.
+	***************************************************************************************************/
 	var existingID string
 	err := DB.QueryRow(Q(`
 		SELECT id FROM working_hours
@@ -41,7 +70,9 @@ func UpsertWorkingHours(specialistID string, dayOfWeek int, startTime, endTime s
 	`), specialistID, dayOfWeek).Scan(&existingID)
 
 	if err == sql.ErrNoRows {
-		// Insert new
+		/***************************************************************************************************
+		* Insert new.
+		***************************************************************************************************/
 		id := uuid.New().String()
 		_, err = DB.Exec(Q(`
 			INSERT INTO working_hours (id, specialist_id, day_of_week, start_time, end_time)
@@ -53,7 +84,9 @@ func UpsertWorkingHours(specialistID string, dayOfWeek int, startTime, endTime s
 		return err
 	}
 
-	// Update existing
+	/***************************************************************************************************
+	* Update existing.
+	***************************************************************************************************/
 	_, err = DB.Exec(Q(`
 		UPDATE working_hours
 		SET start_time = ?, end_time = ?
@@ -62,6 +95,19 @@ func UpsertWorkingHours(specialistID string, dayOfWeek int, startTime, endTime s
 	return err
 }
 
+/***************************************************************************************************
+* Deletes working hours.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - dayOfWeek: Day of week used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func DeleteWorkingHours(specialistID string, dayOfWeek int) error {
 	_, err := DB.Exec(Q(`
 		DELETE FROM working_hours
@@ -70,6 +116,18 @@ func DeleteWorkingHours(specialistID string, dayOfWeek int) error {
 	return err
 }
 
+/***************************************************************************************************
+* Implements the clear working hours logic used by this module.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func ClearWorkingHours(specialistID string) error {
 	_, err := DB.Exec(Q(`DELETE FROM working_hours WHERE specialist_id = ?`), specialistID)
 	return err

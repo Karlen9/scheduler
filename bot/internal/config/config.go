@@ -9,6 +9,18 @@ import (
 	"github.com/joho/godotenv"
 )
 
+/***************************************************************************************************
+* Parses admin ids.
+*
+* Parameters:
+* - s: S used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as []int64.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func parseAdminIDs(s string) []int64 {
 	if s == "" {
 		return nil
@@ -25,8 +37,13 @@ func parseAdminIDs(s string) []int64 {
 	return ids
 }
 
+/***************************************************************************************************
+* Defines the config type used by the configuration layer.
+***************************************************************************************************/
 type Config struct {
-	// Required
+	/***************************************************************************************************
+	* Required.
+	***************************************************************************************************/
 	WebAppURL           string
 	DatabasePath        string
 	DatabaseURL         string // postgres:// connection string; if set, uses Postgres instead of SQLite
@@ -36,18 +53,36 @@ type Config struct {
 	MasterWebhookSecret string  // Fixed webhook secret for master bot
 	AdminIDs            []int64 // Telegram IDs with admin access
 
-	// Encryption
+	/***************************************************************************************************
+	* Encryption.
+	***************************************************************************************************/
 	EncryptionKey string // Hex-encoded 32-byte AES key for encrypting tokens at rest
 
-	// Security
+	/***************************************************************************************************
+	* Security.
+	***************************************************************************************************/
 	SuperadminSecret string // Bearer token for /superadmin/* endpoints
 
-	// Optional - for initial single-bot setup (legacy)
+	/***************************************************************************************************
+	* Optional - for initial single-bot setup (legacy).
+	***************************************************************************************************/
 	TelegramBotToken     string
 	SpecialistTelegramID int64
 	SpecialistName       string
 }
 
+/***************************************************************************************************
+* Loads the current value.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The computed value for the current operation as *Config.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func Load() *Config {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
@@ -70,7 +105,9 @@ func Load() *Config {
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
 		SuperadminSecret:    os.Getenv("SUPERADMIN_SECRET"),
 
-		// Legacy single-bot setup
+		/***************************************************************************************************
+		* Legacy single-bot setup.
+		***************************************************************************************************/
 		TelegramBotToken:     os.Getenv("TELEGRAM_BOT_TOKEN"),
 		SpecialistTelegramID: specialistID,
 		SpecialistName:       specialistName,

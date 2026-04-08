@@ -23,7 +23,9 @@ import (
 	"scheduler-bot/internal/telegram"
 )
 
-// BotManager manages multiple bot instances
+/***************************************************************************************************
+* BotManager manages multiple bot instances.
+***************************************************************************************************/
 type BotManager struct {
 	mu        sync.RWMutex
 	bots      map[string]*telegram.Bot     // webhookSecret -> bot
@@ -32,6 +34,19 @@ type BotManager struct {
 	baseURL   string
 }
 
+/***************************************************************************************************
+* Creates bot manager.
+*
+* Parameters:
+* - webAppURL: Web app url used by the current operation.
+* - baseURL: Base url used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *BotManager.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func NewBotManager(webAppURL, baseURL string) *BotManager {
 	return &BotManager{
 		bots:      make(map[string]*telegram.Bot),
@@ -41,11 +56,25 @@ func NewBotManager(webAppURL, baseURL string) *BotManager {
 	}
 }
 
+/***************************************************************************************************
+* Implements the register bot logic used by this module.
+*
+* Parameters:
+* - specialist: Specialist used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Skip if already registered
+	/***************************************************************************************************
+	* Skip if already registered.
+	***************************************************************************************************/
 	if _, exists := m.bots[specialist.WebhookSecret]; exists {
 		return nil
 	}
@@ -58,12 +87,16 @@ func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 	handler := telegram.NewHandler(bot, m.webAppURL)
 	handler.Version = Version
 
-	// Clear any stale webhook/pending updates before setting new one
+	/***************************************************************************************************
+	* Clear any stale webhook/pending updates before setting new one.
+	***************************************************************************************************/
 	if err := bot.DeleteWebhook(true); err != nil {
 		log.Printf("Warning: deleteWebhook for @%s: %v", bot.Username, err)
 	}
 
-	// Set webhook with retry
+	/***************************************************************************************************
+	* Set webhook with retry.
+	***************************************************************************************************/
 	webhookURL := strings.TrimRight(m.baseURL, "/") + "/tg/" + specialist.WebhookSecret + "/webhook"
 	for attempt := 1; attempt <= 3; attempt++ {
 		if err := bot.SetWebhook(webhookURL, specialist.WebhookSecret); err != nil {
@@ -80,28 +113,57 @@ func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 	m.bots[specialist.WebhookSecret] = bot
 	m.handlers[specialist.WebhookSecret] = handler
 
-	// Log webhook info for debugging
+	/***************************************************************************************************
+	* Log webhook info for debugging.
+	***************************************************************************************************/
 	url, pending, lastErr := bot.GetWebhookInfo()
 	log.Printf("  Webhook info for @%s: url=%s pending=%d lastError=%q", bot.Username, url, pending, lastErr)
 
 	return nil
 }
 
+/***************************************************************************************************
+* Returns handler.
+*
+* Parameters:
+* - webhookSecret: Webhook secret used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *telegram.Handler.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func (m *BotManager) GetHandler(webhookSecret string) *telegram.Handler {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.handlers[webhookSecret]
 }
 
-// GetOrLoadHandler returns the handler for the given webhook secret,
-// lazy-loading from DB if not found in memory (e.g. after failed registration).
+/***************************************************************************************************
+* GetOrLoadHandler returns the handler for the given webhook secret, lazy-loading from DB if not
+* found in memory (e.g. after failed registration).
+*
+* Parameters:
+* - webhookSecret: Webhook secret used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *telegram.Handler.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func (m *BotManager) GetOrLoadHandler(webhookSecret string) *telegram.Handler {
-	// Fast path: already registered
+	/***************************************************************************************************
+	* Fast path: already registered.
+	***************************************************************************************************/
 	if h := m.GetHandler(webhookSecret); h != nil {
 		return h
 	}
 
-	// Slow path: look up specialist in DB and register on-the-fly
+	/***************************************************************************************************
+	* Slow path: look up specialist in DB and register on-the-fly.
+	***************************************************************************************************/
 	specialist, err := db.GetSpecialistByWebhookSecret(webhookSecret)
 	if err != nil {
 		log.Printf("Lazy-load DB error for secret %s...: %v", webhookSecret[:8], err)
@@ -120,29 +182,67 @@ func (m *BotManager) GetOrLoadHandler(webhookSecret string) *telegram.Handler {
 	return m.GetHandler(webhookSecret)
 }
 
+/***************************************************************************************************
+* Returns bot.
+*
+* Parameters:
+* - webhookSecret: Webhook secret used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *telegram.Bot.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func (m *BotManager) GetBot(webhookSecret string) *telegram.Bot {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.bots[webhookSecret]
 }
 
+/***************************************************************************************************
+* Defines the bot manager value used by the current module.
+*
+* Usage context:
+* - Reused by the current module to keep shared values centralized.
+***************************************************************************************************/
 var botManager *BotManager
 
+/***************************************************************************************************
+* Implements the main logic used by this module.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func main() {
-	// Load configuration
+	/***************************************************************************************************
+	* Load configuration.
+	***************************************************************************************************/
 	cfg := config.Load()
 
-	// Initialize encryption
+	/***************************************************************************************************
+	* Initialize encryption.
+	***************************************************************************************************/
 	if err := crypto.Init(cfg.EncryptionKey); err != nil {
 		log.Fatalf("Failed to initialize encryption: %v", err)
 	}
 
-	// Initialize i18n translations
+	/***************************************************************************************************
+	* Initialize i18n translations.
+	***************************************************************************************************/
 	if err := myI18n.Init(); err != nil {
 		log.Fatalf("Failed to load translations: %v", err)
 	}
 
-	// Initialize database (Postgres if DATABASE_URL is set, otherwise SQLite)
+	/***************************************************************************************************
+	* Initialize database (Postgres if DATABASE_URL is set, otherwise SQLite).
+	***************************************************************************************************/
 	dbTarget := cfg.DatabasePath
 	if cfg.DatabaseURL != "" {
 		dbTarget = cfg.DatabaseURL
@@ -152,15 +252,21 @@ func main() {
 	}
 	defer db.Close()
 
-	// Migrate existing plain-text tokens to encrypted form
+	/***************************************************************************************************
+	* Migrate existing plain-text tokens to encrypted form.
+	***************************************************************************************************/
 	if err := db.MigrateEncryptTokens(); err != nil {
 		log.Fatalf("Failed to migrate encrypted tokens: %v", err)
 	}
 
-	// Create bot manager
+	/***************************************************************************************************
+	* Create bot manager.
+	***************************************************************************************************/
 	botManager = NewBotManager(cfg.WebAppURL, cfg.PublicBaseURL)
 
-	// Set up callback for when new specialists are created via master bot
+	/***************************************************************************************************
+	* Set up callback for when new specialists are created via master bot.
+	***************************************************************************************************/
 	telegram.OnSpecialistCreated = func(specialist *models.Specialist) error {
 		if err := botManager.RegisterBot(specialist); err != nil {
 			log.Printf("Failed to register new bot: %v", err)
@@ -169,14 +275,18 @@ func main() {
 		return nil
 	}
 
-	// Legacy: seed initial data if single-bot env vars are set and no specialists exist
+	/***************************************************************************************************
+	* Legacy: seed initial data if single-bot env vars are set and no specialists exist.
+	***************************************************************************************************/
 	if cfg.TelegramBotToken != "" && cfg.SpecialistTelegramID != 0 {
 		if err := seedLegacyData(cfg); err != nil {
 			log.Printf("Warning: Failed to seed legacy data: %v", err)
 		}
 	}
 
-	// Load all active specialists and register their bots
+	/***************************************************************************************************
+	* Load all active specialists and register their bots.
+	***************************************************************************************************/
 	specialists, err := db.GetAllActiveSpecialists()
 	if err != nil {
 		log.Fatalf("Failed to load specialists: %v", err)
@@ -186,7 +296,9 @@ func main() {
 		if err := botManager.RegisterBot(&specialist); err != nil {
 			log.Printf("Failed to register bot for specialist %s: %v", specialist.Name, err)
 		}
-		// Avoid Telegram rate limits when registering multiple bots
+		/***************************************************************************************************
+		* Avoid Telegram rate limits when registering multiple bots.
+		***************************************************************************************************/
 		if i < len(specialists)-1 {
 			time.Sleep(500 * time.Millisecond)
 		}
@@ -194,7 +306,9 @@ func main() {
 
 	log.Printf("Loaded %d specialist bot(s)", len(specialists))
 
-	// Set up notification callback for client-created bookings (notify specialist)
+	/***************************************************************************************************
+	* Set up notification callback for client-created bookings (notify specialist).
+	***************************************************************************************************/
 	api.NotifyBookingFunc = func(booking *models.Booking) error {
 		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 		if err != nil || specialist == nil {
@@ -212,13 +326,17 @@ func main() {
 		return handler.NotifySpecialistNewBooking(booking)
 	}
 
-	// Set up notification callback for admin status changes - finds correct bot by specialist
+	/***************************************************************************************************
+	* Set up notification callback for admin status changes - finds correct bot by specialist.
+	***************************************************************************************************/
 	api.NotifyStatusChangeFunc = func(booking *models.Booking, newStatus string) error {
 		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 		if err != nil || specialist == nil {
 			return err
 		}
-		// Check client notification preferences
+		/***************************************************************************************************
+		* Check client notification preferences.
+		***************************************************************************************************/
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			return err
@@ -238,7 +356,9 @@ func main() {
 		return handler.NotifyClientStatusChange(booking, newStatus)
 	}
 
-	// Set up callback to edit specialist's Telegram message when admin panel changes booking status
+	/***************************************************************************************************
+	* Set up callback to edit specialist's Telegram message when admin panel changes booking status.
+	***************************************************************************************************/
 	api.UpdateSpecialistMessageFunc = func(booking *models.Booking) error {
 		chatID, messageID, err := db.GetBookingNotificationInfo(booking.ID)
 		if err != nil || messageID == 0 {
@@ -255,7 +375,9 @@ func main() {
 		return handler.UpdateBookingNotificationMessageByIDs(chatID, messageID, booking)
 	}
 
-	// Set up notification callback for specialist-initiated bookings (notify client)
+	/***************************************************************************************************
+	* Set up notification callback for specialist-initiated bookings (notify client).
+	***************************************************************************************************/
 	api.NotifySpecialistBookingFunc = func(booking *models.Booking) error {
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
@@ -280,7 +402,9 @@ func main() {
 		return handler.NotifyClientSpecialistBooking(booking)
 	}
 
-	// Set up notification callback for client confirm/decline of specialist-created bookings
+	/***************************************************************************************************
+	* Set up notification callback for client confirm/decline of specialist-created bookings.
+	***************************************************************************************************/
 	api.NotifyClientBookingResponseFunc = func(booking *models.Booking, accepted bool) error {
 		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 		if err != nil || specialist == nil {
@@ -294,7 +418,9 @@ func main() {
 		return handler.NotifySpecialistClientBookingResponse(booking, accepted)
 	}
 
-	// Set up callback to edit client's Telegram notification message
+	/***************************************************************************************************
+	* Set up callback to edit client's Telegram notification message.
+	***************************************************************************************************/
 	api.UpdateClientMessageFunc = func(booking *models.Booking) error {
 		chatID, messageID, err := db.GetClientNotificationInfo(booking.ID)
 		if err != nil || chatID == 0 || messageID == 0 {
@@ -316,7 +442,9 @@ func main() {
 		return handler.UpdateClientNotificationMessage(loc, chatID, messageID, booking)
 	}
 
-	// Set up recurring schedule notification callback
+	/***************************************************************************************************
+	* Set up recurring schedule notification callback.
+	***************************************************************************************************/
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error {
 		specialist, err := db.GetSpecialistByID(schedule.SpecialistID)
 		if err != nil || specialist == nil {
@@ -328,14 +456,18 @@ func main() {
 			return nil
 		}
 		if schedule.CreatedBy == "client" {
-			// Notify specialist about client-created schedule
+			/***************************************************************************************************
+			* Notify specialist about client-created schedule.
+			***************************************************************************************************/
 			if !specialist.NotifyNewBookings {
 				log.Printf("Skipping recurring schedule notification for specialist %s (disabled)", specialist.Name)
 				return nil
 			}
 			return handler.NotifySpecialistRecurringSchedule(schedule, previewCount)
 		}
-		// Notify client about specialist-created schedule
+		/***************************************************************************************************
+		* Notify client about specialist-created schedule.
+		***************************************************************************************************/
 		client, err := db.GetClientByID(schedule.ClientID)
 		if err != nil || client == nil {
 			return err
@@ -350,7 +482,9 @@ func main() {
 		return handler.NotifyClientRecurringSchedule(schedule, previewCount)
 	}
 
-	// Set up cancellation notification callback
+	/***************************************************************************************************
+	* Set up cancellation notification callback.
+	***************************************************************************************************/
 	api.NotifyCancellationFunc = func(booking *models.Booking, cancelledBy string) error {
 		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 		if err != nil || specialist == nil {
@@ -362,14 +496,18 @@ func main() {
 			return nil
 		}
 		if cancelledBy == "client" {
-			// Client cancelled — notify specialist if enabled
+			/***************************************************************************************************
+			* Client cancelled — notify specialist if enabled.
+			***************************************************************************************************/
 			if !specialist.NotifyCancellations {
 				log.Printf("Skipping cancellation notification for specialist %s (disabled)", specialist.Name)
 				return nil
 			}
 			return handler.NotifySpecialistBookingCancelled(booking)
 		}
-		// Specialist cancelled — notify client if enabled
+		/***************************************************************************************************
+		* Specialist cancelled — notify client if enabled.
+		***************************************************************************************************/
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			return err
@@ -384,7 +522,9 @@ func main() {
 		return handler.NotifyClientBookingCancelled(booking)
 	}
 
-	// Set up move request notification callback
+	/***************************************************************************************************
+	* Set up move request notification callback.
+	***************************************************************************************************/
 	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error {
 		specialist, err := db.GetSpecialistByID(oldBooking.SpecialistID)
 		if err != nil || specialist == nil {
@@ -409,10 +549,14 @@ func main() {
 		}
 	}
 
-	// Set up HTTP server
+	/***************************************************************************************************
+	* Set up HTTP server.
+	***************************************************************************************************/
 	apiRouter := api.NewRouter()
 
-	// Master bot webhook (for specialist onboarding)
+	/***************************************************************************************************
+	* Master bot webhook (for specialist onboarding).
+	***************************************************************************************************/
 	var masterHandler *telegram.MasterHandler
 	var masterWebhookSecret string
 	if cfg.MasterBotToken != "" {
@@ -424,7 +568,9 @@ func main() {
 
 		masterHandler = telegram.NewMasterHandler(masterBot, cfg.PublicBaseURL, cfg.WebAppURL, cfg.AdminIDs)
 
-		// Use fixed webhook secret from env, or generate a random one
+		/***************************************************************************************************
+		* Use fixed webhook secret from env, or generate a random one.
+		***************************************************************************************************/
 		if cfg.MasterWebhookSecret != "" {
 			masterWebhookSecret = cfg.MasterWebhookSecret
 		} else {
@@ -434,7 +580,9 @@ func main() {
 			log.Println("Warning: MASTER_WEBHOOK_SECRET not set, using random secret (will change on restart)")
 		}
 
-		// Set webhook for master bot
+		/***************************************************************************************************
+		* Set webhook for master bot.
+		***************************************************************************************************/
 		masterBot.DeleteWebhook(true)
 		masterWebhookURL := strings.TrimRight(cfg.PublicBaseURL, "/") + "/master/" + masterWebhookSecret + "/webhook"
 		if err := masterBot.SetWebhook(masterWebhookURL, masterWebhookSecret); err != nil {
@@ -444,12 +592,16 @@ func main() {
 		}
 	}
 
-	// Main handler: route by path prefix (avoids Go 1.22 ServeMux issues with chi)
+	/***************************************************************************************************
+	* Main handler: route by path prefix (avoids Go 1.22 ServeMux issues with chi).
+	***************************************************************************************************/
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
 		if strings.HasPrefix(path, "/tg/") {
-			// Specialist bot webhooks
+			/***************************************************************************************************
+			* Specialist bot webhooks.
+			***************************************************************************************************/
 			log.Printf("Webhook request: %s %s", r.Method, path)
 
 			parts := strings.Split(strings.Trim(path, "/"), "/")
@@ -497,7 +649,9 @@ func main() {
 		}
 
 		if strings.HasPrefix(path, "/master/") && masterHandler != nil {
-			// Master bot webhook
+			/***************************************************************************************************
+			* Master bot webhook.
+			***************************************************************************************************/
 			log.Printf("Master webhook request: %s %s", r.Method, path)
 
 			parts := strings.Split(strings.Trim(path, "/"), "/")
@@ -541,7 +695,9 @@ func main() {
 			return
 		}
 
-		// Everything else goes to the API router
+		/***************************************************************************************************
+		* Everything else goes to the API router.
+		***************************************************************************************************/
 		apiRouter.ServeHTTP(w, r)
 	})
 
@@ -551,7 +707,9 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	// Start background reminder worker
+	/***************************************************************************************************
+	* Start background reminder worker.
+	***************************************************************************************************/
 	reminderCtx, reminderCancel := context.WithCancel(context.Background())
 	defer reminderCancel()
 	go startReminderWorker(reminderCtx)
@@ -575,6 +733,18 @@ func main() {
 	}
 }
 
+/***************************************************************************************************
+* Implements the start reminder worker logic used by this module.
+*
+* Parameters:
+* - ctx: Context used for cancellation, deadlines, and request-scoped values.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func startReminderWorker(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -592,6 +762,18 @@ func startReminderWorker(ctx context.Context) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the send reminders logic used by this module.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func sendReminders() {
 	bookings, err := db.GetBookingsNeedingReminder()
 	if err != nil {
@@ -600,22 +782,30 @@ func sendReminders() {
 	}
 
 	for _, booking := range bookings {
-		// Get client to find their Telegram user ID
+		/***************************************************************************************************
+		* Get client to find their Telegram user ID.
+		***************************************************************************************************/
 		client, err := db.GetClientByID(booking.ClientID)
 		if err != nil || client == nil {
 			log.Printf("Reminder: error getting client for booking %s: %v", booking.ID, err)
 			continue
 		}
 
-		// Check client notification preferences
+		/***************************************************************************************************
+		* Check client notification preferences.
+		***************************************************************************************************/
 		if !client.NotifyReminders {
-			// Mark as sent so we don't check again
+			/***************************************************************************************************
+			* Mark as sent so we don't check again.
+			***************************************************************************************************/
 			db.MarkReminderSent(booking.ID)
 			log.Printf("Reminder: skipping for client %s (reminders disabled)", client.Name)
 			continue
 		}
 
-		// Get specialist to find the correct bot
+		/***************************************************************************************************
+		* Get specialist to find the correct bot.
+		***************************************************************************************************/
 		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
 		if err != nil || specialist == nil {
 			log.Printf("Reminder: error getting specialist for booking %s: %v", booking.ID, err)
@@ -643,6 +833,18 @@ func sendReminders() {
 	}
 }
 
+/***************************************************************************************************
+* Implements the seed legacy data logic used by this module.
+*
+* Parameters:
+* - cfg: Cfg used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func seedLegacyData(cfg *config.Config) error {
 	existing, err := db.GetSpecialistByTelegramID(cfg.SpecialistTelegramID)
 	if err != nil {
@@ -709,8 +911,19 @@ func seedLegacyData(cfg *config.Config) error {
 	return nil
 }
 
-// seedLoadTestData creates a test specialist with working hours for load testing.
-// Only called when LOAD_TEST_MODE is enabled.
+/***************************************************************************************************
+* seedLoadTestData creates a test specialist with working hours for load testing. Only called when
+* LOAD_TEST_MODE is enabled.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func seedLoadTestData() error {
 	existing, _ := db.GetFirstSpecialist()
 	if existing != nil {
@@ -730,7 +943,9 @@ func seedLoadTestData() error {
 
 	db.UpdateSpecialistAvailableDurations(specialist.ID, "30,60,90,120")
 
-	// Session types required for booking creation
+	/***************************************************************************************************
+	* Session types required for booking creation.
+	***************************************************************************************************/
 	db.CreateSessionType(specialist.ID, "default", "Session", 60, 0, "RUB", "")
 	db.CreateSessionType(specialist.ID, "short", "Short Session", 30, 0, "RUB", "")
 	db.CreateSessionType(specialist.ID, "long", "Long Session", 90, 0, "RUB", "")

@@ -9,25 +9,44 @@ import (
 	"scheduler-bot/internal/models"
 )
 
-// parseDateString parses a date string that may come as "2006-01-02" (SQLite)
-// or "2006-01-02T15:04:05Z" / "2006-01-02 15:04:05+00:00" (Postgres).
+/***************************************************************************************************
+* parseDateString parses a date string that may come as "2006-01-02" (SQLite) or
+* "2006-01-02T15:04:05Z" / "2006-01-02 15:04:05+00:00" (Postgres).
+*
+* Parameters:
+* - s: S used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as time.Time.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func parseDateString(s string) time.Time {
-	// Try date-only first
+	/***************************************************************************************************
+	* Try date-only first.
+	***************************************************************************************************/
 	if t, err := time.Parse("2006-01-02", s); err == nil {
 		return t
 	}
-	// Try RFC3339 (Postgres TIMESTAMPTZ)
+	/***************************************************************************************************
+	* Try RFC3339 (Postgres TIMESTAMPTZ).
+	***************************************************************************************************/
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
 		return t
 	}
-	// Try Postgres format without T separator
+	/***************************************************************************************************
+	* Try Postgres format without T separator.
+	***************************************************************************************************/
 	if t, err := time.Parse("2006-01-02 15:04:05-07:00", s); err == nil {
 		return t
 	}
 	if t, err := time.Parse("2006-01-02 15:04:05-07", s); err == nil {
 		return t
 	}
-	// Fallback: truncate to 10 chars and try date-only
+	/***************************************************************************************************
+	* Fallback: truncate to 10 chars and try date-only.
+	***************************************************************************************************/
 	if len(s) >= 10 {
 		if t, err := time.Parse("2006-01-02", s[:10]); err == nil {
 			return t
@@ -36,6 +55,18 @@ func parseDateString(s string) time.Time {
 	return time.Time{}
 }
 
+/***************************************************************************************************
+* Returns days off by specialist id.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetDaysOffBySpecialistID(specialistID string) ([]models.DayOff, error) {
 	rows, err := DB.Query(Q(
 		`SELECT id, specialist_id, date, reason, created_at
@@ -63,6 +94,19 @@ func GetDaysOffBySpecialistID(specialistID string) ([]models.DayOff, error) {
 	return daysOff, rows.Err()
 }
 
+/***************************************************************************************************
+* Returns day off.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - date: Date value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetDayOff(specialistID string, date time.Time) (*models.DayOff, error) {
 	dateStr := date.Format("2006-01-02")
 	row := DB.QueryRow(Q(`
@@ -86,6 +130,20 @@ func GetDayOff(specialistID string, date time.Time) (*models.DayOff, error) {
 	return &d, nil
 }
 
+/***************************************************************************************************
+* Creates day off.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - date: Date value used by the current operation.
+* - reason: Reason used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateDayOff(specialistID string, date time.Time, reason string) (*models.DayOff, error) {
 	id := uuid.New().String()
 	dateStr := date.Format("2006-01-02")
@@ -114,11 +172,36 @@ func CreateDayOff(specialistID string, date time.Time, reason string) (*models.D
 	}, nil
 }
 
+/***************************************************************************************************
+* Deletes day off.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func DeleteDayOff(id string) error {
 	_, err := DB.Exec(Q(`DELETE FROM days_off WHERE id = ?`), id)
 	return err
 }
 
+/***************************************************************************************************
+* Checks whether day off.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - date: Date value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func IsDayOff(specialistID string, date time.Time) (bool, error) {
 	dateStr := date.Format("2006-01-02")
 	var count int

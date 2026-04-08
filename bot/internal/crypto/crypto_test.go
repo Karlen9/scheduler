@@ -5,6 +5,18 @@ import (
 	"testing"
 )
 
+/***************************************************************************************************
+* Implements the valid hex key logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func validHexKey(t *testing.T) string {
 	t.Helper()
 	key := make([]byte, 32)
@@ -14,6 +26,18 @@ func validHexKey(t *testing.T) string {
 	return hex.EncodeToString(key)
 }
 
+/***************************************************************************************************
+* Implements the test init logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestInit(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -60,6 +84,18 @@ func TestInit(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test encrypt decrypt round trip logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestEncryptDecryptRoundTrip(t *testing.T) {
 	if err := Init(validHexKey(t)); err != nil {
 		t.Fatal(err)
@@ -96,6 +132,18 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test decrypt plain text logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestDecryptPlainText(t *testing.T) {
 	if err := Init(validHexKey(t)); err != nil {
 		t.Fatal(err)
@@ -111,6 +159,18 @@ func TestDecryptPlainText(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test encrypt disabled passthrough logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestEncryptDisabledPassthrough(t *testing.T) {
 	if err := Init(""); err != nil {
 		t.Fatal(err)
@@ -126,6 +186,18 @@ func TestEncryptDisabledPassthrough(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test hash token logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestHashToken(t *testing.T) {
 	token := "bot123:AAHtest"
 
@@ -142,13 +214,27 @@ func TestHashToken(t *testing.T) {
 		t.Error("HashToken returned the original token")
 	}
 
-	// Different input should produce different hash.
+	/***************************************************************************************************
+	* Different input should produce different hash.
+	***************************************************************************************************/
 	h3 := HashToken("different-token")
 	if h1 == h3 {
 		t.Error("HashToken returned same hash for different inputs")
 	}
 }
 
+/***************************************************************************************************
+* Implements the test is encrypted logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestIsEncrypted(t *testing.T) {
 	tests := []struct {
 		value string
@@ -169,6 +255,18 @@ func TestIsEncrypted(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test enabled logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func TestEnabled(t *testing.T) {
 	if err := Init(validHexKey(t)); err != nil {
 		t.Fatal(err)

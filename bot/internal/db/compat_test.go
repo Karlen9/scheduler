@@ -2,6 +2,18 @@ package db
 
 import "testing"
 
+/***************************************************************************************************
+* Implements the test q logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func TestQ(t *testing.T) {
 	t.Run("SQLite mode", func(t *testing.T) {
 		origVal := isPostgres
@@ -57,6 +69,18 @@ func TestQ(t *testing.T) {
 	})
 }
 
+/***************************************************************************************************
+* Implements the test bool val logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func TestBoolVal(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -77,6 +101,18 @@ func TestBoolVal(t *testing.T) {
 	}
 }
 
+/***************************************************************************************************
+* Implements the test date now logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func TestDateNow(t *testing.T) {
 	t.Run("SQLite mode", func(t *testing.T) {
 		origVal := isPostgres

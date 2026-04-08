@@ -8,14 +8,120 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+/***************************************************************************************************
+* Lists the SQL columns used by the related query helpers.
+*
+* Usage context:
+* - Reused by the database layer to keep shared values centralized.
+***************************************************************************************************/
 const sessionTypeColumns = `id, specialist_id, type, name, duration_minutes, price, currency, image_url, is_active`
 
+/***************************************************************************************************
+* Defines the nullable session type type used by the database layer.
+***************************************************************************************************/
+type nullableSessionType struct {
+	id              sql.NullString
+	specialistID    sql.NullString
+	sessionType     sql.NullString
+	name            sql.NullString
+	durationMinutes sql.NullInt64
+	price           sql.NullInt64
+	currency        sql.NullString
+	imageURL        sql.NullString
+	isActive        sql.NullInt64
+}
+
+/***************************************************************************************************
+* Scans dest.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The computed value for the current operation as []interface{}.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func (n *nullableSessionType) scanDest() []interface{} {
+	return []interface{}{
+		&n.id,
+		&n.specialistID,
+		&n.sessionType,
+		&n.name,
+		&n.durationMinutes,
+		&n.price,
+		&n.currency,
+		&n.imageURL,
+		&n.isActive,
+	}
+}
+
+/***************************************************************************************************
+* Implements the model logic used by this module.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The computed value for the current operation as *models.SessionType.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func (n nullableSessionType) model() *models.SessionType {
+	if !n.id.Valid {
+		return nil
+	}
+
+	st := &models.SessionType{
+		ID:           n.id.String,
+		SpecialistID: n.specialistID.String,
+		Type:         n.sessionType.String,
+		Name:         n.name.String,
+		Currency:     n.currency.String,
+		ImageURL:     n.imageURL.String,
+		IsActive:     !n.isActive.Valid || n.isActive.Int64 == 1,
+	}
+	if n.durationMinutes.Valid {
+		st.DurationMinutes = int(n.durationMinutes.Int64)
+	}
+	if n.price.Valid {
+		st.Price = int(n.price.Int64)
+	}
+	return st
+}
+
+/***************************************************************************************************
+* Scans session type.
+*
+* Parameters:
+* - row: Row used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func scanSessionType(row interface{ Scan(...interface{}) error }) (models.SessionType, error) {
 	var st models.SessionType
 	err := row.Scan(&st.ID, &st.SpecialistID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.ImageURL, &st.IsActive)
 	return st, err
 }
 
+/***************************************************************************************************
+* Returns session types by specialist id.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetSessionTypesBySpecialistID(specialistID string) ([]models.SessionType, error) {
 	rows, err := DB.Query(Q(`
 		SELECT `+sessionTypeColumns+`
@@ -40,6 +146,18 @@ func GetSessionTypesBySpecialistID(specialistID string) ([]models.SessionType, e
 	return sessionTypes, rows.Err()
 }
 
+/***************************************************************************************************
+* Returns session type by id.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetSessionTypeByID(id string) (*models.SessionType, error) {
 	row := DB.QueryRow(Q(`
 		SELECT `+sessionTypeColumns+`
@@ -57,6 +175,19 @@ func GetSessionTypeByID(id string) (*models.SessionType, error) {
 	return &st, nil
 }
 
+/***************************************************************************************************
+* Returns session type by type.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - sessionType: Session type used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetSessionTypeByType(specialistID, sessionType string) (*models.SessionType, error) {
 	row := DB.QueryRow(Q(`
 		SELECT `+sessionTypeColumns+`
@@ -74,6 +205,24 @@ func GetSessionTypeByType(specialistID, sessionType string) (*models.SessionType
 	return &st, nil
 }
 
+/***************************************************************************************************
+* Creates session type.
+*
+* Parameters:
+* - sessionType: Session type used by the current operation.
+* - specialistID: Identifier used to target the current record.
+* - durationMinutes: Duration value used by the current operation.
+* - name: Name used by the current operation.
+* - currency: Currency used by the current operation.
+* - price: Price used by the current operation.
+* - imageURL: Image url used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateSessionType(specialistID, sessionType, name string, durationMinutes, price int, currency, imageURL string) (*models.SessionType, error) {
 	id := uuid.New().String()
 
@@ -88,8 +237,27 @@ func CreateSessionType(specialistID, sessionType, name string, durationMinutes, 
 	return GetSessionTypeByID(id)
 }
 
+/***************************************************************************************************
+* Implements the upsert session type logic used by this module.
+*
+* Parameters:
+* - sessionType: Session type used by the current operation.
+* - specialistID: Identifier used to target the current record.
+* - durationMinutes: Duration value used by the current operation.
+* - name: Name used by the current operation.
+* - price: Price used by the current operation.
+* - currency: Currency used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpsertSessionType(specialistID, sessionType, name string, durationMinutes, price int, currency string) (*models.SessionType, error) {
-	// Check if exists
+	/***************************************************************************************************
+	* Check if exists.
+	***************************************************************************************************/
 	var existingID string
 	err := DB.QueryRow(Q(`
 		SELECT id FROM session_types
@@ -103,7 +271,9 @@ func UpsertSessionType(specialistID, sessionType, name string, durationMinutes, 
 		return nil, err
 	}
 
-	// Update existing
+	/***************************************************************************************************
+	* Update existing.
+	***************************************************************************************************/
 	_, err = DB.Exec(Q(`
 		UPDATE session_types
 		SET name = ?, duration_minutes = ?, price = ?, currency = ?, is_active = 1
@@ -116,6 +286,18 @@ func UpsertSessionType(specialistID, sessionType, name string, durationMinutes, 
 	return GetSessionTypeByID(existingID)
 }
 
+/***************************************************************************************************
+* Returns all session types by specialist id.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetAllSessionTypesBySpecialistID(specialistID string) ([]models.SessionType, error) {
 	rows, err := DB.Query(Q(`
 		SELECT `+sessionTypeColumns+`
@@ -140,6 +322,25 @@ func GetAllSessionTypesBySpecialistID(specialistID string) ([]models.SessionType
 	return sessionTypes, rows.Err()
 }
 
+/***************************************************************************************************
+* Updates session type.
+*
+* Parameters:
+* - sessionType: Session type used by the current operation.
+* - id: Identifier used to target the current record.
+* - durationMinutes: Duration value used by the current operation.
+* - name: Name used by the current operation.
+* - currency: Currency used by the current operation.
+* - price: Price used by the current operation.
+* - imageURL: Image url used by the current operation.
+* - isActive: Boolean flag that influences the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateSessionType(id, sessionType, name string, durationMinutes, price int, currency, imageURL string, isActive bool) (*models.SessionType, error) {
 	_, err := DB.Exec(Q(`
 		UPDATE session_types
@@ -152,6 +353,18 @@ func UpdateSessionType(id, sessionType, name string, durationMinutes, price int,
 	return GetSessionTypeByID(id)
 }
 
+/***************************************************************************************************
+* Implements the deactivate session type logic used by this module.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func DeactivateSessionType(id string) error {
 	_, err := DB.Exec(Q(`UPDATE session_types SET is_active = 0 WHERE id = ?`), id)
 	return err

@@ -10,6 +10,25 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+/***************************************************************************************************
+* Creates booking.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+* - startsAt: Starts at used by the current operation.
+* - sessionTypeID: Identifier used to target the current record.
+* - clientName: Client name used by the current operation.
+* - endsAt: Ends at used by the current operation.
+* - clientMessage: Client message used by the current operation.
+* - durationMinutes: Duration value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
 	id := uuid.New().String()
 
@@ -24,15 +43,67 @@ func CreateBooking(specialistID, clientID, sessionTypeID string, startsAt, endsA
 	return GetBookingByID(id)
 }
 
-// bookingColumns is the standard column list for booking queries.
-// Must match scanBookingRow field order exactly.
-const bookingColumns = `id, specialist_id, client_id, session_type_id, starts_at, ends_at,
-	client_name, client_message, status, cancel_reason, cancelled_by, created_at,
-	duration_minutes, created_by, recurring_schedule_id, replaces_booking_id,
-	COALESCE((SELECT photo_url FROM clients WHERE id = bookings.client_id), ''),
-	COALESCE((SELECT display_name FROM clients WHERE id = bookings.client_id), '')`
+/***************************************************************************************************
+* bookingColumns is the standard column list for booking queries. Must match scanBookingRow field
+* order exactly.
+*
+* Usage context:
+* - Reused by the database layer to keep shared values centralized.
+***************************************************************************************************/
+var bookingColumns = `b.id, b.specialist_id, b.client_id, b.session_type_id, b.starts_at, b.ends_at,
+	b.client_name, b.client_message, b.status, b.cancel_reason, b.cancelled_by, b.created_at,
+	b.duration_minutes, b.created_by, b.recurring_schedule_id, b.replaces_booking_id, ` +
+	clientMetadataSelectColumns("c") + `, ` + sessionTypeSelectColumns("st")
 
-func GetBookingByID(id string) (*models.Booking, error) {
+/***************************************************************************************************
+* Stores the shared SQL FROM clause reused by related queries.
+*
+* Usage context:
+* - Reused by the database layer to keep shared values centralized.
+***************************************************************************************************/
+const bookingFromClause = `
+	FROM bookings b
+	LEFT JOIN clients c ON c.id = b.client_id
+	LEFT JOIN session_types st ON st.id = b.session_type_id
+`
+
+/***************************************************************************************************
+* Implements the booking select query logic used by this module.
+*
+* Parameters:
+* - whereClause: Where clause used by the current operation.
+* - orderBy: Order by used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func bookingSelectQuery(whereClause, orderBy string) string {
+	query := `SELECT ` + bookingColumns + bookingFromClause
+	if whereClause != "" {
+		query += "\nWHERE " + whereClause
+	}
+	if orderBy != "" {
+		query += "\nORDER BY " + orderBy
+	}
+	return query
+}
+
+/***************************************************************************************************
+* Scans booking row.
+*
+* Parameters:
+* - row: Row used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Booking, error) {
 	var b models.Booking
 	var clientMessage sql.NullString
 	var cancelReason sql.NullString
@@ -41,18 +112,15 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	var createdBy sql.NullString
 	var recurringScheduleID sql.NullString
 	var replacesBookingID sql.NullString
+	sessionType := nullableSessionType{}
 
-	err := DB.QueryRow(Q(`
-		SELECT `+bookingColumns+`
-		FROM bookings
-		WHERE id = ?
-	`), id).Scan(&b.ID, &b.SpecialistID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
+	dest := append([]interface{}{
+		&b.ID, &b.SpecialistID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
-		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL, &b.ClientDisplayName)
+		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL, &b.ClientDisplayName,
+	}, sessionType.scanDest()...)
 
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
+	err := row.Scan(dest...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,24 +146,48 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	if replacesBookingID.Valid {
 		b.ReplacesBookingID = replacesBookingID.String
 	}
-
-	// Load session type
-	st, err := GetSessionTypeByID(b.SessionTypeID)
-	if err != nil {
-		return nil, err
-	}
-	b.SessionType = st
+	b.SessionType = sessionType.model()
 
 	return &b, nil
 }
 
+/***************************************************************************************************
+* Returns booking by id.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func GetBookingByID(id string) (*models.Booking, error) {
+	booking, err := scanBookingRow(DB.QueryRow(Q(bookingSelectQuery("b.id = ?", "")), id))
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return booking, nil
+}
+
+/***************************************************************************************************
+* Returns bookings by client id.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
-	rows, err := DB.Query(Q(`
-		SELECT `+bookingColumns+`
-		FROM bookings
-		WHERE client_id = ?
-		ORDER BY starts_at DESC
-	`), clientID)
+	rows, err := DB.Query(Q(bookingSelectQuery("b.client_id = ?", "b.starts_at DESC")), clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,13 +196,20 @@ func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
 	return scanBookings(rows)
 }
 
+/***************************************************************************************************
+* Returns active bookings by client id.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
-	rows, err := DB.Query(Q(`
-		SELECT `+bookingColumns+`
-		FROM bookings
-		WHERE client_id = ? AND status IN ('pending', 'confirmed')
-		ORDER BY starts_at ASC
-	`), clientID)
+	rows, err := DB.Query(Q(bookingSelectQuery("b.client_id = ? AND b.status IN ('pending', 'confirmed')", "b.starts_at ASC")), clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +218,25 @@ func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
 	return scanBookings(rows)
 }
 
+/***************************************************************************************************
+* Returns bookings by specialist idand date range.
+*
+* Parameters:
+* - start: Start used by the current operation.
+* - specialistID: Identifier used to target the current record.
+* - end: End used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetBookingsBySpecialistIDAndDateRange(specialistID string, start, end time.Time) ([]models.Booking, error) {
-	rows, err := DB.Query(Q(`
-		SELECT `+bookingColumns+`
-		FROM bookings
-		WHERE specialist_id = ? AND starts_at >= ? AND starts_at < ? AND status IN ('pending', 'confirmed')
-		ORDER BY starts_at ASC
-	`), specialistID, start, end)
+	rows, err := DB.Query(Q(bookingSelectQuery(
+		"b.specialist_id = ? AND b.starts_at >= ? AND b.starts_at < ? AND b.status IN ('pending', 'confirmed')",
+		"b.starts_at ASC",
+	)), specialistID, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -134,64 +245,64 @@ func GetBookingsBySpecialistIDAndDateRange(specialistID string, start, end time.
 	return scanBookings(rows)
 }
 
+/***************************************************************************************************
+* Scans bookings.
+*
+* Parameters:
+* - rows: Rows used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 	var bookings []models.Booking
 	for rows.Next() {
-		var b models.Booking
-		var clientMessage sql.NullString
-		var cancelReason sql.NullString
-		var cancelledBy sql.NullString
-		var durationMinutes sql.NullInt64
-		var createdBy sql.NullString
-		var recurringScheduleID sql.NullString
-		var replacesBookingID sql.NullString
-
-		if err := rows.Scan(&b.ID, &b.SpecialistID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
-			&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
-			&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL, &b.ClientDisplayName); err != nil {
-			return nil, err
-		}
-
-		if clientMessage.Valid {
-			b.ClientMessage = clientMessage.String
-		}
-		if cancelReason.Valid {
-			b.CancelReason = cancelReason.String
-		}
-		if cancelledBy.Valid {
-			b.CancelledBy = models.CancelledBy(cancelledBy.String)
-		}
-		if durationMinutes.Valid {
-			b.DurationMinutes = int(durationMinutes.Int64)
-		}
-		if createdBy.Valid {
-			b.CreatedBy = createdBy.String
-		}
-		if recurringScheduleID.Valid {
-			b.RecurringScheduleID = recurringScheduleID.String
-		}
-		if replacesBookingID.Valid {
-			b.ReplacesBookingID = replacesBookingID.String
-		}
-
-		// Load session type
-		st, err := GetSessionTypeByID(b.SessionTypeID)
+		booking, err := scanBookingRow(rows)
 		if err != nil {
 			return nil, err
 		}
-		b.SessionType = st
 
-		bookings = append(bookings, b)
+		bookings = append(bookings, *booking)
 	}
 
 	return bookings, rows.Err()
 }
 
+/***************************************************************************************************
+* Updates booking status.
+*
+* Parameters:
+* - bookingID: Identifier used to target the current record.
+* - status: Status used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateBookingStatus(bookingID string, status models.BookingStatus) error {
 	_, err := DB.Exec(Q(`UPDATE bookings SET status = ? WHERE id = ?`), status, bookingID)
 	return err
 }
 
+/***************************************************************************************************
+* Implements the cancel booking logic used by this module.
+*
+* Parameters:
+* - bookingID: Identifier used to target the current record.
+* - reason: Reason used by the current operation.
+* - cancelledBy: Boolean flag that influences the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CancelBooking(bookingID string, reason string, cancelledBy models.CancelledBy) error {
 	_, err := DB.Exec(Q(`
 		UPDATE bookings
@@ -201,6 +312,21 @@ func CancelBooking(bookingID string, reason string, cancelledBy models.Cancelled
 	return err
 }
 
+/***************************************************************************************************
+* Updates booking date time.
+*
+* Parameters:
+* - startsAt: Starts at used by the current operation.
+* - bookingID: Identifier used to target the current record.
+* - endsAt: Ends at used by the current operation.
+* - durationMinutes: Duration value used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func UpdateBookingDateTime(bookingID string, startsAt, endsAt time.Time, durationMinutes int) error {
 	_, err := DB.Exec(Q(`
 		UPDATE bookings SET starts_at = ?, ends_at = ?, duration_minutes = ? WHERE id = ?
@@ -208,6 +334,21 @@ func UpdateBookingDateTime(bookingID string, startsAt, endsAt time.Time, duratio
 	return err
 }
 
+/***************************************************************************************************
+* Checks whether conflicting booking.
+*
+* Parameters:
+* - startsAt: Starts at used by the current operation.
+* - specialistID: Identifier used to target the current record.
+* - endsAt: Ends at used by the current operation.
+* - excludeBookingID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func HasConflictingBooking(specialistID string, startsAt, endsAt time.Time, excludeBookingID string) (bool, error) {
 	var count int
 	err := DB.QueryRow(Q(`
@@ -224,24 +365,27 @@ func HasConflictingBooking(specialistID string, startsAt, endsAt time.Time, excl
 	return count > 0, nil
 }
 
+/***************************************************************************************************
+* Returns bookings by specialist id.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - status: Status used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetBookingsBySpecialistID(specialistID string, status string) ([]models.Booking, error) {
 	var rows *sql.Rows
 	var err error
 
 	if status != "" {
-		rows, err = DB.Query(Q(`
-			SELECT `+bookingColumns+`
-			FROM bookings
-			WHERE specialist_id = ? AND status = ?
-			ORDER BY starts_at DESC
-		`), specialistID, status)
+		rows, err = DB.Query(Q(bookingSelectQuery("b.specialist_id = ? AND b.status = ?", "b.starts_at DESC")), specialistID, status)
 	} else {
-		rows, err = DB.Query(Q(`
-			SELECT `+bookingColumns+`
-			FROM bookings
-			WHERE specialist_id = ?
-			ORDER BY starts_at DESC
-		`), specialistID)
+		rows, err = DB.Query(Q(bookingSelectQuery("b.specialist_id = ?", "b.starts_at DESC")), specialistID)
 	}
 
 	if err != nil {
@@ -252,21 +396,27 @@ func GetBookingsBySpecialistID(specialistID string, status string) ([]models.Boo
 	return scanBookings(rows)
 }
 
-// GetBookingsNeedingReminder returns confirmed bookings starting within the next hour
-// that haven't had a reminder sent yet.
+/***************************************************************************************************
+* GetBookingsNeedingReminder returns confirmed bookings starting within the next hour that haven't
+* had a reminder sent yet.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetBookingsNeedingReminder() ([]models.Booking, error) {
 	now := time.Now().UTC()
 	oneHourLater := now.Add(time.Hour)
 
-	rows, err := DB.Query(Q(`
-		SELECT `+bookingColumns+`
-		FROM bookings
-		WHERE status = 'confirmed'
-		  AND reminder_sent = 0
-		  AND starts_at > ?
-		  AND starts_at <= ?
-		ORDER BY starts_at ASC
-	`), now, oneHourLater)
+	rows, err := DB.Query(Q(bookingSelectQuery(
+		"b.status = 'confirmed' AND b.reminder_sent = 0 AND b.starts_at > ? AND b.starts_at <= ?",
+		"b.starts_at ASC",
+	)), now, oneHourLater)
 	if err != nil {
 		return nil, err
 	}
@@ -275,11 +425,36 @@ func GetBookingsNeedingReminder() ([]models.Booking, error) {
 	return scanBookings(rows)
 }
 
+/***************************************************************************************************
+* Implements the mark reminder sent logic used by this module.
+*
+* Parameters:
+* - bookingID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func MarkReminderSent(bookingID string) error {
 	_, err := DB.Exec(Q(`UPDATE bookings SET reminder_sent = 1 WHERE id = ?`), bookingID)
 	return err
 }
 
+/***************************************************************************************************
+* Implements the client has booking on date logic used by this module.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - date: Date value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	endOfDay := startOfDay.AddDate(0, 0, 1)
@@ -298,6 +473,25 @@ func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
 	return count > 0, nil
 }
 
+/***************************************************************************************************
+* Creates booking by specialist.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+* - startsAt: Starts at used by the current operation.
+* - sessionTypeID: Identifier used to target the current record.
+* - clientName: Client name used by the current operation.
+* - endsAt: Ends at used by the current operation.
+* - clientMessage: Client message used by the current operation.
+* - durationMinutes: Duration value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateBookingBySpecialist(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
 	id := uuid.New().String()
 
@@ -312,6 +506,25 @@ func CreateBookingBySpecialist(specialistID, clientID, sessionTypeID string, sta
 	return GetBookingByID(id)
 }
 
+/***************************************************************************************************
+* Creates recurring booking.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+* - startsAt: Starts at used by the current operation.
+* - sessionTypeID: Identifier used to target the current record.
+* - endsAt: Ends at used by the current operation.
+* - clientName: Client name used by the current operation.
+* - durationMinutes: Duration value used by the current operation.
+* - recurringScheduleID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateRecurringBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID string) (*models.Booking, error) {
 	id := uuid.New().String()
 
@@ -326,6 +539,18 @@ func CreateRecurringBooking(specialistID, clientID, sessionTypeID string, starts
 	return GetBookingByID(id)
 }
 
+/***************************************************************************************************
+* Implements the confirm bookings by recurring schedule id logic used by this module.
+*
+* Parameters:
+* - scheduleID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func ConfirmBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'confirmed' WHERE recurring_schedule_id = ? AND status = 'pending'`), scheduleID)
 	if err != nil {
@@ -335,6 +560,18 @@ func ConfirmBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 	return int(n), err
 }
 
+/***************************************************************************************************
+* Implements the reject bookings by recurring schedule id logic used by this module.
+*
+* Parameters:
+* - scheduleID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'rejected' WHERE recurring_schedule_id = ? AND status = 'pending'`), scheduleID)
 	if err != nil {
@@ -344,7 +581,27 @@ func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 	return int(n), err
 }
 
-// CreateRescheduleBooking creates a new booking that replaces an existing one (status = reschedule_pending)
+/***************************************************************************************************
+* CreateRescheduleBooking creates a new booking that replaces an existing one (status =
+* reschedule_pending).
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+* - startsAt: Starts at used by the current operation.
+* - sessionTypeID: Identifier used to target the current record.
+* - endsAt: Ends at used by the current operation.
+* - clientName: Client name used by the current operation.
+* - recurringScheduleID: Identifier used to target the current record.
+* - durationMinutes: Duration value used by the current operation.
+* - replacesBookingID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func CreateRescheduleBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID, replacesBookingID string) (*models.Booking, error) {
 	id := uuid.New().String()
 
@@ -359,7 +616,18 @@ func CreateRescheduleBooking(specialistID, clientID, sessionTypeID string, start
 	return GetBookingByID(id)
 }
 
-// ApproveRescheduleBooking confirms the new booking and cancels the old one
+/***************************************************************************************************
+* ApproveRescheduleBooking confirms the new booking and cancels the old one.
+*
+* Parameters:
+* - newBookingID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func ApproveRescheduleBooking(newBookingID string) error {
 	newBooking, err := GetBookingByID(newBookingID)
 	if err != nil || newBooking == nil {
@@ -369,30 +637,69 @@ func ApproveRescheduleBooking(newBookingID string) error {
 		return fmt.Errorf("booking is not pending reschedule")
 	}
 
-	// Cancel the old booking
+	/***************************************************************************************************
+	* Cancel the old booking.
+	***************************************************************************************************/
 	if newBooking.ReplacesBookingID != "" {
 		DB.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancel_reason = 'rescheduled' WHERE id = ?`), newBooking.ReplacesBookingID)
 	}
 
-	// Confirm the new booking
+	/***************************************************************************************************
+	* Confirm the new booking.
+	***************************************************************************************************/
 	_, err = DB.Exec(Q(`UPDATE bookings SET status = 'confirmed' WHERE id = ?`), newBookingID)
 	return err
 }
 
-// DeclineRescheduleBooking rejects the reschedule by deleting the new pending booking
+/***************************************************************************************************
+* DeclineRescheduleBooking rejects the reschedule by deleting the new pending booking.
+*
+* Parameters:
+* - newBookingID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func DeclineRescheduleBooking(newBookingID string) error {
 	_, err := DB.Exec(Q(`DELETE FROM bookings WHERE id = ? AND status = 'reschedule_pending'`), newBookingID)
 	return err
 }
 
-// SaveBookingNotificationInfo stores the Telegram message ID for the specialist notification
+/***************************************************************************************************
+* SaveBookingNotificationInfo stores the Telegram message ID for the specialist notification.
+*
+* Parameters:
+* - bookingID: Identifier used to target the current record.
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func SaveBookingNotificationInfo(bookingID string, chatID int64, messageID int) error {
 	_, err := DB.Exec(Q(`UPDATE bookings SET telegram_notification_chat_id = ?, telegram_notification_msg_id = ? WHERE id = ?`),
 		chatID, messageID, bookingID)
 	return err
 }
 
-// GetBookingNotificationInfo returns the stored Telegram notification message info
+/***************************************************************************************************
+* GetBookingNotificationInfo returns the stored Telegram notification message info.
+*
+* Parameters:
+* - bookingID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetBookingNotificationInfo(bookingID string) (chatID int64, messageID int, err error) {
 	var chatIDNull, msgIDNull sql.NullInt64
 	err = DB.QueryRow(Q(`SELECT telegram_notification_chat_id, telegram_notification_msg_id FROM bookings WHERE id = ?`),
@@ -409,14 +716,38 @@ func GetBookingNotificationInfo(bookingID string) (chatID int64, messageID int, 
 	return chatID, messageID, nil
 }
 
-// SaveClientNotificationInfo stores the Telegram message ID for the client notification
+/***************************************************************************************************
+* SaveClientNotificationInfo stores the Telegram message ID for the client notification.
+*
+* Parameters:
+* - bookingID: Identifier used to target the current record.
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func SaveClientNotificationInfo(bookingID string, chatID int64, messageID int) error {
 	_, err := DB.Exec(Q(`UPDATE bookings SET client_notification_chat_id = ?, client_notification_msg_id = ? WHERE id = ?`),
 		chatID, messageID, bookingID)
 	return err
 }
 
-// GetClientNotificationInfo returns the stored client Telegram notification message info
+/***************************************************************************************************
+* GetClientNotificationInfo returns the stored client Telegram notification message info.
+*
+* Parameters:
+* - bookingID: Identifier used to target the current record.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func GetClientNotificationInfo(bookingID string) (chatID int64, messageID int, err error) {
 	var chatIDNull, msgIDNull sql.NullInt64
 	err = DB.QueryRow(Q(`SELECT client_notification_chat_id, client_notification_msg_id FROM bookings WHERE id = ?`),
@@ -433,6 +764,19 @@ func GetClientNotificationInfo(bookingID string) (chatID int64, messageID int, e
 	return
 }
 
+/***************************************************************************************************
+* Implements the booking exists for recurring logic used by this module.
+*
+* Parameters:
+* - scheduleID: Identifier used to target the current record.
+* - date: Date value used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	endOfDay := startOfDay.AddDate(0, 0, 1)

@@ -14,10 +14,27 @@ import (
 	"scheduler-bot/internal/crypto"
 )
 
+/***************************************************************************************************
+* Defines the db value used by the database layer.
+*
+* Usage context:
+* - Reused by the database layer to keep shared values centralized.
+***************************************************************************************************/
 var DB *sql.DB
 
-// Init initializes the database connection. If databaseURL starts with "postgres",
-// it connects to PostgreSQL; otherwise it treats the value as a SQLite file path.
+/***************************************************************************************************
+* Init initializes the database connection. If databaseURL starts with "postgres", it connects to
+* PostgreSQL; otherwise it treats the value as a SQLite file path.
+*
+* Parameters:
+* - databaseURL: Database url used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func Init(databaseURL string) error {
 	if strings.HasPrefix(databaseURL, "postgres") {
 		return initPostgres(databaseURL)
@@ -25,6 +42,18 @@ func Init(databaseURL string) error {
 	return initSQLite(databaseURL)
 }
 
+/***************************************************************************************************
+* Implements the init sqlite logic used by this module.
+*
+* Parameters:
+* - dbPath: Db path used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func initSQLite(dbPath string) error {
 	isPostgres = false
 
@@ -51,6 +80,18 @@ func initSQLite(dbPath string) error {
 	return nil
 }
 
+/***************************************************************************************************
+* Implements the init postgres logic used by this module.
+*
+* Parameters:
+* - databaseURL: Database url used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func initPostgres(databaseURL string) error {
 	isPostgres = true
 
@@ -60,8 +101,8 @@ func initPostgres(databaseURL string) error {
 		return err
 	}
 
-	DB.SetMaxOpenConns(25)
-	DB.SetMaxIdleConns(5)
+	DB.SetMaxOpenConns(50)
+	DB.SetMaxIdleConns(25)
 	DB.SetConnMaxLifetime(5 * time.Minute)
 
 	if err := DB.Ping(); err != nil {
@@ -76,8 +117,22 @@ func initPostgres(databaseURL string) error {
 	return nil
 }
 
+/***************************************************************************************************
+* Implements the migrate sqlite logic used by this module.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func migrateSQLite() error {
-	// Rename migrations for databases created before the universal naming refactor
+	/***************************************************************************************************
+	* Rename migrations for databases created before the universal naming refactor.
+	***************************************************************************************************/
 	renameMigrations := []string{
 		`ALTER TABLE trainers RENAME TO specialists`,
 		`ALTER TABLE specialists RENAME COLUMN gym_latitude TO location_latitude`,
@@ -146,12 +201,23 @@ func migrateSQLite() error {
 			cancel_reason TEXT,
 			cancelled_by TEXT CHECK(cancelled_by IN ('client','specialist') OR cancelled_by IS NULL),
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			reminder_sent BOOLEAN DEFAULT 0,
+			duration_minutes INTEGER DEFAULT 60,
+			created_by TEXT,
+			recurring_schedule_id TEXT,
+			telegram_notification_chat_id INTEGER,
+			telegram_notification_msg_id INTEGER,
+			client_notification_chat_id INTEGER,
+			client_notification_msg_id INTEGER,
 			replaces_booking_id TEXT
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_specialist_id ON bookings(specialist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_specialist_status_starts_at ON bookings(specialist_id, status, starts_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_client_status_starts_at ON bookings(client_id, status, starts_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_recurring_status_starts_at ON bookings(recurring_schedule_id, status, starts_at)`,
 		`CREATE TABLE IF NOT EXISTS days_off (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -182,6 +248,11 @@ func migrateSQLite() error {
 		`CREATE INDEX IF NOT EXISTS idx_recurring_specialist_id ON recurring_schedules(specialist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_client_id ON recurring_schedules(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_status ON recurring_schedules(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_specialist_created_at ON recurring_schedules(specialist_id, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_client_created_at ON recurring_schedules(client_id, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_status_day_of_week_time ON recurring_schedules(status, day_of_week, "time")`,
+		`CREATE INDEX IF NOT EXISTS idx_clients_specialist_name ON clients(specialist_id, name)`,
+		`CREATE INDEX IF NOT EXISTS idx_session_types_specialist_active_type ON session_types(specialist_id, is_active, type)`,
 	}
 
 	for _, migration := range migrations {
@@ -190,7 +261,9 @@ func migrateSQLite() error {
 		}
 	}
 
-	// ADD COLUMN migrations (ignore "duplicate column" errors)
+	/***************************************************************************************************
+	* ADD COLUMN migrations (ignore "duplicate column" errors).
+	***************************************************************************************************/
 	alterMigrations := []string{
 		`ALTER TABLE specialists ADD COLUMN telegram_handle TEXT`,
 		`ALTER TABLE specialists ADD COLUMN phone TEXT`,
@@ -243,8 +316,22 @@ func migrateSQLite() error {
 	return nil
 }
 
+/***************************************************************************************************
+* Implements the migrate postgres logic used by this module.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func migratePostgres() error {
-	// Rename migrations for databases created before the universal naming refactor
+	/***************************************************************************************************
+	* Rename migrations for databases created before the universal naming refactor.
+	***************************************************************************************************/
 	renameMigrations := []string{
 		`ALTER TABLE IF EXISTS trainers RENAME TO specialists`,
 		`ALTER TABLE IF EXISTS specialists RENAME COLUMN gym_latitude TO location_latitude`,
@@ -340,6 +427,9 @@ func migratePostgres() error {
 		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_specialist_status_starts_at ON bookings(specialist_id, status, starts_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_client_status_starts_at ON bookings(client_id, status, starts_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_recurring_status_starts_at ON bookings(recurring_schedule_id, status, starts_at)`,
 		`CREATE TABLE IF NOT EXISTS days_off (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -370,6 +460,11 @@ func migratePostgres() error {
 		`CREATE INDEX IF NOT EXISTS idx_recurring_specialist_id ON recurring_schedules(specialist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_client_id ON recurring_schedules(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_recurring_status ON recurring_schedules(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_specialist_created_at ON recurring_schedules(specialist_id, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_client_created_at ON recurring_schedules(client_id, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_status_day_of_week_time ON recurring_schedules(status, day_of_week, "time")`,
+		`CREATE INDEX IF NOT EXISTS idx_clients_specialist_name ON clients(specialist_id, name)`,
+		`CREATE INDEX IF NOT EXISTS idx_session_types_specialist_active_type ON session_types(specialist_id, is_active, type)`,
 	}
 
 	for _, migration := range migrations {
@@ -378,7 +473,9 @@ func migratePostgres() error {
 		}
 	}
 
-	// ADD COLUMN IF NOT EXISTS migrations
+	/***************************************************************************************************
+	* ADD COLUMN IF NOT EXISTS migrations.
+	***************************************************************************************************/
 	alterMigrations := []string{
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS telegram_handle TEXT`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS phone TEXT`,
@@ -433,6 +530,18 @@ func migratePostgres() error {
 	return nil
 }
 
+/***************************************************************************************************
+* Implements the close logic used by this module.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func Close() error {
 	if DB != nil {
 		return DB.Close()
@@ -440,8 +549,19 @@ func Close() error {
 	return nil
 }
 
-// MigrateEncryptTokens encrypts any plain-text bot tokens and populates bot_token_hash.
-// Idempotent: skips rows that are already encrypted with a correct hash.
+/***************************************************************************************************
+* MigrateEncryptTokens encrypts any plain-text bot tokens and populates bot_token_hash.
+* Idempotent: skips rows that are already encrypted with a correct hash.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func MigrateEncryptTokens() error {
 	rows, err := DB.Query(`SELECT id, bot_token, bot_token_hash FROM specialists`)
 	if err != nil {
@@ -499,8 +619,19 @@ func MigrateEncryptTokens() error {
 	return nil
 }
 
-// migrateTrainerEnumSQLite rebuilds bookings and recurring_schedules tables to update
-// CHECK constraints and data from 'trainer' to 'specialist'.
+/***************************************************************************************************
+* migrateTrainerEnumSQLite rebuilds bookings and recurring_schedules tables to update CHECK
+* constraints and data from 'trainer' to 'specialist'.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func migrateTrainerEnumSQLite() {
 	var bookingsSQL string
 	if err := DB.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='bookings'`).Scan(&bookingsSQL); err != nil {
@@ -512,7 +643,9 @@ func migrateTrainerEnumSQLite() {
 
 	log.Println("Migrating 'trainer' enum values to 'specialist' in SQLite...")
 
-	// PRAGMA foreign_keys cannot be changed inside a transaction
+	/***************************************************************************************************
+	* PRAGMA foreign_keys cannot be changed inside a transaction.
+	***************************************************************************************************/
 	DB.Exec(`PRAGMA foreign_keys=off`)
 
 	tx, err := DB.Begin()
@@ -523,7 +656,9 @@ func migrateTrainerEnumSQLite() {
 	}
 
 	stmts := []string{
-		// --- Rebuild bookings table ---
+		/***************************************************************************************************
+		* Rebuild bookings table.
+		***************************************************************************************************/
 		`CREATE TABLE bookings_new (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -563,7 +698,9 @@ func migrateTrainerEnumSQLite() {
 		`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
 
-		// --- Rebuild recurring_schedules table ---
+		/***************************************************************************************************
+		* Rebuild recurring_schedules table.
+		***************************************************************************************************/
 		`CREATE TABLE recurring_schedules_new (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -616,9 +753,22 @@ func migrateTrainerEnumSQLite() {
 	log.Println("Migration complete: 'trainer' → 'specialist' enum values updated (SQLite)")
 }
 
-// migrateTrainerEnumPostgres updates CHECK constraints and data from 'trainer' to 'specialist'.
+/***************************************************************************************************
+* migrateTrainerEnumPostgres updates CHECK constraints and data from 'trainer' to 'specialist'.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
 func migrateTrainerEnumPostgres() {
-	// Dynamically find and drop old CHECK constraints that reference 'trainer'
+	/***************************************************************************************************
+	* Dynamically find and drop old CHECK constraints that reference 'trainer'.
+	***************************************************************************************************/
 	DB.Exec(`
 		DO $$
 		DECLARE c_name TEXT;
@@ -639,12 +789,16 @@ func migrateTrainerEnumPostgres() {
 		END $$
 	`)
 
-	// Update data
+	/***************************************************************************************************
+	* Update data.
+	***************************************************************************************************/
 	DB.Exec(`UPDATE bookings SET cancelled_by = 'specialist' WHERE cancelled_by = 'trainer'`)
 	DB.Exec(`UPDATE bookings SET created_by = 'specialist' WHERE created_by = 'trainer'`)
 	DB.Exec(`UPDATE recurring_schedules SET created_by = 'specialist' WHERE created_by = 'trainer'`)
 
-	// Add new constraints (ignore if already exist)
+	/***************************************************************************************************
+	* Add new constraints (ignore if already exist).
+	***************************************************************************************************/
 	DB.Exec(`ALTER TABLE bookings ADD CONSTRAINT bookings_cancelled_by_specialist_check
 		CHECK(cancelled_by IN ('client','specialist') OR cancelled_by IS NULL)`)
 	DB.Exec(`ALTER TABLE recurring_schedules ADD CONSTRAINT recurring_schedules_created_by_specialist_check

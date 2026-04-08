@@ -22,7 +22,7 @@ services:
     ports:
       - "127.0.0.1:8082:8080"
     environment:
-      - DATABASE_URL=postgres://scheduler:loadtest@db:5432/scheduler_loadtest?sslmode=disable&pool_max_conns=50
+      - DATABASE_URL=postgres://scheduler:loadtest@db:5432/scheduler_loadtest?sslmode=disable
       - PORT=8080
       - PUBLIC_BASE_URL=http://localhost:8082
       - WEB_APP_URL=http://localhost:3000

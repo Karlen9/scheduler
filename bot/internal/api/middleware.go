@@ -21,8 +21,20 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
-// localizerFromRequest creates a localizer from the request's lang query parameter.
-// Used in auth middlewares that run before I18nMiddleware sets the localizer in context.
+/***************************************************************************************************
+* localizerFromRequest creates a localizer from the request's lang query parameter. Used in auth
+* middlewares that run before I18nMiddleware sets the localizer in context.
+*
+* Parameters:
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - The computed value for the current operation as *i18n.Localizer.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func localizerFromRequest(r *http.Request) *i18n.Localizer {
 	if lang := r.URL.Query().Get("lang"); lang == "en" || lang == "ru" {
 		return myI18n.NewLocalizer(lang)
@@ -30,18 +42,43 @@ func localizerFromRequest(r *http.Request) *i18n.Localizer {
 	return myI18n.Default()
 }
 
+/***************************************************************************************************
+* Defines the context key type used by the api layer.
+***************************************************************************************************/
 type contextKey string
 
+/***************************************************************************************************
+* Groups related constants declared together for this module.
+***************************************************************************************************/
 const (
+	/***************************************************************************************************
+	* Defines the client context key value used by the api layer.
+	*
+	* Usage context:
+	* - Reused by the api layer to keep shared values centralized.
+	***************************************************************************************************/
 	ClientContextKey     contextKey = "client"
+	/***************************************************************************************************
+	* Defines the specialist context key value used by the api layer.
+	*
+	* Usage context:
+	* - Reused by the api layer to keep shared values centralized.
+	***************************************************************************************************/
 	SpecialistContextKey contextKey = "specialist"
 )
 
-// LoadTestMode when true bypasses Telegram HMAC validation.
-// Set via LOAD_TEST_MODE env var. Never enable in production.
+/***************************************************************************************************
+* LoadTestMode when true bypasses Telegram HMAC validation. Set via LOAD_TEST_MODE env var. Never
+* enable in production.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var LoadTestMode bool
 
-// TelegramUser represents user data from Telegram initData
+/***************************************************************************************************
+* TelegramUser represents user data from Telegram initData.
+***************************************************************************************************/
 type TelegramUser struct {
 	ID        int64  `json:"id"`
 	FirstName string `json:"first_name"`
@@ -50,7 +87,18 @@ type TelegramUser struct {
 	PhotoURL  string `json:"photo_url"`
 }
 
-// TelegramAuthMiddleware validates Telegram initData and extracts user info
+/***************************************************************************************************
+* TelegramAuthMiddleware validates Telegram initData and extracts user info.
+*
+* Parameters:
+* - botToken: Bot token used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as func(http.Handler) http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +148,9 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 				}
 			}
 
-			// Get specialist by ID or fall back to first specialist
+			/***************************************************************************************************
+			* Get specialist by ID or fall back to first specialist.
+			***************************************************************************************************/
 			var specialist *models.Specialist
 			var err error
 			if specialistID != "" {
@@ -124,14 +174,18 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Validate initData using the specialist's bot token
+			/***************************************************************************************************
+			* Validate initData using the specialist's bot token.
+			***************************************************************************************************/
 			user, ok := validateInitData(initData, specialist.BotToken)
 			if !ok {
 				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TelegramAuth"), http.StatusUnauthorized)
 				return
 			}
 
-			// Get or create client
+			/***************************************************************************************************
+			* Get or create client.
+			***************************************************************************************************/
 			name := user.FirstName
 			if user.LastName != "" {
 				name += " " + user.LastName
@@ -143,7 +197,9 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Auto-set Telegram profile photo if client has no custom photo
+			/***************************************************************************************************
+			* Auto-set Telegram profile photo if client has no custom photo.
+			***************************************************************************************************/
 			if client.PhotoURL == "" && user.PhotoURL != "" {
 				if err := db.UpdateClientPhoto(client.ID, user.PhotoURL); err == nil {
 					client.PhotoURL = user.PhotoURL
@@ -157,19 +213,36 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 	}
 }
 
+/***************************************************************************************************
+* Validates init data.
+*
+* Parameters:
+* - initData: Init data used by the current operation.
+* - botToken: Bot token used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as (*TelegramUser, bool).
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func validateInitData(initData, botToken string) (*TelegramUser, bool) {
 	values, err := url.ParseQuery(initData)
 	if err != nil {
 		return nil, false
 	}
 
-	// Extract hash
+	/***************************************************************************************************
+	* Extract hash.
+	***************************************************************************************************/
 	hash := values.Get("hash")
 	if hash == "" {
 		return nil, false
 	}
 
-	// Build data check string
+	/***************************************************************************************************
+	* Build data check string.
+	***************************************************************************************************/
 	values.Del("hash")
 	var keys []string
 	for k := range values {
@@ -183,7 +256,9 @@ func validateInitData(initData, botToken string) (*TelegramUser, bool) {
 	}
 	dataCheckString := strings.Join(dataCheckParts, "\n")
 
-	// Calculate HMAC
+	/***************************************************************************************************
+	* Calculate HMAC.
+	***************************************************************************************************/
 	secretKey := hmac.New(sha256.New, []byte("WebAppData"))
 	secretKey.Write([]byte(botToken))
 	secret := secretKey.Sum(nil)
@@ -192,24 +267,36 @@ func validateInitData(initData, botToken string) (*TelegramUser, bool) {
 	h.Write([]byte(dataCheckString))
 	calculatedHash := hex.EncodeToString(h.Sum(nil))
 
-	if calculatedHash != hash {
-		log.Printf("Hash mismatch: expected %s, got %s", calculatedHash, hash)
+	if !secureCompare(calculatedHash, hash) {
+		log.Printf("Auth rejected: initData signature mismatch")
 		return nil, false
 	}
 
-	// Check auth_date is not too old (1 hour max)
-	if authDateStr := values.Get("auth_date"); authDateStr != "" {
-		authDate, err := strconv.ParseInt(authDateStr, 10, 64)
-		if err == nil {
-			age := time.Now().Unix() - authDate
-			if age > 3600 {
-				log.Printf("Auth rejected: initData expired (age=%ds)", age)
-				return nil, false
-			}
-		}
+	authDateStr := values.Get("auth_date")
+	if authDateStr == "" {
+		log.Printf("Auth rejected: missing auth_date")
+		return nil, false
 	}
 
-	// Parse user data
+	authDate, err := strconv.ParseInt(authDateStr, 10, 64)
+	if err != nil {
+		log.Printf("Auth rejected: invalid auth_date")
+		return nil, false
+	}
+
+	age := time.Now().Unix() - authDate
+	if age > 3600 {
+		log.Printf("Auth rejected: initData expired (age=%ds)", age)
+		return nil, false
+	}
+	if age < -300 {
+		log.Printf("Auth rejected: initData auth_date is too far in the future (age=%ds)", age)
+		return nil, false
+	}
+
+	/***************************************************************************************************
+	* Parse user data.
+	***************************************************************************************************/
 	userJSON := values.Get("user")
 	if userJSON == "" {
 		return nil, false
@@ -223,19 +310,54 @@ func validateInitData(initData, botToken string) (*TelegramUser, bool) {
 	return &user, true
 }
 
-// GetClientFromContext extracts client from request context
+/***************************************************************************************************
+* GetClientFromContext extracts client from request context.
+*
+* Parameters:
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - The computed value for the current operation as *models.Client.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func GetClientFromContext(r *http.Request) *models.Client {
 	client, _ := r.Context().Value(ClientContextKey).(*models.Client)
 	return client
 }
 
-// GetSpecialistFromContext extracts specialist from request context
+/***************************************************************************************************
+* GetSpecialistFromContext extracts specialist from request context.
+*
+* Parameters:
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - The computed value for the current operation as *models.Specialist.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func GetSpecialistFromContext(r *http.Request) *models.Specialist {
 	specialist, _ := r.Context().Value(SpecialistContextKey).(*models.Specialist)
 	return specialist
 }
 
-// AdminAuthMiddleware checks if the user is the specialist (admin)
+/***************************************************************************************************
+* AdminAuthMiddleware checks if the user is the specialist (admin).
+*
+* Parameters:
+* - next: Next used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func AdminAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		client := GetClientFromContext(r)
@@ -246,7 +368,9 @@ func AdminAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Check if client's telegram ID matches specialist's telegram ID
+		/***************************************************************************************************
+		* Check if client's telegram ID matches specialist's telegram ID.
+		***************************************************************************************************/
 		if client.TelegramUserID != specialist.TelegramUserID {
 			httpError(w, r, "Error.Forbidden", http.StatusForbidden)
 			return
@@ -256,8 +380,19 @@ func AdminAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// I18nMiddleware determines the user's language from client/specialist profile
-// and stores a localizer in context. Must run AFTER auth middleware.
+/***************************************************************************************************
+* I18nMiddleware determines the user's language from client/specialist profile and stores a
+* localizer in context. Must run AFTER auth middleware.
+*
+* Parameters:
+* - next: Next used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func I18nMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lang := "ru"
@@ -272,10 +407,26 @@ func I18nMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// SuperadminSecret is set from config at startup. If empty, superadmin endpoints are disabled.
+/***************************************************************************************************
+* SuperadminSecret is set from config at startup. If empty, superadmin endpoints are disabled.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 var SuperadminSecret string
 
-// SuperadminAuthMiddleware checks the Authorization: Bearer <secret> header.
+/***************************************************************************************************
+* SuperadminAuthMiddleware checks the Authorization: Bearer <secret> header.
+*
+* Parameters:
+* - next: Next used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func SuperadminAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if SuperadminSecret == "" {
@@ -283,7 +434,7 @@ func SuperadminAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		auth := r.Header.Get("Authorization")
-		if auth == "" || auth != "Bearer "+SuperadminSecret {
+		if auth == "" || !secureCompare(auth, "Bearer "+SuperadminSecret) {
 			log.Printf("Superadmin auth rejected from %s", r.RemoteAddr)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -292,7 +443,18 @@ func SuperadminAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// SecurityHeadersMiddleware adds security response headers.
+/***************************************************************************************************
+* SecurityHeadersMiddleware adds security response headers.
+*
+* Parameters:
+* - next: Next used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as http.Handler.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")

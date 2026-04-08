@@ -2,6 +2,9 @@ package api
 
 import (
 	"bytes"
+	crand "crypto/rand"
+	"encoding/binary"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -9,7 +12,6 @@ import (
 	_ "image/png"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
 
@@ -19,10 +21,36 @@ import (
 	"scheduler-bot/internal/telegram"
 )
 
+/***************************************************************************************************
+* Defines the max photo size value used by the api layer.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
 const maxPhotoSize = 5 << 20 // 5 MB
+/***************************************************************************************************
+* Defines the max photo pixels value used by the api layer.
+*
+* Usage context:
+* - Reused by the api layer to keep shared values centralized.
+***************************************************************************************************/
+const maxPhotoPixels = 25_000_000
 
-// HandleGetPhoto proxies a photo from Telegram's file API.
-// GET /api/photo/{fileId}
+/***************************************************************************************************
+* HandleGetPhoto proxies a photo from Telegram's file API. GET /api/photo/{fileId}. notification
+* helpers.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	fileID := chi.URLParam(r, "fileId")
 	if fileID == "" {
@@ -30,7 +58,9 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine which specialist's bot to use
+	/***************************************************************************************************
+	* Determine which specialist's bot to use.
+	***************************************************************************************************/
 	specialistID := r.URL.Query().Get("specialist")
 	if specialistID == "" {
 		specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
@@ -49,12 +79,14 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", contentType)
-		w.Header().Set("Cache-Control", "public, max-age=3600")
+		setPublicCache(w, 3600, true)
 		w.Write(data)
 		return
 	}
 
-	// No specialist specified — try all active specialists (file_ids are bot-scoped)
+	/***************************************************************************************************
+	* No specialist specified — try all active specialists (file_ids are bot-scoped).
+	***************************************************************************************************/
 	specialists, err := db.GetAllActiveSpecialists()
 	if err != nil || len(specialists) == 0 {
 		httpError(w, r, "Error.SpecialistNotConfigured", http.StatusInternalServerError)
@@ -66,18 +98,31 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		data, contentType, err := bot.GetFile(fileID)
 		if err == nil {
 			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("Cache-Control", "public, max-age=3600")
+			setPublicCache(w, 3600, true)
 			w.Write(data)
 			return
 		}
 	}
 
-	log.Printf("GetFile error: no specialist's bot could resolve file_id %s", fileID[:20])
+	log.Printf("GetFile error: no specialist's bot could resolve file_id %s", truncateForLog(fileID, 20))
 	httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
 }
 
-// HandleUploadPhoto handles photo upload for clients.
-// POST /api/upload/photo
+/***************************************************************************************************
+* HandleUploadPhoto handles photo upload for clients. POST /api/upload/photo. notification
+* helpers.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	client := GetClientFromContext(r)
 	specialist := GetSpecialistFromContext(r)
@@ -86,7 +131,7 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	photoData, filename, errMsgID := readUploadedPhoto(r)
+	photoData, filename, errMsgID := readUploadedPhoto(w, r)
 	if errMsgID != "" {
 		httpError(w, r, errMsgID, http.StatusBadRequest)
 		return
@@ -94,7 +139,9 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	bot := &telegram.Bot{Token: specialist.BotToken}
 
-	// Always send to specialist's chat (used as CDN, not meant for the client to see)
+	/***************************************************************************************************
+	* Always send to specialist's chat (used as CDN, not meant for the client to see).
+	***************************************************************************************************/
 	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
@@ -113,8 +160,21 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"fileId": fileID})
 }
 
-// HandleAdminUploadPhoto handles photo upload for specialists.
-// POST /api/admin/upload/photo
+/***************************************************************************************************
+* HandleAdminUploadPhoto handles photo upload for specialists. POST /api/admin/upload/photo.
+*
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
 func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -122,7 +182,7 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	photoData, filename, errMsgID := readUploadedPhoto(r)
+	photoData, filename, errMsgID := readUploadedPhoto(w, r)
 	if errMsgID != "" {
 		httpError(w, r, errMsgID, http.StatusBadRequest)
 		return
@@ -146,11 +206,24 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"fileId": fileID})
 }
 
-// readUploadedPhoto reads and validates the uploaded photo from a multipart request.
-// On error, it returns an empty slice, empty filename, and an i18n message ID string.
-// On success, the third return value is an empty string.
-func readUploadedPhoto(r *http.Request) ([]byte, string, string) {
-	r.Body = http.MaxBytesReader(nil, r.Body, maxPhotoSize+1<<20) // 6MB total for multipart overhead
+/***************************************************************************************************
+* readUploadedPhoto reads and validates the uploaded photo from a multipart request. On error, it
+* returns an empty slice, empty filename, and an i18n message ID string. On success, the third
+* return value is an empty string.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - The computed value for the current operation as ([]byte, string, string).
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
+func readUploadedPhoto(w http.ResponseWriter, r *http.Request) ([]byte, string, string) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxPhotoSize+1<<20) // 6MB total for multipart overhead
 	if err := r.ParseMultipartForm(maxPhotoSize); err != nil {
 		return nil, "", "Error.PhotoTooLarge"
 	}
@@ -166,16 +239,19 @@ func readUploadedPhoto(r *http.Request) ([]byte, string, string) {
 		return nil, "", "Error.PhotoReadFailed"
 	}
 
-	// Detect content type from actual file bytes
+	/***************************************************************************************************
+	* Detect content type from actual file bytes.
+	***************************************************************************************************/
 	ct := http.DetectContentType(photoData)
 	if !strings.HasPrefix(ct, "image/") {
 		return nil, "", "Error.PhotoOnlyImages"
 	}
 
-	// Re-encode as JPEG to ensure unique bytes on every upload.
-	// This prevents Telegram from returning a stale cached file_id
-	// (which happens when the same image content is re-uploaded after
-	// a previous upload's message was deleted, invalidating the file_id).
+	/***************************************************************************************************
+	* Re-encode as JPEG to ensure unique bytes on every upload. This prevents Telegram from returning
+	* a stale cached file_id (which happens when the same image content is re-uploaded after a
+	* previous upload's message was deleted, invalidating the file_id).
+	***************************************************************************************************/
 	reencoded, err := reencodAsJPEG(photoData)
 	if err != nil {
 		log.Printf("Image re-encode failed, using original: %v", err)
@@ -185,8 +261,19 @@ func readUploadedPhoto(r *http.Request) ([]byte, string, string) {
 	return reencoded, "photo.jpg", ""
 }
 
-// reencodAsJPEG decodes an image and re-encodes it as JPEG with a random
-// pixel modification to ensure unique bytes (avoids Telegram file_id caching).
+/***************************************************************************************************
+* reencodAsJPEG decodes an image and re-encodes it as JPEG with a random pixel modification to
+* ensure unique bytes (avoids Telegram file_id caching).
+*
+* Parameters:
+* - data: Input data consumed by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
 func reencodAsJPEG(data []byte) ([]byte, error) {
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
@@ -194,12 +281,18 @@ func reencodAsJPEG(data []byte) ([]byte, error) {
 	}
 
 	bounds := img.Bounds()
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 || bounds.Dx()*bounds.Dy() > maxPhotoPixels {
+		return nil, fmt.Errorf("image dimensions exceed limit")
+	}
+
 	mutable := image.NewRGBA(bounds)
 	draw.Draw(mutable, bounds, img, bounds.Min, draw.Src)
 
-	// Flip LSB of a random pixel to guarantee unique bytes
-	x := rand.Intn(bounds.Dx()) + bounds.Min.X
-	y := rand.Intn(bounds.Dy()) + bounds.Min.Y
+	/***************************************************************************************************
+	* Flip LSB of a random pixel to guarantee unique bytes.
+	***************************************************************************************************/
+	x := randomIndex(bounds.Dx()) + bounds.Min.X
+	y := randomIndex(bounds.Dy()) + bounds.Min.Y
 	r, g, b, a := mutable.At(x, y).RGBA()
 	mutable.SetRGBA(x, y, color.RGBA{uint8(r>>8) ^ 1, uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)})
 
@@ -208,4 +301,49 @@ func reencodAsJPEG(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+/***************************************************************************************************
+* Implements the random index logic used by this module.
+*
+* Parameters:
+* - max: Max used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as int.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func randomIndex(max int) int {
+	if max <= 1 {
+		return 0
+	}
+
+	var raw [8]byte
+	if _, err := crand.Read(raw[:]); err != nil {
+		return 0
+	}
+
+	return int(binary.BigEndian.Uint64(raw[:]) % uint64(max))
+}
+
+/***************************************************************************************************
+* Implements the truncate for log logic used by this module.
+*
+* Parameters:
+* - value: Input data consumed by the current operation.
+* - max: Max used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func truncateForLog(value string, max int) string {
+	if len(value) <= max {
+		return value
+	}
+	return value[:max]
 }

@@ -12,15 +12,47 @@ import (
 	"strings"
 )
 
+/***************************************************************************************************
+* Defines the enc prefix value used by the current module.
+*
+* Usage context:
+* - Reused by the current module to keep shared values centralized.
+***************************************************************************************************/
 const encPrefix = "enc:"
 
+/***************************************************************************************************
+* Groups related module-level variables declared together for this module.
+***************************************************************************************************/
 var (
+	/***************************************************************************************************
+	* Defines the enabled value used by the current module.
+	*
+	* Usage context:
+	* - Reused by the current module to keep shared values centralized.
+	***************************************************************************************************/
 	enabled bool
+	/***************************************************************************************************
+	* Defines the gcm value used by the current module.
+	*
+	* Usage context:
+	* - Reused by the current module to keep shared values centralized.
+	***************************************************************************************************/
 	gcm     cipher.AEAD
 )
 
-// Init initializes the encryption key from a hex-encoded string.
-// If hexKey is empty, encryption is disabled (passthrough mode).
+/***************************************************************************************************
+* Init initializes the encryption key from a hex-encoded string. If hexKey is empty, encryption is
+* disabled (passthrough mode).
+*
+* Parameters:
+* - hexKey: Hex key used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func Init(hexKey string) error {
 	if hexKey == "" {
 		enabled = false
@@ -49,13 +81,35 @@ func Init(hexKey string) error {
 	return nil
 }
 
-// Enabled returns true if encryption is active.
+/***************************************************************************************************
+* Enabled returns true if encryption is active.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - The computed value for the current operation as bool.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func Enabled() bool {
 	return enabled
 }
 
-// Encrypt encrypts plaintext using AES-256-GCM.
-// Returns "enc:<base64(nonce+ciphertext)>" or plaintext if encryption is disabled.
+/***************************************************************************************************
+* Encrypt encrypts plaintext using AES-256-GCM. Returns "enc:<base64(nonce+ciphertext)>" or
+* plaintext if encryption is disabled.
+*
+* Parameters:
+* - plaintext: Plaintext used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func Encrypt(plaintext string) (string, error) {
 	if !enabled {
 		return plaintext, nil
@@ -70,8 +124,19 @@ func Encrypt(plaintext string) (string, error) {
 	return encPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-// Decrypt decrypts a value. If it has the "enc:" prefix, it decrypts using AES-256-GCM.
-// Plain text values (no prefix) are returned as-is.
+/***************************************************************************************************
+* Decrypt decrypts a value. If it has the "enc:" prefix, it decrypts using AES-256-GCM. Plain text
+* values (no prefix) are returned as-is.
+*
+* Parameters:
+* - value: Input data consumed by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func Decrypt(value string) (string, error) {
 	if !IsEncrypted(value) {
 		return value, nil
@@ -100,13 +165,35 @@ func Decrypt(value string) (string, error) {
 	return string(plaintext), nil
 }
 
-// HashToken returns the SHA-256 hex hash of a token (for indexed DB lookups).
+/***************************************************************************************************
+* HashToken returns the SHA-256 hex hash of a token (for indexed DB lookups).
+*
+* Parameters:
+* - token: Token used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func HashToken(token string) string {
 	h := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(h[:])
 }
 
-// IsEncrypted checks if a value has the "enc:" prefix.
+/***************************************************************************************************
+* IsEncrypted checks if a value has the "enc:" prefix.
+*
+* Parameters:
+* - value: Input data consumed by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as bool.
+*
+* Side effects:
+* - Keeps work scoped to the current module unless downstream helpers perform I/O.
+***************************************************************************************************/
 func IsEncrypted(value string) bool {
 	return strings.HasPrefix(value, encPrefix)
 }
