@@ -30,21 +30,21 @@ function ClientBookContent(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const t = useTranslations('BookingForm');
-  const { data: scheduleContext, isLoading: scheduleLoading } = useScheduleContext();
+  const { data: scheduleData, isLoading: scheduleLoading } = useScheduleContext();
   /***************************************************************************************************
    * Defines the working hours value used by the page layer.
    *
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const workingHours = scheduleContext?.workingHours ?? [];
+  const workingHours = scheduleData?.workingHours ?? [];
   /***************************************************************************************************
    * Defines the days off data value used by the page layer.
    *
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const daysOffData = scheduleContext?.daysOff ?? [];
+  const daysOffData = scheduleData?.daysOff ?? [];
   const { data: services, isLoading: svcLoading } = useSessionTypes();
   const { data: bookings } = useBookings();
 

@@ -32,21 +32,21 @@ export default function AdminBookPage(): ReactNode {
   const t = useTranslations('BookingForm');
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: services, isLoading: svcLoading } = useAdminServices();
-  const { data: scheduleContext, isLoading: scheduleLoading } = useAdminScheduleContext();
+  const { data: scheduleData, isLoading: scheduleLoading } = useAdminScheduleContext();
   /***************************************************************************************************
    * Defines the working hours value used by the page layer.
    *
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const workingHours = scheduleContext?.workingHours ?? [];
+  const workingHours = scheduleData?.workingHours ?? [];
   /***************************************************************************************************
    * Defines the days off data value used by the page layer.
    *
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const daysOffData = scheduleContext?.daysOff ?? [];
+  const daysOffData = scheduleData?.daysOff ?? [];
 
   /***************************************************************************************************
    * Defines the days off value used by the page layer.

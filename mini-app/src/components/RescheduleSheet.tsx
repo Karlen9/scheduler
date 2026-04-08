@@ -53,21 +53,7 @@ export function RescheduleSheet({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const te = useTranslations('Errors');
-  const { data: scheduleContext } = useAdminScheduleContext();
-  /***************************************************************************************************
-   * Defines the working hours data value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const workingHoursData = scheduleContext?.workingHours ?? [];
-  /***************************************************************************************************
-   * Defines the days off data value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const daysOffData = scheduleContext?.daysOff ?? [];
+  const { data: scheduleData } = useAdminScheduleContext();
 
   /***************************************************************************************************
    * Defines the non working days value used by the component layer.
@@ -75,7 +61,10 @@ export function RescheduleSheet({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const nonWorkingDays = useMemo(() => getNonWorkingDays(workingHoursData), [workingHoursData]);
+  const nonWorkingDays = useMemo(
+    () => getNonWorkingDays(scheduleData?.workingHours ?? []),
+    [scheduleData],
+  );
 
   /***************************************************************************************************
    * Defines the days off value used by the component layer.
@@ -83,7 +72,7 @@ export function RescheduleSheet({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const daysOff = useMemo(() => daysOffData.map((d) => d.date), [daysOffData]);
+  const daysOff = useMemo(() => (scheduleData?.daysOff ?? []).map((d) => d.date), [scheduleData]);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);

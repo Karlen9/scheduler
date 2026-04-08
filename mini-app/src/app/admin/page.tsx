@@ -69,21 +69,7 @@ export default function AdminHomePage(): ReactNode {
     isLoading,
     error: fetchError,
   } = useAdminBookings({ refreshInterval: 15000 });
-  const { data: scheduleContext } = useAdminScheduleContext();
-  /***************************************************************************************************
-   * Defines the working hours data value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const workingHoursData = scheduleContext?.workingHours ?? [];
-  /***************************************************************************************************
-   * Defines the days off data value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const daysOffData = scheduleContext?.daysOff ?? [];
+  const { data: scheduleData } = useAdminScheduleContext();
   const { data: clients } = useClients();
 
   /***************************************************************************************************
@@ -92,7 +78,10 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const nonWorkingDays = useMemo(() => getNonWorkingDays(workingHoursData), [workingHoursData]);
+  const nonWorkingDays = useMemo(
+    () => getNonWorkingDays(scheduleData?.workingHours ?? []),
+    [scheduleData],
+  );
 
   /***************************************************************************************************
    * Defines the days off value used by the page layer.
@@ -100,7 +89,7 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const daysOff = useMemo(() => daysOffData.map((d) => d.date), [daysOffData]);
+  const daysOff = useMemo(() => (scheduleData?.daysOff ?? []).map((d) => d.date), [scheduleData]);
   const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<TBooking | null>(null);
@@ -350,7 +339,7 @@ export default function AdminHomePage(): ReactNode {
           onBookingClick={handleBookingClick}
           nonWorkingDays={nonWorkingDays}
           daysOff={daysOff}
-          workingHours={workingHoursData}
+          workingHours={scheduleData?.workingHours ?? []}
           onEmptySlotClick={handleEmptySlotClick}
         />
       </div>

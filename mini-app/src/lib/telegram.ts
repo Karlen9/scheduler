@@ -1,10 +1,10 @@
 import type { TTelegramWebApp, TThemePreference } from './types';
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions, @typescript-eslint/naming-convention
   /***************************************************************************************************
    * Defines the window type used by the shared utility layer.
    ***************************************************************************************************/
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions, @typescript-eslint/naming-convention
   interface Window {
     Telegram?: {
       WebApp: TTelegramWebApp;
