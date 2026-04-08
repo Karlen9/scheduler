@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 
 import { getPhotoUrl } from '@/lib/api';
@@ -56,7 +57,9 @@ export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps
    ***************************************************************************************************/
   if (photoUrl && !error) {
     return (
-      <img
+      <Image
+        width={32}
+        height={32}
         src={getPhotoUrl(photoUrl)}
         alt={name}
         className={`${cls} shrink-0 rounded-full object-cover`}

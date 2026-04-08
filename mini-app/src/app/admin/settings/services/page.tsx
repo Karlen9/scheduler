@@ -1,6 +1,7 @@
 'use client';
 
 import { Camera, Plus, X } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -230,7 +231,9 @@ export default function ServicesPage(): ReactNode {
                 }
               >
                 {formData.imageUrl ? (
-                  <img
+                  <Image
+                    width={64}
+                    height={64}
                     src={getPhotoUrl(formData.imageUrl)}
                     alt={t('servicePhoto')}
                     className={'h-full w-full object-cover'}

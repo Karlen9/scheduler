@@ -1,6 +1,7 @@
 'use client';
 
 import { Camera } from 'lucide-react';
+import Image from 'next/image';
 
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
@@ -34,7 +35,9 @@ export function AvatarSection({
     <div className={'flex justify-center pt-2'}>
       <div className={'relative cursor-pointer'} onClick={onClickUpload}>
         {photoUrl && !photoError ? (
-          <img
+          <Image
+            width={96}
+            height={96}
             src={getPhotoUrl(photoUrl)}
             alt={name}
             className={'h-24 w-24 rounded-full object-cover'}

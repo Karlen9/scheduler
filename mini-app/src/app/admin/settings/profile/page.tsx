@@ -1,6 +1,7 @@
 'use client';
 
 import { Camera } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -248,7 +249,9 @@ export default function ProfilePage(): ReactNode {
         <div className={'flex justify-center'}>
           <div className={'relative cursor-pointer'} onClick={() => fileInputRef.current?.click()}>
             {photoUrl && !photoError ? (
-              <img
+              <Image
+                width={96}
+                height={96}
                 src={getPhotoUrl(photoUrl)}
                 alt={name}
                 className={'h-24 w-24 rounded-full object-cover'}

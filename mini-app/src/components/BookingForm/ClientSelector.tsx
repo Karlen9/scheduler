@@ -110,8 +110,8 @@ export function ClientSelector({
     return clients.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        (c.displayName && c.displayName.toLowerCase().includes(q)) ||
-        (c.phone && c.phone.includes(q)),
+        c.displayName?.toLowerCase().includes(q) ||
+        c.phone?.includes(q),
     );
   }, [clients, searchQuery]);
 

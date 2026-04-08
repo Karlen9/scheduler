@@ -1,6 +1,7 @@
 'use client';
 
 import { Clock, Dumbbell, MessageCircle, Phone, Share2 } from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -9,7 +10,7 @@ import { useSessionTypes, useSpecialist } from '@/hooks/queries';
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 import { formatDuration } from '@/lib/helpers';
-import { getSpecialistId } from '@/lib/telegram';
+import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
@@ -118,14 +119,13 @@ export default function HomePage(): ReactNode {
      * - Reused by the page layer to keep shared values centralized.
      ***************************************************************************************************/
     const url = `https://t.me/${specialist?.botUsername}`;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     /***************************************************************************************************
      * Defines the web app value used by the page layer.
      *
      * Usage context:
      * - Reused by the page layer to keep shared values centralized.
      ***************************************************************************************************/
-    const webApp = window.Telegram?.WebApp as any;
+    const webApp = getTelegramWebApp();
     if (webApp?.openTelegramLink) {
       webApp.openTelegramLink(
         `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(specialist?.name || '')}`,
@@ -190,7 +190,9 @@ export default function HomePage(): ReactNode {
       <div className={'relative h-[280px] w-full overflow-hidden'}>
         {hasPhoto ? (
           <>
-            <img
+            <Image
+              width={100}
+              height={100}
               src={getPhotoUrl(specialist.photoUrl!)}
               alt={specialist.name}
               className={'h-full w-full object-cover'}
@@ -198,7 +200,7 @@ export default function HomePage(): ReactNode {
             />
             <div
               className={
-                'absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent'
+                'absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent'
               }
             />
           </>
@@ -324,11 +326,13 @@ export default function HomePage(): ReactNode {
                    ***************************************************************************************************/}
                   <div
                     className={
-                      'bg-border flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full'
+                      'bg-border flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full'
                     }
                   >
                     {service.imageUrl ? (
-                      <img
+                      <Image
+                        width={40}
+                        height={40}
                         src={getPhotoUrl(service.imageUrl)}
                         alt={service.name}
                         className={'h-full w-full object-cover'}
@@ -350,7 +354,7 @@ export default function HomePage(): ReactNode {
                     </div>
                   </div>
                   {service.price > 0 && (
-                    <p className={'text-foreground ml-2 flex-shrink-0 text-sm font-semibold'}>
+                    <p className={'text-foreground ml-2 shrink-0 text-sm font-semibold'}>
                       {service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')}{' '}
                       {service.currency === 'RUB' ? '\u20BD' : service.currency}
                     </p>
