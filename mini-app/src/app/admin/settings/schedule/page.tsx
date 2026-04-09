@@ -77,28 +77,19 @@ function sortIntervals(intervals: TWorkingInterval[]): TWorkingInterval[] {
 
 function buildNewInterval(day: number, intervals: TWorkingInterval[]): TWorkingInterval {
   const sortedIntervals = sortIntervals(intervals);
-  const preferredStart = timeToMinutes(defaultIntervalsByDay[day].startTime);
-  const preferredEnd = timeToMinutes(defaultIntervalsByDay[day].endTime) - 60;
-  const latestStart = 22 * 60;
-  const ranges = [
-    { start: preferredStart, end: preferredEnd },
-    { start: 0, end: latestStart },
-  ];
+  if (sortedIntervals.length === 0) {
+    return buildDefaultInterval(day);
+  }
 
-  for (const range of ranges) {
-    for (let start = range.start; start <= range.end; start += 60) {
-      const end = start + 60;
-      const overlaps = sortedIntervals.some(
-        (interval) =>
-          start < timeToMinutes(interval.endTime) && end > timeToMinutes(interval.startTime),
-      );
-      if (!overlaps) {
-        return {
-          startTime: formatMinutes(start),
-          endTime: formatMinutes(end),
-        };
-      }
-    }
+  const previousInterval = sortedIntervals[sortedIntervals.length - 1];
+  const startMinutes = timeToMinutes(previousInterval.endTime) + 60;
+  const endMinutes = 21 * 60;
+
+  if (startMinutes < endMinutes) {
+    return {
+      startTime: formatMinutes(startMinutes),
+      endTime: formatMinutes(endMinutes),
+    };
   }
 
   return buildDefaultInterval(day);
