@@ -24,6 +24,7 @@ import type { KeyedMutator, SWRConfiguration } from 'swr';
 const staticConfig: SWRConfiguration = {
   dedupingInterval: 60000,
   revalidateOnFocus: false,
+  revalidateOnReconnect: false,
   revalidateIfStale: false,
 };
 
@@ -163,6 +164,15 @@ export function useSessionTypes(): {
 const userConfig: SWRConfiguration = {
   dedupingInterval: 30000,
   revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  revalidateIfStale: false,
+};
+
+const dynamicConfig: SWRConfiguration = {
+  dedupingInterval: 30000,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  revalidateIfStale: false,
 };
 
 /***************************************************************************************************
@@ -235,8 +245,10 @@ export function useBookings(): {
   error: Error | undefined;
   mutate: KeyedMutator<TBooking[]>;
 } {
-  const { data, isLoading, error, mutate } = useSWR<TBooking[]>(CACHE_KEYS.bookings, async () =>
-    api.getBookings(),
+  const { data, isLoading, error, mutate } = useSWR<TBooking[]>(
+    CACHE_KEYS.bookings,
+    async () => api.getBookings(),
+    dynamicConfig,
   );
   return { data: data ?? [], isLoading, error, mutate };
 }
@@ -262,7 +274,11 @@ export function useAdminBookings(opts?: { refreshInterval?: number }): {
   const { data, isLoading, error, mutate } = useSWR<TBooking[]>(
     CACHE_KEYS.adminBookings,
     async () => api.admin.getBookings(),
-    { refreshInterval: opts?.refreshInterval, refreshWhenHidden: false, revalidateOnFocus: false },
+    {
+      ...dynamicConfig,
+      refreshInterval: opts?.refreshInterval,
+      refreshWhenHidden: false,
+    },
   );
   return { data: data ?? [], isLoading, error, mutate };
 }
@@ -288,6 +304,7 @@ export function useRecurringSchedules(): {
   const { data, isLoading, error, mutate } = useSWR<TRecurringSchedule[]>(
     CACHE_KEYS.recurringSchedules,
     async () => api.getRecurringSchedules(),
+    dynamicConfig,
   );
   return { data: data ?? [], isLoading, error, mutate };
 }
@@ -313,6 +330,7 @@ export function useRecurringDetail(id: string): {
   const { data, isLoading, error, mutate } = useSWR<TRecurringSchedule>(
     id ? CACHE_KEYS.recurringDetail(id) : null,
     async () => api.getRecurringScheduleDetail(id),
+    dynamicConfig,
   );
   return { data: data ?? null, isLoading, error, mutate };
 }
@@ -338,6 +356,7 @@ export function useAdminRecurringSchedules(): {
   const { data, isLoading, error, mutate } = useSWR<TRecurringSchedule[]>(
     CACHE_KEYS.adminRecurringSchedules,
     async () => api.admin.getRecurringSchedules(),
+    dynamicConfig,
   );
   return { data: data ?? [], isLoading, error, mutate };
 }
@@ -363,6 +382,7 @@ export function useAdminRecurringDetail(id: string): {
   const { data, isLoading, error, mutate } = useSWR<TRecurringSchedule>(
     id ? CACHE_KEYS.adminRecurringDetail(id) : null,
     async () => api.admin.getRecurringScheduleDetail(id),
+    dynamicConfig,
   );
   return { data: data ?? null, isLoading, error, mutate };
 }
