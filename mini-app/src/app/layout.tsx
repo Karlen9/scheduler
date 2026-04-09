@@ -2,6 +2,7 @@ import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
+import { AppBootstrap } from '@/components/AppBootstrap';
 import { ToastProvider } from '@/components/ToastProvider';
 import { SWRProvider } from '@/hooks/swr';
 
@@ -57,6 +58,7 @@ export default async function RootLayout({
         />
       </head>
       <body>
+        <AppBootstrap />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <SWRProvider>{children}</SWRProvider>
         </NextIntlClientProvider>

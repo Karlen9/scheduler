@@ -1,4 +1,5 @@
 import { useTranslations } from 'next-intl';
+import { memo } from 'react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 
@@ -40,7 +41,7 @@ function getCardStyle(status: string): { bg: string; text: string; subtext: stri
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function TimelineBookingCard({
+function TimelineBookingCardComponent({
   booking,
   top,
   height,
@@ -97,3 +98,5 @@ export function TimelineBookingCard({
     </button>
   );
 }
+
+export const TimelineBookingCard = memo(TimelineBookingCardComponent);

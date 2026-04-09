@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BookingDetailModal } from '@/components/BookingDetailModal';
@@ -64,11 +64,12 @@ export default function AdminHomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
+  const [isPageVisible, setIsPageVisible] = useState(true);
   const {
     data: bookings,
     isLoading,
     error: fetchError,
-  } = useAdminBookings({ refreshInterval: 15000 });
+  } = useAdminBookings({ refreshInterval: isPageVisible ? 15000 : 0 });
   const { data: scheduleData } = useAdminScheduleContext();
   const { data: clients } = useClients();
 
@@ -98,6 +99,16 @@ export default function AdminHomePage(): ReactNode {
   const [cancelReason, setCancelReason] = useState('');
   const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
   const [showPendingSheet, setShowPendingSheet] = useState(false);
+
+  useEffect(() => {
+    const handleVisibilityChange = (): void => {
+      setIsPageVisible(document.visibilityState === 'visible');
+    };
+
+    handleVisibilityChange();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   /***************************************************************************************************
    * Defines the error value used by the page layer.
@@ -171,16 +182,19 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleAccept = async (booking: TBooking): Promise<void> => {
-    try {
-      await api.admin.updateBookingStatus(booking.id, 'confirmed');
-      toast.success(ts('bookingConfirmed'));
-      setSelectedBooking(null);
-      await invalidateBookings();
-    } catch {
-      toast.error(te('bookingConfirmFailed'));
-    }
-  };
+  const handleAccept = useCallback(
+    async (booking: TBooking): Promise<void> => {
+      try {
+        await api.admin.updateBookingStatus(booking.id, 'confirmed');
+        toast.success(ts('bookingConfirmed'));
+        setSelectedBooking(null);
+        await invalidateBookings();
+      } catch {
+        toast.error(te('bookingConfirmFailed'));
+      }
+    },
+    [te, ts],
+  );
 
   /***************************************************************************************************
    * Handles reject click.
@@ -188,11 +202,11 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleRejectClick = (booking: TBooking): void => {
+  const handleRejectClick = useCallback((booking: TBooking): void => {
     setSelectedBooking(null);
     setRejectTarget(booking);
     setShowRejectDialog(true);
-  };
+  }, []);
 
   /***************************************************************************************************
    * Handles confirm reject.
@@ -200,7 +214,7 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleConfirmReject = async (): Promise<void> => {
+  const handleConfirmReject = useCallback(async (): Promise<void> => {
     if (!rejectTarget) {
       return;
     }
@@ -214,7 +228,7 @@ export default function AdminHomePage(): ReactNode {
     setShowRejectDialog(false);
     setRejectTarget(null);
     setRejectReason('');
-  };
+  }, [rejectReason, rejectTarget, te, ts]);
 
   /***************************************************************************************************
    * Handles booking click.
@@ -222,9 +236,9 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleBookingClick = (booking: TBooking): void => {
+  const handleBookingClick = useCallback((booking: TBooking): void => {
     setSelectedBooking(booking);
-  };
+  }, []);
 
   /***************************************************************************************************
    * Handles reschedule click.
@@ -232,10 +246,10 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleRescheduleClick = (booking: TBooking): void => {
+  const handleRescheduleClick = useCallback((booking: TBooking): void => {
     setSelectedBooking(null);
     setRescheduleBooking(booking);
-  };
+  }, []);
 
   /***************************************************************************************************
    * Handles cancel click.
@@ -243,9 +257,9 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleCancelClick = (): void => {
+  const handleCancelClick = useCallback((): void => {
     setShowCancelDialog(true);
-  };
+  }, []);
 
   /***************************************************************************************************
    * Handles confirm cancel.
@@ -253,7 +267,7 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleConfirmCancel = async (): Promise<void> => {
+  const handleConfirmCancel = useCallback(async (): Promise<void> => {
     if (!selectedBooking) {
       return;
     }
@@ -271,7 +285,7 @@ export default function AdminHomePage(): ReactNode {
     setShowCancelDialog(false);
     setSelectedBooking(null);
     setCancelReason('');
-  };
+  }, [cancelReason, selectedBooking, te, ts]);
 
   /***************************************************************************************************
    * Handles empty slot click.
@@ -279,9 +293,12 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleEmptySlotClick = (_date: Date, _time: string): void => {
-    router.push('/admin/book');
-  };
+  const handleEmptySlotClick = useCallback(
+    (_date: Date, _time: string): void => {
+      router.push('/admin/book');
+    },
+    [router],
+  );
 
   if (isLoading) {
     return (

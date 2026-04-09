@@ -2,7 +2,7 @@
 
 import { Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 import { TimelineBookingCard } from './TimelineBookingCard';
@@ -103,7 +103,7 @@ function formatMinuteTime(minutes: number): string {
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function DayTimeline({
+function DayTimelineComponent({
   bookings,
   date,
   onBookingClick,
@@ -538,3 +538,5 @@ export function DayTimeline({
     </div>
   );
 }
+
+export const DayTimeline = memo(DayTimelineComponent);

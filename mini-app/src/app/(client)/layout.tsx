@@ -3,10 +3,10 @@
 import { ClipboardList, Plus, User } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { BottomTabBar } from '@/components/BottomTabBar';
-import { getTelegramWebApp, initTelegramApp } from '@/lib/telegram';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
@@ -65,21 +65,20 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const clientTabs = [
-    {
-      key: 'bookings',
-      label: tn('bookings'),
-      icon: ClipboardList,
-      href: '/bookings',
-      matchPaths: ['/bookings', '/recurring'],
-    },
-    { key: 'book', label: '', icon: Plus, href: '/book', isCenter: true },
-    { key: 'profile', label: tn('profile'), icon: User, href: '/profile' },
-  ];
-
-  useEffect(() => {
-    initTelegramApp();
-  }, []);
+  const clientTabs = useMemo(
+    () => [
+      {
+        key: 'bookings',
+        label: tn('bookings'),
+        icon: ClipboardList,
+        href: '/bookings',
+        matchPaths: ['/bookings', '/recurring'],
+      },
+      { key: 'book', label: '', icon: Plus, href: '/book', isCenter: true },
+      { key: 'profile', label: tn('profile'), icon: User, href: '/profile' },
+    ],
+    [tn],
+  );
 
   useEffect(() => {
     /***************************************************************************************************

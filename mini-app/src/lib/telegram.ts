@@ -211,6 +211,12 @@ function getTelegramThemeVars(webApp: TTelegramWebApp | null): Record<string, st
   };
 }
 
+let initDataCache: string | null = null;
+let initDataPromise: Promise<string> | null = null;
+let telegramInitPromise: Promise<void> | null = null;
+let telegramInitialized = false;
+let themeListenerWebApp: TTelegramWebApp | null = null;
+
 /***************************************************************************************************
  * Implements the apply theme logic used by this module.
  *
@@ -271,7 +277,11 @@ export function applyTheme(): void {
 export function initTelegramApp(): void {
   applyTheme();
 
-  void (async () => {
+  if (telegramInitialized || telegramInitPromise) {
+    return;
+  }
+
+  telegramInitPromise = (async () => {
     /***************************************************************************************************
      * Wait for Telegram to finish bootstrapping before syncing theme-dependent state.
      ***************************************************************************************************/
@@ -284,12 +294,24 @@ export function initTelegramApp(): void {
     webApp.disableVerticalSwipes?.();
     webApp.expand();
 
+    if (themeListenerWebApp && themeListenerWebApp !== webApp) {
+      themeListenerWebApp.offEvent('themeChanged', applyTheme);
+      themeListenerWebApp = null;
+    }
+
     /***************************************************************************************************
      * Listen for theme changes (user switches dark/light mode).
      ***************************************************************************************************/
-    webApp.onEvent('themeChanged', applyTheme);
+    if (!themeListenerWebApp) {
+      webApp.onEvent('themeChanged', applyTheme);
+      themeListenerWebApp = webApp;
+    }
+
     applyTheme();
-  })();
+    telegramInitialized = true;
+  })().finally(() => {
+    telegramInitPromise = null;
+  });
 }
 
 /***************************************************************************************************
@@ -398,21 +420,41 @@ export async function waitForInitData(timeoutMs = 1500): Promise<string> {
     return '';
   }
 
+  if (initDataCache) {
+    return initDataCache;
+  }
+
   const initData = getInitData();
   if (initData) {
+    initDataCache = initData;
     return initData;
   }
 
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    await new Promise((resolve) => window.setTimeout(resolve, 50));
-    const nextInitData = getInitData();
-    if (nextInitData) {
-      return nextInitData;
-    }
+  if (initDataPromise) {
+    return initDataPromise;
   }
 
-  return getInitData();
+  initDataPromise = (async () => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+      const nextInitData = getInitData();
+      if (nextInitData) {
+        initDataCache = nextInitData;
+        return nextInitData;
+      }
+    }
+
+    const resolvedInitData = getInitData();
+    if (resolvedInitData) {
+      initDataCache = resolvedInitData;
+    }
+    return resolvedInitData;
+  })().finally(() => {
+    initDataPromise = null;
+  });
+
+  return initDataPromise;
 }
 
 /***************************************************************************************************

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { setLocale } from '@/actions/locale';
@@ -83,7 +83,7 @@ export default function ClientProfilePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: profile, isLoading: profileLoading, mutate } = useProfile();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   /***************************************************************************************************
    * Defines the loading value used by the page layer.
@@ -146,7 +146,7 @@ export default function ClientProfilePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
     /***************************************************************************************************
      * Defines the file value used by the page layer.
      *
@@ -168,7 +168,7 @@ export default function ClientProfilePage(): ReactNode {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
   /***************************************************************************************************
    * Handles editor confirm.
@@ -176,35 +176,44 @@ export default function ClientProfilePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleEditorConfirm = async (blob: Blob): Promise<void> => {
-    setEditorImage(null);
-    setIsUploading(true);
-    try {
-      /***************************************************************************************************
-       * Defines the file value used by the page layer.
-       *
-       * Usage context:
-       * - Reused by the page layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-      /***************************************************************************************************
-       * Defines the result value used by the page layer.
-       *
-       * Usage context:
-       * - Reused by the page layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const result = await api.uploadPhoto(file);
-      setPhotoUrl(result.fileId);
-      setPhotoError(false);
-      invalidateProfile();
-      toast.success(ts('photoUpdated'));
-    } catch (err) {
-      console.error('Failed to upload photo:', err);
-      toast.error(te('photoUploadFailed'));
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const handleEditorConfirm = useCallback(
+    async (blob: Blob): Promise<void> => {
+      setEditorImage(null);
+      setIsUploading(true);
+      try {
+        /***************************************************************************************************
+         * Defines the file value used by the page layer.
+         *
+         * Usage context:
+         * - Reused by the page layer to keep shared values centralized.
+         ***************************************************************************************************/
+        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+        /***************************************************************************************************
+         * Defines the result value used by the page layer.
+         *
+         * Usage context:
+         * - Reused by the page layer to keep shared values centralized.
+         ***************************************************************************************************/
+        const result = await api.uploadPhoto(file);
+        setPhotoUrl(result.fileId);
+        setPhotoError(false);
+        if (profile) {
+          await mutate(async () => ({ ...profile, photoUrl: result.fileId }), {
+            revalidate: false,
+            populateCache: true,
+          });
+        }
+        invalidateProfile();
+        toast.success(ts('photoUpdated'));
+      } catch (err) {
+        console.error('Failed to upload photo:', err);
+        toast.error(te('photoUploadFailed'));
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [mutate, profile, te, ts],
+  );
 
   /***************************************************************************************************
    * Handles save.
@@ -212,11 +221,27 @@ export default function ClientProfilePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleSave = async (): Promise<void> => {
+  const handleSave = useCallback(async (): Promise<void> => {
     setIsSaving(true);
+
+    const nextProfile = {
+      name,
+      phone,
+      preferredDuration,
+    };
+
     try {
-      await api.updateProfile({ name, phone, preferredDuration });
-      invalidateProfile();
+      if (profile) {
+        await mutate(async () => api.updateProfile(nextProfile), {
+          optimisticData: { ...profile, ...nextProfile },
+          rollbackOnError: true,
+          populateCache: true,
+          revalidate: false,
+        });
+      } else {
+        await api.updateProfile(nextProfile);
+        invalidateProfile();
+      }
       toast.success(ts('profileSaved'));
     } catch (err) {
       console.error('Failed to save profile:', err);
@@ -224,7 +249,7 @@ export default function ClientProfilePage(): ReactNode {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [mutate, name, phone, preferredDuration, profile, te, ts]);
 
   /***************************************************************************************************
    * Defines the handle toggle notification value used by the page layer.
@@ -232,30 +257,43 @@ export default function ClientProfilePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleToggleNotification = async (
-    key: 'notifyBookingStatus' | 'notifyReminders' | 'notifyDaysOff' | 'notifyCancellations',
-    value: boolean,
-  ): Promise<void> => {
-    /***************************************************************************************************
-     * Defines the setters value used by the page layer.
-     *
-     * Usage context:
-     * - Reused by the page layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const setters = {
-      notifyBookingStatus: setNotifyBookingStatus,
-      notifyReminders: setNotifyReminders,
-      notifyDaysOff: setNotifyDaysOff,
-      notifyCancellations: setNotifyCancellations,
-    };
-    setters[key](value);
-    try {
-      await api.updateNotificationPrefs({ [key]: value });
-    } catch {
-      setters[key](!value);
-      toast.error(te('saveSettingsFailed'));
-    }
-  };
+  const handleToggleNotification = useCallback(
+    async (
+      key: 'notifyBookingStatus' | 'notifyReminders' | 'notifyDaysOff' | 'notifyCancellations',
+      value: boolean,
+    ): Promise<void> => {
+      /***************************************************************************************************
+       * Defines the setters value used by the page layer.
+       *
+       * Usage context:
+       * - Reused by the page layer to keep shared values centralized.
+       ***************************************************************************************************/
+      const setters = {
+        notifyBookingStatus: setNotifyBookingStatus,
+        notifyReminders: setNotifyReminders,
+        notifyDaysOff: setNotifyDaysOff,
+        notifyCancellations: setNotifyCancellations,
+      };
+      setters[key](value);
+      try {
+        if (profile) {
+          await mutate(async () => api.updateNotificationPrefs({ [key]: value }), {
+            optimisticData: { ...profile, [key]: value },
+            rollbackOnError: true,
+            populateCache: true,
+            revalidate: false,
+          });
+        } else {
+          await api.updateNotificationPrefs({ [key]: value });
+          invalidateProfile();
+        }
+      } catch {
+        setters[key](!value);
+        toast.error(te('saveSettingsFailed'));
+      }
+    },
+    [mutate, profile, te],
+  );
 
   if (loading) {
     return (
