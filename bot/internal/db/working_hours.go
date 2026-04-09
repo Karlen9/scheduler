@@ -25,7 +25,7 @@ func GetWorkingHoursBySpecialistID(specialistID string) ([]models.WorkingHours, 
 		SELECT id, specialist_id, day_of_week, start_time, end_time
 		FROM working_hours
 		WHERE specialist_id = ?
-		ORDER BY day_of_week
+		ORDER BY day_of_week, start_time, end_time
 	`), specialistID)
 	if err != nil {
 		return nil, err
@@ -60,38 +60,24 @@ func GetWorkingHoursBySpecialistID(specialistID string) ([]models.WorkingHours, 
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func UpsertWorkingHours(specialistID string, dayOfWeek int, startTime, endTime string) error {
-	/***************************************************************************************************
-	* Check if exists.
-	***************************************************************************************************/
 	var existingID string
 	err := DB.QueryRow(Q(`
 		SELECT id FROM working_hours
-		WHERE specialist_id = ? AND day_of_week = ?
-	`), specialistID, dayOfWeek).Scan(&existingID)
-
-	if err == sql.ErrNoRows {
-		/***************************************************************************************************
-		* Insert new.
-		***************************************************************************************************/
-		id := uuid.New().String()
-		_, err = DB.Exec(Q(`
-			INSERT INTO working_hours (id, specialist_id, day_of_week, start_time, end_time)
-			VALUES (?, ?, ?, ?, ?)
-		`), id, specialistID, dayOfWeek, startTime, endTime)
-		return err
+		WHERE specialist_id = ? AND day_of_week = ? AND start_time = ? AND end_time = ?
+		LIMIT 1
+	`), specialistID, dayOfWeek, startTime, endTime).Scan(&existingID)
+	if err == nil {
+		return nil
 	}
-	if err != nil {
+	if err != sql.ErrNoRows {
 		return err
 	}
 
-	/***************************************************************************************************
-	* Update existing.
-	***************************************************************************************************/
+	id := uuid.New().String()
 	_, err = DB.Exec(Q(`
-		UPDATE working_hours
-		SET start_time = ?, end_time = ?
-		WHERE id = ?
-	`), startTime, endTime, existingID)
+		INSERT INTO working_hours (id, specialist_id, day_of_week, start_time, end_time)
+		VALUES (?, ?, ?, ?, ?)
+	`), id, specialistID, dayOfWeek, startTime, endTime)
 	return err
 }
 

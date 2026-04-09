@@ -32,7 +32,7 @@ var (
 	* Usage context:
 	* - Reused by the api layer to keep shared values centralized.
 	***************************************************************************************************/
-	router         http.Handler
+	router http.Handler
 	/***************************************************************************************************
 	* Defines the test specialist value used by the api layer.
 	*

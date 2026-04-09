@@ -35,7 +35,6 @@ var NotifyRecurringScheduleFunc func(schedule *models.RecurringSchedule, preview
 ***************************************************************************************************/
 var NotifyMoveRequestFunc func(newBooking, oldBooking *models.Booking, requestedBy string) error
 
-
 /***************************************************************************************************
 * Shared Types & Helpers.
 ***************************************************************************************************/
@@ -334,7 +333,6 @@ func handleValidationError(w http.ResponseWriter, r *http.Request, err error) {
 	http.Error(w, myI18n.T(loc, msgID), http.StatusBadRequest)
 }
 
-
 /***************************************************************************************************
 * Client Recurring Endpoints.
 *
@@ -623,7 +621,6 @@ func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	log.Printf("RECURRING CANCEL (CLIENT) [%s]", id[:8])
 	w.WriteHeader(http.StatusNoContent)
 }
-
 
 /***************************************************************************************************
 * Admin Recurring Schedule Endpoints.
@@ -978,7 +975,6 @@ func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, updated)
 }
 
-
 /***************************************************************************************************
 * Phase 3: Individual Booking Management.
 ***************************************************************************************************/
@@ -1018,7 +1014,6 @@ func getScheduleBooking(w http.ResponseWriter, r *http.Request) (*models.Booking
 	}
 	return booking, scheduleID
 }
-
 
 /***************************************************************************************************
 * Client: Request Cancel.
@@ -1072,7 +1067,6 @@ func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, updated)
 }
-
 
 /***************************************************************************************************
 * Client: Request Move.
@@ -1131,7 +1125,6 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, newBooking)
 }
 
-
 /***************************************************************************************************
 * Admin: Request Cancel.
 *
@@ -1184,7 +1177,6 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, updated)
 }
-
 
 /***************************************************************************************************
 * Admin: Request Move.
@@ -1242,7 +1234,6 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, newBooking)
 }
-
 
 /***************************************************************************************************
 * Admin: Approve/Decline Move.

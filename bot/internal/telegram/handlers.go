@@ -819,7 +819,6 @@ func (h *Handler) NotifyClientRecurringSchedule(schedule *models.RecurringSchedu
 	return err
 }
 
-
 /***************************************************************************************************
 * NotifyClientSpecialistBooking sends a specialist-created booking confirmation request to client.
 *

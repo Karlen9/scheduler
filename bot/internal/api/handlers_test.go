@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-
 /***************************************************************************************************
 * Task 2: Health + Specialist tests.
 *
@@ -87,7 +86,6 @@ func TestGetSpecialistAsClient(t *testing.T) {
 		t.Fatal("expected isOwner=false for regular client")
 	}
 }
-
 
 /***************************************************************************************************
 * nextWeekday returns the next date (from tomorrow) that falls on the given weekday
@@ -308,7 +306,6 @@ func TestAdminGetBookings(t *testing.T) {
 	}
 }
 
-
 /***************************************************************************************************
 * Task 4: Admin auth + client profile tests.
 *
@@ -457,7 +454,6 @@ func TestGetServices(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }
-
 
 /***************************************************************************************************
 * Security tests.
@@ -664,5 +660,135 @@ func TestRejectInvalidWorkingHoursRange(t *testing.T) {
 	w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours", body)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid working hours range, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+/***************************************************************************************************
+* Implements the test reject overlapping working hours logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestRejectOverlappingWorkingHoursIntervals(t *testing.T) {
+	initialBody := jsonBody(map[string]interface{}{
+		"hours": []map[string]interface{}{
+			{"dayOfWeek": 1, "startTime": "09:00", "endTime": "12:00"},
+		},
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours", initialBody)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected initial working hours update to succeed, got %d: %s", w.Code, w.Body.String())
+	}
+
+	overlappingBody := jsonBody(map[string]interface{}{
+		"hours": []map[string]interface{}{
+			{"dayOfWeek": 1, "startTime": "09:00", "endTime": "12:00"},
+			{"dayOfWeek": 1, "startTime": "11:00", "endTime": "18:00"},
+		},
+	})
+
+	w = doAdminRequest(t, http.MethodPut, "/api/admin/working-hours", overlappingBody)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for overlapping working hours, got %d: %s", w.Code, w.Body.String())
+	}
+
+	w = doAdminRequest(t, http.MethodGet, "/api/admin/working-hours", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 when reading working hours, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var hours []map[string]interface{}
+	parseJSON(t, w, &hours)
+	if len(hours) != 1 {
+		t.Fatalf("expected existing working hours to remain unchanged, got %d entries", len(hours))
+	}
+}
+
+/***************************************************************************************************
+* Implements the test set working hours for day logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestSetWorkingHoursForDayAllowsMultipleIntervals(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"hours": []map[string]interface{}{
+			{"startTime": "09:00", "endTime": "12:00"},
+			{"startTime": "14:00", "endTime": "18:00"},
+		},
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours/1", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for multi-interval day update, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var hours []map[string]interface{}
+	parseJSON(t, w, &hours)
+	if len(hours) != 2 {
+		t.Fatalf("expected 2 working-hour rows, got %d", len(hours))
+	}
+}
+
+/***************************************************************************************************
+* Implements the test get availability with multiple intervals logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestGetAvailabilityWithMultipleIntervalsPerDay(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"hours": []map[string]interface{}{
+			{"dayOfWeek": 1, "startTime": "09:00", "endTime": "12:00"},
+			{"dayOfWeek": 1, "startTime": "14:00", "endTime": "18:00"},
+		},
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for working hours update, got %d: %s", w.Code, w.Body.String())
+	}
+
+	path := "/api/availability?date=" + nextWeekday(time.Monday) + "&duration=60"
+	w = doClientRequest(t, http.MethodGet, path, nil, 555555)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for availability lookup, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var slots []map[string]interface{}
+	parseJSON(t, w, &slots)
+
+	expectedTimes := []string{
+		"09:00", "09:30", "10:00", "10:30", "11:00",
+		"14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
+	}
+	if len(slots) != len(expectedTimes) {
+		t.Fatalf("expected %d availability slots, got %d", len(expectedTimes), len(slots))
+	}
+
+	for i, expected := range expectedTimes {
+		actual, _ := slots[i]["time"].(string)
+		if actual != expected {
+			t.Fatalf("expected slot %d to be %q, got %q", i, expected, actual)
+		}
 	}
 }

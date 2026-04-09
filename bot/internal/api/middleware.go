@@ -57,7 +57,7 @@ const (
 	* Usage context:
 	* - Reused by the api layer to keep shared values centralized.
 	***************************************************************************************************/
-	ClientContextKey     contextKey = "client"
+	ClientContextKey contextKey = "client"
 	/***************************************************************************************************
 	* Defines the specialist context key value used by the api layer.
 	*

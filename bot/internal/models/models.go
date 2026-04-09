@@ -94,42 +94,42 @@ const (
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	BookingStatusPending           BookingStatus = "pending"
+	BookingStatusPending BookingStatus = "pending"
 	/***************************************************************************************************
 	* Defines the booking status confirmed value used by the shared model layer.
 	*
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	BookingStatusConfirmed         BookingStatus = "confirmed"
+	BookingStatusConfirmed BookingStatus = "confirmed"
 	/***************************************************************************************************
 	* Defines the booking status rejected value used by the shared model layer.
 	*
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	BookingStatusRejected          BookingStatus = "rejected"
+	BookingStatusRejected BookingStatus = "rejected"
 	/***************************************************************************************************
 	* Defines the booking status cancelled value used by the shared model layer.
 	*
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	BookingStatusCancelled         BookingStatus = "cancelled"
+	BookingStatusCancelled BookingStatus = "cancelled"
 	/***************************************************************************************************
 	* Defines the booking status completed value used by the shared model layer.
 	*
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	BookingStatusCompleted         BookingStatus = "completed"
+	BookingStatusCompleted BookingStatus = "completed"
 	/***************************************************************************************************
 	* Defines the booking status cancel requested value used by the shared model layer.
 	*
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	BookingStatusCancelRequested   BookingStatus = "cancel_requested"
+	BookingStatusCancelRequested BookingStatus = "cancel_requested"
 	/***************************************************************************************************
 	* Defines the booking status reschedule pending value used by the shared model layer.
 	*
@@ -154,7 +154,7 @@ const (
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	CancelledByClient     CancelledBy = "client"
+	CancelledByClient CancelledBy = "client"
 	/***************************************************************************************************
 	* Defines the cancelled by specialist value used by the shared model layer.
 	*
@@ -209,21 +209,21 @@ const (
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	RecurringScheduleStatusPending   RecurringScheduleStatus = "pending"
+	RecurringScheduleStatusPending RecurringScheduleStatus = "pending"
 	/***************************************************************************************************
 	* Defines the recurring schedule status active value used by the shared model layer.
 	*
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	RecurringScheduleStatusActive    RecurringScheduleStatus = "active"
+	RecurringScheduleStatusActive RecurringScheduleStatus = "active"
 	/***************************************************************************************************
 	* Defines the recurring schedule status declined value used by the shared model layer.
 	*
 	* Usage context:
 	* - Reused by the shared model layer to keep shared values centralized.
 	***************************************************************************************************/
-	RecurringScheduleStatusDeclined  RecurringScheduleStatus = "declined"
+	RecurringScheduleStatusDeclined RecurringScheduleStatus = "declined"
 	/***************************************************************************************************
 	* Defines the recurring schedule status cancelled value used by the shared model layer.
 	*
