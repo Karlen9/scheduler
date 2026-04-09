@@ -1,5 +1,6 @@
 'use client';
 
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X } from 'lucide-react';
 
 import type { TBottomSheetProps } from '@/lib/types';
@@ -30,25 +31,31 @@ export function BottomSheet({
   }
 
   return (
-    <div className={'fixed inset-0 z-60 flex items-end justify-center'}>
-      <div className={'absolute inset-0 bg-black/50'} onClick={onClose} />
-      <div
-        className={`bg-card animate-slide-up relative w-full rounded-t-2xl p-4 shadow-lg ${className}`}
-        style={{ maxWidth: '430px' }}
-      >
-        {(title || showClose) && (
-          <div className={'mb-4 flex items-center justify-between'}>
-            {title ? <h3 className={'text-foreground text-lg font-medium'}>{title}</h3> : <div />}
-            {showClose && (
-              <button onClick={onClose} className={'hover:bg-card rounded-full p-1'}>
-                <X className={'text-muted-foreground h-5 w-5'} />
-              </button>
-            )}
-          </div>
-        )}
-        {children}
-        <div className={'h-[env(safe-area-inset-bottom)]'} />
+    <Dialog open={isOpen} onClose={onClose} className={'relative z-[100]'}>
+      <div className={'fixed inset-0 bg-black/50'} aria-hidden={'true'} />
+      <div className={'fixed inset-0 flex items-end justify-center overscroll-contain'}>
+        <DialogPanel
+          className={`bg-card animate-slide-up relative max-h-[100dvh] w-full overflow-auto rounded-t-2xl p-4 shadow-lg ${className}`}
+          style={{ maxWidth: '430px' }}
+        >
+          {(title || showClose) && (
+            <div className={'mb-4 flex items-center justify-between'}>
+              {title ? (
+                <DialogTitle className={'text-foreground text-lg font-medium'}>{title}</DialogTitle>
+              ) : (
+                <div />
+              )}
+              {showClose && (
+                <button onClick={onClose} className={'hover:bg-card rounded-full p-1'}>
+                  <X className={'text-muted-foreground h-5 w-5'} />
+                </button>
+              )}
+            </div>
+          )}
+          {children}
+          <div className={'h-[env(safe-area-inset-bottom)]'} />
+        </DialogPanel>
       </div>
-    </div>
+    </Dialog>
   );
 }

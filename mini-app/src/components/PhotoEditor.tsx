@@ -1,8 +1,9 @@
 'use client';
 
+import { Dialog, DialogPanel } from '@headlessui/react';
 import { Check, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import Cropper from 'react-easy-crop';
 
 import type { TPhotoEditorProps } from '@/lib/types';
@@ -33,13 +34,6 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
 
   /***************************************************************************************************
    * Defines the on crop complete value used by the component layer.
@@ -74,93 +68,96 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
   };
 
   return (
-    <div
-      className={'bg-background fixed inset-0 z-60 flex flex-col overflow-hidden'}
-      style={{ touchAction: 'none' }}
-    >
-      {/***************************************************************************************************
-       * Header.
-       ***************************************************************************************************/}
-      <div className={'border-border flex items-center justify-between border-b px-4 py-3'}>
-        <button onClick={onCancel} className={'text-muted-foreground -m-2 p-2'}>
-          <X className={'h-6 w-6'} />
-        </button>
-        <span className={'text-sm font-medium'}>{t('title')}</span>
-        <button onClick={handleConfirm} className={'text-brand -m-2 p-2'}>
-          <Check className={'h-6 w-6'} />
-        </button>
-      </div>
-
-      {/***************************************************************************************************
-       * Crop area.
-       ***************************************************************************************************/}
-      <div className={'relative flex-1 overflow-hidden'}>
-        <Cropper
-          image={imageSrc}
-          crop={crop}
-          zoom={zoom}
-          rotation={rotation}
-          aspect={1}
-          cropShape={'round'}
-          showGrid={false}
-          restrictPosition={true}
-          onCropChange={setCrop}
-          onZoomChange={setZoom}
-          onCropComplete={onCropComplete}
-        />
-      </div>
-
-      {/***************************************************************************************************
-       * Controls.
-       ***************************************************************************************************/}
-      <div className={'border-border bg-background space-y-4 border-t px-4 py-4'}>
+    <Dialog open={true} onClose={onCancel} className={'relative z-[100]'}>
+      <div className={'fixed inset-0 bg-black'} aria-hidden={'true'} />
+      <DialogPanel
+        className={'bg-background fixed inset-0 z-[100] flex flex-col overflow-hidden'}
+        style={{ touchAction: 'none' }}
+      >
         {/***************************************************************************************************
-         * Zoom slider.
+         * Header.
          ***************************************************************************************************/}
-        <div className={'flex items-center gap-3'}>
-          <span className={'text-muted-foreground w-14 text-xs'}>{t('zoom')}</span>
-          <input
-            type={'range'}
-            min={1}
-            max={3}
-            step={0.05}
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            className={'accent-brand flex-1'}
+        <div className={'border-border flex items-center justify-between border-b px-4 py-3'}>
+          <button onClick={onCancel} className={'text-muted-foreground -m-2 p-2'}>
+            <X className={'h-6 w-6'} />
+          </button>
+          <span className={'text-sm font-medium'}>{t('title')}</span>
+          <button onClick={handleConfirm} className={'text-brand -m-2 p-2'}>
+            <Check className={'h-6 w-6'} />
+          </button>
+        </div>
+
+        {/***************************************************************************************************
+         * Crop area.
+         ***************************************************************************************************/}
+        <div className={'relative flex-1 overflow-hidden'}>
+          <Cropper
+            image={imageSrc}
+            crop={crop}
+            zoom={zoom}
+            rotation={rotation}
+            aspect={1}
+            cropShape={'round'}
+            showGrid={false}
+            restrictPosition={true}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
           />
         </div>
 
         {/***************************************************************************************************
-         * Rotation buttons.
+         * Controls.
          ***************************************************************************************************/}
-        <div className={'flex items-center justify-center gap-4'}>
-          <button
-            onClick={() => setRotation((r) => r - 90)}
-            className={
-              'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
-            }
-          >
-            <RotateCcw className={'h-4 w-4'} />
-          </button>
-          <button
-            onClick={() => setRotation(0)}
-            className={
-              'bg-card text-muted-foreground rounded-lg px-4 py-2.5 text-sm active:opacity-70'
-            }
-          >
-            {rotation !== 0 ? `${rotation}°` : '0°'}
-          </button>
-          <button
-            onClick={() => setRotation((r) => r + 90)}
-            className={
-              'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
-            }
-          >
-            <RotateCw className={'h-4 w-4'} />
-          </button>
+        <div className={'border-border bg-background space-y-4 border-t px-4 py-4'}>
+          {/***************************************************************************************************
+           * Zoom slider.
+           ***************************************************************************************************/}
+          <div className={'flex items-center gap-3'}>
+            <span className={'text-muted-foreground w-14 text-xs'}>{t('zoom')}</span>
+            <input
+              type={'range'}
+              min={1}
+              max={3}
+              step={0.05}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className={'accent-brand flex-1'}
+            />
+          </div>
+
+          {/***************************************************************************************************
+           * Rotation buttons.
+           ***************************************************************************************************/}
+          <div className={'flex items-center justify-center gap-4'}>
+            <button
+              onClick={() => setRotation((r) => r - 90)}
+              className={
+                'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+              }
+            >
+              <RotateCcw className={'h-4 w-4'} />
+            </button>
+            <button
+              onClick={() => setRotation(0)}
+              className={
+                'bg-card text-muted-foreground rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+              }
+            >
+              {rotation !== 0 ? `${rotation}°` : '0°'}
+            </button>
+            <button
+              onClick={() => setRotation((r) => r + 90)}
+              className={
+                'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+              }
+            >
+              <RotateCw className={'h-4 w-4'} />
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </Dialog>
   );
 }
 
