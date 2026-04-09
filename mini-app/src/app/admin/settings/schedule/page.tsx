@@ -120,17 +120,30 @@ function isScheduleValid(schedule: Record<number, TDaySchedule>): boolean {
   });
 }
 
-function getAvailableTimesForPicker(interval: TWorkingInterval, type: 'start' | 'end'): string[] {
+function getAvailableTimesForPicker(
+  intervals: TWorkingInterval[],
+  intervalIndex: number,
+  type: 'start' | 'end',
+): string[] {
+  const interval = intervals[intervalIndex];
+  if (!interval) {
+    return HOURS;
+  }
+
+  const previousInterval = intervalIndex > 0 ? intervals[intervalIndex - 1] : null;
+  const nextInterval = intervalIndex < intervals.length - 1 ? intervals[intervalIndex + 1] : null;
   const startMinutes = timeToMinutes(interval.startTime);
   const endMinutes = timeToMinutes(interval.endTime);
+  const minStartMinutes = previousInterval ? timeToMinutes(previousInterval.endTime) : 0;
+  const maxEndMinutes = nextInterval ? timeToMinutes(nextInterval.startTime) : 23 * 60;
 
   return HOURS.filter((time) => {
     const minutes = timeToMinutes(time);
     if (type === 'start') {
-      return minutes < endMinutes;
+      return minutes >= minStartMinutes && minutes < endMinutes;
     }
 
-    return minutes > startMinutes;
+    return minutes > startMinutes && minutes <= maxEndMinutes;
   });
 }
 
@@ -271,7 +284,10 @@ export default function SchedulePage(): ReactNode {
         ...prev,
         [day]: {
           enabled: true,
-          intervals: [...prev[day].intervals, buildNewInterval(day, prev[day].intervals)],
+          intervals: sortIntervals([
+            ...prev[day].intervals,
+            buildNewInterval(day, prev[day].intervals),
+          ]),
         },
       };
     });
@@ -317,11 +333,9 @@ export default function SchedulePage(): ReactNode {
       return;
     }
 
-    setSchedule((prev) => ({
-      ...prev,
-      [pickerTarget.day]: {
-        ...prev[pickerTarget.day],
-        intervals: prev[pickerTarget.day].intervals.map((interval, index) =>
+    setSchedule((prev) => {
+      const updatedIntervals = sortIntervals(
+        prev[pickerTarget.day].intervals.map((interval, index) =>
           index === pickerTarget.intervalIndex
             ? {
                 ...interval,
@@ -329,8 +343,16 @@ export default function SchedulePage(): ReactNode {
               }
             : interval,
         ),
-      },
-    }));
+      );
+
+      return {
+        ...prev,
+        [pickerTarget.day]: {
+          ...prev[pickerTarget.day],
+          intervals: updatedIntervals,
+        },
+      };
+    });
     setPickerTarget(null);
   };
 
@@ -471,8 +493,8 @@ export default function SchedulePage(): ReactNode {
         availableTimes={
           pickerTarget !== null
             ? getAvailableTimesForPicker(
-                schedule[pickerTarget.day].intervals[pickerTarget.intervalIndex] ??
-                  buildDefaultInterval(pickerTarget.day),
+                schedule[pickerTarget.day].intervals,
+                pickerTarget.intervalIndex,
                 pickerTarget.type,
               )
             : undefined
