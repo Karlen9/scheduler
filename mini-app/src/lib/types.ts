@@ -835,6 +835,7 @@ export type TTimePickerModalProps = {
   onSelect: (time: string) => void;
   selectedTime?: string;
   title?: string;
+  availableTimes?: string[];
 };
 
 /***************************************************************************************************

@@ -22,6 +22,7 @@ import type { ReactNode } from 'react';
  ***************************************************************************************************/
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const MAX_INTERVALS = 4;
+const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 const defaultIntervalsByDay: Record<number, TWorkingInterval> = {
   0: { startTime: '09:00', endTime: '18:00' },
   1: { startTime: '09:00', endTime: '21:00' },
@@ -125,6 +126,20 @@ function isScheduleValid(schedule: Record<number, TDaySchedule>): boolean {
     }
 
     return true;
+  });
+}
+
+function getAvailableTimesForPicker(interval: TWorkingInterval, type: 'start' | 'end'): string[] {
+  const startMinutes = timeToMinutes(interval.startTime);
+  const endMinutes = timeToMinutes(interval.endTime);
+
+  return HOURS.filter((time) => {
+    const minutes = timeToMinutes(time);
+    if (type === 'start') {
+      return minutes < endMinutes;
+    }
+
+    return minutes > startMinutes;
   });
 }
 
@@ -462,6 +477,15 @@ export default function SchedulePage(): ReactNode {
         isOpen={pickerTarget !== null}
         onClose={() => setPickerTarget(null)}
         onSelect={handleTimeSelect}
+        availableTimes={
+          pickerTarget !== null
+            ? getAvailableTimesForPicker(
+                schedule[pickerTarget.day].intervals[pickerTarget.intervalIndex] ??
+                  buildDefaultInterval(pickerTarget.day),
+                pickerTarget.type,
+              )
+            : undefined
+        }
         selectedTime={
           pickerTarget !== null
             ? (schedule[pickerTarget.day].intervals[pickerTarget.intervalIndex]?.[

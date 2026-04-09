@@ -33,6 +33,7 @@ export function TimePickerModal({
   onSelect,
   selectedTime,
   title,
+  availableTimes,
 }: TTimePickerModalProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -48,6 +49,7 @@ export function TimePickerModal({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const resolvedTitle = title ?? t('title');
+  const allowedTimes = availableTimes ? new Set(availableTimes) : null;
 
   return (
     <BottomSheet
@@ -61,13 +63,19 @@ export function TimePickerModal({
           <button
             key={time}
             onClick={() => {
+              if (allowedTimes && !allowedTimes.has(time)) {
+                return;
+              }
               onSelect(time);
               onClose();
             }}
+            disabled={allowedTimes !== null && !allowedTimes.has(time)}
             className={`rounded-lg py-3 text-sm transition-colors ${
               selectedTime === time
                 ? 'bg-brand text-white'
-                : 'bg-card text-foreground active:bg-border'
+                : allowedTimes !== null && !allowedTimes.has(time)
+                  ? 'bg-surface-hover text-muted-foreground cursor-not-allowed opacity-50'
+                  : 'bg-card text-foreground active:bg-border'
             }`}
           >
             {time}
