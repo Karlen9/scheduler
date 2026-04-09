@@ -32,6 +32,40 @@ export function getTelegramWebApp(): TTelegramWebApp | null {
 }
 
 /***************************************************************************************************
+ * Waits briefly for Telegram WebApp to become available on first load.
+ *
+ * Parameters:
+ * - timeoutMs: Maximum time to wait before giving up.
+ *
+ * Returns:
+ * - A promise that resolves with Telegram WebApp if it appears, otherwise null.
+ *
+ * Side effects:
+ * - May observe browser state while the Telegram script finishes bootstrapping.
+ ***************************************************************************************************/
+async function waitForTelegramWebApp(timeoutMs = 1500): Promise<TTelegramWebApp | null> {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const webApp = getTelegramWebApp();
+  if (webApp) {
+    return webApp;
+  }
+
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+    const nextWebApp = getTelegramWebApp();
+    if (nextWebApp) {
+      return nextWebApp;
+    }
+  }
+
+  return getTelegramWebApp();
+}
+
+/***************************************************************************************************
  * Defines the theme storage key value used by the shared utility layer.
  *
  * Usage context:
@@ -235,14 +269,17 @@ export function applyTheme(): void {
  * - May read browser state, call shared helpers, or perform network requests.
  ***************************************************************************************************/
 export function initTelegramApp(): void {
-  /***************************************************************************************************
-   * Defines the web app value used by the shared utility layer.
-   *
-   * Usage context:
-   * - Reused by the shared utility layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const webApp = getTelegramWebApp();
-  if (webApp) {
+  applyTheme();
+
+  void (async () => {
+    /***************************************************************************************************
+     * Wait for Telegram to finish bootstrapping before syncing theme-dependent state.
+     ***************************************************************************************************/
+    const webApp = await waitForTelegramWebApp();
+    if (!webApp) {
+      return;
+    }
+
     webApp.ready();
     webApp.expand();
 
@@ -250,8 +287,8 @@ export function initTelegramApp(): void {
      * Listen for theme changes (user switches dark/light mode).
      ***************************************************************************************************/
     webApp.onEvent('themeChanged', applyTheme);
-  }
-  applyTheme();
+    applyTheme();
+  })();
 }
 
 /***************************************************************************************************
