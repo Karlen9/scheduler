@@ -281,6 +281,7 @@ export function initTelegramApp(): void {
     }
 
     webApp.ready();
+    webApp.disableVerticalSwipes?.();
     webApp.expand();
 
     /***************************************************************************************************

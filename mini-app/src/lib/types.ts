@@ -186,6 +186,9 @@ export type TTelegramWebApp = {
   ready: TVoidFunction;
   expand: TVoidFunction;
   close: TVoidFunction;
+  disableVerticalSwipes?: TVoidFunction;
+  enableVerticalSwipes?: TVoidFunction;
+  isVerticalSwipesEnabled?: boolean;
   colorScheme: 'light' | 'dark';
   MainButton: {
     text: string;
