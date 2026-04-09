@@ -267,132 +267,146 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
   }, [pathname, currentIndex, showSubTabs, tabs]);
 
   return (
-    <div className={'fixed right-0 bottom-0 left-0 z-50 flex justify-center pb-6'}>
+    <div className={'fixed right-0 bottom-0 left-0 z-50'}>
       <div
-        className={
-          'bg-tab-bar border-tab-bar-border relative overflow-visible rounded-full border px-3 py-1.5'
-        }
-      >
-        {showSubTabs ? (
-          <>
-            {/***************************************************************************************************
-             * Sliding indicator for sub-tabs.
-             ***************************************************************************************************/}
-            {activeSubIndex >= 0 && subTabW > 0 && (
-              <div
-                className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
-                style={{
-                  width: `${subTabW}px`,
-                  left: `${6 + activeSubIndex * subTabW}px`,
-                  transition: 'left 300ms ease-in-out',
-                }}
-              />
-            )}
+        className={'absolute right-0 bottom-0 left-0'}
+        style={{
+          backgroundColor: 'var(--background)',
+          height: 'calc(env(safe-area-inset-bottom) + 88px)',
+        }}
+      />
+      <div className={'relative flex justify-center pb-6'}>
+        <div
+          className={'relative overflow-visible rounded-full border px-3 py-1.5'}
+          style={{
+            backgroundColor: 'var(--color-tab-bar)',
+            borderColor: 'var(--color-tab-bar-border)',
+          }}
+        >
+          {showSubTabs ? (
+            <>
+              {/***************************************************************************************************
+               * Sliding indicator for sub-tabs.
+               ***************************************************************************************************/}
+              {activeSubIndex >= 0 && subTabW > 0 && (
+                <div
+                  className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
+                  style={{
+                    width: `${subTabW}px`,
+                    left: `${6 + activeSubIndex * subTabW}px`,
+                    transition: 'left 300ms ease-in-out',
+                  }}
+                />
+              )}
 
-            <div ref={subTabsRef} className={'relative flex items-center'}>
-              {subTabs.map((tab) => {
-                /***************************************************************************************************
-                 * Defines the is active value used by the component layer.
-                 *
-                 * Usage context:
-                 * - Reused by the component layer to keep shared values centralized.
-                 ***************************************************************************************************/
-                const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
-                /***************************************************************************************************
-                 * Defines the bouncing value used by the component layer.
-                 *
-                 * Usage context:
-                 * - Reused by the component layer to keep shared values centralized.
-                 ***************************************************************************************************/
-                const bouncing = animatingKey === tab.href;
-                return (
-                  <TabButton
-                    key={tab.href}
-                    href={tab.href}
-                    isActive={isActive}
-                    bouncing={bouncing}
-                    icon={tab.icon}
-                    label={tab.label}
-                    activeColor={'text-foreground'}
-                  />
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <>
-            {/***************************************************************************************************
-             * Active indicator for side tabs.
-             ***************************************************************************************************/}
-            {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
-              <div
-                className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
-                style={{
-                  width: `${sideTabW}px`,
-                  left: activeSideIndex === 0 ? '6px' : `calc(100% - 6px - ${sideTabW}px)`,
-                  transition: 'left 300ms ease-in-out',
-                }}
-              />
-            )}
-
-            {/***************************************************************************************************
-             * Tab buttons.
-             ***************************************************************************************************/}
-            <div ref={tabsRef} className={'relative flex items-center'}>
-              {tabs.map((tab, index) => {
-                /***************************************************************************************************
-                 * Defines the is active value used by the component layer.
-                 *
-                 * Usage context:
-                 * - Reused by the component layer to keep shared values centralized.
-                 ***************************************************************************************************/
-                const isActive = index === currentIndex;
-                /***************************************************************************************************
-                 * Defines the icon value used by the component layer.
-                 *
-                 * Usage context:
-                 * - Reused by the component layer to keep shared values centralized.
-                 ***************************************************************************************************/
-                const Icon = tab.icon;
-                /***************************************************************************************************
-                 * Defines the bouncing value used by the component layer.
-                 *
-                 * Usage context:
-                 * - Reused by the component layer to keep shared values centralized.
-                 ***************************************************************************************************/
-                const bouncing = animatingKey === tab.key;
-
-                if (tab.isCenter) {
+              <div ref={subTabsRef} className={'relative flex items-center'}>
+                {subTabs.map((tab) => {
+                  /***************************************************************************************************
+                   * Defines the is active value used by the component layer.
+                   *
+                   * Usage context:
+                   * - Reused by the component layer to keep shared values centralized.
+                   ***************************************************************************************************/
+                  const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
+                  /***************************************************************************************************
+                   * Defines the bouncing value used by the component layer.
+                   *
+                   * Usage context:
+                   * - Reused by the component layer to keep shared values centralized.
+                   ***************************************************************************************************/
+                  const bouncing = animatingKey === tab.href;
                   return (
-                    <PlusButton
+                    <TabButton
+                      key={tab.href}
+                      href={tab.href}
+                      isActive={isActive}
+                      bouncing={bouncing}
+                      icon={tab.icon}
+                      label={tab.label}
+                      activeColor={'text-foreground'}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              {/***************************************************************************************************
+               * Active indicator for side tabs.
+               ***************************************************************************************************/}
+              {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
+                <div
+                  className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
+                  style={{
+                    width: `${sideTabW}px`,
+                    left: activeSideIndex === 0 ? '6px' : `calc(100% - 6px - ${sideTabW}px)`,
+                    transition: 'left 300ms ease-in-out',
+                  }}
+                />
+              )}
+
+              {/***************************************************************************************************
+               * Tab buttons.
+               ***************************************************************************************************/}
+              <div ref={tabsRef} className={'relative flex items-center'}>
+                {tabs.map((tab, index) => {
+                  /***************************************************************************************************
+                   * Defines the is active value used by the component layer.
+                   *
+                   * Usage context:
+                   * - Reused by the component layer to keep shared values centralized.
+                   ***************************************************************************************************/
+                  const isActive = index === currentIndex;
+                  /***************************************************************************************************
+                   * Defines the icon value used by the component layer.
+                   *
+                   * Usage context:
+                   * - Reused by the component layer to keep shared values centralized.
+                   ***************************************************************************************************/
+                  const Icon = tab.icon;
+                  /***************************************************************************************************
+                   * Defines the bouncing value used by the component layer.
+                   *
+                   * Usage context:
+                   * - Reused by the component layer to keep shared values centralized.
+                   ***************************************************************************************************/
+                  const bouncing = animatingKey === tab.key;
+
+                  if (tab.isCenter) {
+                    return (
+                      <PlusButton
+                        key={tab.key}
+                        href={tab.href}
+                        isActive={isActive}
+                        bouncing={bouncing}
+                        icon={Icon}
+                      />
+                    );
+                  }
+
+                  return (
+                    <TabButton
                       key={tab.key}
                       href={tab.href}
                       isActive={isActive}
                       bouncing={bouncing}
                       icon={Icon}
+                      label={tab.label}
                     />
                   );
-                }
-
-                return (
-                  <TabButton
-                    key={tab.key}
-                    href={tab.href}
-                    isActive={isActive}
-                    bouncing={bouncing}
-                    icon={Icon}
-                    label={tab.label}
-                  />
-                );
-              })}
-            </div>
-          </>
-        )}
+                })}
+              </div>
+            </>
+          )}
+        </div>
+        {/***************************************************************************************************
+         * Bottom safe area.
+         ***************************************************************************************************/}
+        <div
+          className={'h-[env(safe-area-inset-bottom)]'}
+          style={{ backgroundColor: 'var(--background)' }}
+        />
       </div>
-      {/***************************************************************************************************
-       * Bottom safe area.
-       ***************************************************************************************************/}
-      <div className={'h-[env(safe-area-inset-bottom)]'} />
     </div>
   );
 }
