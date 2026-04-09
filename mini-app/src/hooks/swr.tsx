@@ -4,6 +4,8 @@ import { SWRConfig } from 'swr';
 
 import type { ReactNode } from 'react';
 
+const swrCache = new Map();
+
 /***************************************************************************************************
  * Renders the swrprovider UI and related interactions.
  *
@@ -20,7 +22,10 @@ export function SWRProvider({ children }: { children: React.ReactNode }): ReactN
   return (
     <SWRConfig
       value={{
+        provider: () => swrCache,
         revalidateOnFocus: false,
+        revalidateOnReconnect: false,
+        revalidateIfStale: false,
         dedupingInterval: 30000,
         errorRetryCount: 2,
       }}
