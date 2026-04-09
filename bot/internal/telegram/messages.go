@@ -489,7 +489,6 @@ func FormatReminderClient(loc *i18n.Localizer, booking *models.Booking) string {
 	})
 }
 
-
 /***************************************************************************************************
 * Recurring Schedule Messages.
 *
@@ -806,7 +805,6 @@ func FormatRecurringScheduleDeclinedClient(loc *i18n.Localizer, schedule *models
 	})
 }
 
-
 /***************************************************************************************************
 * FormatBookingCancelledForSpecialist creates a notification for specialist when client cancels.
 *
@@ -951,7 +949,6 @@ func FormatMoveDeclined(loc *i18n.Localizer, oldBooking *models.Booking) string 
 		"DateTime":   formatDateTime(loc, oldBooking.StartsAt),
 	})
 }
-
 
 /***************************************************************************************************
 * FormatSpecialistCreatedBookingClient creates a message for client when specialist books them.

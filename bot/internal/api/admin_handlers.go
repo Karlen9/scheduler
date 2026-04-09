@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"sort"
@@ -13,6 +14,15 @@ import (
 
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
+)
+
+/***************************************************************************************************
+* Groups related working-hours validation errors declared together for this module.
+***************************************************************************************************/
+var (
+	errInvalidDayOfWeek     = errors.New("invalid day of week")
+	errMissingTimeRange     = errors.New("missing time range")
+	errOverlappingTimeRange = errors.New("overlapping time range")
 )
 
 /***************************************************************************************************
@@ -30,7 +40,6 @@ import (
 func parseDate(dateStr string) (time.Time, error) {
 	return time.Parse("2006-01-02", dateStr)
 }
-
 
 /***************************************************************************************************
 * getDurationsFromServices derives unique durations from active session types.
@@ -115,7 +124,6 @@ func HandleAdminGetDurations(w http.ResponseWriter, r *http.Request) {
 	durations := getDurationsFromServices(specialist.ID)
 	writeJSON(w, durations)
 }
-
 
 /***************************************************************************************************
 * Specialist Settings.
@@ -204,7 +212,6 @@ func HandleUpdateSpecialistSettings(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, updated)
 }
-
 
 /***************************************************************************************************
 * Session Types.
@@ -466,7 +473,6 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-
 /***************************************************************************************************
 * Working Hours.
 ***************************************************************************************************/
@@ -481,6 +487,23 @@ type WorkingHoursRequest struct {
 ***************************************************************************************************/
 type BulkWorkingHoursRequest struct {
 	Hours []WorkingHoursRequest `json:"hours"`
+}
+
+/***************************************************************************************************
+* Defines the day working-hours interval request type used by the api layer.
+***************************************************************************************************/
+type DayWorkingHoursIntervalRequest struct {
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+}
+
+/***************************************************************************************************
+* Defines the day working-hours request type used by the api layer.
+***************************************************************************************************/
+type DayWorkingHoursRequest struct {
+	Hours     []DayWorkingHoursIntervalRequest `json:"hours"`
+	StartTime string                           `json:"startTime"`
+	EndTime   string                           `json:"endTime"`
 }
 
 /***************************************************************************************************
@@ -563,6 +586,102 @@ func loadAdminScheduleContext(specialistID string) (AdminScheduleContextResponse
 }
 
 /***************************************************************************************************
+* Validates a bulk working-hours request, including overlap checks per day.
+*
+* Parameters:
+* - hours: Hours used by the current operation.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func validateWorkingHoursRequests(hours []WorkingHoursRequest) error {
+	hoursByDay := make(map[int][]WorkingHoursRequest)
+	for _, wh := range hours {
+		if wh.DayOfWeek < 0 || wh.DayOfWeek > 6 {
+			return errInvalidDayOfWeek
+		}
+		if wh.StartTime == "" || wh.EndTime == "" {
+			return errMissingTimeRange
+		}
+		if err := validateTimeRange(wh.StartTime, wh.EndTime); err != nil {
+			return err
+		}
+
+		hoursByDay[wh.DayOfWeek] = append(hoursByDay[wh.DayOfWeek], wh)
+	}
+
+	for _, dayHours := range hoursByDay {
+		sort.Slice(dayHours, func(i, j int) bool {
+			startI, _ := timeToMinutes(dayHours[i].StartTime)
+			startJ, _ := timeToMinutes(dayHours[j].StartTime)
+			if startI != startJ {
+				return startI < startJ
+			}
+
+			endI, _ := timeToMinutes(dayHours[i].EndTime)
+			endJ, _ := timeToMinutes(dayHours[j].EndTime)
+			return endI < endJ
+		})
+
+		previousEnd, _ := timeToMinutes(dayHours[0].EndTime)
+		for i := 1; i < len(dayHours); i++ {
+			currentStart, _ := timeToMinutes(dayHours[i].StartTime)
+			if currentStart < previousEnd {
+				return errOverlappingTimeRange
+			}
+
+			previousEnd, _ = timeToMinutes(dayHours[i].EndTime)
+		}
+	}
+
+	return nil
+}
+
+/***************************************************************************************************
+* Normalizes a day-level working-hours request into the bulk request shape.
+*
+* Parameters:
+* - day: Day used by the current operation.
+* - req: Req used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as []WorkingHoursRequest together with an error
+*   when the operation cannot complete successfully.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func normalizeDayWorkingHoursRequest(day int, req DayWorkingHoursRequest) ([]WorkingHoursRequest, error) {
+	if len(req.Hours) == 0 {
+		if req.StartTime == "" || req.EndTime == "" {
+			return nil, errMissingTimeRange
+		}
+
+		return []WorkingHoursRequest{
+			{
+				DayOfWeek: day,
+				StartTime: req.StartTime,
+				EndTime:   req.EndTime,
+			},
+		}, nil
+	}
+
+	hours := make([]WorkingHoursRequest, 0, len(req.Hours))
+	for _, interval := range req.Hours {
+		hours = append(hours, WorkingHoursRequest{
+			DayOfWeek: day,
+			StartTime: interval.StartTime,
+			EndTime:   interval.EndTime,
+		})
+	}
+
+	return hours, nil
+}
+
+/***************************************************************************************************
 * Handles admin get schedule context.
 *
 * Parameters:
@@ -621,6 +740,18 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateWorkingHoursRequests(req.Hours); err != nil {
+		switch err {
+		case errInvalidDayOfWeek:
+			httpError(w, r, "Error.DayOfWeekRange", http.StatusBadRequest)
+		case errMissingTimeRange:
+			httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
+		default:
+			httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		}
+		return
+	}
+
 	/***************************************************************************************************
 	* Clear existing and set new.
 	***************************************************************************************************/
@@ -631,19 +762,6 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, wh := range req.Hours {
-		if wh.DayOfWeek < 0 || wh.DayOfWeek > 6 {
-			httpError(w, r, "Error.DayOfWeekRange", http.StatusBadRequest)
-			return
-		}
-		if wh.StartTime == "" || wh.EndTime == "" {
-			httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
-			return
-		}
-		if err := validateTimeRange(wh.StartTime, wh.EndTime); err != nil {
-			httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-			return
-		}
-
 		if err := db.UpsertWorkingHours(specialist.ID, wh.DayOfWeek, wh.StartTime, wh.EndTime); err != nil {
 			log.Printf("Error setting working hours: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -686,25 +804,43 @@ func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req WorkingHoursRequest
+	var req DayWorkingHoursRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
-	if req.StartTime == "" || req.EndTime == "" {
-		httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
-		return
-	}
-	if err := validateTimeRange(req.StartTime, req.EndTime); err != nil {
+	dayHours, err := normalizeDayWorkingHoursRequest(day, req)
+	if err != nil {
+		if err == errMissingTimeRange {
+			httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
+			return
+		}
 		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
-	if err := db.UpsertWorkingHours(specialist.ID, day, req.StartTime, req.EndTime); err != nil {
-		log.Printf("Error setting working hours: %v", err)
+	if err := validateWorkingHoursRequests(dayHours); err != nil {
+		if err == errMissingTimeRange {
+			httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
+			return
+		}
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.DeleteWorkingHours(specialist.ID, day); err != nil {
+		log.Printf("Error clearing working hours for day: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
+	}
+
+	for _, wh := range dayHours {
+		if err := db.UpsertWorkingHours(specialist.ID, wh.DayOfWeek, wh.StartTime, wh.EndTime); err != nil {
+			log.Printf("Error setting working hours: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
@@ -747,7 +883,6 @@ func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
-
 
 /***************************************************************************************************
 * Bookings Management.
@@ -906,7 +1041,6 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-
 /***************************************************************************************************
 * Reschedule Booking.
 ***************************************************************************************************/
@@ -1039,7 +1173,6 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, booking)
 }
-
 
 /***************************************************************************************************
 * NotifySpecialistBookingFunc is a callback to notify client about specialist-created booking.
@@ -1198,7 +1331,6 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-
 /***************************************************************************************************
 * Days Off.
 ***************************************************************************************************/
@@ -1336,7 +1468,6 @@ func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
-
 
 /***************************************************************************************************
 * Profile.
@@ -1497,7 +1628,6 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, resp)
 }
-
 
 /***************************************************************************************************
 * Admin Clients.
@@ -1706,7 +1836,6 @@ func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, clients)
 }
 
-
 /***************************************************************************************************
 * Admin Notification Preferences.
 ***************************************************************************************************/
@@ -1799,7 +1928,6 @@ func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 	}
 	writeJSON(w, resp)
 }
-
 
 /***************************************************************************************************
 * Super Admin.

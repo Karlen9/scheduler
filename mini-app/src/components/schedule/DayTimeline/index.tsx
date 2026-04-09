@@ -74,6 +74,24 @@ function parseTimeToMin(time: string): number {
 }
 
 /***************************************************************************************************
+ * Formats minutes from midnight as HH:MM.
+ *
+ * Parameters:
+ * - minutes: Minutes used by the current operation.
+ *
+ * Returns:
+ * - The computed value for the current operation as string.
+ *
+ * Side effects:
+ * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
+ ***************************************************************************************************/
+function formatMinuteTime(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+/***************************************************************************************************
  * Renders the day timeline UI and related interactions.
  *
  * Parameters:
@@ -157,7 +175,7 @@ export function DayTimeline({
    ***************************************************************************************************/
   const dayWH = useMemo(() => {
     if (!workingHours) {
-      return null;
+      return [];
     }
     /***************************************************************************************************
      * Defines the dow value used by the component layer.
@@ -166,7 +184,9 @@ export function DayTimeline({
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
     const dow = date.getDay(); // 0=Sun
-    return workingHours.find((wh) => wh.dayOfWeek === dow) ?? null;
+    return [...workingHours]
+      .filter((wh) => wh.dayOfWeek === dow)
+      .sort((a, b) => parseTimeToMin(a.startTime) - parseTimeToMin(b.startTime));
   }, [workingHours, date]);
 
   /***************************************************************************************************
@@ -176,26 +196,8 @@ export function DayTimeline({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const emptySlots = useMemo<TEmptySlot[]>(() => {
-    if (!dayWH) {
+    if (dayWH.length === 0) {
       return [];
-    }
-    /***************************************************************************************************
-     * Defines the wh start value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const whStart = parseTimeToMin(dayWH.startTime);
-    /***************************************************************************************************
-     * Defines the wh end value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const whEnd = parseTimeToMin(dayWH.endTime);
-
-    if (bookings.length === 0) {
-      return [{ startMin: whStart, endMin: whEnd }];
     }
 
     /***************************************************************************************************
@@ -228,37 +230,57 @@ export function DayTimeline({
       .sort((a, b) => a.start - b.start);
 
     const gaps: TEmptySlot[] = [];
-    /***************************************************************************************************
-     * Defines the cursor value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
-    let cursor = whStart;
 
-    for (const slot of occupied) {
+    for (const interval of dayWH) {
       /***************************************************************************************************
-       * Defines the slot start value used by the component layer.
+       * Defines the wh start value used by the component layer.
        *
        * Usage context:
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
-      const slotStart = Math.max(slot.start, whStart);
+      const whStart = parseTimeToMin(interval.startTime);
       /***************************************************************************************************
-       * Defines the slot end value used by the component layer.
+       * Defines the wh end value used by the component layer.
        *
        * Usage context:
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
-      const slotEnd = Math.min(slot.end, whEnd);
-      if (cursor < slotStart) {
-        gaps.push({ startMin: cursor, endMin: slotStart });
+      const whEnd = parseTimeToMin(interval.endTime);
+      /***************************************************************************************************
+       * Defines the cursor value used by the component layer.
+       *
+       * Usage context:
+       * - Reused by the component layer to keep shared values centralized.
+       ***************************************************************************************************/
+      let cursor = whStart;
+
+      for (const slot of occupied) {
+        if (slot.end <= whStart || slot.start >= whEnd) {
+          continue;
+        }
+        /***************************************************************************************************
+         * Defines the slot start value used by the component layer.
+         *
+         * Usage context:
+         * - Reused by the component layer to keep shared values centralized.
+         ***************************************************************************************************/
+        const slotStart = Math.max(slot.start, whStart);
+        /***************************************************************************************************
+         * Defines the slot end value used by the component layer.
+         *
+         * Usage context:
+         * - Reused by the component layer to keep shared values centralized.
+         ***************************************************************************************************/
+        const slotEnd = Math.min(slot.end, whEnd);
+        if (cursor < slotStart) {
+          gaps.push({ startMin: cursor, endMin: slotStart });
+        }
+        cursor = Math.max(cursor, slotEnd);
       }
-      cursor = Math.max(cursor, slotEnd);
-    }
 
-    if (cursor < whEnd) {
-      gaps.push({ startMin: cursor, endMin: whEnd });
+      if (cursor < whEnd) {
+        gaps.push({ startMin: cursor, endMin: whEnd });
+      }
     }
 
     return gaps;
@@ -283,9 +305,9 @@ export function DayTimeline({
      ***************************************************************************************************/
     let max = 0;
 
-    if (dayWH) {
-      min = Math.floor(parseTimeToMin(dayWH.startTime) / 60);
-      max = Math.ceil(parseTimeToMin(dayWH.endTime) / 60);
+    if (dayWH.length > 0) {
+      min = Math.floor(Math.min(...dayWH.map((wh) => parseTimeToMin(wh.startTime))) / 60);
+      max = Math.ceil(Math.max(...dayWH.map((wh) => parseTimeToMin(wh.endTime))) / 60);
     }
 
     for (const b of bookings) {
@@ -320,7 +342,7 @@ export function DayTimeline({
   /***************************************************************************************************
    * No working hours and no bookings -- show simple empty.
    ***************************************************************************************************/
-  if (bookings.length === 0 && !dayWH) {
+  if (bookings.length === 0 && dayWH.length === 0) {
     return (
       <div className={'text-muted-foreground py-12 text-center text-sm'}>{t('noBookings')}</div>
     );
@@ -329,30 +351,33 @@ export function DayTimeline({
   /***************************************************************************************************
    * No bookings but is a working day -- show empty slot without timeline grid.
    ***************************************************************************************************/
-  if (bookings.length === 0 && dayWH) {
+  if (bookings.length === 0 && dayWH.length > 0) {
     return (
       <div className={'space-y-2'}>
-        <button
-          onClick={() => onEmptySlotClick?.(date, dayWH.startTime)}
-          className={
-            'border-border w-full rounded-xl border border-dashed p-4 text-left transition-opacity active:opacity-80'
-          }
-        >
-          <div className={'flex items-center justify-between'}>
-            <div>
-              <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
-              <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
-              <p className={'text-muted-foreground mt-1 text-xs'}>
-                {dayWH.startTime}
-                {' – '}
-                {dayWH.endTime}
-              </p>
+        {emptySlots.map((slot) => (
+          <button
+            key={`empty-${slot.startMin}`}
+            onClick={() => onEmptySlotClick?.(date, formatMinuteTime(slot.startMin))}
+            className={
+              'border-border w-full rounded-xl border border-dashed p-4 text-left transition-opacity active:opacity-80'
+            }
+          >
+            <div className={'flex items-center justify-between'}>
+              <div>
+                <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
+                <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
+                <p className={'text-muted-foreground mt-1 text-xs'}>
+                  {formatMinuteTime(slot.startMin)}
+                  {' – '}
+                  {formatMinuteTime(slot.endMin)}
+                </p>
+              </div>
+              <div className={'bg-brand/10 flex h-8 w-8 items-center justify-center rounded-full'}>
+                <Plus className={'text-brand h-4 w-4'} />
+              </div>
             </div>
-            <div className={'bg-brand/10 flex h-8 w-8 items-center justify-center rounded-full'}>
-              <Plus className={'text-brand h-4 w-4'} />
-            </div>
-          </div>
-        </button>
+          </button>
+        ))}
       </div>
     );
   }

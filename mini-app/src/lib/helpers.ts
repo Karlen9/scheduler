@@ -179,49 +179,47 @@ export function generateTimeSlotsForDay(
   if (durationMinutes <= 0) {
     return [];
   }
-  /***************************************************************************************************
-   * Defines the wh value used by the shared utility layer.
-   *
-   * Usage context:
-   * - Reused by the shared utility layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const wh = workingHours.find((h) => h.dayOfWeek === day);
-  if (!wh) {
+  const dayWorkingHours = workingHours.filter((h) => h.dayOfWeek === day);
+  if (dayWorkingHours.length === 0) {
     return [];
   }
-  const [startH, startM] = wh.startTime.split(':').map(Number);
-  const [endH, endM] = wh.endTime.split(':').map(Number);
-  /***************************************************************************************************
-   * Defines the start min value used by the shared utility layer.
-   *
-   * Usage context:
-   * - Reused by the shared utility layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const startMin = startH * 60 + startM;
-  /***************************************************************************************************
-   * Defines the end min value used by the shared utility layer.
-   *
-   * Usage context:
-   * - Reused by the shared utility layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const endMin = endH * 60 + endM;
-  const slots: string[] = [];
-  for (let m = startMin; m + durationMinutes <= endMin; m += 30) {
+  const slots = new Set<string>();
+
+  for (const wh of dayWorkingHours) {
+    const [startH, startM] = wh.startTime.split(':').map(Number);
+    const [endH, endM] = wh.endTime.split(':').map(Number);
     /***************************************************************************************************
-     * Defines the h value used by the shared utility layer.
+     * Defines the start min value used by the shared utility layer.
      *
      * Usage context:
      * - Reused by the shared utility layer to keep shared values centralized.
      ***************************************************************************************************/
-    const h = Math.floor(m / 60);
+    const startMin = startH * 60 + startM;
     /***************************************************************************************************
-     * Defines the min value used by the shared utility layer.
+     * Defines the end min value used by the shared utility layer.
      *
      * Usage context:
      * - Reused by the shared utility layer to keep shared values centralized.
      ***************************************************************************************************/
-    const min = m % 60;
-    slots.push(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+    const endMin = endH * 60 + endM;
+    for (let m = startMin; m + durationMinutes <= endMin; m += 30) {
+      /***************************************************************************************************
+       * Defines the h value used by the shared utility layer.
+       *
+       * Usage context:
+       * - Reused by the shared utility layer to keep shared values centralized.
+       ***************************************************************************************************/
+      const h = Math.floor(m / 60);
+      /***************************************************************************************************
+       * Defines the min value used by the shared utility layer.
+       *
+       * Usage context:
+       * - Reused by the shared utility layer to keep shared values centralized.
+       ***************************************************************************************************/
+      const min = m % 60;
+      slots.add(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+    }
   }
-  return slots;
+
+  return Array.from(slots).sort();
 }

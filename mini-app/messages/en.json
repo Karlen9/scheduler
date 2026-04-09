@@ -321,7 +321,9 @@
     "title": "Schedule",
     "workingDays": "Working Days",
     "startTime": "Start time",
-    "endTime": "End time"
+    "endTime": "End time",
+    "addInterval": "Add interval",
+    "invalidIntervals": "Fix overlapping or invalid intervals before saving"
   },
   "AdminServices": {
     "title": "Services & Prices",

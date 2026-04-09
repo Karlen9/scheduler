@@ -14,6 +14,7 @@ import type {
   TSpecialist,
   TTimeSlot,
   TWorkingHours,
+  TWorkingInterval,
 } from './types';
 
 /***************************************************************************************************
@@ -814,12 +815,11 @@ export const api = {
      ***************************************************************************************************/
     async setWorkingHoursForDay(
       day: number,
-      startTime: string,
-      endTime: string,
+      intervals: TWorkingInterval[],
     ): Promise<TWorkingHours[]> {
       return fetchAPI<TWorkingHours[]>(`/api/admin/working-hours/${day}`, {
         method: 'PUT',
-        body: JSON.stringify({ startTime, endTime }),
+        body: JSON.stringify({ hours: intervals }),
       });
     },
 

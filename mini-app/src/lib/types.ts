@@ -46,6 +46,14 @@ export type TSessionType = {
 };
 
 /***************************************************************************************************
+ * Defines the working interval shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TWorkingInterval = {
+  startTime: string;
+  endTime: string;
+};
+
+/***************************************************************************************************
  * Defines the working hours shape shared by the shared utility layer.
  ***************************************************************************************************/
 export type TWorkingHours = {
@@ -270,8 +278,7 @@ export type TPreviewRecurringParams = {
  ***************************************************************************************************/
 export type TDaySchedule = {
   enabled: boolean;
-  startTime: string;
-  endTime: string;
+  intervals: TWorkingInterval[];
 };
 
 /***************************************************************************************************

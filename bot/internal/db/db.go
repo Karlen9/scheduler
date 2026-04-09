@@ -185,9 +185,9 @@ func migrateSQLite() error {
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
 			day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
 			start_time TEXT NOT NULL,
-			end_time TEXT NOT NULL,
-			UNIQUE(specialist_id, day_of_week)
+			end_time TEXT NOT NULL
 		)`,
+		`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`,
 		`CREATE TABLE IF NOT EXISTS bookings (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -309,6 +309,10 @@ func migrateSQLite() error {
 		DB.Exec(migration)
 	}
 
+	if err := migrateWorkingHoursMultiIntervalSQLite(); err != nil {
+		return err
+	}
+
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_bot_token_hash ON specialists(bot_token_hash)`)
 
 	migrateTrainerEnumSQLite()
@@ -401,9 +405,9 @@ func migratePostgres() error {
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
 			day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
 			start_time TEXT NOT NULL,
-			end_time TEXT NOT NULL,
-			UNIQUE(specialist_id, day_of_week)
+			end_time TEXT NOT NULL
 		)`,
+		`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`,
 		`CREATE TABLE IF NOT EXISTS bookings (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -523,11 +527,126 @@ func migratePostgres() error {
 		}
 	}
 
+	if err := migrateWorkingHoursMultiIntervalPostgres(); err != nil {
+		return err
+	}
+
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_bot_token_hash ON specialists(bot_token_hash)`)
 
 	migrateTrainerEnumPostgres()
 
 	return nil
+}
+
+/***************************************************************************************************
+* migrateWorkingHoursMultiIntervalSQLite rebuilds working_hours without the day-level UNIQUE
+* constraint so multiple intervals can be stored for a single day.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func migrateWorkingHoursMultiIntervalSQLite() error {
+	var createSQL sql.NullString
+	err := DB.QueryRow(`
+		SELECT sql
+		FROM sqlite_master
+		WHERE type = 'table' AND name = 'working_hours'
+	`).Scan(&createSQL)
+	if err == sql.ErrNoRows || !createSQL.Valid {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	normalizedSQL := strings.ToUpper(strings.Join(strings.Fields(createSQL.String), ""))
+	if !strings.Contains(normalizedSQL, "UNIQUE(SPECIALIST_ID,DAY_OF_WEEK)") {
+		_, err := DB.Exec(`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`)
+		return err
+	}
+
+	if _, err := DB.Exec(`PRAGMA foreign_keys=off`); err != nil {
+		return err
+	}
+
+	tx, err := DB.Begin()
+	if err != nil {
+		DB.Exec(`PRAGMA foreign_keys=on`)
+		return err
+	}
+
+	stmts := []string{
+		`CREATE TABLE working_hours_new (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 6),
+			start_time TEXT NOT NULL,
+			end_time TEXT NOT NULL
+		)`,
+		`INSERT INTO working_hours_new (id, specialist_id, day_of_week, start_time, end_time)
+		SELECT id, specialist_id, day_of_week, start_time, end_time
+		FROM working_hours`,
+		`DROP TABLE working_hours`,
+		`ALTER TABLE working_hours_new RENAME TO working_hours`,
+		`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`,
+	}
+
+	for _, stmt := range stmts {
+		if _, err := tx.Exec(stmt); err != nil {
+			tx.Rollback()
+			DB.Exec(`PRAGMA foreign_keys=on`)
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		DB.Exec(`PRAGMA foreign_keys=on`)
+		return err
+	}
+
+	_, err = DB.Exec(`PRAGMA foreign_keys=on`)
+	return err
+}
+
+/***************************************************************************************************
+* migrateWorkingHoursMultiIntervalPostgres drops the day-level UNIQUE constraint from working_hours
+* and replaces it with a non-unique lookup index.
+*
+* Parameters:
+* - None.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func migrateWorkingHoursMultiIntervalPostgres() error {
+	if _, err := DB.Exec(`
+		DO $$
+		DECLARE c_name TEXT;
+		BEGIN
+			SELECT conname INTO c_name
+			FROM pg_constraint
+			WHERE conrelid = 'working_hours'::regclass
+				AND contype = 'u'
+				AND replace(pg_get_constraintdef(oid), ' ', '') = 'UNIQUE(specialist_id,day_of_week)';
+			IF c_name IS NOT NULL THEN
+				EXECUTE 'ALTER TABLE working_hours DROP CONSTRAINT ' || quote_ident(c_name);
+			END IF;
+		END $$
+	`); err != nil {
+		return err
+	}
+
+	_, err := DB.Exec(`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`)
+	return err
 }
 
 /***************************************************************************************************

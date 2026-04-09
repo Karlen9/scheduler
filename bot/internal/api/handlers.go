@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -456,15 +457,14 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dayOfWeek := int(date.Weekday())
-	var workingHour *models.WorkingHours
+	var dayWorkingHours []models.WorkingHours
 	for _, wh := range hours {
 		if wh.DayOfWeek == dayOfWeek {
-			workingHour = &wh
-			break
+			dayWorkingHours = append(dayWorkingHours, wh)
 		}
 	}
 
-	if workingHour == nil {
+	if len(dayWorkingHours) == 0 {
 		setPrivateCache(w, 15, 30)
 		writeJSON(w, []models.TimeSlot{})
 		return
@@ -485,7 +485,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Generate time slots.
 	***************************************************************************************************/
-	slots := generateTimeSlots(date, workingHour, duration, bookings)
+	slots := generateTimeSlots(date, dayWorkingHours, duration, bookings)
 
 	setPrivateCache(w, 15, 30)
 	writeJSON(w, slots)
@@ -506,46 +506,54 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 * Side effects:
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
-func generateTimeSlots(date time.Time, wh *models.WorkingHours, duration int, bookings []models.Booking) []models.TimeSlot {
+func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration int, bookings []models.Booking) []models.TimeSlot {
 	var slots []models.TimeSlot
+	seen := make(map[string]bool)
 
-	startHour, startMinute, err := parseTime(wh.StartTime)
-	if err != nil {
-		return slots
-	}
-	endHour, endMinute, err := parseTime(wh.EndTime)
-	if err != nil {
-		return slots
-	}
-
-	startMinutes := startHour*60 + startMinute
-	endMinutes := endHour*60 + endMinute
-
-	for minutes := startMinutes; minutes+duration <= endMinutes; minutes += 30 {
-		hour := minutes / 60
-		min := minutes % 60
-		timeStr := formatTime(hour, min)
-
-		endMin := minutes + duration
-		endTimeStr := formatTime(endMin/60, endMin%60)
-
-		slotStart := time.Date(date.Year(), date.Month(), date.Day(), hour, min, 0, 0, time.UTC)
-		slotEnd := slotStart.Add(time.Duration(duration) * time.Minute)
-
-		available := true
-		for _, booking := range bookings {
-			if slotStart.Before(booking.EndsAt) && slotEnd.After(booking.StartsAt) {
-				available = false
-				break
-			}
+	for _, interval := range intervals {
+		startMinutes, err := timeToMinutes(interval.StartTime)
+		if err != nil {
+			continue
+		}
+		endMinutes, err := timeToMinutes(interval.EndTime)
+		if err != nil {
+			continue
 		}
 
-		slots = append(slots, models.TimeSlot{
-			Time:      timeStr,
-			EndTime:   endTimeStr,
-			Available: available,
-		})
+		for minutes := startMinutes; minutes+duration <= endMinutes; minutes += 30 {
+			hour := minutes / 60
+			min := minutes % 60
+			timeStr := formatTime(hour, min)
+			if seen[timeStr] {
+				continue
+			}
+
+			endMin := minutes + duration
+			endTimeStr := formatTime(endMin/60, endMin%60)
+
+			slotStart := time.Date(date.Year(), date.Month(), date.Day(), hour, min, 0, 0, time.UTC)
+			slotEnd := slotStart.Add(time.Duration(duration) * time.Minute)
+
+			available := true
+			for _, booking := range bookings {
+				if slotStart.Before(booking.EndsAt) && slotEnd.After(booking.StartsAt) {
+					available = false
+					break
+				}
+			}
+
+			seen[timeStr] = true
+			slots = append(slots, models.TimeSlot{
+				Time:      timeStr,
+				EndTime:   endTimeStr,
+				Available: available,
+			})
+		}
 	}
+
+	sort.Slice(slots, func(i, j int) bool {
+		return slots[i].Time < slots[j].Time
+	})
 
 	return slots
 }
@@ -689,7 +697,6 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, booking)
 }
-
 
 /***************************************************************************************************
 * Client Create Booking.
@@ -882,7 +889,6 @@ func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, result)
 }
 
-
 /***************************************************************************************************
 * Client Profile.
 ***************************************************************************************************/
@@ -1028,7 +1034,6 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, resp)
 }
-
 
 /***************************************************************************************************
 * Client Notification Preferences.
