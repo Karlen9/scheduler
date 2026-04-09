@@ -326,7 +326,7 @@ export default function ProfilePage(): ReactNode {
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              maxLength={500}
+              maxLength={1000}
               rows={4}
               placeholder={t('bioPlaceholder')}
               className={
@@ -335,7 +335,7 @@ export default function ProfilePage(): ReactNode {
             />
             <p className={'text-muted-foreground mt-1 text-right text-xs'}>
               {bio.length}
-              {'/500'}
+              {'/1000'}
             </p>
           </div>
 

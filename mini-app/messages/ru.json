@@ -157,8 +157,8 @@
   },
   "HomePage": {
     "specialistLoadError": "Не удалось загрузить информацию о специалисте",
-    "showMore": "Показать больше",
-    "showLess": "Скрыть",
+    "showAll": "Показать все",
+    "hide": "Скрыть",
     "messageButton": "Написать",
     "servicesButton": "Услуги и цены",
     "servicesTitle": "Услуги:",

@@ -1473,12 +1473,12 @@ func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 * Profile.
 ***************************************************************************************************/
 type UpdateProfileRequest struct {
-	Name              string   `json:"name,omitempty"`
-	TelegramHandle    string   `json:"telegramHandle,omitempty"`
-	Phone             string   `json:"phone,omitempty"`
-	Specialization    string   `json:"specialization,omitempty"`
-	Bio               string   `json:"bio,omitempty"`
-	PhotoURL          string   `json:"photoUrl,omitempty"`
+	Name              *string  `json:"name,omitempty"`
+	TelegramHandle    *string  `json:"telegramHandle,omitempty"`
+	Phone             *string  `json:"phone,omitempty"`
+	Specialization    *string  `json:"specialization,omitempty"`
+	Bio               *string  `json:"bio,omitempty"`
+	PhotoURL          *string  `json:"photoUrl,omitempty"`
 	LocationLatitude  *float64 `json:"locationLatitude,omitempty"`
 	LocationLongitude *float64 `json:"locationLongitude,omitempty"`
 	Language          string   `json:"language,omitempty"`
@@ -1550,7 +1550,11 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Name) > 50 || len(req.Specialization) > 100 || len(req.Bio) > 500 || len(req.Phone) > 20 || len(req.TelegramHandle) > 50 {
+	if (req.Name != nil && len(*req.Name) > 50) ||
+		(req.Specialization != nil && len(*req.Specialization) > 100) ||
+		(req.Bio != nil && len(*req.Bio) > 1000) ||
+		(req.Phone != nil && len(*req.Phone) > 20) ||
+		(req.TelegramHandle != nil && len(*req.TelegramHandle) > 50) {
 		httpError(w, r, "Error.FieldTooLong", http.StatusBadRequest)
 		return
 	}
@@ -1558,33 +1562,37 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Update name if provided.
 	***************************************************************************************************/
-	if req.Name != "" {
-		specialist.Name = req.Name
-		db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs)
+	if req.Name != nil {
+		specialist.Name = *req.Name
+		if _, err := db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs); err != nil {
+			log.Printf("Error updating specialist name: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	/***************************************************************************************************
 	* Update profile fields.
 	***************************************************************************************************/
 	telegramHandle := specialist.TelegramHandle
-	if req.TelegramHandle != "" {
-		telegramHandle = req.TelegramHandle
+	if req.TelegramHandle != nil {
+		telegramHandle = *req.TelegramHandle
 	}
 	phone := specialist.Phone
-	if req.Phone != "" {
-		phone = req.Phone
+	if req.Phone != nil {
+		phone = *req.Phone
 	}
 	specialization := specialist.Specialization
-	if req.Specialization != "" {
-		specialization = req.Specialization
+	if req.Specialization != nil {
+		specialization = *req.Specialization
 	}
 	bio := specialist.Bio
-	if req.Bio != "" {
-		bio = req.Bio
+	if req.Bio != nil {
+		bio = *req.Bio
 	}
 	photoURL := specialist.PhotoURL
-	if req.PhotoURL != "" {
-		photoURL = req.PhotoURL
+	if req.PhotoURL != nil {
+		photoURL = *req.PhotoURL
 	}
 
 	locationLatitude := specialist.LocationLatitude

@@ -3,6 +3,7 @@ package api_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -412,6 +413,157 @@ func TestUpdateClientProfile(t *testing.T) {
 	}
 	if dur, _ := profile["preferredDuration"].(float64); dur != 90 {
 		t.Fatalf("expected preferredDuration 90, got %v", dur)
+	}
+}
+
+/***************************************************************************************************
+* Implements the test update admin profile logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestUpdateAdminProfile(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"name":              "Admin Updated",
+		"telegramHandle":    "@updated_admin",
+		"phone":             "+79990001122",
+		"specialization":    "Massage",
+		"bio":               "Updated bio",
+		"locationLatitude":  55.7558,
+		"locationLongitude": 37.6176,
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/profile", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+
+	if name, _ := profile["name"].(string); name != "Admin Updated" {
+		t.Fatalf("expected name 'Admin Updated', got %q", name)
+	}
+	if handle, _ := profile["telegramHandle"].(string); handle != "@updated_admin" {
+		t.Fatalf("expected telegramHandle '@updated_admin', got %q", handle)
+	}
+	if phone, _ := profile["phone"].(string); phone != "+79990001122" {
+		t.Fatalf("expected phone '+79990001122', got %q", phone)
+	}
+}
+
+/***************************************************************************************************
+* Implements the test clear admin profile fields logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestUpdateAdminProfileAllowsClearingFields(t *testing.T) {
+	initialBody := jsonBody(map[string]interface{}{
+		"telegramHandle": "@to_clear",
+		"phone":          "+70000000000",
+		"specialization": "Yoga",
+		"bio":            "To be cleared",
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/profile", initialBody)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected initial update 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	clearBody := jsonBody(map[string]interface{}{
+		"telegramHandle": "",
+		"phone":          "",
+		"specialization": "",
+		"bio":            "",
+	})
+
+	w = doAdminRequest(t, http.MethodPut, "/api/admin/profile", clearBody)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected clear update 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+
+	if handle, ok := profile["telegramHandle"]; ok && handle != "" {
+		t.Fatalf("expected empty telegramHandle after clearing, got %#v", handle)
+	}
+	if phone, ok := profile["phone"]; ok && phone != "" {
+		t.Fatalf("expected empty phone after clearing, got %#v", phone)
+	}
+	if specialization, ok := profile["specialization"]; ok && specialization != "" {
+		t.Fatalf("expected empty specialization after clearing, got %#v", specialization)
+	}
+	if bio, ok := profile["bio"]; ok && bio != "" {
+		t.Fatalf("expected empty bio after clearing, got %#v", bio)
+	}
+}
+
+/***************************************************************************************************
+* Implements the test update admin profile accepts long bio logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestUpdateAdminProfileAcceptsBioUpTo1000Chars(t *testing.T) {
+	longBio := strings.Repeat("a", 1000)
+	body := jsonBody(map[string]interface{}{
+		"bio": longBio,
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/profile", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+
+	if bio, _ := profile["bio"].(string); bio != longBio {
+		t.Fatalf("expected bio length %d, got %d", len(longBio), len(bio))
+	}
+}
+
+/***************************************************************************************************
+* Implements the test update admin profile rejects too long bio logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestUpdateAdminProfileRejectsBioOver1000Chars(t *testing.T) {
+	longBio := strings.Repeat("b", 1001)
+	body := jsonBody(map[string]interface{}{
+		"bio": longBio,
+	})
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/profile", body)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
 	}
 }
 
