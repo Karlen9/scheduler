@@ -4,7 +4,7 @@ import { Clock, Dumbbell, MessageCircle, Phone, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useSessionTypes, useSpecialist } from '@/hooks/queries';
 import { getPhotoUrl } from '@/lib/api';
@@ -13,6 +13,12 @@ import { formatDuration } from '@/lib/helpers';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
+
+const OWNER_CACHE_KEY_PREFIX = 'specialist-owner:';
+
+function getOwnerCacheKey(): string {
+  return `${OWNER_CACHE_KEY_PREFIX}${getSpecialistId() ?? 'default'}`;
+}
 
 /***************************************************************************************************
  * Renders the home page UI and related interactions.
@@ -59,22 +65,38 @@ export default function HomePage(): ReactNode {
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const [bioExpanded, setBioExpanded] = useState(false);
   const [heroError, setHeroError] = useState(false);
+  const [ownerRedirecting, setOwnerRedirecting] = useState(false);
+  const adminHref = useMemo(() => {
+    const specialistId = getSpecialistId();
+    return `/admin${specialistId ? `?specialist=${specialistId}` : ''}`;
+  }, []);
+
+  useEffect(() => {
+    router.prefetch('/admin');
+
+    const cachedOwner = sessionStorage.getItem(getOwnerCacheKey());
+    if (cachedOwner === 'true') {
+      setOwnerRedirecting(true);
+      router.replace(adminHref);
+    }
+  }, [adminHref, router]);
 
   /***************************************************************************************************
    * Redirect specialist to admin panel.
    ***************************************************************************************************/
   useEffect(() => {
-    if (specialist?.isOwner) {
-      /***************************************************************************************************
-       * Defines the specialist id value used by the page layer.
-       *
-       * Usage context:
-       * - Reused by the page layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const specialistId = getSpecialistId();
-      router.replace(`/admin${specialistId ? `?specialist=${specialistId}` : ''}`);
+    if (!specialist) {
+      return;
     }
-  }, [specialist, router]);
+
+    sessionStorage.setItem(getOwnerCacheKey(), specialist.isOwner ? 'true' : 'false');
+
+    if (specialist.isOwner) {
+      setOwnerRedirecting(true);
+      router.prefetch('/admin');
+      router.replace(adminHref);
+    }
+  }, [adminHref, router, specialist]);
 
   /***************************************************************************************************
    * Defines the is loading value used by the page layer.
@@ -135,7 +157,7 @@ export default function HomePage(): ReactNode {
     }
   };
 
-  if (isLoading) {
+  if (ownerRedirecting || isLoading) {
     return (
       <div className={'animate-pulse'}>
         {/***************************************************************************************************

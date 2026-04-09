@@ -3,7 +3,7 @@
 import { ClipboardList, Plus, User } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { getTelegramWebApp } from '@/lib/telegram';
 
@@ -67,17 +67,20 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const adminTabs = [
-    {
-      key: 'home',
-      label: tn('bookings'),
-      icon: ClipboardList,
-      href: '/admin',
-      matchPaths: ['/admin/recurring'],
-    },
-    { key: 'book', label: '', icon: Plus, href: '/admin/book', isCenter: true },
-    { key: 'profile', label: tn('profile'), icon: User, href: '/admin/settings' },
-  ];
+  const adminTabs = useMemo(
+    () => [
+      {
+        key: 'home',
+        label: tn('bookings'),
+        icon: ClipboardList,
+        href: '/admin',
+        matchPaths: ['/admin/recurring'],
+      },
+      { key: 'book', label: '', icon: Plus, href: '/admin/book', isCenter: true },
+      { key: 'profile', label: tn('profile'), icon: User, href: '/admin/settings' },
+    ],
+    [tn],
+  );
 
   useEffect(() => {
     /***************************************************************************************************

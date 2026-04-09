@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import type { TTimeSlotGridProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
@@ -13,7 +15,7 @@ import type { ReactNode } from 'react';
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function TimeSlotGrid({ slots, selected, onSelect }: TTimeSlotGridProps): ReactNode {
+function TimeSlotGridComponent({ slots, selected, onSelect }: TTimeSlotGridProps): ReactNode {
   return (
     <div className={'grid grid-cols-4 gap-2'}>
       {slots.map((slot) => (
@@ -35,3 +37,5 @@ export function TimeSlotGrid({ slots, selected, onSelect }: TTimeSlotGridProps):
     </div>
   );
 }
+
+export const TimeSlotGrid = memo(TimeSlotGridComponent);

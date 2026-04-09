@@ -2,6 +2,7 @@
 
 import { Check, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { memo } from 'react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 
@@ -48,7 +49,7 @@ const dayShortKeysJS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function PendingBookingCard({
+function PendingBookingCardComponent({
   booking,
   onAccept,
   onReject,
@@ -204,3 +205,5 @@ export function PendingBookingCard({
     </div>
   );
 }
+
+export const PendingBookingCard = memo(PendingBookingCardComponent);

@@ -2,6 +2,7 @@
 
 import { Calendar, Clock, Dumbbell } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { memo } from 'react';
 
 import { StatusBadge } from '@/components/StatusBadge';
 
@@ -41,7 +42,7 @@ const monthGenKeys = [
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function BookingCard({
+function BookingCardComponent({
   booking,
   onCancel,
   onConfirm,
@@ -211,3 +212,5 @@ export function BookingCard({
     </div>
   );
 }
+
+export const BookingCard = memo(BookingCardComponent);

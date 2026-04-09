@@ -262,7 +262,7 @@ export function useAdminBookings(opts?: { refreshInterval?: number }): {
   const { data, isLoading, error, mutate } = useSWR<TBooking[]>(
     CACHE_KEYS.adminBookings,
     async () => api.admin.getBookings(),
-    { refreshInterval: opts?.refreshInterval },
+    { refreshInterval: opts?.refreshInterval, refreshWhenHidden: false, revalidateOnFocus: false },
   );
   return { data: data ?? [], isLoading, error, mutate };
 }

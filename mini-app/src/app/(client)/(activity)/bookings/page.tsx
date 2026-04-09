@@ -2,7 +2,7 @@
 
 import { CalendarX, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BookingCard } from '@/components/BookingCard';
@@ -50,7 +50,7 @@ export default function BookingsPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
-  const { data: bookings, isLoading, error } = useBookings();
+  const { data: bookings, isLoading, error, mutate } = useBookings();
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
@@ -61,24 +61,34 @@ export default function BookingsPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const activeBookings = bookings
-    .filter(
-      (b) =>
-        b.status === 'pending' ||
-        b.status === 'confirmed' ||
-        b.status === 'cancel_requested' ||
-        b.status === 'reschedule_pending',
-    )
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  const activeBookings = useMemo(
+    () =>
+      bookings
+        .filter(
+          (b) =>
+            b.status === 'pending' ||
+            b.status === 'confirmed' ||
+            b.status === 'cancel_requested' ||
+            b.status === 'reschedule_pending',
+        )
+        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
+    [bookings],
+  );
   /***************************************************************************************************
    * Defines the past bookings value used by the page layer.
    *
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const pastBookings = bookings
-    .filter((b) => b.status === 'completed' || b.status === 'cancelled' || b.status === 'rejected')
-    .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+  const pastBookings = useMemo(
+    () =>
+      bookings
+        .filter(
+          (b) => b.status === 'completed' || b.status === 'cancelled' || b.status === 'rejected',
+        )
+        .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()),
+    [bookings],
+  );
 
   /***************************************************************************************************
    * Handles cancel booking.
@@ -86,12 +96,38 @@ export default function BookingsPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleCancelBooking = async (): Promise<void> => {
+  const handleCancelBooking = useCallback(async (): Promise<void> => {
     if (!cancelBookingTarget) {
       return;
     }
+
+    const bookingId = cancelBookingTarget.id;
+    const reason = cancelReason || t('cancelDefaultReason');
+
     try {
-      await api.cancelBooking(cancelBookingTarget.id, cancelReason || t('cancelDefaultReason'));
+      await mutate(
+        async (currentBookings) => {
+          await api.cancelBooking(bookingId, reason);
+
+          return (currentBookings ?? []).map((booking) =>
+            booking.id === bookingId
+              ? { ...booking, status: 'cancelled', cancelReason: reason }
+              : booking,
+          );
+        },
+        {
+          optimisticData: (currentBookings) =>
+            (currentBookings ?? []).map((booking) =>
+              booking.id === bookingId
+                ? { ...booking, status: 'cancelled', cancelReason: reason }
+                : booking,
+            ),
+          rollbackOnError: true,
+          populateCache: true,
+          revalidate: false,
+        },
+      );
+
       toast.success(ts('bookingCancelled'));
       setCancelBookingTarget(null);
       setCancelReason('');
@@ -99,7 +135,7 @@ export default function BookingsPage(): ReactNode {
     } catch {
       toast.error(te('bookingCancelFailed'));
     }
-  };
+  }, [cancelBookingTarget, cancelReason, mutate, t, te, ts]);
 
   /***************************************************************************************************
    * Handles confirm.
@@ -107,15 +143,18 @@ export default function BookingsPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleConfirm = async (booking: TBooking): Promise<void> => {
-    try {
-      await api.confirmBooking(booking.id);
-      toast.success(ts('bookingConfirmed'));
-      invalidateBookings();
-    } catch {
-      toast.error(te('bookingConfirmFailed'));
-    }
-  };
+  const handleConfirm = useCallback(
+    async (booking: TBooking): Promise<void> => {
+      try {
+        await api.confirmBooking(booking.id);
+        toast.success(ts('bookingConfirmed'));
+        invalidateBookings();
+      } catch {
+        toast.error(te('bookingConfirmFailed'));
+      }
+    },
+    [te, ts],
+  );
 
   /***************************************************************************************************
    * Handles decline.
@@ -123,15 +162,18 @@ export default function BookingsPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleDecline = async (booking: TBooking): Promise<void> => {
-    try {
-      await api.declineBooking(booking.id);
-      toast.success(ts('bookingDeclined'));
-      invalidateBookings();
-    } catch {
-      toast.error(te('bookingDeclineFailed'));
-    }
-  };
+  const handleDecline = useCallback(
+    async (booking: TBooking): Promise<void> => {
+      try {
+        await api.declineBooking(booking.id);
+        toast.success(ts('bookingDeclined'));
+        invalidateBookings();
+      } catch {
+        toast.error(te('bookingDeclineFailed'));
+      }
+    },
+    [te, ts],
+  );
 
   if (isLoading) {
     return (

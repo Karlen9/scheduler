@@ -1,5 +1,7 @@
 'use client';
 
+import { memo, useCallback, useMemo } from 'react';
+
 import { MonthGrid } from '@/components/Calendar';
 
 import type { TMonthCalendarProps } from '@/lib/types';
@@ -33,7 +35,7 @@ function toISODate(d: Date): string {
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function MonthCalendar({
+function MonthCalendarComponent({
   selectedDate,
   onSelectDate,
   bookingDates = [],
@@ -45,7 +47,7 @@ export function MonthCalendar({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const daysOffISO = daysOff.map(toISODate);
+  const daysOffISO = useMemo(() => daysOff.map(toISODate), [daysOff]);
 
   /***************************************************************************************************
    * Defines the dot dates set value used by the component layer.
@@ -53,7 +55,7 @@ export function MonthCalendar({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const dotDatesSet = new Set(bookingDates.map(toISODate));
+  const dotDatesSet = useMemo(() => new Set(bookingDates.map(toISODate)), [bookingDates]);
 
   /***************************************************************************************************
    * Defines the prev month value used by the component layer.
@@ -61,9 +63,9 @@ export function MonthCalendar({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const prevMonth = (): void => {
+  const prevMonth = useCallback((): void => {
     onSelectDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1));
-  };
+  }, [onSelectDate, selectedDate]);
 
   /***************************************************************************************************
    * Defines the next month value used by the component layer.
@@ -71,9 +73,9 @@ export function MonthCalendar({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const nextMonth = (): void => {
+  const nextMonth = useCallback((): void => {
     onSelectDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1));
-  };
+  }, [onSelectDate, selectedDate]);
 
   /***************************************************************************************************
    * Defines the go to today value used by the component layer.
@@ -81,9 +83,9 @@ export function MonthCalendar({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const goToToday = (): void => {
+  const goToToday = useCallback((): void => {
     onSelectDate(new Date());
-  };
+  }, [onSelectDate]);
 
   return (
     <MonthGrid
@@ -100,3 +102,5 @@ export function MonthCalendar({
     />
   );
 }
+
+export const MonthCalendar = memo(MonthCalendarComponent);

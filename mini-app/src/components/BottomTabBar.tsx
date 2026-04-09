@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 
 import type { TBottomTabBarProps } from '@/lib/types';
 import type { LucideIcon } from 'lucide-react';
@@ -34,6 +34,7 @@ function PlusButton({
   return (
     <Link
       href={href}
+      prefetch
       className={'relative z-10 mx-5 flex items-center justify-center active:scale-95'}
       style={{ width: '56px' }}
     >
@@ -83,6 +84,7 @@ function TabButton({
   return (
     <Link
       href={href}
+      prefetch
       className={`z-10 flex flex-col items-center justify-center gap-1 rounded-full transition-colors active:scale-90 ${
         isActive ? activeColor : 'text-muted-foreground'
       }`}
@@ -106,7 +108,7 @@ function TabButton({
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
+function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
   /***************************************************************************************************
    * Defines the pathname value used by the component layer.
    *
@@ -410,3 +412,5 @@ export function BottomTabBar({ tabs, subTabs }: TBottomTabBarProps): ReactNode {
     </div>
   );
 }
+
+export const BottomTabBar = memo(BottomTabBarComponent);
