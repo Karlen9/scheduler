@@ -1,5 +1,5 @@
 import { dedupeRequest } from './request-cache';
-import { getInitData, getSpecialistId } from './telegram';
+import { getSpecialistId, waitForInitData } from './telegram';
 
 import type {
   TAdminScheduleContext,
@@ -44,7 +44,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
    * Usage context:
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
-  const initData = getInitData();
+  const initData = await waitForInitData();
   /***************************************************************************************************
    * Defines the specialist id value used by the shared utility layer.
    *

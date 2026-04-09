@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 
 vi.mock('../telegram', () => ({
-  getInitData: () => 'mock-init-data',
   getSpecialistId: () => 'mock-specialist-id',
+  waitForInitData: async () => Promise.resolve('mock-init-data'),
 }));
 
 /***************************************************************************************************

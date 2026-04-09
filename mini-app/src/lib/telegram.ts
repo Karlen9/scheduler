@@ -87,26 +87,6 @@ export function setThemePreference(pref: TThemePreference): void {
   localStorage.setItem(THEME_STORAGE_KEY, pref);
 }
 
-/***************************************************************************************************
- * Telegram CSS variable names that the SDK sets as inline styles on <html>.
- *
- * Usage context:
- * - Reused by the shared utility layer to keep shared values centralized.
- ***************************************************************************************************/
-const tgVarNames = [
-  '--tg-theme-bg-color',
-  '--tg-theme-text-color',
-  '--tg-theme-hint-color',
-  '--tg-theme-link-color',
-  '--tg-theme-button-color',
-  '--tg-theme-button-text-color',
-  '--tg-theme-secondary-bg-color',
-  '--tg-theme-header-bg-color',
-  '--tg-theme-section-bg-color',
-  '--tg-theme-subtitle-text-color',
-  '--tg-theme-destructive-text-color',
-] as const;
-
 const darkThemeVars: Record<string, string> = {
   '--tg-theme-bg-color': '#1e1e1e',
   '--tg-theme-text-color': '#ffffff',
@@ -135,46 +115,6 @@ const lightThemeVars: Record<string, string> = {
   '--tg-theme-destructive-text-color': '#e53935',
 };
 
-let savedTgVars: Record<string, string> | null = null;
-
-/***************************************************************************************************
- * Implements the save telegram vars logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May read browser state, call shared helpers, or perform network requests.
- ***************************************************************************************************/
-function saveTelegramVars(): void {
-  if (savedTgVars) {
-    return;
-  }
-  /***************************************************************************************************
-   * Defines the root value used by the shared utility layer.
-   *
-   * Usage context:
-   * - Reused by the shared utility layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const root = document.documentElement;
-  savedTgVars = {};
-  for (const name of tgVarNames) {
-    /***************************************************************************************************
-     * Defines the val value used by the shared utility layer.
-     *
-     * Usage context:
-     * - Reused by the shared utility layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const val = root.style.getPropertyValue(name);
-    if (val) {
-      savedTgVars[name] = val;
-    }
-  }
-}
-
 /***************************************************************************************************
  * Sets inline theme vars.
  *
@@ -201,35 +141,40 @@ function setInlineThemeVars(vars: Record<string, string>): void {
 }
 
 /***************************************************************************************************
- * Implements the restore telegram vars logic used by this module.
+ * Returns the current Telegram theme variables mapped to CSS custom properties.
  *
  * Parameters:
- * - None.
+ * - webApp: Telegram WebApp instance used by the current operation.
  *
- * Returns:
- * - The computed value for the current operation as void.
+ * Returns the current theme variables as Record<string, string>.
  *
  * Side effects:
- * - May read browser state, call shared helpers, or perform network requests.
+ * - None.
  ***************************************************************************************************/
-function restoreTelegramVars(): void {
-  if (!savedTgVars) {
-    return;
+function getTelegramThemeVars(webApp: TTelegramWebApp | null): Record<string, string> {
+  const fallbackVars = webApp?.colorScheme === 'dark' ? darkThemeVars : lightThemeVars;
+
+  if (!webApp) {
+    return fallbackVars;
   }
-  /***************************************************************************************************
-   * Defines the root value used by the shared utility layer.
-   *
-   * Usage context:
-   * - Reused by the shared utility layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const root = document.documentElement;
-  for (const name of tgVarNames) {
-    if (savedTgVars[name]) {
-      root.style.setProperty(name, savedTgVars[name]);
-    } else {
-      root.style.removeProperty(name);
-    }
-  }
+
+  const { themeParams } = webApp;
+
+  return {
+    '--tg-theme-bg-color': themeParams.bg_color ?? fallbackVars['--tg-theme-bg-color'],
+    '--tg-theme-text-color': themeParams.text_color ?? fallbackVars['--tg-theme-text-color'],
+    '--tg-theme-hint-color': themeParams.hint_color ?? fallbackVars['--tg-theme-hint-color'],
+    '--tg-theme-link-color': themeParams.link_color ?? fallbackVars['--tg-theme-link-color'],
+    '--tg-theme-button-color': themeParams.button_color ?? fallbackVars['--tg-theme-button-color'],
+    '--tg-theme-button-text-color':
+      themeParams.button_text_color ?? fallbackVars['--tg-theme-button-text-color'],
+    '--tg-theme-secondary-bg-color':
+      themeParams.secondary_bg_color ?? fallbackVars['--tg-theme-secondary-bg-color'],
+    '--tg-theme-header-bg-color': fallbackVars['--tg-theme-header-bg-color'],
+    '--tg-theme-section-bg-color': fallbackVars['--tg-theme-section-bg-color'],
+    '--tg-theme-subtitle-text-color': fallbackVars['--tg-theme-subtitle-text-color'],
+    '--tg-theme-destructive-text-color': fallbackVars['--tg-theme-destructive-text-color'],
+  };
 }
 
 /***************************************************************************************************
@@ -249,8 +194,6 @@ export function applyTheme(): void {
     return;
   }
 
-  saveTelegramVars();
-
   /***************************************************************************************************
    * Defines the pref value used by the shared utility layer.
    *
@@ -258,6 +201,7 @@ export function applyTheme(): void {
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
   const pref = getThemePreference();
+  const webApp = getTelegramWebApp();
   let isDark: boolean;
 
   if (pref === 'light') {
@@ -267,15 +211,8 @@ export function applyTheme(): void {
     isDark = true;
     setInlineThemeVars(darkThemeVars);
   } else {
-    restoreTelegramVars();
-    /***************************************************************************************************
-     * Defines the web app value used by the shared utility layer.
-     *
-     * Usage context:
-     * - Reused by the shared utility layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const webApp = getTelegramWebApp();
     isDark = webApp ? webApp.colorScheme === 'dark' : false;
+    setInlineThemeVars(getTelegramThemeVars(webApp));
   }
 
   if (isDark) {
@@ -404,6 +341,40 @@ export function getInitData(): string {
    ***************************************************************************************************/
   const webApp = getTelegramWebApp();
   return webApp?.initData ?? '';
+}
+
+/***************************************************************************************************
+ * Waits briefly for Telegram WebApp initData to become available on first load.
+ *
+ * Parameters:
+ * - timeoutMs: Maximum time to wait before giving up.
+ *
+ * Returns:
+ * - A promise that resolves with initData if it appears, otherwise an empty string.
+ *
+ * Side effects:
+ * - May observe browser state while the Telegram script finishes bootstrapping.
+ ***************************************************************************************************/
+export async function waitForInitData(timeoutMs = 1500): Promise<string> {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const initData = getInitData();
+  if (initData) {
+    return initData;
+  }
+
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+    const nextInitData = getInitData();
+    if (nextInitData) {
+      return nextInitData;
+    }
+  }
+
+  return getInitData();
 }
 
 /***************************************************************************************************
