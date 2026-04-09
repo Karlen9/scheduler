@@ -98,6 +98,10 @@ export default function HomePage(): ReactNode {
     }
   }, [adminHref, router, specialist]);
 
+  useEffect(() => {
+    setBioExpanded(false);
+  }, [specialist?.id]);
+
   /***************************************************************************************************
    * Defines the is loading value used by the page layer.
    *
@@ -292,7 +296,7 @@ export default function HomePage(): ReactNode {
                   onClick={() => setBioExpanded(!bioExpanded)}
                   className={'text-brand mt-1 text-sm font-medium'}
                 >
-                  {bioExpanded ? t('showLess') : t('showMore')}
+                  {bioExpanded ? t('hide') : t('showAll')}
                 </button>
               )}
             </div>

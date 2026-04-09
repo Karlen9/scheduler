@@ -157,8 +157,8 @@
   },
   "HomePage": {
     "specialistLoadError": "Failed to load specialist information",
-    "showMore": "Show more",
-    "showLess": "Show less",
+    "showAll": "Show all",
+    "hide": "Hide",
     "messageButton": "Message",
     "servicesButton": "Services & Prices",
     "servicesTitle": "Services:",
