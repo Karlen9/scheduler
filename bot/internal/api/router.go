@@ -103,6 +103,7 @@ func NewRouter() http.Handler {
 		r.Get("/days-off", HandleGetPublicDaysOff)
 		r.Get("/durations", HandleGetDurations)
 		r.Get("/bookings", HandleGetBookings)
+		r.Get("/stats", HandleGetClientStats)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
 		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
@@ -173,6 +174,7 @@ func NewRouter() http.Handler {
 			* Bookings management.
 			***************************************************************************************************/
 			r.Get("/bookings", HandleAdminGetBookings)
+			r.Get("/stats", HandleGetAdminStats)
 			r.Post("/bookings", HandleAdminCreateBooking)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
 			r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
