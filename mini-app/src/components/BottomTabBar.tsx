@@ -73,6 +73,8 @@ function TabButton({
   icon: Icon,
   label,
   activeColor = 'text-brand',
+  width = 96,
+  tabKey,
 }: {
   href: string;
   isActive: boolean;
@@ -80,15 +82,18 @@ function TabButton({
   icon: LucideIcon;
   label?: string;
   activeColor?: string;
+  width?: number;
+  tabKey?: string;
 }): ReactNode {
   return (
     <Link
       href={href}
       prefetch
+      data-tab-key={tabKey}
       className={`z-10 flex flex-col items-center justify-center gap-1 rounded-full transition-colors active:scale-90 ${
         isActive ? activeColor : 'text-muted-foreground'
       }`}
-      style={{ width: '96px', height: '48px' }}
+      style={{ width: `${width}px`, height: '48px' }}
     >
       <Icon className={`h-5 w-5 ${bouncing ? 'tab-bounce' : ''}`} />
       {label && <span className={'text-[11px] font-medium'}>{label}</span>}
@@ -211,22 +216,13 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const subTabsRef = useRef<HTMLDivElement>(null);
-  const [sideTabW, setSideTabW] = useState(0);
   const [subTabW, setSubTabW] = useState(0);
+  const [activeSideStyle, setActiveSideStyle] = useState<{ left: number; width: number } | null>(
+    null,
+  );
+  const sideTabW = sideTabs.length >= 4 ? 72 : 96;
 
   useEffect(() => {
-    if (tabsRef.current) {
-      /***************************************************************************************************
-       * Defines the first value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const first = tabsRef.current.firstElementChild as HTMLElement | null;
-      if (first) {
-        setSideTabW(first.offsetWidth);
-      }
-    }
     if (subTabsRef.current) {
       /***************************************************************************************************
        * Defines the first value used by the component layer.
@@ -240,6 +236,30 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
       }
     }
   }, [subTabsRef]);
+
+  useEffect(() => {
+    if (isCenterActive || activeSideIndex < 0 || !tabsRef.current) {
+      setActiveSideStyle(null);
+      return;
+    }
+
+    const activeKey = tabs[currentIndex]?.key;
+    if (!activeKey) {
+      setActiveSideStyle(null);
+      return;
+    }
+
+    const activeTab = tabsRef.current.querySelector<HTMLElement>(`[data-tab-key="${activeKey}"]`);
+    if (!activeTab) {
+      setActiveSideStyle(null);
+      return;
+    }
+
+    setActiveSideStyle({
+      left: activeTab.offsetLeft,
+      width: activeTab.offsetWidth,
+    });
+  }, [activeSideIndex, currentIndex, isCenterActive, pathname, tabs]);
 
   /***************************************************************************************************
    * Trigger bounce animation on route change.
@@ -336,12 +356,12 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
               {/***************************************************************************************************
                * Active indicator for side tabs.
                ***************************************************************************************************/}
-              {!isCenterActive && hasCenterButton && activeSideIndex >= 0 && sideTabW > 0 && (
+              {!isCenterActive && hasCenterButton && activeSideStyle && (
                 <div
                   className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
                   style={{
-                    width: `${sideTabW}px`,
-                    left: activeSideIndex === 0 ? '6px' : `calc(100% - 6px - ${sideTabW}px)`,
+                    width: `${activeSideStyle.width}px`,
+                    left: `${activeSideStyle.left}px`,
                     transition: 'left 300ms ease-in-out',
                   }}
                 />
@@ -394,6 +414,8 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
                       bouncing={bouncing}
                       icon={Icon}
                       label={tab.label}
+                      width={sideTabW}
+                      tabKey={tab.key}
                     />
                   );
                 })}

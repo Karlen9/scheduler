@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardList, Plus, User } from 'lucide-react';
+import { BarChart3, ClipboardList, Plus, User, UserRound } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
@@ -68,6 +68,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const clientTabs = useMemo(
     () => [
       {
+        key: 'specialist',
+        label: tn('specialist'),
+        icon: UserRound,
+        href: '/',
+      },
+      {
         key: 'bookings',
         label: tn('bookings'),
         icon: ClipboardList,
@@ -75,6 +81,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         matchPaths: ['/bookings', '/recurring'],
       },
       { key: 'book', label: '', icon: Plus, href: '/book', isCenter: true },
+      { key: 'analytics', label: tn('analytics'), icon: BarChart3, href: '/analytics' },
       { key: 'profile', label: tn('profile'), icon: User, href: '/profile' },
     ],
     [tn],
