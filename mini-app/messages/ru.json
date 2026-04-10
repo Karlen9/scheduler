@@ -165,6 +165,8 @@
     "hide": "Скрыть",
     "messageButton": "Написать",
     "servicesButton": "Услуги и цены",
+    "scheduleTitle": "График работы",
+    "closed": "Выходной",
     "servicesTitle": "Услуги:",
     "locationTitle": "Локация:"
   },

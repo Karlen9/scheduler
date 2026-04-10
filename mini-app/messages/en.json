@@ -165,6 +165,8 @@
     "hide": "Hide",
     "messageButton": "Message",
     "servicesButton": "Services & Prices",
+    "scheduleTitle": "Schedule",
+    "closed": "Closed",
     "servicesTitle": "Services:",
     "locationTitle": "Location:"
   },
