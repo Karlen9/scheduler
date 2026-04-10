@@ -188,6 +188,94 @@ export type TRecurringPreviewResponse = {
 };
 
 /***************************************************************************************************
+ * Defines the time slot label shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TTimeSlotLabel = 'morning' | 'afternoon' | 'evening';
+
+/***************************************************************************************************
+ * Defines the duration breakdown shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TDurationBreakdown = {
+  duration: number;
+  count: number;
+};
+
+/***************************************************************************************************
+ * Defines the monthly trend point shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TMonthlyTrendPoint = {
+  month: string;
+  count: number;
+};
+
+/***************************************************************************************************
+ * Defines the revenue trend point shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TRevenueByMonthPoint = {
+  month: string;
+  revenue: number;
+};
+
+/***************************************************************************************************
+ * Defines the revenue-by-service shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TRevenueByService = {
+  name: string;
+  revenue: number;
+};
+
+/***************************************************************************************************
+ * Defines the top client stats shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TTopClientStat = {
+  name: string;
+  count: number;
+  photoUrl?: string;
+};
+
+/***************************************************************************************************
+ * Defines the client stats shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TClientStats = {
+  totalSessions: number;
+  totalHours: number;
+  completionRate: number;
+  sessionsThisMonth: number;
+  sessionsLastMonth: number;
+  currentStreak: number;
+  longestStreak: number;
+  mostCommonDay: number | null;
+  mostCommonTimeSlot: TTimeSlotLabel | null;
+  averageDuration: number;
+  durationBreakdown: TDurationBreakdown[];
+  monthlyTrend: TMonthlyTrendPoint[];
+};
+
+/***************************************************************************************************
+ * Defines the admin stats shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TAdminStats = {
+  totalBookings: number;
+  activeClients: number;
+  completionRate: number;
+  bookingsThisMonth: number;
+  bookingsLastMonth: number;
+  totalClients: number;
+  newClientsThisMonth: number;
+  topClients: TTopClientStat[];
+  returningRate: number;
+  busiestDay: number | null;
+  busiestTimeSlot: TTimeSlotLabel | null;
+  avgBookingsPerWeek: number;
+  cancellationRate: number;
+  revenueThisMonth: number;
+  revenueLastMonth: number;
+  revenueCurrency: string;
+  revenueByMonth: TRevenueByMonthPoint[];
+  revenueByService: TRevenueByService[];
+};
+
+/***************************************************************************************************
  * Telegram Types.
  ***************************************************************************************************/
 export type TTelegramWebApp = {
@@ -526,6 +614,22 @@ export type TCurrentTimeIndicatorProps = {
 };
 
 /***************************************************************************************************
+ * Defines the bar chart point props shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TBarChartDatum = {
+  label: string;
+  value: number;
+};
+
+/***************************************************************************************************
+ * Defines the bar chart props shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TBarChartProps = {
+  data: TBarChartDatum[];
+  valueFormatter?: (value: number) => string;
+};
+
+/***************************************************************************************************
  * Defines the day timeline props shape shared by the shared utility layer.
  ***************************************************************************************************/
 export type TDayTimelineProps = {
@@ -757,6 +861,16 @@ export type TServiceSelectorProps = {
 };
 
 /***************************************************************************************************
+ * Defines the stat bar props shape shared by the shared utility layer.
+ ***************************************************************************************************/
+export type TStatBarProps = {
+  label: string;
+  value: number;
+  maxValue: number;
+  valueLabel?: string;
+};
+
+/***************************************************************************************************
  * Defines the settings group props shape shared by the shared utility layer.
  ***************************************************************************************************/
 export type TSettingsGroupProps = {
@@ -782,7 +896,7 @@ export type TStatCardProps = {
   icon: LucideIcon;
   iconColor: string;
   iconBg: string;
-  value: number;
+  value: number | string;
   label: string;
   onClick?: TVoidFunction;
 };
