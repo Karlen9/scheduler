@@ -6,18 +6,45 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
-import { useSessionTypes, useSpecialist } from '@/hooks/queries';
+import { useSessionTypes, useSpecialist, useWorkingHours } from '@/hooks/queries';
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 import { formatDuration } from '@/lib/helpers';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
+import type { TWorkingHours } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 const OWNER_CACHE_KEY_PREFIX = 'specialist-owner:';
+const scheduleDayOrder = [
+  { day: 1, key: 'mon' },
+  { day: 2, key: 'tue' },
+  { day: 3, key: 'wed' },
+  { day: 4, key: 'thu' },
+  { day: 5, key: 'fri' },
+  { day: 6, key: 'sat' },
+  { day: 0, key: 'sun' },
+] as const;
+
+type TScheduleGroup = {
+  dayLabel: string;
+  hoursLabel: string;
+  isClosed: boolean;
+};
 
 function getOwnerCacheKey(): string {
   return `${OWNER_CACHE_KEY_PREFIX}${getSpecialistId() ?? 'default'}`;
+}
+
+function getDayHoursLabel(dayHours: TWorkingHours[]): string {
+  if (dayHours.length === 0) {
+    return '';
+  }
+
+  return [...dayHours]
+    .sort((left, right) => left.startTime.localeCompare(right.startTime))
+    .map((item) => `${item.startTime}-${item.endTime}`)
+    .join(', ');
 }
 
 /***************************************************************************************************
@@ -54,6 +81,7 @@ export default function HomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const td = useTranslations('Duration');
+  const tdays = useTranslations('Dates.daysShort');
   /***************************************************************************************************
    * Defines the locale value used by the page layer.
    *
@@ -63,6 +91,7 @@ export default function HomePage(): ReactNode {
   const locale = useLocale();
   const { data: specialist, isLoading: specialistLoading } = useSpecialist();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
+  const { data: workingHours, isLoading: workingHoursLoading } = useWorkingHours();
   const [bioExpanded, setBioExpanded] = useState(false);
   const [heroError, setHeroError] = useState(false);
   const [ownerRedirecting, setOwnerRedirecting] = useState(false);
@@ -108,7 +137,35 @@ export default function HomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const isLoading = specialistLoading || servicesLoading;
+  const isLoading = specialistLoading || servicesLoading || workingHoursLoading;
+
+  const scheduleGroups = useMemo((): TScheduleGroup[] => {
+    const hoursByDay = new Map<number, TWorkingHours[]>();
+
+    for (const item of workingHours) {
+      const dayHours = hoursByDay.get(item.dayOfWeek) ?? [];
+      dayHours.push(item);
+      hoursByDay.set(item.dayOfWeek, dayHours);
+    }
+
+    return scheduleDayOrder.reduce<TScheduleGroup[]>((groups, day) => {
+      const rawHoursLabel = getDayHoursLabel(hoursByDay.get(day.day) ?? []);
+      const hoursLabel = rawHoursLabel || t('closed');
+      const previousGroup = groups[groups.length - 1];
+
+      if (previousGroup?.hoursLabel === hoursLabel) {
+        previousGroup.dayLabel = `${previousGroup.dayLabel}-${tdays(day.key)}`;
+        return groups;
+      }
+
+      groups.push({
+        dayLabel: tdays(day.key),
+        hoursLabel,
+        isClosed: rawHoursLabel === '',
+      });
+      return groups;
+    }, []);
+  }, [tdays, t, workingHours]);
 
   /***************************************************************************************************
    * Handles message.
@@ -183,6 +240,7 @@ export default function HomePage(): ReactNode {
           <div className={'space-y-3 pt-4'}>
             <div className={'bg-border h-5 w-24 rounded'} />
             <div className={'bg-border h-16 rounded-xl'} />
+            <div className={'bg-border h-24 rounded-xl'} />
             <div className={'bg-border h-16 rounded-xl'} />
           </div>
         </div>
@@ -332,6 +390,30 @@ export default function HomePage(): ReactNode {
             >
               <Share2 className={'text-muted-foreground h-4 w-4'} />
             </button>
+          </div>
+        </div>
+
+        {/***************************************************************************************************
+         * Schedule Section.
+         ***************************************************************************************************/}
+        <div className={'px-4 pb-4'}>
+          <h3 className={'text-foreground mb-2 text-sm font-semibold'}>{t('scheduleTitle')}</h3>
+          <div className={'bg-background rounded-xl p-3'}>
+            <div className={'space-y-2'}>
+              {scheduleGroups.map((group) => (
+                <div
+                  key={`${group.dayLabel}-${group.hoursLabel}`}
+                  className={'flex items-center justify-between gap-4'}
+                >
+                  <span className={'text-foreground text-sm font-medium'}>{group.dayLabel}</span>
+                  <span
+                    className={`text-right text-xs ${group.isClosed ? 'text-muted-foreground' : 'text-foreground'}`}
+                  >
+                    {group.hoursLabel}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
