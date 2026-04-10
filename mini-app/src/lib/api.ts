@@ -3,9 +3,11 @@ import { getSpecialistId, waitForInitData } from './telegram';
 
 import type {
   TAdminScheduleContext,
+  TAdminStats,
   TBooking,
   TClientInfo,
   TClientProfile,
+  TClientStats,
   TDayOff,
   TRecurringPreviewResponse,
   TRecurringSchedule,
@@ -286,6 +288,22 @@ export const api = {
    ***************************************************************************************************/
   async getBookings(): Promise<TBooking[]> {
     return fetchAPI<TBooking[]>('/api/bookings');
+  },
+
+  /***************************************************************************************************
+   * Returns client analytics.
+   *
+   * Parameters:
+   * - None.
+   *
+   * Returns:
+   * - A promise that resolves with TClientStats.
+   *
+   * Side effects:
+   * - May read browser state, call shared helpers, or perform network requests.
+   ***************************************************************************************************/
+  async getClientStats(): Promise<TClientStats> {
+    return fetchAPI<TClientStats>('/api/stats');
   },
 
   /***************************************************************************************************
@@ -916,6 +934,22 @@ export const api = {
        ***************************************************************************************************/
       const query = status ? `?status=${status}` : '';
       return fetchAPI<TBooking[]>(`/api/admin/bookings${query}`);
+    },
+
+    /***************************************************************************************************
+     * Returns admin analytics.
+     *
+     * Parameters:
+     * - None.
+     *
+     * Returns:
+     * - A promise that resolves with TAdminStats.
+     *
+     * Side effects:
+     * - May read browser state, call shared helpers, or perform network requests.
+     ***************************************************************************************************/
+    async getAdminStats(): Promise<TAdminStats> {
+      return fetchAPI<TAdminStats>('/api/admin/stats');
     },
 
     /***************************************************************************************************
