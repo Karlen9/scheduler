@@ -21,8 +21,8 @@ export function StatCard({
   label,
   onClick,
 }: TStatCardProps): ReactNode {
-  return (
-    <button onClick={onClick} className={'bg-card rounded-xl p-4 text-left'}>
+  const content = (
+    <>
       <p className={'text-muted-foreground text-xs'}>{label}</p>
       <div className={'mt-4 flex items-center justify-between pr-6'}>
         <div className={`h-8 w-8 rounded-full ${iconBg} flex items-center justify-center`}>
@@ -30,6 +30,16 @@ export function StatCard({
         </div>
         <p className={'text-foreground text-2xl font-semibold'}>{value}</p>
       </div>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className={'bg-card rounded-xl p-4 text-left'}>{content}</div>;
+  }
+
+  return (
+    <button type={'button'} onClick={onClick} className={'bg-card rounded-xl p-4 text-left'}>
+      {content}
     </button>
   );
 }
