@@ -12,6 +12,7 @@ export const CACHE_KEYS = {
   sessionTypes: 'sessionTypes',
   profile: 'profile',
   bookings: 'bookings',
+  clientStats: 'clientStats',
   recurringSchedules: 'recurringSchedules',
   recurringDetail: (id: string) => `recurringDetail:${id}`,
 
@@ -19,6 +20,7 @@ export const CACHE_KEYS = {
    * Admin keys.
    ***************************************************************************************************/
   adminBookings: 'adminBookings',
+  adminStats: 'adminStats',
   adminClients: 'adminClients',
   adminProfile: 'adminProfile',
   adminServices: 'adminServices',
