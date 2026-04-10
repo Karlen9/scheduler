@@ -16,7 +16,41 @@ import { CACHE_KEYS } from './cache-keys';
  ***************************************************************************************************/
 export function invalidateBookings(): void {
   mutate(CACHE_KEYS.bookings);
+  mutate(CACHE_KEYS.clientStats);
   mutate(CACHE_KEYS.adminBookings);
+  mutate(CACHE_KEYS.adminStats);
+}
+
+/***************************************************************************************************
+ * Implements the invalidate client stats logic used by this module.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as void.
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
+export function invalidateClientStats(): void {
+  mutate(CACHE_KEYS.clientStats);
+}
+
+/***************************************************************************************************
+ * Implements the invalidate admin stats logic used by this module.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as void.
+ *
+ * Side effects:
+ * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ ***************************************************************************************************/
+export function invalidateAdminStats(): void {
+  mutate(CACHE_KEYS.adminStats);
 }
 
 /***************************************************************************************************
