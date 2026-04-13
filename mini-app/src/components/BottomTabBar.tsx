@@ -13,14 +13,30 @@ function PlusButton({
   isActive,
   bouncing,
   icon: Icon,
+  label,
   visualSize,
 }: {
   href: string;
   isActive: boolean;
   bouncing: boolean;
   icon: LucideIcon;
+  label?: string;
   visualSize: number;
 }): ReactNode {
+  if (label) {
+    return (
+      <Link
+        href={href}
+        prefetch
+        className={`bg-brand relative z-10 flex h-[58px] w-full items-center justify-center rounded-full px-5 text-lg font-semibold text-white shadow-sm transition-transform active:scale-95 ${
+          bouncing ? 'tab-bounce' : ''
+        } ${isActive ? 'scale-[1.02]' : ''}`}
+      >
+        <span className={'truncate'}>{label}</span>
+      </Link>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -114,7 +130,8 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
     ? subTabs.findIndex((tab) => pathname === tab.href || pathname.startsWith(tab.href + '/'))
     : -1;
 
-  const centerButtonW = sideTabs.length >= 4 ? 58 : 72;
+  const centerTab = tabs.find((tab) => tab.isCenter);
+  const centerButtonW = centerTab?.label ? 194 : sideTabs.length >= 4 ? 58 : 72;
   const centerVisualSize = sideTabs.length >= 4 ? 74 : 82;
   const tabTemplateColumns = tabs
     .map((tab) => (tab.isCenter ? `${centerButtonW}px` : 'minmax(0, 1fr)'))
@@ -268,6 +285,7 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
                       isActive={isActive}
                       bouncing={bouncing}
                       icon={Icon}
+                      label={tab.label}
                       visualSize={centerVisualSize}
                     />
                   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, ClipboardList, Plus, Settings, Users } from 'lucide-react';
+import { ClipboardList, Plus, Settings, Users } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
@@ -83,12 +83,6 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         href: '/admin/clients',
       },
       { key: 'book', label: '', icon: Plus, href: '/admin/book', isCenter: true },
-      {
-        key: 'analytics',
-        label: tn('analytics'),
-        icon: BarChart3,
-        href: '/admin/analytics',
-      },
       {
         key: 'profile',
         label: tn('settings'),
