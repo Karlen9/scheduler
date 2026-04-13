@@ -271,6 +271,7 @@ type TimeSlot struct {
 	Time      string `json:"time"`
 	EndTime   string `json:"endTime,omitempty"`
 	Available bool   `json:"available"`
+	Mine      bool   `json:"mine,omitempty"`
 }
 
 /***************************************************************************************************

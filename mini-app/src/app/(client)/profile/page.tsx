@@ -10,10 +10,9 @@ import { ActivityBackButton } from '@/components/ActivityBackButton';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { PhotoEditor } from '@/components/PhotoEditor';
 import { PrimaryButton } from '@/components/PrimaryButton';
-import { ServiceSelector } from '@/components/ServiceSelector';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { invalidateProfile } from '@/hooks/mutations';
-import { useProfile, useSessionTypes } from '@/hooks/queries';
+import { useProfile } from '@/hooks/queries';
 import { api } from '@/lib/api';
 
 import { AvatarSection } from './AvatarSection';
@@ -83,21 +82,12 @@ export default function ClientProfilePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
-  const { data: profile, isLoading: profileLoading, mutate } = useProfile();
-  const { data: services, isLoading: servicesLoading } = useSessionTypes();
-  /***************************************************************************************************
-   * Defines the loading value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const loading = profileLoading || servicesLoading;
+  const { data: profile, isLoading: loading, mutate } = useProfile();
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [photoError, setPhotoError] = useState(false);
-  const [preferredDuration, setPreferredDuration] = useState<number>(60);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editorImage, setEditorImage] = useState<string | null>(null);
@@ -118,13 +108,12 @@ export default function ClientProfilePage(): ReactNode {
       setName(profile.name || '');
       setPhone(profile.phone || '');
       setPhotoUrl(profile.photoUrl || '');
-      setPreferredDuration(profile.preferredDuration || services[0]?.durationMinutes || 60);
       setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
       setNotifyReminders(profile.notifyReminders ?? true);
       setNotifyDaysOff(profile.notifyDaysOff ?? false);
       setNotifyCancellations(profile.notifyCancellations ?? true);
     }
-  }, [profile, services]);
+  }, [profile]);
 
   /***************************************************************************************************
    * Cross-device language sync.
@@ -227,7 +216,6 @@ export default function ClientProfilePage(): ReactNode {
     const nextProfile = {
       name,
       phone,
-      preferredDuration,
     };
 
     try {
@@ -249,7 +237,7 @@ export default function ClientProfilePage(): ReactNode {
     } finally {
       setIsSaving(false);
     }
-  }, [mutate, name, phone, preferredDuration, profile, te, ts]);
+  }, [mutate, name, phone, profile, te, ts]);
 
   /***************************************************************************************************
    * Defines the handle toggle notification value used by the page layer.
@@ -361,19 +349,6 @@ export default function ClientProfilePage(): ReactNode {
               }
             />
           </div>
-
-          {services.length > 1 && (
-            <div>
-              <label className={'text-muted-foreground mb-1 block text-sm'}>
-                {t('preferredService')}
-              </label>
-              <ServiceSelector
-                services={services}
-                selectedId={services.find((s) => s.durationMinutes === preferredDuration)?.id ?? ''}
-                onChange={(service) => setPreferredDuration(service.durationMinutes)}
-              />
-            </div>
-          )}
         </div>
 
         {/***************************************************************************************************

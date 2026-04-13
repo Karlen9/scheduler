@@ -360,9 +360,6 @@ export function MonthGrid({
         return true;
       }
     }
-    if (bookedDates?.has(toISODate(d))) {
-      return true;
-    }
     return false;
   }
 
@@ -483,7 +480,7 @@ export function MonthGrid({
                   selected
                     ? 'bg-brand font-medium text-white'
                     : booked && isCurrentMonth
-                      ? 'text-muted-foreground/50'
+                      ? 'text-success'
                       : dayOff && isCurrentMonth
                         ? 'bg-dayoff-bg text-dayoff-text'
                         : disabled && (isPast(date) || isBeyondMax(date))
@@ -502,7 +499,7 @@ export function MonthGrid({
                 {date.getDate()}
               </span>
               {booked && isCurrentMonth && !selected ? (
-                <div className={'bg-brand/60 mt-0.5 h-1.5 w-1.5 rounded-full'} />
+                <div className={'bg-success mt-0.5 h-1.5 w-1.5 rounded-full'} />
               ) : hasDot ? (
                 <div className={'bg-brand mt-0.5 h-1 w-1 rounded-full'} />
               ) : null}
@@ -514,12 +511,20 @@ export function MonthGrid({
       {/***************************************************************************************************
        * Legend.
        ***************************************************************************************************/}
-      {showLegend && daysOff && daysOff.length > 0 && (
+      {showLegend && ((daysOff && daysOff.length > 0) || (bookedDates && bookedDates.size > 0)) && (
         <div className={'border-border mt-3 flex items-center gap-4 border-t pt-3'}>
-          <div className={'flex items-center gap-1.5'}>
-            <span className={'bg-dayoff-bg h-3 w-3 rounded'} />
-            <span className={'text-muted-foreground text-xs'}>{td('dayOff')}</span>
-          </div>
+          {daysOff && daysOff.length > 0 && (
+            <div className={'flex items-center gap-1.5'}>
+              <span className={'bg-dayoff-bg h-3 w-3 rounded'} />
+              <span className={'text-muted-foreground text-xs'}>{td('dayOff')}</span>
+            </div>
+          )}
+          {bookedDates && bookedDates.size > 0 && (
+            <div className={'flex items-center gap-1.5'}>
+              <span className={'bg-success h-3 w-3 rounded-full'} />
+              <span className={'text-muted-foreground text-xs'}>{td('myBooking')}</span>
+            </div>
+          )}
         </div>
       )}
     </>

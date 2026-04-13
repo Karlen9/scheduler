@@ -2,7 +2,7 @@
 
 import { Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 import { TimelineBookingCard } from './TimelineBookingCard';
@@ -11,43 +11,14 @@ import { TimelineEmptySlot } from './TimelineEmptySlot';
 import type { TDayTimelineProps, TEmptySlot } from '@/lib/types';
 import type { ReactNode } from 'react';
 
-/***************************************************************************************************
- * Defines the hour height value used by the component layer.
- *
- * Usage context:
- * - Reused by the component layer to keep shared values centralized.
- ***************************************************************************************************/
 const HOUR_HEIGHT = 72;
+const COLLAPSED_HEIGHT = 40;
+const COLLAPSE_THRESHOLD_MIN = 180; // 3 hours
 
-/***************************************************************************************************
- * Formats hour.
- *
- * Parameters:
- * - hour: Hour used by the current operation.
- *
- * Returns:
- * - The computed value for the current operation as string.
- *
- * Side effects:
- * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
- ***************************************************************************************************/
 function formatHour(hour: number): string {
   return `${hour.toString().padStart(2, '0')}:00`;
 }
 
-/***************************************************************************************************
- * Checks whether same day.
- *
- * Parameters:
- * - a: A used by the current operation.
- * - b: B used by the current operation.
- *
- * Returns:
- * - The computed value for the current operation as boolean.
- *
- * Side effects:
- * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
- ***************************************************************************************************/
 function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -56,53 +27,59 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-/***************************************************************************************************
- * Parses time to min.
- *
- * Parameters:
- * - time: Time value used by the current operation.
- *
- * Returns:
- * - The computed value for the current operation as number.
- *
- * Side effects:
- * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
- ***************************************************************************************************/
 function parseTimeToMin(time: string): number {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m;
 }
 
-/***************************************************************************************************
- * Formats minutes from midnight as HH:MM.
- *
- * Parameters:
- * - minutes: Minutes used by the current operation.
- *
- * Returns:
- * - The computed value for the current operation as string.
- *
- * Side effects:
- * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
- ***************************************************************************************************/
 function formatMinuteTime(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
-/***************************************************************************************************
- * Renders the day timeline UI and related interactions.
- *
- * Parameters:
- * - props: Component props that drive rendering and callbacks.
- *
- * Returns:
- * - The computed value for the current operation as ReactNode.
- *
- * Side effects:
- * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
- ***************************************************************************************************/
+/**
+ * Maps a time-in-minutes to a pixel offset, accounting for collapsed empty slots.
+ * Normal regions: 1 hour = HOUR_HEIGHT pixels.
+ * Collapsed regions: entire slot = COLLAPSED_HEIGHT pixels.
+ */
+function minuteToPixel(minute: number, minHourMin: number, collapsedSlots: TEmptySlot[]): number {
+  let pixel = 0;
+  let cursor = minHourMin;
+
+  for (const slot of collapsedSlots) {
+    if (minute <= cursor) {
+      break;
+    }
+    if (slot.startMin <= cursor) {
+      const segEnd = Math.min(minute, slot.endMin);
+      if (segEnd > cursor) {
+        const frac = (segEnd - cursor) / (slot.endMin - Math.max(slot.startMin, cursor));
+        pixel += frac * COLLAPSED_HEIGHT;
+        cursor = segEnd;
+      }
+      continue;
+    }
+    const normalEnd = Math.min(minute, slot.startMin);
+    pixel += ((normalEnd - cursor) / 60) * HOUR_HEIGHT;
+    cursor = normalEnd;
+    if (minute <= slot.startMin) {
+      break;
+    }
+    const collEnd = Math.min(minute, slot.endMin);
+    const frac = (collEnd - slot.startMin) / (slot.endMin - slot.startMin);
+    pixel += frac * COLLAPSED_HEIGHT;
+    cursor = collEnd;
+  }
+
+  // Remaining normal segment
+  if (minute > cursor) {
+    pixel += ((minute - cursor) / 60) * HOUR_HEIGHT;
+  }
+
+  return pixel;
+}
+
 function DayTimelineComponent({
   bookings,
   date,
@@ -110,55 +87,13 @@ function DayTimelineComponent({
   workingHours,
   onEmptySlotClick,
 }: TDayTimelineProps): ReactNode {
-  /***************************************************************************************************
-   * Defines the t value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
   const t = useTranslations('DayTimeline');
-  /***************************************************************************************************
-   * Defines the locale value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
   const locale = useLocale();
 
-  /***************************************************************************************************
-   * Defines the today value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
   const today = useMemo(() => new Date(), []);
-  /***************************************************************************************************
-   * Defines the is today value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
   const isToday = isSameDay(date, today);
 
-  /***************************************************************************************************
-   * Formats time.
-   *
-   * Parameters:
-   * - iso: Boolean flag that influences the current operation.
-   *
-   * Returns:
-   * - The computed value for the current operation as string.
-   *
-   * Side effects:
-   * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
-   ***************************************************************************************************/
   function formatTime(iso: string): string {
-    /***************************************************************************************************
-     * Defines the d value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
     const d = new Date(iso);
     return d.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ru-RU', {
       hour: '2-digit',
@@ -167,60 +102,23 @@ function DayTimelineComponent({
     });
   }
 
-  /***************************************************************************************************
-   * Get working hours for this day of week.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
   const dayWH = useMemo(() => {
     if (!workingHours) {
       return [];
     }
-    /***************************************************************************************************
-     * Defines the dow value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const dow = date.getDay(); // 0=Sun
+    const dow = date.getDay();
     return [...workingHours]
       .filter((wh) => wh.dayOfWeek === dow)
       .sort((a, b) => parseTimeToMin(a.startTime) - parseTimeToMin(b.startTime));
   }, [workingHours, date]);
 
-  /***************************************************************************************************
-   * Calculate empty slots (gaps between bookings within working hours).
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
   const emptySlots = useMemo<TEmptySlot[]>(() => {
     if (dayWH.length === 0) {
       return [];
     }
-
-    /***************************************************************************************************
-     * Get sorted occupied ranges.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
     const occupied = bookings
       .map((b) => {
-        /***************************************************************************************************
-         * Defines the s value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const s = new Date(b.startsAt);
-        /***************************************************************************************************
-         * Defines the e value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const e = new Date(b.endsAt);
         return {
           start: s.getUTCHours() * 60 + s.getUTCMinutes(),
@@ -230,127 +128,92 @@ function DayTimelineComponent({
       .sort((a, b) => a.start - b.start);
 
     const gaps: TEmptySlot[] = [];
-
     for (const interval of dayWH) {
-      /***************************************************************************************************
-       * Defines the wh start value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
       const whStart = parseTimeToMin(interval.startTime);
-      /***************************************************************************************************
-       * Defines the wh end value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
       const whEnd = parseTimeToMin(interval.endTime);
-      /***************************************************************************************************
-       * Defines the cursor value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
       let cursor = whStart;
-
       for (const slot of occupied) {
         if (slot.end <= whStart || slot.start >= whEnd) {
           continue;
         }
-        /***************************************************************************************************
-         * Defines the slot start value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const slotStart = Math.max(slot.start, whStart);
-        /***************************************************************************************************
-         * Defines the slot end value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const slotEnd = Math.min(slot.end, whEnd);
         if (cursor < slotStart) {
           gaps.push({ startMin: cursor, endMin: slotStart });
         }
         cursor = Math.max(cursor, slotEnd);
       }
-
       if (cursor < whEnd) {
         gaps.push({ startMin: cursor, endMin: whEnd });
       }
     }
-
     return gaps;
   }, [bookings, dayWH]);
 
-  /***************************************************************************************************
-   * Determine hour range -- extend to working hours if available.
-   ***************************************************************************************************/
-  const { minHour, maxHour } = useMemo(() => {
-    /***************************************************************************************************
-     * Defines the min value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
-    let min = 23;
-    /***************************************************************************************************
-     * Defines the max value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
-    let max = 0;
+  const [collapsedSet, setCollapsedSet] = useState<Set<number>>(new Set());
 
+  // Reset collapsed state when empty slots change (date/booking change)
+  useEffect(() => {
+    const set = new Set<number>();
+    for (const slot of emptySlots) {
+      if (slot.endMin - slot.startMin > COLLAPSE_THRESHOLD_MIN) {
+        set.add(slot.startMin);
+      }
+    }
+    setCollapsedSet(set);
+  }, [emptySlots]);
+
+  const toggleCollapse = useCallback((startMin: number) => {
+    setCollapsedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(startMin)) {
+        next.delete(startMin);
+      } else {
+        next.add(startMin);
+      }
+      return next;
+    });
+  }, []);
+
+  // Sorted collapsed slots for the mapping function
+  const sortedCollapsed = useMemo(
+    () =>
+      emptySlots
+        .filter((s) => collapsedSet.has(s.startMin))
+        .sort((a, b) => a.startMin - b.startMin),
+    [emptySlots, collapsedSet],
+  );
+
+  const { minHour, maxHour } = useMemo(() => {
+    let min = 23;
+    let max = 0;
     if (dayWH.length > 0) {
       min = Math.floor(Math.min(...dayWH.map((wh) => parseTimeToMin(wh.startTime))) / 60);
       max = Math.ceil(Math.max(...dayWH.map((wh) => parseTimeToMin(wh.endTime))) / 60);
     }
-
     for (const b of bookings) {
-      /***************************************************************************************************
-       * Defines the start value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
       const start = new Date(b.startsAt);
-      /***************************************************************************************************
-       * Defines the end value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
       const end = new Date(b.endsAt);
       min = Math.min(min, start.getUTCHours());
-      /***************************************************************************************************
-       * Defines the end hour value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
       const endHour = end.getUTCHours() + (end.getUTCMinutes() > 0 ? 1 : 0);
       max = Math.max(max, endHour);
     }
-
     return { minHour: min, maxHour: max };
   }, [bookings, dayWH]);
 
-  /***************************************************************************************************
-   * No working hours and no bookings -- show simple empty.
-   ***************************************************************************************************/
+  const toPixel = useCallback(
+    (minute: number) => minuteToPixel(minute, minHour * 60, sortedCollapsed),
+    [minHour, sortedCollapsed],
+  );
+
+  // No working hours and no bookings
   if (bookings.length === 0 && dayWH.length === 0) {
     return (
       <div className={'text-muted-foreground py-12 text-center text-sm'}>{t('noBookings')}</div>
     );
   }
 
-  /***************************************************************************************************
-   * No bookings but is a working day -- show empty slot without timeline grid.
-   ***************************************************************************************************/
+  // No bookings but is a working day
   if (bookings.length === 0 && dayWH.length > 0) {
     return (
       <div className={'space-y-2'}>
@@ -382,53 +245,36 @@ function DayTimelineComponent({
     );
   }
 
+  // Build hour labels, skipping those inside collapsed regions
   const hourLabels: number[] = [];
   for (let h = minHour; h <= maxHour; h++) {
-    hourLabels.push(h);
+    const hMin = h * 60;
+    const insideCollapsed = sortedCollapsed.some((s) => hMin > s.startMin && hMin < s.endMin);
+    if (!insideCollapsed) {
+      hourLabels.push(h);
+    }
   }
 
-  /***************************************************************************************************
-   * Defines the total height value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const totalHeight = (maxHour - minHour) * HOUR_HEIGHT;
+  const totalHeight = toPixel(maxHour * 60);
 
-  /***************************************************************************************************
-   * Current time indicator.
-   ***************************************************************************************************/
+  // Current time indicator
   let nowTop: number | null = null;
   if (isToday) {
-    /***************************************************************************************************
-     * Defines the now value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
     const now = new Date();
-    /***************************************************************************************************
-     * Defines the now minutes value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     if (nowMinutes >= minHour * 60 && nowMinutes <= maxHour * 60) {
-      nowTop = ((nowMinutes - minHour * 60) / 60) * HOUR_HEIGHT;
+      nowTop = toPixel(nowMinutes);
     }
   }
 
   return (
     <div className={'relative'} style={{ height: totalHeight + 16 }}>
-      {/***************************************************************************************************
-       * Hour grid lines and labels.
-       ***************************************************************************************************/}
+      {/* Hour labels (no lines) */}
       {hourLabels.map((hour) => (
         <div
           key={hour}
           className={'absolute right-0 left-0 flex items-center'}
-          style={{ top: (hour - minHour) * HOUR_HEIGHT }}
+          style={{ top: toPixel(hour * 60) }}
         >
           <span
             className={
@@ -437,103 +283,54 @@ function DayTimelineComponent({
           >
             {formatHour(hour)}
           </span>
-          <div className={'border-border flex-1 border-t'} />
         </div>
       ))}
 
-      {/***************************************************************************************************
-       * Empty slot cards.
-       ***************************************************************************************************/}
+      {/* Empty slot cards */}
       {emptySlots.map((slot) => {
-        /***************************************************************************************************
-         * Defines the top value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
-        const top = ((slot.startMin - minHour * 60) / 60) * HOUR_HEIGHT;
-        /***************************************************************************************************
-         * Defines the height value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
-        const height = ((slot.endMin - slot.startMin) / 60) * HOUR_HEIGHT;
+        const slotTop = toPixel(slot.startMin);
+        const slotBottom = toPixel(slot.endMin);
+        const slotHeight = slotBottom - slotTop;
+        const isCollapsed = collapsedSet.has(slot.startMin);
+        const isLong = slot.endMin - slot.startMin > COLLAPSE_THRESHOLD_MIN;
 
         return (
           <TimelineEmptySlot
             key={`empty-${slot.startMin}`}
             slot={slot}
             date={date}
-            top={top}
-            height={height}
+            top={slotTop}
+            height={slotHeight}
+            collapsed={isCollapsed}
+            onToggleCollapse={isLong ? () => toggleCollapse(slot.startMin) : undefined}
             onEmptySlotClick={onEmptySlotClick}
           />
         );
       })}
 
-      {/***************************************************************************************************
-       * Booking cards.
-       ***************************************************************************************************/}
+      {/* Booking cards */}
       {bookings.map((booking) => {
-        /***************************************************************************************************
-         * Defines the start value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const start = new Date(booking.startsAt);
-        /***************************************************************************************************
-         * Defines the end value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const end = new Date(booking.endsAt);
-        /***************************************************************************************************
-         * Defines the start min value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const startMin = start.getUTCHours() * 60 + start.getUTCMinutes();
-        /***************************************************************************************************
-         * Defines the end min value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const endMin = end.getUTCHours() * 60 + end.getUTCMinutes();
-        /***************************************************************************************************
-         * Defines the top value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
-        const top = ((startMin - minHour * 60) / 60) * HOUR_HEIGHT;
-        /***************************************************************************************************
-         * Defines the height value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
-        const height = ((endMin - startMin) / 60) * HOUR_HEIGHT;
+        const bTop = toPixel(startMin);
+        const bBottom = toPixel(endMin);
+        const bHeight = bBottom - bTop;
 
         return (
           <TimelineBookingCard
             key={booking.id}
             booking={booking}
-            top={top}
-            height={height}
+            top={bTop}
+            height={bHeight}
             onBookingClick={onBookingClick}
             formatTime={formatTime}
           />
         );
       })}
 
-      {/***************************************************************************************************
-       * Current time indicator.
-       ***************************************************************************************************/}
+      {/* Current time indicator */}
       {nowTop !== null && <CurrentTimeIndicator top={nowTop} />}
     </div>
   );

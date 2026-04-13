@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { invalidateBookings } from '@/hooks/mutations';
@@ -31,6 +31,7 @@ import type {
  ***************************************************************************************************/
 export function useOnetimeBooking({
   services,
+  bookedDates,
   selectedClient,
   hasClientSelector,
   onCreateBooking,
@@ -94,6 +95,7 @@ export function useOnetimeBooking({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const slotsRequestIdRef = useRef(0);
+  const bookedDatesSet = useMemo(() => new Set(bookedDates ?? []), [bookedDates]);
 
   /***************************************************************************************************
    * Auto-select first service when only one exists.
@@ -608,6 +610,9 @@ export function useOnetimeBooking({
       if (!selectedDate) {
         return { text: t('btnSelectDate'), disabled: true };
       }
+      if (bookedDatesSet.has(formatDateISO(selectedDate))) {
+        return { text: t('btnSubmit'), disabled: true };
+      }
       if (!selectedTime) {
         return { text: t('btnSelectTime'), disabled: true };
       }
@@ -616,12 +621,9 @@ export function useOnetimeBooking({
     if (selectedDates.length === 0) {
       return { text: t('btnSelectDays'), disabled: true };
     }
-    /***************************************************************************************************
-     * Defines the all assigned value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
+    if (selectedDates.some((d) => bookedDatesSet.has(formatDateISO(d)))) {
+      return { text: t('btnSubmit'), disabled: true };
+    }
     const allAssigned = selectedDates.every((d) => timeAssignments[formatDateISO(d)]);
     if (!allAssigned) {
       return { text: t('btnSelectTime'), disabled: true };

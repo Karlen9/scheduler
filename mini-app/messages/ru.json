@@ -129,7 +129,8 @@
       "sat": "суббота",
       "sun": "воскресенье"
     },
-    "dayOff": "Выходной"
+    "dayOff": "Выходной",
+    "myBooking": "Моя запись"
   },
   "Duration": {
     "hour": "ч",
@@ -192,6 +193,7 @@
     "selectTime": "Выберите время",
     "available": "Свободно",
     "occupied": "Занято",
+    "myBooking": "Моя запись",
     "comment": "Комментарий",
     "commentPlaceholder": "Пожелания или комментарий (необязательно)",
     "btnSelectClient": "Выберите клиента",
@@ -221,7 +223,8 @@
     "successBookingCreated": "Запись создана.",
     "successRecurringTitle": "Расписание отправлено",
     "successRecurringForClient": "Расписание для {name} отправлено на подтверждение.",
-    "successRecurringForSpecialist": "Расписание отправлено на подтверждение специалисту."
+    "successRecurringForSpecialist": "Расписание отправлено на подтверждение специалисту.",
+    "bookedDateWarning": "У вас уже есть запись на этот день. Отмените её, чтобы записаться на новое время."
   },
   "BookingsPage": {
     "title": "Мои записи",
