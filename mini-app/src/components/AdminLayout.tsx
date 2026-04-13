@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardList, Plus, Settings, Users } from 'lucide-react';
+import { CalendarDays, ClipboardList, Settings, Users } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
@@ -76,13 +76,13 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         href: '/admin',
         matchPaths: ['/admin/recurring'],
       },
+      { key: 'book', label: tn('book'), icon: CalendarDays, href: '/admin/book', isCenter: true },
       {
         key: 'clients',
         label: tn('clients'),
         icon: Users,
         href: '/admin/clients',
       },
-      { key: 'book', label: '', icon: Plus, href: '/admin/book', isCenter: true },
       {
         key: 'profile',
         label: tn('settings'),

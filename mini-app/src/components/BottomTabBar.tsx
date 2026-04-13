@@ -66,7 +66,6 @@ function TabButton({
   isActive,
   bouncing,
   icon: Icon,
-  label,
   activeColor = 'text-brand',
   tabKey,
 }: {
@@ -74,7 +73,6 @@ function TabButton({
   isActive: boolean;
   bouncing: boolean;
   icon: LucideIcon;
-  label?: string;
   activeColor?: string;
   tabKey?: string;
 }): ReactNode {
@@ -88,9 +86,6 @@ function TabButton({
       }`}
     >
       <Icon className={`h-[18px] w-[18px] shrink-0 ${bouncing ? 'tab-bounce' : ''}`} />
-      {label && (
-        <span className={'max-w-full truncate text-[10px] leading-none font-medium'}>{label}</span>
-      )}
     </Link>
   );
 }
@@ -249,7 +244,6 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
                     isActive={isActive}
                     bouncing={bouncing}
                     icon={tab.icon}
-                    label={tab.label}
                     activeColor={'text-foreground'}
                   />
                 );
@@ -298,7 +292,6 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
                     isActive={isActive}
                     bouncing={bouncing}
                     icon={Icon}
-                    label={tab.label}
                     tabKey={tab.key}
                   />
                 );
