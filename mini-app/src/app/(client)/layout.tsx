@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, ClipboardList, Plus, User, UserRound } from 'lucide-react';
+import { CalendarDays, House, User } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
@@ -70,18 +70,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       {
         key: 'specialist',
         label: tn('specialist'),
-        icon: UserRound,
+        icon: House,
         href: '/',
       },
+      { key: 'book', label: tn('book'), icon: CalendarDays, href: '/book', isCenter: true },
       {
         key: 'bookings',
         label: tn('bookings'),
-        icon: ClipboardList,
+        icon: CalendarDays,
         href: '/bookings',
         matchPaths: ['/bookings', '/recurring'],
       },
-      { key: 'book', label: '', icon: Plus, href: '/book', isCenter: true },
-      { key: 'analytics', label: tn('analytics'), icon: BarChart3, href: '/analytics' },
       { key: 'profile', label: tn('profile'), icon: User, href: '/profile' },
     ],
     [tn],
