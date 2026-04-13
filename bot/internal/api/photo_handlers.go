@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"scheduler-bot/internal/changes"
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/telegram"
 )
@@ -155,6 +156,13 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 			httpError(w, r, "Error.PhotoSaveFailed", http.StatusInternalServerError)
 			return
 		}
+		changes.Publish(
+			client.SpecialistID,
+			changes.GroupClientProfile,
+			changes.GroupClients,
+			changes.GroupBookings,
+			changes.GroupRecurring,
+		)
 	}
 
 	writeJSON(w, map[string]string{"fileId": fileID})
@@ -203,6 +211,7 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	writeJSON(w, map[string]string{"fileId": fileID})
 }
 

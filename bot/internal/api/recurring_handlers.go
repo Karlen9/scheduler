@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"scheduler-bot/internal/changes"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -498,6 +499,7 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	changes.Publish(specialist.ID, changes.GroupRecurring, changes.GroupClients)
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, schedule)
 }
@@ -619,6 +621,7 @@ func HandleCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("RECURRING CANCEL (CLIENT) [%s]", id[:8])
+	changes.Publish(schedule.SpecialistID, changes.GroupRecurring)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -806,6 +809,11 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	if client.IsGhost {
+		changes.Publish(specialist.ID, changes.GroupRecurring, changes.GroupBookings)
+	} else {
+		changes.Publish(specialist.ID, changes.GroupRecurring)
+	}
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, schedule)
 }
@@ -923,6 +931,7 @@ func HandleAdminApproveRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	log.Printf("RECURRING APPROVED [%s] %d bookings created", id[:8], count)
 
 	updated, _ := db.GetRecurringScheduleByID(id)
+	changes.Publish(specialist.ID, changes.GroupRecurring, changes.GroupBookings)
 	writeJSON(w, updated)
 }
 
@@ -972,6 +981,7 @@ func HandleAdminDeclineRecurringSchedule(w http.ResponseWriter, r *http.Request)
 	log.Printf("RECURRING DECLINED [%s]", id[:8])
 
 	updated, _ := db.GetRecurringScheduleByID(id)
+	changes.Publish(specialist.ID, changes.GroupRecurring)
 	writeJSON(w, updated)
 }
 
@@ -1065,6 +1075,9 @@ func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if updated != nil {
+		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	}
 	writeJSON(w, updated)
 }
 
@@ -1122,6 +1135,7 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	changes.Publish(newBooking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
 	writeJSON(w, newBooking)
 }
 
@@ -1175,6 +1189,9 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if updated != nil {
+		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	}
 	writeJSON(w, updated)
 }
 
@@ -1232,6 +1249,7 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	changes.Publish(newBooking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
 	writeJSON(w, newBooking)
 }
 
@@ -1277,6 +1295,9 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("MOVE APPROVED booking %s", booking.ID[:8])
 	updated, _ := db.GetBookingByID(booking.ID)
+	if updated != nil {
+		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	}
 	writeJSON(w, updated)
 }
 
@@ -1321,6 +1342,7 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("MOVE DECLINED booking %s", booking.ID[:8])
+	changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1421,5 +1443,6 @@ func HandleAdminCancelRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	}
 
 	log.Printf("RECURRING CANCEL (ADMIN) [%s]", id[:8])
+	changes.Publish(specialist.ID, changes.GroupRecurring)
 	w.WriteHeader(http.StatusNoContent)
 }

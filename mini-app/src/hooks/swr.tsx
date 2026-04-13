@@ -2,9 +2,9 @@
 
 import { SWRConfig } from 'swr';
 
-import type { ReactNode } from 'react';
+import { CacheSync } from './cache-sync';
 
-const swrCache = new Map();
+import type { ReactNode } from 'react';
 
 /***************************************************************************************************
  * Renders the swrprovider UI and related interactions.
@@ -22,7 +22,6 @@ export function SWRProvider({ children }: { children: React.ReactNode }): ReactN
   return (
     <SWRConfig
       value={{
-        provider: () => swrCache,
         revalidateOnFocus: false,
         revalidateOnReconnect: false,
         revalidateIfStale: false,
@@ -30,6 +29,7 @@ export function SWRProvider({ children }: { children: React.ReactNode }): ReactN
         errorRetryCount: 2,
       }}
     >
+      <CacheSync />
       {children}
     </SWRConfig>
   );

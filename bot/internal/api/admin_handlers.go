@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"scheduler-bot/internal/changes"
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
 )
@@ -210,6 +211,7 @@ func HandleUpdateSpecialistSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	writeJSON(w, updated)
 }
 
@@ -322,6 +324,7 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupServices)
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, service)
 }
@@ -420,6 +423,7 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupServices)
 	writeJSON(w, updated)
 }
 
@@ -470,6 +474,7 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupServices)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -773,6 +778,7 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 	* Return updated hours.
 	***************************************************************************************************/
 	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
+	changes.Publish(specialist.ID, changes.GroupWorkingHours)
 	writeJSON(w, hours)
 }
 
@@ -844,6 +850,7 @@ func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
+	changes.Publish(specialist.ID, changes.GroupWorkingHours)
 	writeJSON(w, hours)
 }
 
@@ -881,6 +888,7 @@ func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupWorkingHours)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1038,6 +1046,9 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if booking != nil {
+		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	}
 	writeJSON(w, booking)
 }
 
@@ -1171,6 +1182,9 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if booking != nil {
+		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	}
 	writeJSON(w, booking)
 }
 
@@ -1327,6 +1341,7 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	changes.Publish(specialist.ID, changes.GroupBookings)
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, booking)
 }
@@ -1429,6 +1444,7 @@ func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupDaysOff)
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, dayOff)
 }
@@ -1466,6 +1482,7 @@ func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupDaysOff)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1634,6 +1651,7 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		Language:          updated.Language,
 	}
 
+	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	writeJSON(w, resp)
 }
 
@@ -1681,6 +1699,7 @@ func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("GHOST CLIENT created: %s for specialist %s", name, specialist.Name)
 
+	changes.Publish(specialist.ID, changes.GroupClients)
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, client)
 }
@@ -1730,6 +1749,7 @@ func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("CLIENT deleted: %s (%s) by specialist %s", client.Name, clientID[:8], specialist.Name)
+	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1806,6 +1826,7 @@ func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring)
 	writeJSON(w, updated)
 }
 
@@ -1934,6 +1955,7 @@ func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 		NotifyNewBookings:   notifyNewBookings,
 		NotifyCancellations: notifyCancellations,
 	}
+	changes.Publish(specialist.ID, changes.GroupAdminNotifications)
 	writeJSON(w, resp)
 }
 

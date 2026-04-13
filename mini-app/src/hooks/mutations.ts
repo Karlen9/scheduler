@@ -2,201 +2,191 @@ import { mutate } from 'swr';
 
 import { CACHE_KEYS } from './cache-keys';
 
-/***************************************************************************************************
- * Implements the invalidate bookings logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateBookings(): void {
-  mutate(CACHE_KEYS.bookings);
-  mutate(CACHE_KEYS.clientStats);
-  mutate(CACHE_KEYS.adminBookings);
-  mutate(CACHE_KEYS.adminStats);
-}
+import type { TMutationEvent } from '@/lib/mutation-events';
+import type { TChangeGroup } from '@/lib/types';
 
-/***************************************************************************************************
- * Implements the invalidate client stats logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateClientStats(): void {
-  mutate(CACHE_KEYS.clientStats);
-}
-
-/***************************************************************************************************
- * Implements the invalidate admin stats logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateAdminStats(): void {
-  mutate(CACHE_KEYS.adminStats);
-}
-
-/***************************************************************************************************
- * Implements the invalidate working hours logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateWorkingHours(): void {
-  mutate(CACHE_KEYS.workingHours);
-  mutate(CACHE_KEYS.scheduleContext);
-  mutate(CACHE_KEYS.adminWorkingHours);
-  mutate(CACHE_KEYS.adminScheduleContext);
-}
-
-/***************************************************************************************************
- * Implements the invalidate days off logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateDaysOff(): void {
-  mutate(CACHE_KEYS.daysOff);
-  mutate(CACHE_KEYS.scheduleContext);
-  mutate(CACHE_KEYS.adminDaysOff);
-  mutate(CACHE_KEYS.adminScheduleContext);
-}
-
-/***************************************************************************************************
- * Implements the invalidate services logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateServices(): void {
-  mutate(CACHE_KEYS.sessionTypes);
-  mutate(CACHE_KEYS.adminServices);
-}
-
-/***************************************************************************************************
- * Implements the invalidate specialist logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateSpecialist(): void {
-  mutate(CACHE_KEYS.specialist);
-  mutate(CACHE_KEYS.adminProfile);
-}
-
-/***************************************************************************************************
- * Implements the invalidate profile logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateProfile(): void {
-  mutate(CACHE_KEYS.profile);
-}
-
-/***************************************************************************************************
- * Implements the invalidate recurring logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateRecurring(): void {
-  mutate(CACHE_KEYS.recurringSchedules);
-  mutate(CACHE_KEYS.adminRecurringSchedules);
-  /***************************************************************************************************
-   * Invalidate all detail keys by matching prefix.
-   ***************************************************************************************************/
-  mutate(
-    (key: string) =>
-      typeof key === 'string' &&
-      (key.startsWith('recurringDetail:') || key.startsWith('adminRecurringDetail:')),
-    undefined,
-    { revalidate: true },
+function isRecurringDetailKey(key: unknown): boolean {
+  return (
+    typeof key === 'string' &&
+    (key.startsWith('recurringDetail:') || key.startsWith('adminRecurringDetail:'))
   );
-  invalidateBookings();
+}
+
+async function revalidateKeys(keys: string[]): Promise<void> {
+  await Promise.all(
+    [...new Set(keys)].map(async (key) => {
+      await mutate(key);
+    }),
+  );
+}
+
+async function revalidateRecurringDetails(): Promise<void> {
+  await mutate(isRecurringDetailKey, undefined, { revalidate: true });
+}
+
+function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChangeGroup[] {
+  const path = endpoint.split('?')[0];
+
+  if (path.endsWith('/preview')) {
+    return [];
+  }
+
+  if (path === '/api/bookings' && method === 'POST') {
+    return ['bookings', 'clients'];
+  }
+  if (path.startsWith('/api/bookings/')) {
+    return ['bookings'];
+  }
+  if (path.startsWith('/api/admin/bookings')) {
+    return ['bookings'];
+  }
+
+  if (path.startsWith('/api/admin/recurring') || path.startsWith('/api/recurring')) {
+    return ['recurring', 'bookings'];
+  }
+
+  if (path.startsWith('/api/admin/services')) {
+    return ['services'];
+  }
+
+  if (path.startsWith('/api/admin/working-hours')) {
+    return ['workingHours'];
+  }
+
+  if (path.startsWith('/api/admin/days-off')) {
+    return ['daysOff'];
+  }
+
+  if (path === '/api/admin/clients' && method === 'POST') {
+    return ['clients'];
+  }
+  if (path.startsWith('/api/admin/clients')) {
+    return ['clients', 'bookings', 'recurring'];
+  }
+
+  if (path === '/api/profile/notifications') {
+    return ['clientProfile'];
+  }
+  if (path === '/api/profile' || path === '/api/upload/photo') {
+    return ['clientProfile', 'clients', 'bookings', 'recurring'];
+  }
+
+  if (path === '/api/admin/notifications') {
+    return ['adminNotifications'];
+  }
+  if (
+    path === '/api/admin/settings' ||
+    path === '/api/admin/profile' ||
+    path === '/api/admin/upload/photo'
+  ) {
+    return ['specialist'];
+  }
+
+  return [];
 }
 
 /***************************************************************************************************
- * Implements the invalidate clients logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
+ * Revalidates frontend cache keys for backend change groups.
  ***************************************************************************************************/
-export function invalidateClients(): void {
-  mutate(CACHE_KEYS.adminClients);
+export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<void> {
+  const keys = new Set<string>();
+  let shouldRevalidateRecurringDetails = false;
+
+  for (const group of new Set(groups)) {
+    switch (group) {
+      case 'bookings':
+        keys.add(CACHE_KEYS.bookings);
+        keys.add(CACHE_KEYS.clientStats);
+        keys.add(CACHE_KEYS.adminBookings);
+        keys.add(CACHE_KEYS.adminStats);
+        break;
+      case 'recurring':
+        keys.add(CACHE_KEYS.recurringSchedules);
+        keys.add(CACHE_KEYS.adminRecurringSchedules);
+        shouldRevalidateRecurringDetails = true;
+        break;
+      case 'clients':
+        keys.add(CACHE_KEYS.adminClients);
+        break;
+      case 'services':
+        keys.add(CACHE_KEYS.sessionTypes);
+        keys.add(CACHE_KEYS.adminServices);
+        break;
+      case 'workingHours':
+        keys.add(CACHE_KEYS.workingHours);
+        keys.add(CACHE_KEYS.scheduleContext);
+        keys.add(CACHE_KEYS.adminWorkingHours);
+        keys.add(CACHE_KEYS.adminScheduleContext);
+        break;
+      case 'daysOff':
+        keys.add(CACHE_KEYS.daysOff);
+        keys.add(CACHE_KEYS.scheduleContext);
+        keys.add(CACHE_KEYS.adminDaysOff);
+        keys.add(CACHE_KEYS.adminScheduleContext);
+        break;
+      case 'specialist':
+        keys.add(CACHE_KEYS.specialist);
+        keys.add(CACHE_KEYS.adminProfile);
+        break;
+      case 'clientProfile':
+        keys.add(CACHE_KEYS.profile);
+        break;
+      case 'adminNotifications':
+        keys.add(CACHE_KEYS.adminNotifications);
+        break;
+    }
+  }
+
+  await Promise.all([
+    revalidateKeys([...keys]),
+    shouldRevalidateRecurringDetails ? revalidateRecurringDetails() : Promise.resolve(),
+  ]);
 }
 
-/***************************************************************************************************
- * Implements the invalidate admin notifications logic used by this module.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as void.
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function invalidateAdminNotifications(): void {
-  mutate(CACHE_KEYS.adminNotifications);
+export async function invalidateMutation(event: TMutationEvent): Promise<void> {
+  await invalidateChangeGroups(mutationGroupsForEndpoint(event));
+}
+
+export async function invalidateBookings(): Promise<void> {
+  await invalidateChangeGroups(['bookings']);
+}
+
+export async function invalidateClientStats(): Promise<void> {
+  await revalidateKeys([CACHE_KEYS.clientStats]);
+}
+
+export async function invalidateAdminStats(): Promise<void> {
+  await revalidateKeys([CACHE_KEYS.adminStats]);
+}
+
+export async function invalidateWorkingHours(): Promise<void> {
+  await invalidateChangeGroups(['workingHours']);
+}
+
+export async function invalidateDaysOff(): Promise<void> {
+  await invalidateChangeGroups(['daysOff']);
+}
+
+export async function invalidateServices(): Promise<void> {
+  await invalidateChangeGroups(['services']);
+}
+
+export async function invalidateSpecialist(): Promise<void> {
+  await invalidateChangeGroups(['specialist']);
+}
+
+export async function invalidateProfile(): Promise<void> {
+  await invalidateChangeGroups(['clientProfile']);
+}
+
+export async function invalidateRecurring(): Promise<void> {
+  await invalidateChangeGroups(['recurring', 'bookings']);
+}
+
+export async function invalidateClients(): Promise<void> {
+  await invalidateChangeGroups(['clients']);
+}
+
+export async function invalidateAdminNotifications(): Promise<void> {
+  await invalidateChangeGroups(['adminNotifications']);
 }

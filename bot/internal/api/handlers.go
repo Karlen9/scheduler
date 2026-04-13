@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"scheduler-bot/internal/changes"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -710,6 +711,9 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if booking != nil {
+		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	}
 	writeJSON(w, booking)
 }
 
@@ -849,6 +853,8 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("BOOKING CREATED [%s] Client: %s | Duration: %dmin | Time: %s %s",
 		booking.ID[:8], clientName, req.Duration, req.Date, req.Time)
+
+	changes.Publish(specialist.ID, changes.GroupBookings, changes.GroupClients)
 
 	/***************************************************************************************************
 	* Notify specialist.
@@ -1047,6 +1053,13 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		NotifyCancellations: updated.NotifyCancellations,
 	}
 
+	changes.Publish(
+		updated.SpecialistID,
+		changes.GroupClientProfile,
+		changes.GroupClients,
+		changes.GroupBookings,
+		changes.GroupRecurring,
+	)
 	writeJSON(w, resp)
 }
 
@@ -1128,6 +1141,7 @@ func HandleUpdateClientNotificationPrefs(w http.ResponseWriter, r *http.Request)
 		NotifyDaysOff:       updated.NotifyDaysOff,
 		NotifyCancellations: updated.NotifyCancellations,
 	}
+	changes.Publish(updated.SpecialistID, changes.GroupClientProfile)
 	writeJSON(w, resp)
 }
 
@@ -1201,6 +1215,9 @@ func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if booking != nil {
+		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	}
 	writeJSON(w, booking)
 }
 
@@ -1274,6 +1291,9 @@ func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if booking != nil {
+		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	}
 	writeJSON(w, booking)
 }
 

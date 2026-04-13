@@ -7,6 +7,19 @@ import type { ChangeEvent, Dispatch, ReactNode, RefObject, SetStateAction } from
  ***************************************************************************************************/
 export type TVoidFunction = () => void;
 
+export type TChangeGroup =
+  | 'bookings'
+  | 'recurring'
+  | 'clients'
+  | 'services'
+  | 'workingHours'
+  | 'daysOff'
+  | 'specialist'
+  | 'clientProfile'
+  | 'adminNotifications';
+
+export type TChangeVersions = Record<TChangeGroup, number>;
+
 /***************************************************************************************************
  * Defines the translate function shape shared by the shared utility layer.
  ***************************************************************************************************/
