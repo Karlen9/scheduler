@@ -28,7 +28,9 @@ function TimeSlotGridComponent({ slots, selected, onSelect }: TTimeSlotGridProps
               ? 'bg-primary text-primary-foreground'
               : slot.available
                 ? 'bg-card text-foreground hover:bg-border'
-                : 'bg-error/15 text-error cursor-not-allowed'
+                : slot.mine
+                  ? 'bg-success/15 text-success cursor-not-allowed'
+                  : 'bg-error/15 text-error cursor-not-allowed'
           }`}
         >
           {slot.time}

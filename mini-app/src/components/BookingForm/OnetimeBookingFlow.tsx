@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import { CalendarView } from '@/components/CalendarView';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
@@ -45,13 +46,9 @@ export function OnetimeBookingFlow({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const t = useTranslations('BookingForm');
-  /***************************************************************************************************
-   * Defines the tc value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
   const tc = useTranslations('Common');
+
+  const bookedDatesSet = useMemo(() => new Set(bookedDates ?? []), [bookedDates]);
 
   const {
     mode,
@@ -79,6 +76,7 @@ export function OnetimeBookingFlow({
     handleOnetimeSubmit,
   } = useOnetimeBooking({
     services,
+    bookedDates,
     selectedClient,
     hasClientSelector,
     onCreateBooking,
@@ -141,6 +139,14 @@ export function OnetimeBookingFlow({
               </button>
             </div>
 
+            {((mode === 'single' &&
+              selectedDate &&
+              bookedDatesSet.has(formatDateISO(selectedDate))) ||
+              (mode === 'multi' &&
+                selectedDates.some((d) => bookedDatesSet.has(formatDateISO(d))))) && (
+              <p className={'text-warning mb-2 text-xs'}>{t('bookedDateWarning')}</p>
+            )}
+
             {mode === 'single' ? (
               <CalendarView
                 selectedDate={selectedDate}
@@ -194,7 +200,11 @@ export function OnetimeBookingFlow({
               <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
                 {t('selectTime')}
               </h3>
-              <TimeSlotLegend availableLabel={t('available')} occupiedLabel={t('occupied')} />
+              <TimeSlotLegend
+                availableLabel={t('available')}
+                occupiedLabel={t('occupied')}
+                mineLabel={!hasClientSelector ? t('myBooking') : undefined}
+              />
               <TimeSlotGrid
                 slots={timeSlots}
                 selected={selectedTime}
@@ -228,7 +238,11 @@ export function OnetimeBookingFlow({
                 <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
                   {t('selectTime')}
                 </h3>
-                <TimeSlotLegend availableLabel={t('available')} occupiedLabel={t('occupied')} />
+                <TimeSlotLegend
+                  availableLabel={t('available')}
+                  occupiedLabel={t('occupied')}
+                  mineLabel={!hasClientSelector ? t('myBooking') : undefined}
+                />
                 <TimeSlotGrid
                   slots={timeSlots}
                   selected={multiActiveTime}

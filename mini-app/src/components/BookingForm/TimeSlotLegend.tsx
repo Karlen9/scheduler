@@ -15,9 +15,11 @@ import type { ReactNode } from 'react';
 export function TimeSlotLegend({
   availableLabel,
   occupiedLabel,
+  mineLabel,
 }: {
   availableLabel: string;
   occupiedLabel: string;
+  mineLabel?: string;
 }): ReactNode {
   return (
     <div className={'mb-3 flex items-center gap-4'}>
@@ -29,6 +31,12 @@ export function TimeSlotLegend({
         <span className={'bg-error h-2.5 w-2.5 rounded-full'} />
         <span className={'text-muted-foreground text-xs'}>{occupiedLabel}</span>
       </div>
+      {mineLabel && (
+        <div className={'flex items-center gap-1.5'}>
+          <span className={'bg-success h-2.5 w-2.5 rounded-full'} />
+          <span className={'text-muted-foreground text-xs'}>{mineLabel}</span>
+        </div>
+      )}
     </div>
   );
 }

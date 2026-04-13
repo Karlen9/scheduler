@@ -129,7 +129,8 @@
       "sat": "Saturday",
       "sun": "Sunday"
     },
-    "dayOff": "Day Off"
+    "dayOff": "Day Off",
+    "myBooking": "My booking"
   },
   "Duration": {
     "hour": "h",
@@ -192,6 +193,7 @@
     "selectTime": "Select a time",
     "available": "Available",
     "occupied": "Occupied",
+    "myBooking": "My booking",
     "comment": "Comment",
     "commentPlaceholder": "Requests or comments (optional)",
     "btnSelectClient": "Select a client",
@@ -221,7 +223,8 @@
     "successBookingCreated": "Booking created.",
     "successRecurringTitle": "Schedule Submitted",
     "successRecurringForClient": "Schedule for {name} has been submitted for confirmation.",
-    "successRecurringForSpecialist": "Schedule has been submitted for specialist's confirmation."
+    "successRecurringForSpecialist": "Schedule has been submitted for specialist's confirmation.",
+    "bookedDateWarning": "You already have a booking on this day. Cancel it to book a new time."
   },
   "BookingsPage": {
     "title": "My Bookings",

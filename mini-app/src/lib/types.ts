@@ -97,6 +97,7 @@ export type TTimeSlot = {
   time: string;
   endTime?: string;
   available: boolean;
+  mine?: boolean;
 };
 
 /***************************************************************************************************
@@ -980,6 +981,8 @@ export type TTimelineEmptySlotProps = {
   date: Date;
   top: number;
   height: number;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 
@@ -997,6 +1000,7 @@ export type TTopBarProps = {
  ***************************************************************************************************/
 export type TUseOnetimeBookingParams = {
   services: TSessionType[];
+  bookedDates?: string[];
   selectedClient: TClientInfo | null;
   hasClientSelector: boolean;
   onCreateBooking: (params: TCreateBookingParams) => Promise<void>;

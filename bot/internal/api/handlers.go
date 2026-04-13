@@ -485,7 +485,11 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Generate time slots.
 	***************************************************************************************************/
-	slots := generateTimeSlots(date, dayWorkingHours, duration, bookings)
+	var clientID string
+	if client := GetClientFromContext(r); client != nil {
+		clientID = client.ID
+	}
+	slots := generateTimeSlots(date, dayWorkingHours, duration, bookings, clientID)
 
 	setPrivateCache(w, 15, 30)
 	writeJSON(w, slots)
@@ -506,9 +510,11 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 * Side effects:
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
-func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration int, bookings []models.Booking) []models.TimeSlot {
+func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration int, bookings []models.Booking, clientID string) []models.TimeSlot {
 	var slots []models.TimeSlot
 	seen := make(map[string]bool)
+	now := time.Now().UTC()
+	isToday := date.Year() == now.Year() && date.Month() == now.Month() && date.Day() == now.Day()
 
 	for _, interval := range intervals {
 		startMinutes, err := timeToMinutes(interval.StartTime)
@@ -532,12 +538,20 @@ func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration
 			endTimeStr := formatTime(endMin/60, endMin%60)
 
 			slotStart := time.Date(date.Year(), date.Month(), date.Day(), hour, min, 0, 0, time.UTC)
+			if isToday && slotStart.Before(now) {
+				seen[timeStr] = true
+				continue
+			}
 			slotEnd := slotStart.Add(time.Duration(duration) * time.Minute)
 
 			available := true
+			mine := false
 			for _, booking := range bookings {
 				if slotStart.Before(booking.EndsAt) && slotEnd.After(booking.StartsAt) {
 					available = false
+					if clientID != "" && booking.ClientID == clientID {
+						mine = true
+					}
 					break
 				}
 			}
@@ -547,6 +561,7 @@ func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration
 				Time:      timeStr,
 				EndTime:   endTimeStr,
 				Available: available,
+				Mine:      mine,
 			})
 		}
 	}
