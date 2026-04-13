@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import { CalendarView } from '@/components/CalendarView';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
@@ -49,6 +49,25 @@ export function OnetimeBookingFlow({
   const tc = useTranslations('Common');
 
   const bookedDatesSet = useMemo(() => new Set(bookedDates ?? []), [bookedDates]);
+  const dateStageRef = useRef<HTMLDivElement | null>(null);
+  const timeStageRef = useRef<HTMLDivElement | null>(null);
+  const completionStageRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToStage = useCallback((stageRef: { current: HTMLDivElement | null }): void => {
+    window.setTimeout(() => {
+      const stage = stageRef.current;
+      if (!stage) {
+        return;
+      }
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      stage.scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'start',
+        inline: 'nearest',
+      });
+    }, 80);
+  }, []);
 
   const {
     mode,
@@ -83,6 +102,44 @@ export function OnetimeBookingFlow({
     successRedirect,
   });
 
+  const handleServiceSelectAndScroll = (service: (typeof services)[number]): void => {
+    handleServiceSelect(service);
+    scrollToStage(dateStageRef);
+  };
+
+  const handleSingleDateSelectAndScroll = (date: Date): void => {
+    handleSingleDateSelect(date);
+    scrollToStage(timeStageRef);
+  };
+
+  const handleSingleTimeSelectAndScroll = (time: string): void => {
+    handleSingleTimeSelect(time);
+    scrollToStage(completionStageRef);
+  };
+
+  const handleMultiDateToggleAndScroll = (date: Date): void => {
+    const iso = formatDateISO(date);
+    const isSelectingDate = !selectedDates.some((selected) => formatDateISO(selected) === iso);
+    handleMultiDateToggle(date);
+    if (isSelectingDate) {
+      scrollToStage(timeStageRef);
+    }
+  };
+
+  const handleMultiTimeSelectAndScroll = (time: string): void => {
+    if (!activeDateISO) {
+      handleMultiTimeSelect(time);
+      return;
+    }
+
+    const nextAssignments = { ...timeAssignments, [activeDateISO]: time };
+    const allAssigned = selectedDates.every((date) => nextAssignments[formatDateISO(date)]);
+    handleMultiTimeSelect(time);
+    if (allAssigned) {
+      scrollToStage(completionStageRef);
+    }
+  };
+
   return (
     <>
       {/***************************************************************************************************
@@ -95,7 +152,7 @@ export function OnetimeBookingFlow({
               key={service.id}
               service={service}
               selected={false}
-              onSelect={() => handleServiceSelect(service)}
+              onSelect={() => handleServiceSelectAndScroll(service)}
               minLabel={tc('min')}
             />
           ))}
@@ -116,7 +173,7 @@ export function OnetimeBookingFlow({
           {/***************************************************************************************************
            * Single/Multi mode toggle.
            ***************************************************************************************************/}
-          <div>
+          <div ref={dateStageRef} className={'scroll-mt-4'}>
             <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
               {mode === 'single' ? t('selectDay') : t('selectDays')}
             </h3>
@@ -150,7 +207,7 @@ export function OnetimeBookingFlow({
             {mode === 'single' ? (
               <CalendarView
                 selectedDate={selectedDate}
-                onSelectDate={handleSingleDateSelect}
+                onSelectDate={handleSingleDateSelectAndScroll}
                 nonWorkingDays={nonWorkingDays}
                 daysOff={daysOff}
                 bookedDates={bookedDates}
@@ -159,7 +216,7 @@ export function OnetimeBookingFlow({
               <CalendarView
                 selectedDate={null}
                 selectedDates={selectedDates}
-                onSelectDate={handleMultiDateToggle}
+                onSelectDate={handleMultiDateToggleAndScroll}
                 nonWorkingDays={nonWorkingDays}
                 daysOff={daysOff}
                 bookedDates={bookedDates}
@@ -171,7 +228,7 @@ export function OnetimeBookingFlow({
            * Time Slots Loading.
            ***************************************************************************************************/}
           {isLoadingSlots && timeSlots.length === 0 && (
-            <div>
+            <div ref={timeStageRef} className={'scroll-mt-4'}>
               <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
                 {t('selectTime')}
               </h3>
@@ -195,6 +252,7 @@ export function OnetimeBookingFlow({
            ***************************************************************************************************/}
           {mode === 'single' && selectedDate && timeSlots.length > 0 && (
             <div
+              ref={timeStageRef}
               className={`transition-opacity duration-200 ${isLoadingSlots ? 'pointer-events-none opacity-40' : ''}`}
             >
               <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
@@ -208,7 +266,7 @@ export function OnetimeBookingFlow({
               <TimeSlotGrid
                 slots={timeSlots}
                 selected={selectedTime}
-                onSelect={handleSingleTimeSelect}
+                onSelect={handleSingleTimeSelectAndScroll}
               />
             </div>
           )}
@@ -233,6 +291,7 @@ export function OnetimeBookingFlow({
             activeDateISO &&
             timeSlots.length > 0 && (
               <div
+                ref={timeStageRef}
                 className={`transition-opacity duration-200 ${isLoadingSlots ? 'pointer-events-none opacity-40' : ''}`}
               >
                 <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>
@@ -246,7 +305,7 @@ export function OnetimeBookingFlow({
                 <TimeSlotGrid
                   slots={timeSlots}
                   selected={multiActiveTime}
-                  onSelect={handleMultiTimeSelect}
+                  onSelect={handleMultiTimeSelectAndScroll}
                 />
               </div>
             )}
@@ -258,7 +317,7 @@ export function OnetimeBookingFlow({
             (mode === 'multi' &&
               selectedDates.length > 0 &&
               selectedDates.every((d) => timeAssignments[formatDateISO(d)]))) && (
-            <div>
+            <div ref={completionStageRef} className={'scroll-mt-4'}>
               <h3 className={'text-muted-foreground mb-2 text-sm font-medium'}>{t('comment')}</h3>
               <textarea
                 value={message}
