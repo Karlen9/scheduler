@@ -1,3 +1,4 @@
+import { emitMutation } from './mutation-events';
 import { dedupeRequest } from './request-cache';
 import { getSpecialistId, waitForInitData } from './telegram';
 
@@ -5,6 +6,7 @@ import type {
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
+  TChangeVersions,
   TClientInfo,
   TClientProfile,
   TClientStats,
@@ -61,7 +63,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
    * Usage context:
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
-  const method = options?.method ?? 'GET';
+  const method = (options?.method ?? 'GET').toUpperCase();
 
   /***************************************************************************************************
    * Defines the is form data value used by the shared utility layer.
@@ -98,7 +100,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
      ***************************************************************************************************/
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
-      cache: method === 'GET' ? options?.cache : 'no-store',
+      cache: options?.cache ?? 'no-store',
       headers,
     });
 
@@ -113,11 +115,13 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
       throw new Error(errorText || `HTTP ${response.status}`);
     }
 
-    if (response.status === 204) {
-      return undefined as T;
+    const data = response.status === 204 ? (undefined as T) : await response.json();
+
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
+      emitMutation({ method, endpoint });
     }
 
-    return response.json();
+    return data;
   };
 
   if (method === 'GET') {
@@ -304,6 +308,13 @@ export const api = {
    ***************************************************************************************************/
   async getClientStats(): Promise<TClientStats> {
     return fetchAPI<TClientStats>('/api/stats');
+  },
+
+  /***************************************************************************************************
+   * Returns lightweight resource change versions for frontend cache sync.
+   ***************************************************************************************************/
+  async getChangeVersions(): Promise<TChangeVersions> {
+    return fetchAPI<TChangeVersions>('/api/changes');
   },
 
   /***************************************************************************************************

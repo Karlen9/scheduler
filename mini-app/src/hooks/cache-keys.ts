@@ -15,6 +15,7 @@ export const CACHE_KEYS = {
   clientStats: 'clientStats',
   recurringSchedules: 'recurringSchedules',
   recurringDetail: (id: string) => `recurringDetail:${id}`,
+  changeVersions: 'changeVersions',
 
   /***************************************************************************************************
    * Admin keys.

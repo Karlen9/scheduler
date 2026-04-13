@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"scheduler-bot/internal/changes"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -385,6 +386,7 @@ func (h *Handler) handleCallbackQuery(update Update) {
 	* Notify client about status change.
 	***************************************************************************************************/
 	h.NotifyClientStatusChange(booking, string(newStatus))
+	changes.Publish(booking.SpecialistID, changes.GroupBookings)
 }
 
 /***************************************************************************************************
@@ -436,6 +438,7 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	* Update language.
 	***************************************************************************************************/
 	db.UpdateClientLanguage(client.ID, lang)
+	changes.Publish(specialistID, changes.GroupClientProfile, changes.GroupClients)
 
 	/***************************************************************************************************
 	* Answer callback.
@@ -565,6 +568,7 @@ func (h *Handler) handleClientBookingCallback(update Update) {
 	* Notify specialist about client's response.
 	***************************************************************************************************/
 	h.notifySpecialistClientResponse(booking, accepted)
+	changes.Publish(booking.SpecialistID, changes.GroupBookings)
 }
 
 /***************************************************************************************************

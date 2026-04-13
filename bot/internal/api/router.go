@@ -55,7 +55,7 @@ func NewRouter() http.Handler {
 	allowedOrigins := allowedOriginsForCORS(WebAppURL)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Specialist-ID", "X-Trainer-ID", "X-Test-User-ID"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
@@ -104,6 +104,7 @@ func NewRouter() http.Handler {
 		r.Get("/durations", HandleGetDurations)
 		r.Get("/bookings", HandleGetBookings)
 		r.Get("/stats", HandleGetClientStats)
+		r.Get("/changes", HandleGetChangeVersions)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
 		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
