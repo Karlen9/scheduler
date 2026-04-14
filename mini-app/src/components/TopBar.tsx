@@ -1,8 +1,9 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useCallback } from 'react';
+
+import { useTelegramBackHandler } from '@/components/TelegramBackButtonProvider';
 
 import type { TTopBarProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -27,13 +28,6 @@ export function TopBar({ title, showBack = false, onBack }: TTopBarProps): React
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
-  /***************************************************************************************************
-   * Defines the tc value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const tc = useTranslations('Common');
 
   /***************************************************************************************************
    * Handles back.
@@ -41,13 +35,15 @@ export function TopBar({ title, showBack = false, onBack }: TTopBarProps): React
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleBack = (): void => {
+  const handleBack = useCallback((): void => {
     if (onBack) {
       onBack();
     } else {
       router.back();
     }
-  };
+  }, [onBack, router]);
+
+  useTelegramBackHandler(showBack ? handleBack : null);
 
   return (
     <div
@@ -55,15 +51,6 @@ export function TopBar({ title, showBack = false, onBack }: TTopBarProps): React
         'bg-background border-border sticky top-0 z-10 flex h-14 items-center border-b px-4'
       }
     >
-      {showBack && (
-        <button
-          onClick={handleBack}
-          className={'mr-1 -ml-2 flex h-10 w-10 items-center justify-center'}
-          aria-label={tc('back')}
-        >
-          <ArrowLeft className={'text-foreground h-6 w-6'} />
-        </button>
-      )}
       <h1 className={'text-foreground flex-1 text-lg font-medium'}>{title}</h1>
     </div>
   );

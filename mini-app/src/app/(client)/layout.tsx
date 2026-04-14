@@ -3,11 +3,11 @@
 import { CalendarDays, House, User } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { BottomTabBar } from '@/components/BottomTabBar';
+import { TelegramBackButtonProvider } from '@/components/TelegramBackButtonProvider';
 import { resolveTestAwareHref } from '@/lib/routes';
-import { getTelegramWebApp } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
@@ -92,38 +92,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     [bookHref, bookingsHref, homeHref, profileHref, recurringHref, tn],
   );
 
-  useEffect(() => {
-    /***************************************************************************************************
-     * Defines the web app value used by the page layer.
-     *
-     * Usage context:
-     * - Reused by the page layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const webApp = getTelegramWebApp();
-    if (!webApp) {
-      return;
-    }
-
-    if (isHome) {
-      webApp.BackButton.hide();
-    } else {
-      webApp.BackButton.show();
-      /***************************************************************************************************
-       * Defines the handler value used by the page layer.
-       *
-       * Usage context:
-       * - Reused by the page layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const handler = (): void => router.push(homeHref);
-      webApp.BackButton.onClick(handler);
-      return () => webApp.BackButton.offClick(handler);
-    }
-  }, [homeHref, isHome, router]);
+  const handleBack = useCallback((): void => {
+    router.push(homeHref);
+  }, [homeHref, router]);
 
   return (
-    <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
-      <div className={isBookPage ? '' : 'pb-24'}>{children}</div>
-      {!isBookPage && <BottomTabBar tabs={clientTabs} />}
-    </div>
+    <TelegramBackButtonProvider isRoot={isHome} onBack={handleBack}>
+      <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
+        <div className={isBookPage ? '' : 'pb-24'}>{children}</div>
+        {!isBookPage && <BottomTabBar tabs={clientTabs} />}
+      </div>
+    </TelegramBackButtonProvider>
   );
 }

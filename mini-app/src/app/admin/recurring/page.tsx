@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { ActivityBackButton } from '@/components/ActivityBackButton';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { RecurringScheduleCard } from '@/components/RecurringScheduleCard';
@@ -161,7 +160,6 @@ export default function AdminRecurringPage(): ReactNode {
   if (isLoading) {
     return (
       <div>
-        <ActivityBackButton href={'/admin'} />
         <div className={'animate-pulse space-y-3 p-4'}>
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={'bg-card space-y-2 rounded-xl p-4'}>
@@ -176,8 +174,6 @@ export default function AdminRecurringPage(): ReactNode {
 
   return (
     <div>
-      <ActivityBackButton href={'/admin'} />
-
       <div className={'space-y-6 p-4'}>
         {!hasSchedules ? (
           <EmptyState
