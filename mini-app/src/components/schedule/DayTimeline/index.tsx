@@ -43,23 +43,45 @@ function collapsedSlotOffset(minute: number, slot: TEmptySlot): number {
   if (duration <= 0) {
     return 0;
   }
-  if (slot.startMin % 60 === 0) {
+
+  const headEnd = Math.min(slot.endMin, Math.ceil(slot.startMin / 60) * 60);
+  const tailStart = Math.max(headEnd, Math.floor(slot.endMin / 60) * 60);
+  const headHeight = ((headEnd - slot.startMin) / 60) * HOUR_HEIGHT;
+  const tailHeight = ((slot.endMin - tailStart) / 60) * HOUR_HEIGHT;
+  const middleDuration = tailStart - headEnd;
+  const middleHeight = Math.max(0, COLLAPSED_HEIGHT - headHeight - tailHeight);
+
+  if (headEnd === slot.startMin && tailStart === slot.endMin) {
     return ((minute - slot.startMin) / duration) * COLLAPSED_HEIGHT;
   }
 
-  const firstFullHour = Math.min(slot.endMin, (Math.floor(slot.startMin / 60) + 1) * 60);
-  const firstFullHourOffset = ((firstFullHour - slot.startMin) / 60) * HOUR_HEIGHT;
-  if (minute <= firstFullHour) {
+  if (minute <= headEnd) {
     return ((minute - slot.startMin) / 60) * HOUR_HEIGHT;
   }
 
-  const remainingDuration = slot.endMin - firstFullHour;
-  if (remainingDuration <= 0) {
-    return firstFullHourOffset;
+  if (minute >= tailStart) {
+    return headHeight + middleHeight + ((minute - tailStart) / 60) * HOUR_HEIGHT;
   }
 
-  const remainingHeight = Math.max(0, COLLAPSED_HEIGHT - firstFullHourOffset);
-  return firstFullHourOffset + ((minute - firstFullHour) / remainingDuration) * remainingHeight;
+  if (middleDuration <= 0) {
+    return headHeight;
+  }
+
+  return headHeight + ((minute - headEnd) / middleDuration) * middleHeight;
+}
+
+function isCompressedSlotMiddleMinute(minute: number, slot: TEmptySlot): boolean {
+  if (minute <= slot.startMin || minute >= slot.endMin) {
+    return false;
+  }
+
+  const headEnd = Math.min(slot.endMin, Math.ceil(slot.startMin / 60) * 60);
+  const tailStart = Math.max(headEnd, Math.floor(slot.endMin / 60) * 60);
+  if (headEnd === slot.startMin && tailStart === slot.endMin) {
+    return true;
+  }
+
+  return minute > headEnd && minute < tailStart;
 }
 
 /**
@@ -314,18 +336,34 @@ function DayTimelineComponent({
     for (let h = startHour; h <= endHour; h++) {
       const hMin = h * 60;
       if (hMin > slot.startMin && hMin < slot.endMin) {
-        labels.push({ hour: h, emphasized: slot.startMin % 60 !== 0 && labels.length === 0 });
+        const emphasized =
+          (slot.startMin % 60 !== 0 && labels.length === 0) ||
+          (slot.endMin % 60 !== 0 && h === endHour);
+        if (emphasized) {
+          labels.push({ hour: h, emphasized });
+        }
       }
     }
     return labels;
   });
 
+  const collapsedRails = sortedCollapsed
+    .map((slot) => {
+      const startMinute =
+        slot.startMin % 60 === 0 ? slot.startMin : Math.ceil(slot.startMin / 60) * 60;
+      const endMinute = slot.endMin % 60 === 0 ? slot.endMin : Math.floor(slot.endMin / 60) * 60;
+      return { startMinute, endMinute };
+    })
+    .filter(({ startMinute, endMinute }) => endMinute > startMinute);
+
   const quarterMarkers: { minute: number; offset: 15 | 30 | 45 }[] = [];
   for (let h = minHour; h < maxHour; h++) {
     for (const offset of [15, 30, 45] as const) {
       const minute = h * 60 + offset;
-      const insideCollapsed = sortedCollapsed.some((s) => minute > s.startMin && minute < s.endMin);
-      if (!insideCollapsed) {
+      const insideCompressedMiddle = sortedCollapsed.some((s) =>
+        isCompressedSlotMiddleMinute(minute, s),
+      );
+      if (!insideCompressedMiddle) {
         quarterMarkers.push({ minute, offset });
       }
     }
@@ -379,6 +417,27 @@ function DayTimelineComponent({
           </span>
         </div>
       ))}
+
+      {collapsedRails.map(({ startMinute, endMinute }) => {
+        const railTop = toPixel(startMinute) + 12;
+        const railHeight = Math.max(0, toPixel(endMinute) - toPixel(startMinute) - 24);
+        return (
+          <div
+            key={`collapsed-rail-${startMinute}-${endMinute}`}
+            className={'pointer-events-none absolute left-6 w-px overflow-hidden'}
+            style={{
+              top: railTop,
+              height: railHeight,
+              backgroundImage:
+                'repeating-linear-gradient(to bottom, rgba(156, 163, 175, 0.45) 0 3px, transparent 3px 8px)',
+              WebkitMaskImage:
+                'linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%)',
+              maskImage:
+                'linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%)',
+            }}
+          />
+        );
+      })}
 
       {quarterMarkers.map(({ minute, offset }) => (
         <div
