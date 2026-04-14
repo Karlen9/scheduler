@@ -66,6 +66,13 @@ const (
 	* - Reused by the api layer to keep shared values centralized.
 	***************************************************************************************************/
 	SpecialistContextKey contextKey = "specialist"
+	/***************************************************************************************************
+	* Defines the telegram user context key value used by the api layer.
+	*
+	* Usage context:
+	* - Reused by the api layer to keep shared values centralized.
+	***************************************************************************************************/
+	TelegramUserContextKey contextKey = "telegramUser"
 )
 
 /***************************************************************************************************
@@ -219,6 +226,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 
 			ctx := context.WithValue(r.Context(), ClientContextKey, client)
 			ctx = context.WithValue(ctx, SpecialistContextKey, specialist)
+			ctx = context.WithValue(ctx, TelegramUserContextKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -355,6 +363,24 @@ func GetClientFromContext(r *http.Request) *models.Client {
 func GetSpecialistFromContext(r *http.Request) *models.Specialist {
 	specialist, _ := r.Context().Value(SpecialistContextKey).(*models.Specialist)
 	return specialist
+}
+
+/***************************************************************************************************
+* GetTelegramUserFromContext extracts Telegram initData user from request context.
+*
+* Parameters:
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - The computed value for the current operation as *TelegramUser.
+*
+* Side effects:
+* - Reads request-scoped context.
+*
+***************************************************************************************************/
+func GetTelegramUserFromContext(r *http.Request) *TelegramUser {
+	user, _ := r.Context().Value(TelegramUserContextKey).(*TelegramUser)
+	return user
 }
 
 /***************************************************************************************************
