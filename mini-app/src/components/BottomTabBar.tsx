@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { memo, useEffect, useRef, useState } from 'react';
 
+import { isRootTabHref } from '@/lib/routes';
+
 import type { TBottomTabBarProps } from '@/lib/types';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -107,7 +109,7 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
     if (tab.matchPaths) {
       return tab.matchPaths.some((path) => pathname === path || pathname.startsWith(path + '/'));
     }
-    if (tab.href === '/admin' || tab.href === '/') {
+    if (isRootTabHref(tab.href)) {
       return pathname === tab.href || pathname === tab.href + '/';
     }
     return pathname === tab.href || pathname.startsWith(tab.href + '/');

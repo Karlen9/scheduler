@@ -1,10 +1,11 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { TNextBookingBannerProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -29,6 +30,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
+  const pathname = usePathname();
   /***************************************************************************************************
    * Defines the t value used by the component layer.
    *
@@ -250,7 +252,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
               <p className={'text-muted-foreground/60 mt-0.5 text-sm'}>{t('noUpcomingSessions')}</p>
             </div>
             <button
-              onClick={() => router.push('/admin/book')}
+              onClick={() => router.push(resolveTestAwareHref(pathname, '/admin/book'))}
               className={
                 'bg-brand flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-80'
               }

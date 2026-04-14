@@ -1,7 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+
+import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { ReactNode } from 'react';
 
@@ -25,8 +27,9 @@ export default function AdminBookingsRedirect(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
+  const pathname = usePathname();
   useEffect(() => {
-    router.replace('/admin');
-  }, [router]);
+    router.replace(resolveTestAwareHref(pathname, '/admin'));
+  }, [pathname, router]);
   return null;
 }

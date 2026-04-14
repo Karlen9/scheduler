@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { invalidateRecurring } from '@/hooks/mutations';
 import { generateTimeSlotsForDay } from '@/lib/helpers';
+import { resolveTestAwareHref } from '@/lib/routes';
 
 import { RecurringDayForm } from './RecurringDayForm';
 
@@ -42,6 +43,7 @@ export function RecurringBookingFlow({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
+  const pathname = usePathname();
   /***************************************************************************************************
    * Defines the t value used by the component layer.
    *
@@ -245,7 +247,7 @@ export function RecurringBookingFlow({
           })
         : t('successRecurringForSpecialist');
       toast.success(t('successRecurringTitle'), { description: recDesc });
-      router.push(successRedirect);
+      router.push(resolveTestAwareHref(pathname, successRedirect));
     } catch (err) {
       /***************************************************************************************************
        * Defines the msg value used by the component layer.
