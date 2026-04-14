@@ -36,6 +36,7 @@
   },
   "Navigation": {
     "bookings": "Bookings",
+    "allBookings": "All Bookings",
     "book": "Book",
     "specialist": "Specialist",
     "analytics": "Analytics",
@@ -290,6 +291,7 @@
     "loadError": "Loading Error",
     "newRequests": "New Requests",
     "allClients": "All Clients",
+    "allBookings": "All Bookings",
     "rejectDialog": "Reject request?",
     "rejectDialogDescription": "Are you sure you want to reject the request from {name}?",
     "rejectConfirm": "Reject",
@@ -382,6 +384,38 @@
     "renameSuccess": "Client name updated",
     "renameError": "Failed to rename client"
   },
+  "AdminAllBookings": {
+    "title": "All Bookings",
+    "totalCount": "{count} bookings",
+    "filters": "Filters",
+    "filtersWithCount": "Filters ({count})",
+    "filtersTitle": "Filters and Sort",
+    "clientSearch": "Client",
+    "clientSearchPlaceholder": "Name or phone",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "service": "Service",
+    "allServices": "All services",
+    "sort": "Sort",
+    "sortOptions": {
+      "created_desc": "Newest request first",
+      "starts_at_asc": "Booking date ascending",
+      "starts_at_desc": "Booking date descending",
+      "status_asc": "Status"
+    },
+    "applyFilters": "Apply",
+    "resetFilters": "Reset",
+    "emptyTitle": "No bookings yet",
+    "emptyDescription": "Bookings will appear here after clients book sessions",
+    "emptyFilteredTitle": "No matching bookings",
+    "emptyFilteredDescription": "Change filters to see more bookings",
+    "previous": "Previous",
+    "next": "Next",
+    "pageStatus": "Page {page} of {totalPages}",
+    "dmUnavailable": "This client cannot be messaged"
+  },
   "AdminHelp": {
     "title": "Help",
     "faqTitle": "FAQ",
@@ -424,6 +458,7 @@
     },
     "rescheduleButton": "Reschedule",
     "cancelButton": "Cancel",
+    "messageClientButton": "Message client",
     "waitingForClient": "Waiting for client response"
   },
   "RescheduleSheet": {

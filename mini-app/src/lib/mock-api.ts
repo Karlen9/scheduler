@@ -1,4 +1,5 @@
 import type {
+  TAdminBookingsResponse,
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
@@ -157,10 +158,13 @@ function buildBooking({
     clientName: client.name,
     clientDisplayName: client.displayName,
     clientPhotoUrl: client.photoUrl,
+    clientIsGhost: client.isGhost,
+    clientTelegramUserId: client.telegramUserId,
     clientMessage: message,
     status,
     durationMinutes: service.durationMinutes,
     createdBy,
+    createdAt: isoAt(days - 2, '09:00'),
     recurringScheduleId,
   };
 }
@@ -475,6 +479,75 @@ function getAllBookings(state: TMockState): TBooking[] {
   ];
 }
 
+function getAdminBookingsPage(state: TMockState, endpoint: string): TAdminBookingsResponse {
+  const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
+  const status = params.get('status');
+  const dateFrom = params.get('dateFrom');
+  const dateTo = params.get('dateTo');
+  const client = (params.get('client') ?? '').trim().toLowerCase();
+  const serviceId = params.get('serviceId');
+  const sort = params.get('sort') ?? 'created_desc';
+  const page = Math.max(Number(params.get('page') ?? 1) || 1, 1);
+  const limit = Math.max(Number(params.get('limit') ?? 20) || 20, 1);
+
+  let bookings = getAllBookings(state).filter((booking) => {
+    if (status && booking.status !== status) {
+      return false;
+    }
+    if (dateFrom && booking.startsAt.slice(0, 10) < dateFrom) {
+      return false;
+    }
+    if (dateTo && booking.startsAt.slice(0, 10) > dateTo) {
+      return false;
+    }
+    if (serviceId && booking.sessionType?.id !== serviceId) {
+      return false;
+    }
+    if (client) {
+      const haystack = [
+        booking.clientName,
+        booking.clientDisplayName ?? '',
+        booking.clientMessage ?? '',
+      ]
+        .join(' ')
+        .toLowerCase();
+      if (!haystack.includes(client)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  bookings = [...bookings].sort((a, b) => {
+    if (sort === 'starts_at_asc') {
+      return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+    }
+    if (sort === 'starts_at_desc') {
+      return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+    }
+    if (sort === 'status_asc') {
+      return (
+        a.status.localeCompare(b.status) ||
+        new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()
+      );
+    }
+    return (
+      new Date(b.createdAt ?? b.startsAt).getTime() - new Date(a.createdAt ?? a.startsAt).getTime()
+    );
+  });
+
+  const total = bookings.length;
+  const offset = (page - 1) * limit;
+  const pageBookings = bookings.slice(offset, offset + limit);
+  return {
+    bookings: clone(pageBookings),
+    total,
+    page,
+    limit,
+    totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+  };
+}
+
 function findBooking(state: TMockState, bookingId: string): TBooking | null {
   return getAllBookings(state).find((booking) => booking.id === bookingId) ?? null;
 }
@@ -577,10 +650,13 @@ function createBookingFromBody(
     clientName: client.name,
     clientDisplayName: client.displayName,
     clientPhotoUrl: client.photoUrl,
+    clientIsGhost: client.isGhost,
+    clientTelegramUserId: client.telegramUserId,
     clientMessage: getOptionalString(body.message),
     status: createdBy === 'specialist' || client.isGhost ? 'confirmed' : 'pending',
     durationMinutes: service.durationMinutes,
     createdBy,
+    createdAt: new Date().toISOString(),
   };
 
   state.bookings = [booking, ...state.bookings];
@@ -733,7 +809,11 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
       return clone(getAllBookings(state)) as T;
     }
     if (path === '/api/admin/bookings') {
-      const status = new URLSearchParams(endpoint.split('?')[1] ?? '').get('status');
+      const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
+      if (params.has('page') || params.has('limit')) {
+        return getAdminBookingsPage(state, endpoint) as T;
+      }
+      const status = params.get('status');
       const bookings = getAllBookings(state);
       return clone(
         status ? bookings.filter((booking) => booking.status === status) : bookings,

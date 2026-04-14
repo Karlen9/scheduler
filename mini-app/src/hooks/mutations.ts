@@ -12,6 +12,10 @@ function isRecurringDetailKey(key: unknown): boolean {
   );
 }
 
+function isAdminBookingsListKey(key: unknown): boolean {
+  return typeof key === 'string' && key.includes('adminBookingsList:');
+}
+
 async function revalidateKeys(keys: string[]): Promise<void> {
   await Promise.all(
     [...new Set(keys)].map(async (key) => {
@@ -22,6 +26,10 @@ async function revalidateKeys(keys: string[]): Promise<void> {
 
 async function revalidateRecurringDetails(): Promise<void> {
   await mutate(isRecurringDetailKey, undefined, { revalidate: true });
+}
+
+async function revalidateAdminBookingsLists(): Promise<void> {
+  await mutate(isAdminBookingsListKey, undefined, { revalidate: true });
 }
 
 function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChangeGroup[] {
@@ -91,6 +99,7 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
 export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<void> {
   const keys = new Set<string>();
   let shouldRevalidateRecurringDetails = false;
+  let shouldRevalidateAdminBookingsLists = false;
 
   for (const group of new Set(groups)) {
     switch (group) {
@@ -99,6 +108,7 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
         keys.add(CACHE_KEYS.clientStats);
         keys.add(CACHE_KEYS.adminBookings);
         keys.add(CACHE_KEYS.adminStats);
+        shouldRevalidateAdminBookingsLists = true;
         break;
       case 'recurring':
         keys.add(CACHE_KEYS.recurringSchedules);
@@ -140,6 +150,7 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
   await Promise.all([
     revalidateKeys([...keys]),
     shouldRevalidateRecurringDetails ? revalidateRecurringDetails() : Promise.resolve(),
+    shouldRevalidateAdminBookingsLists ? revalidateAdminBookingsLists() : Promise.resolve(),
   ]);
 }
 

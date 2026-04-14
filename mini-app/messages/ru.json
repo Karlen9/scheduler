@@ -36,6 +36,7 @@
   },
   "Navigation": {
     "bookings": "Записи",
+    "allBookings": "Все записи",
     "book": "Записаться",
     "specialist": "Специалист",
     "analytics": "Статистика",
@@ -290,6 +291,7 @@
     "loadError": "Ошибка загрузки",
     "newRequests": "Новые заявки",
     "allClients": "Все клиенты",
+    "allBookings": "Все записи",
     "rejectDialog": "Отклонить заявку?",
     "rejectDialogDescription": "Вы уверены, что хотите отклонить заявку клиента {name}?",
     "rejectConfirm": "Отклонить",
@@ -382,6 +384,38 @@
     "renameSuccess": "Имя клиента обновлено",
     "renameError": "Не удалось переименовать клиента"
   },
+  "AdminAllBookings": {
+    "title": "Все записи",
+    "totalCount": "Записей: {count}",
+    "filters": "Фильтры",
+    "filtersWithCount": "Фильтры ({count})",
+    "filtersTitle": "Фильтры и сортировка",
+    "clientSearch": "Клиент",
+    "clientSearchPlaceholder": "Имя или телефон",
+    "status": "Статус",
+    "allStatuses": "Все статусы",
+    "dateFrom": "С",
+    "dateTo": "По",
+    "service": "Услуга",
+    "allServices": "Все услуги",
+    "sort": "Сортировка",
+    "sortOptions": {
+      "created_desc": "Сначала новые заявки",
+      "starts_at_asc": "Дата записи по возрастанию",
+      "starts_at_desc": "Дата записи по убыванию",
+      "status_asc": "Статус"
+    },
+    "applyFilters": "Применить",
+    "resetFilters": "Сбросить",
+    "emptyTitle": "Записей пока нет",
+    "emptyDescription": "Записи появятся здесь после бронирования",
+    "emptyFilteredTitle": "Нет подходящих записей",
+    "emptyFilteredDescription": "Измените фильтры, чтобы увидеть больше записей",
+    "previous": "Назад",
+    "next": "Вперёд",
+    "pageStatus": "Страница {page} из {totalPages}",
+    "dmUnavailable": "Этому клиенту нельзя написать"
+  },
   "AdminHelp": {
     "title": "Помощь",
     "faqTitle": "Частые вопросы",
@@ -424,6 +458,7 @@
     },
     "rescheduleButton": "Изменить",
     "cancelButton": "Отменить",
+    "messageClientButton": "Написать клиенту",
     "waitingForClient": "Ожидание ответа клиента"
   },
   "RescheduleSheet": {

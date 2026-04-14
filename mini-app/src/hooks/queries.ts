@@ -5,6 +5,8 @@ import { api } from '@/lib/api';
 import { CACHE_KEYS } from './cache-keys';
 
 import type {
+  TAdminBookingsQuery,
+  TAdminBookingsResponse,
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
@@ -19,6 +21,31 @@ import type {
   TWorkingHours,
 } from '@/lib/types';
 import type { KeyedMutator, SWRConfiguration } from 'swr';
+
+function adminBookingsQueryKey(params: TAdminBookingsQuery): string {
+  const query = new URLSearchParams();
+  query.set('page', String(params.page));
+  query.set('limit', String(params.limit));
+  if (params.status) {
+    query.set('status', params.status);
+  }
+  if (params.dateFrom) {
+    query.set('dateFrom', params.dateFrom);
+  }
+  if (params.dateTo) {
+    query.set('dateTo', params.dateTo);
+  }
+  if (params.client) {
+    query.set('client', params.client);
+  }
+  if (params.serviceId) {
+    query.set('serviceId', params.serviceId);
+  }
+  if (params.sort) {
+    query.set('sort', params.sort);
+  }
+  return query.toString();
+}
 
 /***************************************************************************************************
  * Static data hooks (cached aggressively).
@@ -309,6 +336,32 @@ export function useAdminBookings(opts?: { refreshInterval?: number }): {
     },
   );
   return { data: data ?? [], isLoading, error, mutate };
+}
+
+export function useAdminBookingsPage(params: TAdminBookingsQuery): {
+  data: TAdminBookingsResponse;
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TAdminBookingsResponse>;
+} {
+  const queryKey = adminBookingsQueryKey(params);
+  const { data, isLoading, error, mutate } = useSWR<TAdminBookingsResponse>(
+    CACHE_KEYS.adminBookingsList(queryKey),
+    async () => api.admin.getBookingsPage(params),
+    dynamicConfig,
+  );
+  return {
+    data: data ?? {
+      bookings: [],
+      total: 0,
+      page: params.page,
+      limit: params.limit,
+      totalPages: 0,
+    },
+    isLoading,
+    error,
+    mutate,
+  };
 }
 
 /***************************************************************************************************

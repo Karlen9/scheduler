@@ -31,6 +31,7 @@ export function BookingDetailModal({
   onCancel,
   onAccept,
   onReject,
+  onMessageClient,
 }: TBookingDetailModalProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -79,6 +80,8 @@ export function BookingDetailModal({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const endsAt = new Date(booking.endsAt);
+  const canMessageClient =
+    !!onMessageClient && !booking.clientIsGhost && !!booking.clientTelegramUserId;
 
   /***************************************************************************************************
    * Formats date.
@@ -155,7 +158,9 @@ export function BookingDetailModal({
       <div className={'mb-6 space-y-3'}>
         <div className={'border-border flex justify-between border-b py-2'}>
           <span className={'text-muted-foreground'}>{t('serviceLabel')}</span>
-          <span className={'text-foreground font-medium'}>{tc('workout')}</span>
+          <span className={'text-foreground font-medium'}>
+            {booking.sessionType?.name || tc('workout')}
+          </span>
         </div>
         <div className={'border-border flex justify-between border-b py-2'}>
           <span className={'text-muted-foreground'}>{t('dateLabel')}</span>
@@ -233,6 +238,17 @@ export function BookingDetailModal({
       {/***************************************************************************************************
        * Actions.
        ***************************************************************************************************/}
+      {canMessageClient && (
+        <button
+          onClick={() => onMessageClient(booking)}
+          className={
+            'bg-card text-foreground mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+          }
+        >
+          {t('messageClientButton')}
+        </button>
+      )}
+
       {(booking.status === 'pending' || booking.status === 'confirmed') && (
         <div className={'flex gap-3'}>
           <button
