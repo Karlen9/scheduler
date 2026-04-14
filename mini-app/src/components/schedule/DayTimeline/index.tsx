@@ -424,7 +424,7 @@ function DayTimelineComponent({
         return (
           <div
             key={`collapsed-rail-${startMinute}-${endMinute}`}
-            className={'pointer-events-none absolute left-6 w-px overflow-hidden'}
+            className={'pointer-events-none absolute left-1 w-px overflow-hidden'}
             style={{
               top: railTop,
               height: railHeight,
