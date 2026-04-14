@@ -1738,6 +1738,12 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	photoURL := specialist.PhotoURL
 	if req.PhotoURL != nil {
 		photoURL = *req.PhotoURL
+		if photoURL == "" {
+			user := GetTelegramUserFromContext(r)
+			if user != nil && user.ID == specialist.TelegramUserID && user.PhotoURL != "" {
+				photoURL = user.PhotoURL
+			}
+		}
 	}
 
 	locationLatitude := specialist.LocationLatitude
