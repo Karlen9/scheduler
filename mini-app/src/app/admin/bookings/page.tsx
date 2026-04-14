@@ -105,6 +105,7 @@ export default function AdminAllBookingsPage(): ReactNode {
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
+  const [dateInputResetKey, setDateInputResetKey] = useState(0);
 
   const query = useMemo<TAdminBookingsQuery>(
     () => ({
@@ -217,6 +218,7 @@ export default function AdminAllBookingsPage(): ReactNode {
     setClientDropdownOpen(false);
     setStatusDropdownOpen(false);
     setServiceDropdownOpen(false);
+    setDateInputResetKey((value) => value + 1);
     setPage(1);
     setShowFilters(false);
   };
@@ -608,30 +610,32 @@ export default function AdminAllBookingsPage(): ReactNode {
             </div>
           </fieldset>
 
-          <div className={'space-y-3'}>
-            <label className={'block space-y-1'}>
+          <div className={'min-w-0 space-y-3'}>
+            <label className={'block min-w-0 space-y-1'}>
               <span className={'text-muted-foreground text-sm'}>{t('dateFrom')}</span>
               <input
+                key={`from-${dateInputResetKey}`}
                 type={'date'}
                 value={draftFilters.dateFrom}
                 onChange={(event) =>
                   setDraftFilters((value) => ({ ...value, dateFrom: event.target.value }))
                 }
                 className={
-                  'border-border bg-background text-foreground focus:border-brand w-full rounded-lg border px-3 py-2 text-sm outline-none'
+                  'border-border bg-background text-foreground focus:border-brand w-full max-w-full min-w-0 appearance-none rounded-lg border px-3 py-2 text-sm outline-none'
                 }
               />
             </label>
-            <label className={'block space-y-1'}>
+            <label className={'block min-w-0 space-y-1'}>
               <span className={'text-muted-foreground text-sm'}>{t('dateTo')}</span>
               <input
+                key={`to-${dateInputResetKey}`}
                 type={'date'}
                 value={draftFilters.dateTo}
                 onChange={(event) =>
                   setDraftFilters((value) => ({ ...value, dateTo: event.target.value }))
                 }
                 className={
-                  'border-border bg-background text-foreground focus:border-brand w-full rounded-lg border px-3 py-2 text-sm outline-none'
+                  'border-border bg-background text-foreground focus:border-brand w-full max-w-full min-w-0 appearance-none rounded-lg border px-3 py-2 text-sm outline-none'
                 }
               />
             </label>
@@ -723,7 +727,10 @@ export default function AdminAllBookingsPage(): ReactNode {
           <div className={'flex gap-3 pt-2'}>
             <button
               type={'button'}
-              onClick={resetFilters}
+              onClick={(event) => {
+                event.currentTarget.blur();
+                resetFilters();
+              }}
               className={
                 'bg-background text-foreground flex-1 rounded-lg px-4 py-3 text-sm font-medium active:opacity-80'
               }

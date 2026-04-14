@@ -65,8 +65,7 @@ export function BottomSheet({
             leaveTo={'translate-y-full opacity-0'}
           >
             <DialogPanel
-              className={`bg-card relative max-h-[100dvh] w-full overflow-auto rounded-t-2xl p-4 shadow-lg ${content.className ?? ''}`}
-              style={{ maxWidth: '430px' }}
+              className={`bg-card relative max-h-[100dvh] w-full max-w-[min(430px,100vw)] overflow-x-hidden overflow-y-auto rounded-t-2xl p-4 shadow-lg ${content.className ?? ''}`}
             >
               {(content.title || content.showClose) && (
                 <div className={'mb-4 flex items-center justify-between'}>

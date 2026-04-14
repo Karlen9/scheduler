@@ -56,9 +56,9 @@ export function TimePickerModal({
       isOpen={isOpen}
       onClose={onClose}
       title={resolvedTitle}
-      className={'max-h-[80vh] overflow-auto'}
+      className={'max-h-[80vh] overflow-x-hidden'}
     >
-      <div className={'grid grid-cols-4 gap-2'}>
+      <div className={'grid w-full min-w-0 grid-cols-3 gap-2 sm:grid-cols-4'}>
         {HOURS.map((time) => (
           <button
             key={time}
@@ -70,7 +70,7 @@ export function TimePickerModal({
               onClose();
             }}
             disabled={allowedTimes !== null && !allowedTimes.has(time)}
-            className={`rounded-full py-3 text-sm transition-colors ${
+            className={`min-w-0 rounded-full px-2 py-3 text-sm transition-colors ${
               selectedTime === time
                 ? 'bg-brand text-white'
                 : allowedTimes !== null && !allowedTimes.has(time)
