@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarX, ChevronLeft, ChevronRight, Filter, ListChecks, Search } from 'lucide-react';
+import { CalendarX, ChevronLeft, ChevronRight, Filter, ListChecks } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
@@ -14,7 +14,7 @@ import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TopBar } from '@/components/TopBar';
 import { invalidateBookings } from '@/hooks/mutations';
-import { useAdminBookingsPage, useAdminServices } from '@/hooks/queries';
+import { useAdminBookingsPage, useAdminServices, useClients } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { getTelegramWebApp } from '@/lib/telegram';
@@ -22,7 +22,7 @@ import { getTelegramWebApp } from '@/lib/telegram';
 import { CancelDialog } from '../CancelDialog';
 import { RejectDialog } from '../RejectDialog';
 
-import type { TAdminBookingsQuery, TAdminBookingsSort, TBooking } from '@/lib/types';
+import type { TAdminBookingsQuery, TAdminBookingsSort, TBooking, TClientInfo } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 const PAGE_LIMIT = 20;
@@ -45,20 +45,20 @@ const sortOptions: TAdminBookingsSort[] = [
 ];
 
 type TBookingPageFilters = {
-  status: TBooking['status'] | '';
+  statuses: TBooking['status'][];
   dateFrom: string;
   dateTo: string;
-  client: string;
-  serviceId: string;
+  clientId: string;
+  serviceIds: string[];
   sort: TAdminBookingsSort;
 };
 
 const defaultFilters: TBookingPageFilters = {
-  status: '',
+  statuses: [],
   dateFrom: '',
   dateTo: '',
-  client: '',
-  serviceId: '',
+  clientId: '',
+  serviceIds: [],
   sort: 'created_desc',
 };
 
@@ -74,6 +74,10 @@ const statusTranslationKeys: Record<TBooking['status'], string> = {
 
 function bookingDisplayName(booking: TBooking): string {
   return booking.clientDisplayName || booking.clientName;
+}
+
+function clientBaseName(client: TClientInfo): string {
+  return client.displayName || client.name;
 }
 
 export default function AdminAllBookingsPage(): ReactNode {
@@ -97,16 +101,20 @@ export default function AdminAllBookingsPage(): ReactNode {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<TBooking | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [clientFilterSearch, setClientFilterSearch] = useState('');
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
 
   const query = useMemo<TAdminBookingsQuery>(
     () => ({
       page,
       limit: PAGE_LIMIT,
-      status: filters.status,
+      statuses: filters.statuses,
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo,
-      client: filters.client,
-      serviceId: filters.serviceId,
+      clientId: filters.clientId,
+      serviceIds: filters.serviceIds,
       sort: filters.sort,
     }),
     [filters, page],
@@ -114,6 +122,7 @@ export default function AdminAllBookingsPage(): ReactNode {
 
   const { data, isLoading, error, mutate } = useAdminBookingsPage(query);
   const { data: services } = useAdminServices();
+  const { data: clients } = useClients();
 
   useEffect(() => {
     if (data.totalPages > 0 && page > data.totalPages) {
@@ -122,12 +131,26 @@ export default function AdminAllBookingsPage(): ReactNode {
   }, [data.totalPages, page]);
 
   const activeFiltersCount = [
-    filters.status,
+    filters.statuses.length > 0,
     filters.dateFrom,
     filters.dateTo,
-    filters.client,
-    filters.serviceId,
+    filters.clientId,
+    filters.serviceIds.length > 0,
   ].filter(Boolean).length;
+
+  const filteredClients = useMemo(() => {
+    const search = clientFilterSearch.trim().toLowerCase();
+    if (!search) {
+      return clients;
+    }
+
+    return clients.filter((client) =>
+      [client.name, client.displayName ?? '', client.phone ?? '']
+        .join(' ')
+        .toLowerCase()
+        .includes(search),
+    );
+  }, [clientFilterSearch, clients]);
 
   const dateFormatter = useMemo(
     () =>
@@ -154,9 +177,35 @@ export default function AdminAllBookingsPage(): ReactNode {
   const formatTimeRange = (booking: TBooking): string =>
     `${formatTime(booking.startsAt)} - ${formatTime(booking.endsAt)}`;
 
+  const formatClientFilterLabel = (client: TClientInfo): string =>
+    `${clientBaseName(client)}${client.phone ? `, ${client.phone}` : ''}${
+      client.isGhost ? ` ${tc('ghost')}` : ''
+    }`;
+
+  const statusFilterLabel =
+    draftFilters.statuses.length === 0
+      ? t('allStatuses')
+      : draftFilters.statuses.map((status) => tst(statusTranslationKeys[status])).join(', ');
+
+  const serviceFilterLabel =
+    draftFilters.serviceIds.length === 0
+      ? t('allServices')
+      : services
+          .filter((service) => draftFilters.serviceIds.includes(service.id))
+          .map((service) => service.name)
+          .join(', ');
+
+  const toggleFilterValue = <T extends string>(values: T[], selected: T): T[] =>
+    values.includes(selected)
+      ? values.filter((value) => value !== selected)
+      : [...values, selected];
+
   const applyFilters = (): void => {
     setFilters(draftFilters);
     setPage(1);
+    setClientDropdownOpen(false);
+    setStatusDropdownOpen(false);
+    setServiceDropdownOpen(false);
     setShowFilters(false);
   };
 
@@ -164,6 +213,10 @@ export default function AdminAllBookingsPage(): ReactNode {
     const nextFilters = { ...defaultFilters };
     setDraftFilters(nextFilters);
     setFilters(nextFilters);
+    setClientFilterSearch('');
+    setClientDropdownOpen(false);
+    setStatusDropdownOpen(false);
+    setServiceDropdownOpen(false);
     setPage(1);
     setShowFilters(false);
   };
@@ -277,6 +330,11 @@ export default function AdminAllBookingsPage(): ReactNode {
             type={'button'}
             onClick={() => {
               setDraftFilters(filters);
+              const selectedClient = clients.find((client) => client.id === filters.clientId);
+              setClientFilterSearch(selectedClient ? formatClientFilterLabel(selectedClient) : '');
+              setClientDropdownOpen(false);
+              setStatusDropdownOpen(false);
+              setServiceDropdownOpen(false);
               setShowFilters(true);
             }}
             className={
@@ -407,52 +465,150 @@ export default function AdminAllBookingsPage(): ReactNode {
         title={t('filtersTitle')}
         className={'max-h-[85vh] overflow-y-auto'}
       >
-        <div className={'space-y-4'}>
-          <label className={'block space-y-1'}>
-            <span className={'text-muted-foreground text-sm'}>{t('clientSearch')}</span>
+        <div className={'space-y-4 pb-8'}>
+          <fieldset className={'space-y-2'}>
+            <legend className={'text-muted-foreground text-sm'}>{t('clientSearch')}</legend>
             <div className={'relative'}>
-              <Search
-                className={
-                  'text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2'
-                }
-              />
               <input
-                value={draftFilters.client}
-                onChange={(event) =>
-                  setDraftFilters((value) => ({ ...value, client: event.target.value }))
-                }
+                value={clientFilterSearch}
+                onFocus={() => {
+                  setClientDropdownOpen(true);
+                  setStatusDropdownOpen(false);
+                  setServiceDropdownOpen(false);
+                }}
+                onBlur={() => setClientDropdownOpen(false)}
+                onChange={(event) => {
+                  setClientFilterSearch(event.target.value);
+                  setClientDropdownOpen(true);
+                  setDraftFilters((value) => ({ ...value, clientId: '' }));
+                }}
                 placeholder={t('clientSearchPlaceholder')}
+                role={'combobox'}
+                aria-expanded={clientDropdownOpen}
                 className={
-                  'border-border bg-background text-foreground focus:border-brand w-full rounded-lg border py-2 pr-3 pl-9 text-sm outline-none'
+                  'border-border bg-background text-foreground focus:border-brand w-full rounded-lg border px-3 py-2 text-sm outline-none'
                 }
               />
+              {clientDropdownOpen && (
+                <div
+                  className={
+                    'border-border bg-background absolute top-full left-0 z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border py-1 shadow-lg'
+                  }
+                >
+                  <button
+                    type={'button'}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      setDraftFilters((value) => ({ ...value, clientId: '' }));
+                      setClientFilterSearch('');
+                      setClientDropdownOpen(false);
+                    }}
+                    className={
+                      'text-foreground w-full px-3 py-2 text-left text-sm active:opacity-80'
+                    }
+                  >
+                    {t('allClients')}
+                  </button>
+                  {filteredClients.length === 0 ? (
+                    <div className={'text-muted-foreground px-3 py-2 text-sm'}>
+                      {t('noClientsFound')}
+                    </div>
+                  ) : (
+                    filteredClients.map((client) => (
+                      <button
+                        key={client.id}
+                        type={'button'}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          setDraftFilters((value) => ({ ...value, clientId: client.id }));
+                          setClientFilterSearch(formatClientFilterLabel(client));
+                          setClientDropdownOpen(false);
+                        }}
+                        className={
+                          'text-foreground w-full px-3 py-2 text-left text-sm active:opacity-80'
+                        }
+                      >
+                        <span className={'block truncate'}>
+                          {clientBaseName(client)}
+                          {client.isGhost ? ` ${tc('ghost')}` : ''}
+                        </span>
+                        {client.phone && (
+                          <span className={'text-muted-foreground block truncate text-xs'}>
+                            {client.phone}
+                          </span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
-          </label>
+          </fieldset>
 
-          <label className={'block space-y-1'}>
-            <span className={'text-muted-foreground text-sm'}>{t('status')}</span>
-            <select
-              value={draftFilters.status}
-              onChange={(event) =>
-                setDraftFilters((value) => ({
-                  ...value,
-                  status: event.target.value as TBooking['status'] | '',
-                }))
-              }
-              className={
-                'border-border bg-background text-foreground focus:border-brand w-full rounded-lg border px-3 py-2 text-sm outline-none'
-              }
-            >
-              <option value={''}>{t('allStatuses')}</option>
-              {statusOptions.map((status) => (
-                <option key={status} value={status}>
-                  {tst(statusTranslationKeys[status])}
-                </option>
-              ))}
-            </select>
-          </label>
+          <fieldset className={'space-y-2'}>
+            <legend className={'text-muted-foreground text-sm'}>{t('status')}</legend>
+            <div className={'relative'}>
+              <button
+                type={'button'}
+                onClick={() => {
+                  setStatusDropdownOpen((value) => !value);
+                  setClientDropdownOpen(false);
+                  setServiceDropdownOpen(false);
+                }}
+                className={
+                  'border-border bg-background text-foreground focus:border-brand flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm outline-none'
+                }
+                aria-expanded={statusDropdownOpen}
+              >
+                <span className={'min-w-0 truncate text-left'}>{statusFilterLabel}</span>
+                <ChevronRight
+                  className={`text-muted-foreground h-4 w-4 shrink-0 transition-transform ${
+                    statusDropdownOpen ? 'rotate-90' : ''
+                  }`}
+                />
+              </button>
+              {statusDropdownOpen && (
+                <div
+                  className={
+                    'border-border bg-background absolute top-full left-0 z-20 mt-1 max-h-52 w-full space-y-2 overflow-y-auto rounded-lg border p-3 shadow-lg'
+                  }
+                >
+                  <label className={'text-foreground flex items-center gap-3 text-sm'}>
+                    <input
+                      type={'checkbox'}
+                      checked={draftFilters.statuses.length === 0}
+                      onChange={() => setDraftFilters((value) => ({ ...value, statuses: [] }))}
+                      className={'accent-brand h-4 w-4 shrink-0'}
+                    />
+                    <span className={'min-w-0 truncate'}>{t('allStatuses')}</span>
+                  </label>
+                  {statusOptions.map((status) => (
+                    <label
+                      key={status}
+                      className={'text-foreground flex items-center gap-3 text-sm'}
+                    >
+                      <input
+                        type={'checkbox'}
+                        checked={draftFilters.statuses.includes(status)}
+                        onChange={() =>
+                          setDraftFilters((value) => ({
+                            ...value,
+                            statuses: toggleFilterValue(value.statuses, status),
+                          }))
+                        }
+                        className={'accent-brand h-4 w-4 shrink-0'}
+                      />
+                      <span className={'min-w-0 truncate'}>
+                        {tst(statusTranslationKeys[status])}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </fieldset>
 
-          <div className={'grid grid-cols-2 gap-3'}>
+          <div className={'space-y-3'}>
             <label className={'block space-y-1'}>
               <span className={'text-muted-foreground text-sm'}>{t('dateFrom')}</span>
               <input
@@ -481,25 +637,66 @@ export default function AdminAllBookingsPage(): ReactNode {
             </label>
           </div>
 
-          <label className={'block space-y-1'}>
-            <span className={'text-muted-foreground text-sm'}>{t('service')}</span>
-            <select
-              value={draftFilters.serviceId}
-              onChange={(event) =>
-                setDraftFilters((value) => ({ ...value, serviceId: event.target.value }))
-              }
-              className={
-                'border-border bg-background text-foreground focus:border-brand w-full rounded-lg border px-3 py-2 text-sm outline-none'
-              }
-            >
-              <option value={''}>{t('allServices')}</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <fieldset className={'space-y-2'}>
+            <legend className={'text-muted-foreground text-sm'}>{t('service')}</legend>
+            <div className={'relative'}>
+              <button
+                type={'button'}
+                onClick={() => {
+                  setServiceDropdownOpen((value) => !value);
+                  setClientDropdownOpen(false);
+                  setStatusDropdownOpen(false);
+                }}
+                className={
+                  'border-border bg-background text-foreground focus:border-brand flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm outline-none'
+                }
+                aria-expanded={serviceDropdownOpen}
+              >
+                <span className={'min-w-0 truncate text-left'}>{serviceFilterLabel}</span>
+                <ChevronRight
+                  className={`text-muted-foreground h-4 w-4 shrink-0 transition-transform ${
+                    serviceDropdownOpen ? 'rotate-90' : ''
+                  }`}
+                />
+              </button>
+              {serviceDropdownOpen && (
+                <div
+                  className={
+                    'border-border bg-background absolute top-full left-0 z-20 mt-1 max-h-52 w-full space-y-2 overflow-y-auto rounded-lg border p-3 shadow-lg'
+                  }
+                >
+                  <label className={'text-foreground flex items-center gap-3 text-sm'}>
+                    <input
+                      type={'checkbox'}
+                      checked={draftFilters.serviceIds.length === 0}
+                      onChange={() => setDraftFilters((value) => ({ ...value, serviceIds: [] }))}
+                      className={'accent-brand h-4 w-4 shrink-0'}
+                    />
+                    <span className={'min-w-0 truncate'}>{t('allServices')}</span>
+                  </label>
+                  {services.map((service) => (
+                    <label
+                      key={service.id}
+                      className={'text-foreground flex items-center gap-3 text-sm'}
+                    >
+                      <input
+                        type={'checkbox'}
+                        checked={draftFilters.serviceIds.includes(service.id)}
+                        onChange={() =>
+                          setDraftFilters((value) => ({
+                            ...value,
+                            serviceIds: toggleFilterValue(value.serviceIds, service.id),
+                          }))
+                        }
+                        className={'accent-brand h-4 w-4 shrink-0'}
+                      />
+                      <span className={'min-w-0 truncate'}>{service.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </fieldset>
 
           <label className={'block space-y-1'}>
             <span className={'text-muted-foreground text-sm'}>{t('sort')}</span>

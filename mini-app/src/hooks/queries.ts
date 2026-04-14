@@ -26,8 +26,8 @@ function adminBookingsQueryKey(params: TAdminBookingsQuery): string {
   const query = new URLSearchParams();
   query.set('page', String(params.page));
   query.set('limit', String(params.limit));
-  if (params.status) {
-    query.set('status', params.status);
+  for (const status of params.statuses ?? []) {
+    query.append('status', status);
   }
   if (params.dateFrom) {
     query.set('dateFrom', params.dateFrom);
@@ -35,11 +35,11 @@ function adminBookingsQueryKey(params: TAdminBookingsQuery): string {
   if (params.dateTo) {
     query.set('dateTo', params.dateTo);
   }
-  if (params.client) {
-    query.set('client', params.client);
+  if (params.clientId) {
+    query.set('clientId', params.clientId);
   }
-  if (params.serviceId) {
-    query.set('serviceId', params.serviceId);
+  for (const serviceId of params.serviceIds ?? []) {
+    query.append('serviceId', serviceId);
   }
   if (params.sort) {
     query.set('sort', params.sort);

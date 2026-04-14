@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -935,6 +936,20 @@ func parseAdminBookingsDate(value string, inclusiveEnd bool) (*time.Time, error)
 	return &parsed, nil
 }
 
+func adminBookingsQueryValues(query url.Values, key string) []string {
+	seen := map[string]bool{}
+	values := []string{}
+	for _, value := range query[key] {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" || seen[trimmed] {
+			continue
+		}
+		seen[trimmed] = true
+		values = append(values, trimmed)
+	}
+	return values
+}
+
 func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -983,14 +998,18 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 		}
 
 		filters := db.BookingListFilters{
-			Status:        status,
-			ClientSearch:  strings.TrimSpace(query.Get("client")),
-			SessionTypeID: strings.TrimSpace(query.Get("serviceId")),
-			DateFrom:      dateFrom,
-			DateTo:        dateTo,
-			Sort:          query.Get("sort"),
-			Limit:         limit,
-			Offset:        (page - 1) * limit,
+			Status:         status,
+			Statuses:       adminBookingsQueryValues(query, "status"),
+			ClientID:       strings.TrimSpace(query.Get("clientId")),
+			ClientIDs:      adminBookingsQueryValues(query, "clientId"),
+			ClientSearch:   strings.TrimSpace(query.Get("client")),
+			SessionTypeID:  strings.TrimSpace(query.Get("serviceId")),
+			SessionTypeIDs: adminBookingsQueryValues(query, "serviceId"),
+			DateFrom:       dateFrom,
+			DateTo:         dateTo,
+			Sort:           query.Get("sort"),
+			Limit:          limit,
+			Offset:         (page - 1) * limit,
 		}
 
 		bookings, total, err := db.GetBookingsBySpecialistIDFiltered(specialist.ID, filters)
