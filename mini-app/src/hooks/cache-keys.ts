@@ -50,6 +50,7 @@ export const CACHE_KEYS = {
   get adminBookings(): string {
     return scopedKey('adminBookings');
   },
+  adminBookingsList: (queryKey: string): string => scopedKey(`adminBookingsList:${queryKey}`),
   get adminStats(): string {
     return scopedKey('adminStats');
   },

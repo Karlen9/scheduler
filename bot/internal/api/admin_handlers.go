@@ -906,6 +906,35 @@ func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 * - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
 *
 ***************************************************************************************************/
+const defaultAdminBookingsLimit = 20
+const maxAdminBookingsLimit = 100
+
+func parseAdminBookingsPositiveInt(value string, fallback int) (int, error) {
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		return 0, errors.New("invalid positive integer")
+	}
+	return parsed, nil
+}
+
+func parseAdminBookingsDate(value string, inclusiveEnd bool) (*time.Time, error) {
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := parseDate(value)
+	if err != nil {
+		return nil, err
+	}
+	parsed = time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC)
+	if inclusiveEnd {
+		parsed = parsed.AddDate(0, 0, 1)
+	}
+	return &parsed, nil
+}
+
 func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
@@ -913,7 +942,8 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := r.URL.Query().Get("status")
+	query := r.URL.Query()
+	status := query.Get("status")
 
 	completedCount, err := db.CompletePastConfirmedBookingsForSpecialist(specialist.ID, time.Now().UTC())
 	if err != nil {
@@ -923,6 +953,70 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 	}
 	if completedCount > 0 {
 		changes.Publish(specialist.ID, changes.GroupBookings)
+	}
+
+	if query.Has("page") || query.Has("limit") {
+		page, err := parseAdminBookingsPositiveInt(query.Get("page"), 1)
+		if err != nil {
+			httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+			return
+		}
+
+		limit, err := parseAdminBookingsPositiveInt(query.Get("limit"), defaultAdminBookingsLimit)
+		if err != nil {
+			httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+			return
+		}
+		if limit > maxAdminBookingsLimit {
+			limit = maxAdminBookingsLimit
+		}
+
+		dateFrom, err := parseAdminBookingsDate(query.Get("dateFrom"), false)
+		if err != nil {
+			httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+			return
+		}
+		dateTo, err := parseAdminBookingsDate(query.Get("dateTo"), true)
+		if err != nil {
+			httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+			return
+		}
+
+		filters := db.BookingListFilters{
+			Status:        status,
+			ClientSearch:  strings.TrimSpace(query.Get("client")),
+			SessionTypeID: strings.TrimSpace(query.Get("serviceId")),
+			DateFrom:      dateFrom,
+			DateTo:        dateTo,
+			Sort:          query.Get("sort"),
+			Limit:         limit,
+			Offset:        (page - 1) * limit,
+		}
+
+		bookings, total, err := db.GetBookingsBySpecialistIDFiltered(specialist.ID, filters)
+		if err != nil {
+			log.Printf("Error getting paginated bookings: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+		if bookings == nil {
+			bookings = []models.Booking{}
+		}
+
+		totalPages := 0
+		if total > 0 {
+			totalPages = (total + limit - 1) / limit
+		}
+
+		setNoStore(w)
+		writeJSON(w, models.BookingListResponse{
+			Bookings:   bookings,
+			Total:      total,
+			Page:       page,
+			Limit:      limit,
+			TotalPages: totalPages,
+		})
+		return
 	}
 
 	bookings, err := db.GetBookingsBySpecialistID(specialist.ID, status)

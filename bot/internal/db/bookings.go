@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -53,7 +54,7 @@ func CreateBooking(specialistID, clientID, sessionTypeID string, startsAt, endsA
 var bookingColumns = `b.id, b.specialist_id, b.client_id, b.session_type_id, b.starts_at, b.ends_at,
 	b.client_name, b.client_message, b.status, b.cancel_reason, b.cancelled_by, b.created_at,
 	b.duration_minutes, b.created_by, b.recurring_schedule_id, b.replaces_booking_id, ` +
-	clientMetadataSelectColumns("c") + `, ` + sessionTypeSelectColumns("st")
+	clientMetadataSelectColumns("c") + `, COALESCE(c.is_ghost, 0), COALESCE(c.telegram_user_id, 0), ` + sessionTypeSelectColumns("st")
 
 /***************************************************************************************************
 * Stores the shared SQL FROM clause reused by related queries.
@@ -112,12 +113,15 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	var createdBy sql.NullString
 	var recurringScheduleID sql.NullString
 	var replacesBookingID sql.NullString
+	var clientIsGhost sql.NullInt64
+	var clientTelegramID sql.NullInt64
 	sessionType := nullableSessionType{}
 
 	dest := append([]interface{}{
 		&b.ID, &b.SpecialistID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
 		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL, &b.ClientDisplayName,
+		&clientIsGhost, &clientTelegramID,
 	}, sessionType.scanDest()...)
 
 	err := row.Scan(dest...)
@@ -145,6 +149,10 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	}
 	if replacesBookingID.Valid {
 		b.ReplacesBookingID = replacesBookingID.String
+	}
+	b.ClientIsGhost = clientIsGhost.Valid && clientIsGhost.Int64 == 1
+	if clientTelegramID.Valid {
+		b.ClientTelegramID = clientTelegramID.Int64
 	}
 	b.SessionType = sessionType.model()
 
@@ -423,6 +431,89 @@ func GetBookingsBySpecialistID(specialistID string, status string) ([]models.Boo
 	defer rows.Close()
 
 	return scanBookings(rows)
+}
+
+type BookingListFilters struct {
+	Status        string
+	ClientSearch  string
+	SessionTypeID string
+	DateFrom      *time.Time
+	DateTo        *time.Time
+	Sort          string
+	Limit         int
+	Offset        int
+}
+
+func bookingListWhereClause(specialistID string, filters BookingListFilters) (string, []interface{}) {
+	clauses := []string{"b.specialist_id = ?"}
+	args := []interface{}{specialistID}
+
+	if filters.Status != "" {
+		clauses = append(clauses, "b.status = ?")
+		args = append(args, filters.Status)
+	}
+	if filters.DateFrom != nil {
+		clauses = append(clauses, "b.starts_at >= ?")
+		args = append(args, *filters.DateFrom)
+	}
+	if filters.DateTo != nil {
+		clauses = append(clauses, "b.starts_at < ?")
+		args = append(args, *filters.DateTo)
+	}
+	if filters.SessionTypeID != "" {
+		clauses = append(clauses, "b.session_type_id = ?")
+		args = append(args, filters.SessionTypeID)
+	}
+	if filters.ClientSearch != "" {
+		like := "%" + strings.ToLower(filters.ClientSearch) + "%"
+		clauses = append(clauses, `(LOWER(b.client_name) LIKE ? OR LOWER(COALESCE(c.name, '')) LIKE ? OR LOWER(COALESCE(c.display_name, '')) LIKE ? OR LOWER(COALESCE(c.phone, '')) LIKE ?)`)
+		args = append(args, like, like, like, like)
+	}
+
+	return strings.Join(clauses, " AND "), args
+}
+
+func bookingListOrderBy(sortKey string) string {
+	switch sortKey {
+	case "starts_at_asc":
+		return "b.starts_at ASC"
+	case "starts_at_desc":
+		return "b.starts_at DESC"
+	case "status_asc":
+		return "b.status ASC, b.starts_at DESC"
+	default:
+		return "b.created_at DESC"
+	}
+}
+
+func GetBookingsBySpecialistIDFiltered(specialistID string, filters BookingListFilters) ([]models.Booking, int, error) {
+	whereClause, args := bookingListWhereClause(specialistID, filters)
+
+	var total int
+	countQuery := `SELECT COUNT(*)` + bookingFromClause + "\nWHERE " + whereClause
+	if err := DB.QueryRow(Q(countQuery), args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	query := bookingSelectQuery(whereClause, bookingListOrderBy(filters.Sort))
+	queryArgs := append([]interface{}{}, args...)
+	if filters.Limit > 0 {
+		query += "\nLIMIT ? OFFSET ?"
+		queryArgs = append(queryArgs, filters.Limit, filters.Offset)
+	}
+
+	rows, err := DB.Query(Q(query), queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	bookings, err := scanBookings(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return bookings, total, nil
 }
 
 /***************************************************************************************************

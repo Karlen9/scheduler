@@ -99,8 +99,11 @@ export type TBooking = {
   cancelledBy?: 'client' | 'specialist';
   durationMinutes?: number;
   createdBy?: 'client' | 'specialist';
+  createdAt?: string;
   recurringScheduleId?: string;
   replacesBookingId?: string;
+  clientIsGhost?: boolean;
+  clientTelegramUserId?: number;
 };
 
 /***************************************************************************************************
@@ -356,6 +359,27 @@ export type TCreateBookingParams = {
   message?: string;
 };
 
+export type TAdminBookingsSort = 'created_desc' | 'starts_at_asc' | 'starts_at_desc' | 'status_asc';
+
+export type TAdminBookingsQuery = {
+  page: number;
+  limit: number;
+  status?: TBooking['status'] | '';
+  dateFrom?: string;
+  dateTo?: string;
+  client?: string;
+  serviceId?: string;
+  sort?: TAdminBookingsSort;
+};
+
+export type TAdminBookingsResponse = {
+  bookings: TBooking[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
 /***************************************************************************************************
  * Defines the create recurring params shape shared by the shared utility layer.
  ***************************************************************************************************/
@@ -488,6 +512,7 @@ export type TBookingDetailModalProps = {
   onCancel?: (booking: TBooking) => void;
   onAccept?: (booking: TBooking) => void;
   onReject?: (booking: TBooking) => void;
+  onMessageClient?: (booking: TBooking) => void;
 };
 
 /***************************************************************************************************
@@ -920,9 +945,9 @@ export type TStatCardProps = {
  ***************************************************************************************************/
 export type TStatsSectionProps = {
   pendingCount: number;
-  clientsCount: number;
+  bookingsCount: number;
   onPendingClick?: TVoidFunction;
-  onClientsClick: TVoidFunction;
+  onBookingsClick: TVoidFunction;
 };
 
 /***************************************************************************************************

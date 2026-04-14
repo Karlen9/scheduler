@@ -5,6 +5,8 @@ import { isTestRoute } from './routes';
 import { getSpecialistId, waitForInitData } from './telegram';
 
 import type {
+  TAdminBookingsQuery,
+  TAdminBookingsResponse,
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
@@ -955,6 +957,31 @@ export const api = {
        ***************************************************************************************************/
       const query = status ? `?status=${status}` : '';
       return fetchAPI<TBooking[]>(`/api/admin/bookings${query}`);
+    },
+
+    async getBookingsPage(params: TAdminBookingsQuery): Promise<TAdminBookingsResponse> {
+      const query = new URLSearchParams();
+      query.set('page', String(params.page));
+      query.set('limit', String(params.limit));
+      if (params.status) {
+        query.set('status', params.status);
+      }
+      if (params.dateFrom) {
+        query.set('dateFrom', params.dateFrom);
+      }
+      if (params.dateTo) {
+        query.set('dateTo', params.dateTo);
+      }
+      if (params.client) {
+        query.set('client', params.client);
+      }
+      if (params.serviceId) {
+        query.set('serviceId', params.serviceId);
+      }
+      if (params.sort) {
+        query.set('sort', params.sort);
+      }
+      return fetchAPI<TAdminBookingsResponse>(`/api/admin/bookings?${query.toString()}`);
     },
 
     /***************************************************************************************************

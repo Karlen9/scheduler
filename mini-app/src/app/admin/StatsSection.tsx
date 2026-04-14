@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Users } from 'lucide-react';
+import { Bell, ListChecks } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { StatCard } from '@/components/StatCard';
@@ -22,9 +22,9 @@ import type { ReactNode } from 'react';
  ***************************************************************************************************/
 export function StatsSection({
   pendingCount,
-  clientsCount,
+  bookingsCount,
   onPendingClick,
-  onClientsClick,
+  onBookingsClick,
 }: TStatsSectionProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the page layer.
@@ -45,12 +45,12 @@ export function StatsSection({
         onClick={onPendingClick}
       />
       <StatCard
-        icon={Users}
+        icon={ListChecks}
         iconColor={'text-brand'}
         iconBg={'bg-brand/20'}
-        value={clientsCount}
-        label={t('allClients')}
-        onClick={onClientsClick}
+        value={bookingsCount}
+        label={t('allBookings')}
+        onClick={onBookingsClick}
       />
     </div>
   );

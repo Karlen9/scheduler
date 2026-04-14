@@ -191,7 +191,17 @@ type Booking struct {
 	SessionType       *SessionType `json:"sessionType,omitempty"`
 	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
 	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
+	ClientIsGhost     bool         `json:"clientIsGhost,omitempty"`
+	ClientTelegramID  int64        `json:"clientTelegramUserId,omitempty"`
 	Client            *Client      `json:"-"`
+}
+
+type BookingListResponse struct {
+	Bookings   []Booking `json:"bookings"`
+	Total      int       `json:"total"`
+	Page       int       `json:"page"`
+	Limit      int       `json:"limit"`
+	TotalPages int       `json:"totalPages"`
 }
 
 /***************************************************************************************************

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, ClipboardList, Settings, Users } from 'lucide-react';
+import { CalendarDays, ClipboardList, ListChecks, Settings } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
@@ -49,7 +49,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   const tn = useTranslations('Navigation');
   const adminHref = resolveTestAwareHref(pathname, '/admin');
   const adminBookHref = resolveTestAwareHref(pathname, '/admin/book');
-  const adminClientsHref = resolveTestAwareHref(pathname, '/admin/clients');
+  const adminBookingsHref = resolveTestAwareHref(pathname, '/admin/bookings');
   const adminRecurringHref = resolveTestAwareHref(pathname, '/admin/recurring');
   const adminSettingsHref = resolveTestAwareHref(pathname, '/admin/settings');
   /***************************************************************************************************
@@ -84,10 +84,10 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
       },
       { key: 'book', label: tn('book'), icon: CalendarDays, href: adminBookHref, isCenter: true },
       {
-        key: 'clients',
-        label: tn('clients'),
-        icon: Users,
-        href: adminClientsHref,
+        key: 'all-bookings',
+        label: tn('allBookings'),
+        icon: ListChecks,
+        href: adminBookingsHref,
       },
       {
         key: 'profile',
@@ -97,7 +97,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         matchPaths: [adminSettingsHref],
       },
     ],
-    [adminBookHref, adminClientsHref, adminHref, adminRecurringHref, adminSettingsHref, tn],
+    [adminBookHref, adminBookingsHref, adminHref, adminRecurringHref, adminSettingsHref, tn],
   );
 
   useEffect(() => {
