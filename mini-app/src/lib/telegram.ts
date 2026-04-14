@@ -381,6 +381,26 @@ export function getUserName(): string {
 }
 
 /***************************************************************************************************
+ * Returns telegram user photo url.
+ *
+ * Parameters:
+ * - None.
+ *
+ * Returns:
+ * - The computed value for the current operation as string.
+ *
+ * Side effects:
+ * - May read browser state.
+ ***************************************************************************************************/
+export function getTelegramUserPhotoUrl(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url ?? '';
+}
+
+/***************************************************************************************************
  * Returns init data.
  *
  * Parameters:
