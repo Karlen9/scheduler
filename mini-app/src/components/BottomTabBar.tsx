@@ -83,7 +83,7 @@ function TabButton({
       href={href}
       prefetch
       data-tab-key={tabKey}
-      className={`z-10 flex h-[46px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-1 transition-colors active:scale-90 ${
+      className={`z-10 flex max-h-[46px]! min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-1 transition-colors active:scale-90 ${
         isActive ? activeColor : 'text-muted-foreground'
       }`}
     >
@@ -227,7 +227,9 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
             <div ref={subTabsRef} className={'relative flex items-center gap-1 px-2 py-1.5'}>
               {activeSubStyle && (
                 <div
-                  className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
+                  className={
+                    'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 max-h-[46px]! rounded-full'
+                  }
                   style={{
                     width: `${activeSubStyle.width}px`,
                     left: `${activeSubStyle.left}px`,
@@ -259,7 +261,9 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
             >
               {!isCenterActive && hasCenterButton && activeSideStyle && (
                 <div
-                  className={'bg-tab-bar-indicator absolute top-1.5 bottom-1.5 rounded-full'}
+                  className={
+                    'bg-tab-bar-indicator absolute top-3 bottom-1.5 max-h-[46px]! rounded-full'
+                  }
                   style={{
                     width: `${activeSideStyle.width}px`,
                     left: `${activeSideStyle.left}px`,
