@@ -23,7 +23,7 @@ function TimeSlotGridComponent({ slots, selected, onSelect }: TTimeSlotGridProps
           key={slot.time}
           onClick={() => slot.available && onSelect(slot.time)}
           disabled={!slot.available}
-          className={`rounded-lg py-3 text-sm transition-all ${
+          className={`rounded-full py-3 text-sm transition-all ${
             selected === slot.time
               ? 'bg-primary text-primary-foreground'
               : slot.available

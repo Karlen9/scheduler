@@ -91,13 +91,15 @@ function BookingCardComponent({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const endsAt = new Date(booking.endsAt);
+  const isPast = startsAt.getTime() <= Date.now();
+  const displayStatus = booking.status === 'confirmed' && isPast ? 'completed' : booking.status;
   /***************************************************************************************************
    * Defines the is active value used by the component layer.
    *
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const isActive = booking.status === 'pending' || booking.status === 'confirmed';
+  const isActive = !isPast && (booking.status === 'pending' || booking.status === 'confirmed');
   /***************************************************************************************************
    * Defines the is specialist pending value used by the component layer.
    *
@@ -172,7 +174,7 @@ function BookingCardComponent({
             </span>
           </div>
         </div>
-        <StatusBadge status={booking.status} />
+        <StatusBadge status={displayStatus} />
       </div>
 
       {isSpecialistPending && onConfirm && onDecline ? (

@@ -2,7 +2,7 @@
 
 import { CalendarX, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BookingCard } from '@/components/BookingCard';
@@ -15,6 +15,18 @@ import { api } from '@/lib/api';
 
 import type { TBooking } from '@/lib/types';
 import type { ReactNode } from 'react';
+
+const PAST_STATUSES = new Set<TBooking['status']>(['completed', 'cancelled', 'rejected']);
+const ACTIVE_STATUSES = new Set<TBooking['status']>([
+  'pending',
+  'confirmed',
+  'cancel_requested',
+  'reschedule_pending',
+]);
+
+function isPastBooking(booking: TBooking, now: number): boolean {
+  return PAST_STATUSES.has(booking.status) || new Date(booking.startsAt).getTime() <= now;
+}
 
 /***************************************************************************************************
  * Renders the bookings page UI and related interactions.
@@ -54,6 +66,12 @@ export default function BookingsPage(): ReactNode {
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 5000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   /***************************************************************************************************
    * Defines the active bookings value used by the page layer.
@@ -64,15 +82,9 @@ export default function BookingsPage(): ReactNode {
   const activeBookings = useMemo(
     () =>
       bookings
-        .filter(
-          (b) =>
-            b.status === 'pending' ||
-            b.status === 'confirmed' ||
-            b.status === 'cancel_requested' ||
-            b.status === 'reschedule_pending',
-        )
+        .filter((b) => ACTIVE_STATUSES.has(b.status) && !isPastBooking(b, now))
         .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
-    [bookings],
+    [bookings, now],
   );
   /***************************************************************************************************
    * Defines the past bookings value used by the page layer.
@@ -83,11 +95,9 @@ export default function BookingsPage(): ReactNode {
   const pastBookings = useMemo(
     () =>
       bookings
-        .filter(
-          (b) => b.status === 'completed' || b.status === 'cancelled' || b.status === 'rejected',
-        )
+        .filter((b) => isPastBooking(b, now))
         .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()),
-    [bookings],
+    [bookings, now],
   );
 
   /***************************************************************************************************

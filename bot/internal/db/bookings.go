@@ -290,6 +290,35 @@ func UpdateBookingStatus(bookingID string, status models.BookingStatus) error {
 }
 
 /***************************************************************************************************
+* Completes confirmed bookings whose start time has passed for one specialist.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current specialist records.
+* - now: Current time threshold used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Time) (int, error) {
+	result, err := DB.Exec(Q(`
+		UPDATE bookings
+		SET status = 'completed'
+		WHERE specialist_id = ?
+		  AND status = 'confirmed'
+		  AND starts_at <= ?
+	`), specialistID, now)
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	return int(rowsAffected), err
+}
+
+/***************************************************************************************************
 * Implements the cancel booking logic used by this module.
 *
 * Parameters:

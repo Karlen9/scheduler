@@ -70,7 +70,7 @@ export function TimePickerModal({
               onClose();
             }}
             disabled={allowedTimes !== null && !allowedTimes.has(time)}
-            className={`rounded-lg py-3 text-sm transition-colors ${
+            className={`rounded-full py-3 text-sm transition-colors ${
               selectedTime === time
                 ? 'bg-brand text-white'
                 : allowedTimes !== null && !allowedTimes.has(time)
