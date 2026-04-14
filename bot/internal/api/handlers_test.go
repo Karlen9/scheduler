@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"scheduler-bot/internal/db"
 )
 
 /***************************************************************************************************
@@ -509,6 +511,41 @@ func TestUpdateAdminProfileAllowsClearingFields(t *testing.T) {
 	}
 	if bio, ok := profile["bio"]; ok && bio != "" {
 		t.Fatalf("expected empty bio after clearing, got %#v", bio)
+	}
+}
+
+/***************************************************************************************************
+* Implements the test update admin profile restores telegram photo logic used by this module.
+*
+* Parameters:
+* - t: T used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func TestUpdateAdminProfileRestoresTelegramPhotoWhenClearingPhoto(t *testing.T) {
+	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "custom_file_id"); err != nil {
+		t.Fatalf("failed to set custom photo: %v", err)
+	}
+
+	telegramPhotoURL := "https://t.me/i/userpic/320/test.jpg"
+	body := jsonBody(map[string]interface{}{
+		"photoUrl": "",
+	})
+
+	w := doAdminRequestWithPhoto(t, http.MethodPut, "/api/admin/profile", body, telegramPhotoURL)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected clear photo update 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+
+	if photoURL, _ := profile["photoUrl"].(string); photoURL != telegramPhotoURL {
+		t.Fatalf("expected telegram photo url %q, got %q", telegramPhotoURL, photoURL)
 	}
 }
 

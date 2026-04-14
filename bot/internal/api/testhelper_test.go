@@ -125,7 +125,7 @@ func TestMain(m *testing.M) {
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
 func buildInitData(userID int64, firstName string, botToken string) string {
-	return buildInitDataAt(userID, firstName, botToken, time.Now().Unix())
+	return buildInitDataAtWithPhoto(userID, firstName, botToken, time.Now().Unix(), "")
 }
 
 /***************************************************************************************************
@@ -144,7 +144,31 @@ func buildInitData(userID int64, firstName string, botToken string) string {
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
 func buildInitDataAt(userID int64, firstName string, botToken string, authUnix int64) string {
-	user := fmt.Sprintf(`{"id":%d,"first_name":"%s","last_name":"","username":"test_%d"}`, userID, firstName, userID)
+	return buildInitDataAtWithPhoto(userID, firstName, botToken, authUnix, "")
+}
+
+/***************************************************************************************************
+* Builds init data at with photo.
+*
+* Parameters:
+* - userID: Identifier used to target the current record.
+* - firstName: First name used by the current operation.
+* - botToken: Bot token used by the current operation.
+* - authUnix: Auth unix used by the current operation.
+* - photoURL: Telegram profile photo url used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func buildInitDataAtWithPhoto(userID int64, firstName string, botToken string, authUnix int64, photoURL string) string {
+	user := fmt.Sprintf(`{"id":%d,"first_name":"%s","last_name":"","username":"test_%d"`, userID, firstName, userID)
+	if photoURL != "" {
+		user += fmt.Sprintf(`,"photo_url":"%s"`, photoURL)
+	}
+	user += "}"
 	authDate := fmt.Sprintf("%d", authUnix)
 
 	/***************************************************************************************************
@@ -237,6 +261,44 @@ func doRequest(t *testing.T, method, path string, body *string, telegramUserID i
 func doAdminRequest(t *testing.T, method, path string, body *string) *httptest.ResponseRecorder {
 	t.Helper()
 	return doRequest(t, method, path, body, testSpecialist.TelegramUserID)
+}
+
+/***************************************************************************************************
+* doAdminRequestWithPhoto sends a request as the specialist with Telegram photo data.
+*
+* Parameters:
+* - method: Method used by the current operation.
+* - t: T used by the current operation.
+* - path: Path used by the current operation.
+* - body: Body used by the current operation.
+* - photoURL: Telegram profile photo url used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as *httptest.ResponseRecorder.
+*
+* Side effects:
+* - May coordinate request handling, authentication checks, or other API-facing behavior.
+***************************************************************************************************/
+func doAdminRequestWithPhoto(t *testing.T, method, path string, body *string, photoURL string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	var reqBody *strings.Reader
+	if body != nil {
+		reqBody = strings.NewReader(*body)
+	} else {
+		reqBody = strings.NewReader("")
+	}
+
+	req := httptest.NewRequest(method, path, reqBody)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
+
+	initData := buildInitDataAtWithPhoto(testSpecialist.TelegramUserID, "Test User", testSpecialist.BotToken, time.Now().Unix(), photoURL)
+	req.Header.Set("X-Telegram-Init-Data", initData)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
 }
 
 /***************************************************************************************************
