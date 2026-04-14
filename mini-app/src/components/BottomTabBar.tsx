@@ -207,7 +207,7 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
   return (
     <div className={'fixed right-0 bottom-0 left-0 z-50'}>
       <div
-        className={'absolute right-0 bottom-0 left-0'}
+        className={'absolute right-0 bottom-[-10px] left-0'}
         style={{
           backgroundColor: 'var(--background)',
           height: 'calc(env(safe-area-inset-bottom) + 88px)',

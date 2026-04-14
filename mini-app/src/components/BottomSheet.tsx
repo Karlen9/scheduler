@@ -84,7 +84,7 @@ export function BottomSheet({
                 </div>
               )}
               {content.children}
-              <div className={'h-[env(safe-area-inset-bottom)]'} />
+              <div className={'h-[calc(1.5rem+env(safe-area-inset-bottom))]'} />
             </DialogPanel>
           </TransitionChild>
         </div>

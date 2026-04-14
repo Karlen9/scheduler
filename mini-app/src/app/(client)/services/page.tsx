@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Dumbbell } from 'lucide-react';
+import { CalendarCheck, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -94,7 +94,7 @@ export default function ServicesPage(): ReactNode {
                     className={'h-full w-full object-cover'}
                   />
                 ) : (
-                  <Dumbbell className={'text-muted-foreground h-4 w-4'} />
+                  <CalendarCheck className={'text-muted-foreground h-4 w-4'} />
                 )}
               </div>
               {/***************************************************************************************************

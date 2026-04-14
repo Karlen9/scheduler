@@ -380,6 +380,29 @@ export const api = {
   },
 
   /***************************************************************************************************
+   * Implements the reschedule booking logic used by this module.
+   *
+   * Parameters:
+   * - bookingId: Identifier used to target the current record.
+   * - data: Input data consumed by the current operation.
+   *
+   * Returns:
+   * - A promise that resolves with TBooking.
+   *
+   * Side effects:
+   * - May read browser state, call shared helpers, or perform network requests.
+   ***************************************************************************************************/
+  async rescheduleBooking(
+    bookingId: string,
+    data: { date: string; time: string },
+  ): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/bookings/${bookingId}/reschedule`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /***************************************************************************************************
    * Implements the confirm booking logic used by this module.
    *
    * Parameters:
