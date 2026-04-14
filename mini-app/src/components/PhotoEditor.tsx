@@ -1,14 +1,16 @@
 'use client';
 
-import { Dialog, DialogPanel } from '@headlessui/react';
+import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { Check, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { Fragment, useCallback, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
 
 import type { TPhotoEditorProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 import type { Area } from 'react-easy-crop';
+
+type TPhotoEditorCloseAction = { type: 'cancel' } | { type: 'confirm'; blob: Blob };
 
 /***************************************************************************************************
  * Renders the photo editor UI and related interactions.
@@ -34,6 +36,8 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
+  const closeActionRef = useRef<TPhotoEditorCloseAction | null>(null);
 
   /***************************************************************************************************
    * Defines the on crop complete value used by the component layer.
@@ -63,101 +67,144 @@ export function PhotoEditor({ imageSrc, onConfirm, onCancel }: TPhotoEditorProps
      ***************************************************************************************************/
     const blob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
     if (blob) {
-      onConfirm(blob);
+      closeActionRef.current = { type: 'confirm', blob };
+      setIsVisible(false);
     }
   };
 
+  const handleCancel = (): void => {
+    closeActionRef.current = { type: 'cancel' };
+    setIsVisible(false);
+  };
+
+  const handleAfterLeave = (): void => {
+    const action = closeActionRef.current;
+    if (!action) {
+      return;
+    }
+    closeActionRef.current = null;
+
+    if (action.type === 'confirm') {
+      onConfirm(action.blob);
+      return;
+    }
+
+    onCancel();
+  };
+
   return (
-    <Dialog open={true} onClose={onCancel} className={'relative z-[100]'}>
-      <div className={'fixed inset-0 bg-black'} aria-hidden={'true'} />
-      <DialogPanel
-        className={'bg-background fixed inset-0 z-[100] flex flex-col overflow-hidden'}
-        style={{ touchAction: 'none' }}
-      >
-        {/***************************************************************************************************
-         * Header.
-         ***************************************************************************************************/}
-        <div className={'border-border flex items-center justify-between border-b px-4 py-3'}>
-          <button onClick={onCancel} className={'text-muted-foreground -m-2 p-2'}>
-            <X className={'h-6 w-6'} />
-          </button>
-          <span className={'text-sm font-medium'}>{t('title')}</span>
-          <button onClick={handleConfirm} className={'text-brand -m-2 p-2'}>
-            <Check className={'h-6 w-6'} />
-          </button>
-        </div>
+    <Transition show={isVisible} appear as={Fragment} afterLeave={handleAfterLeave}>
+      <Dialog onClose={handleCancel} className={'relative z-[100]'}>
+        <TransitionChild
+          as={Fragment}
+          enter={'ease-out duration-200'}
+          enterFrom={'opacity-0'}
+          enterTo={'opacity-100'}
+          leave={'ease-in duration-150'}
+          leaveFrom={'opacity-100'}
+          leaveTo={'opacity-0'}
+        >
+          <div className={'fixed inset-0 bg-black'} aria-hidden={'true'} />
+        </TransitionChild>
+        <TransitionChild
+          as={Fragment}
+          enter={'ease-out duration-300'}
+          enterFrom={'translate-y-6 opacity-0'}
+          enterTo={'translate-y-0 opacity-100'}
+          leave={'ease-in duration-200'}
+          leaveFrom={'translate-y-0 opacity-100'}
+          leaveTo={'translate-y-6 opacity-0'}
+        >
+          <DialogPanel
+            className={'bg-background fixed inset-0 z-[100] flex flex-col overflow-hidden'}
+            style={{ touchAction: 'none' }}
+          >
+            {/***************************************************************************************************
+             * Header.
+             ***************************************************************************************************/}
+            <div className={'border-border flex items-center justify-between border-b px-4 py-3'}>
+              <button onClick={handleCancel} className={'text-muted-foreground -m-2 p-2'}>
+                <X className={'h-6 w-6'} />
+              </button>
+              <span className={'text-sm font-medium'}>{t('title')}</span>
+              <button onClick={handleConfirm} className={'text-brand -m-2 p-2'}>
+                <Check className={'h-6 w-6'} />
+              </button>
+            </div>
 
-        {/***************************************************************************************************
-         * Crop area.
-         ***************************************************************************************************/}
-        <div className={'relative flex-1 overflow-hidden'}>
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            rotation={rotation}
-            aspect={1}
-            cropShape={'round'}
-            showGrid={false}
-            restrictPosition={true}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-          />
-        </div>
+            {/***************************************************************************************************
+             * Crop area.
+             ***************************************************************************************************/}
+            <div className={'relative flex-1 overflow-hidden'}>
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={1}
+                cropShape={'round'}
+                showGrid={false}
+                restrictPosition={true}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
 
-        {/***************************************************************************************************
-         * Controls.
-         ***************************************************************************************************/}
-        <div className={'border-border bg-background space-y-4 border-t px-4 py-4'}>
-          {/***************************************************************************************************
-           * Zoom slider.
-           ***************************************************************************************************/}
-          <div className={'flex items-center gap-3'}>
-            <span className={'text-muted-foreground w-14 text-xs'}>{t('zoom')}</span>
-            <input
-              type={'range'}
-              min={1}
-              max={3}
-              step={0.05}
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className={'accent-brand flex-1'}
-            />
-          </div>
+            {/***************************************************************************************************
+             * Controls.
+             ***************************************************************************************************/}
+            <div className={'border-border bg-background space-y-4 border-t px-4 py-4'}>
+              {/***************************************************************************************************
+               * Zoom slider.
+               ***************************************************************************************************/}
+              <div className={'flex items-center gap-3'}>
+                <span className={'text-muted-foreground w-14 text-xs'}>{t('zoom')}</span>
+                <input
+                  type={'range'}
+                  min={1}
+                  max={3}
+                  step={0.05}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className={'accent-brand flex-1'}
+                />
+              </div>
 
-          {/***************************************************************************************************
-           * Rotation buttons.
-           ***************************************************************************************************/}
-          <div className={'flex items-center justify-center gap-4'}>
-            <button
-              onClick={() => setRotation((r) => r - 90)}
-              className={
-                'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
-              }
-            >
-              <RotateCcw className={'h-4 w-4'} />
-            </button>
-            <button
-              onClick={() => setRotation(0)}
-              className={
-                'bg-card text-muted-foreground rounded-lg px-4 py-2.5 text-sm active:opacity-70'
-              }
-            >
-              {rotation !== 0 ? `${rotation}°` : '0°'}
-            </button>
-            <button
-              onClick={() => setRotation((r) => r + 90)}
-              className={
-                'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
-              }
-            >
-              <RotateCw className={'h-4 w-4'} />
-            </button>
-          </div>
-        </div>
-      </DialogPanel>
-    </Dialog>
+              {/***************************************************************************************************
+               * Rotation buttons.
+               ***************************************************************************************************/}
+              <div className={'flex items-center justify-center gap-4'}>
+                <button
+                  onClick={() => setRotation((r) => r - 90)}
+                  className={
+                    'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+                  }
+                >
+                  <RotateCcw className={'h-4 w-4'} />
+                </button>
+                <button
+                  onClick={() => setRotation(0)}
+                  className={
+                    'bg-card text-muted-foreground rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+                  }
+                >
+                  {rotation !== 0 ? `${rotation}°` : '0°'}
+                </button>
+                <button
+                  onClick={() => setRotation((r) => r + 90)}
+                  className={
+                    'bg-card text-foreground flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm active:opacity-70'
+                  }
+                >
+                  <RotateCw className={'h-4 w-4'} />
+                </button>
+              </div>
+            </div>
+          </DialogPanel>
+        </TransitionChild>
+      </Dialog>
+    </Transition>
   );
 }
 
