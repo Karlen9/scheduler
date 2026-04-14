@@ -35,25 +35,25 @@ scheduler/
 
 ### Infrastructure
 
-| Component | Where | URL |
-|-----------|-------|-----|
-| Bot (Go) | VPS (Docker) | `sport-app.rainingman.online` |
-| Mini-app (Next.js) | Vercel | deployed via `bunx vercel` |
-| SSL | Caddy (VPS) | auto-TLS, proxies to `:8080` |
-| DB | SQLite | `/root/bot-data/scheduler.db` on VPS |
-| Images | Docker Hub | `rainingman/scheduler-bot` |
+| Component          | Where        | URL                                  |
+| ------------------ | ------------ | ------------------------------------ |
+| Bot (Go)           | VPS (Docker) | `sport-app.rainingman.online`        |
+| Mini-app (Next.js) | Vercel       | deployed via `bunx vercel`           |
+| SSL                | Caddy (VPS)  | auto-TLS, proxies to `:8080`         |
+| DB                 | SQLite       | `/root/bot-data/scheduler.db` on VPS |
+| Images             | Docker Hub   | `rainingman/scheduler-bot`           |
 
 ### Tech stack
 
-| Component | Technology |
-|-----------|-----------|
-| Backend | Go 1.24, chi router |
-| Database | SQLite (default) / PostgreSQL (opt-in) |
-| Frontend | Next.js 15, React 19, Tailwind CSS 4, SWR |
-| i18n | go-i18n (backend), next-intl (frontend) |
-| Testing | `go test` (backend), Vitest + happy-dom (frontend) |
-| Linting | gofmt, ESLint 9, Prettier |
-| Pre-commit | Husky + lint-staged + test runners |
+| Component  | Technology                                         |
+| ---------- | -------------------------------------------------- |
+| Backend    | Go 1.24, chi router                                |
+| Database   | SQLite (default) / PostgreSQL (opt-in)             |
+| Frontend   | Next.js 15, React 19, Tailwind CSS 4, SWR          |
+| i18n       | go-i18n (backend), next-intl (frontend)            |
+| Testing    | `go test` (backend), Vitest + happy-dom (frontend) |
+| Linting    | gofmt, ESLint 9, Prettier                          |
+| Pre-commit | Husky + lint-staged + test runners                 |
 
 ---
 
@@ -112,33 +112,33 @@ sudo ss -tlnp | grep 8080
 
 ### Client pages
 
-| Route | Description |
-|-------|-------------|
-| `/` | Home screen — specialist profile, bio, contact, services list, location map |
-| `/services` | Full services listing with prices and durations |
-| `/book` | Booking flow — calendar, time slots, duration picker |
-| `/bookings` | Client's bookings list with cancel/confirm/decline actions |
-| `/recurring` | Client's recurring schedules list |
-| `/recurring/[id]` | Recurring schedule detail with per-booking management |
-| `/profile` | Client profile and notification preferences |
+| Route             | Description                                                                 |
+| ----------------- | --------------------------------------------------------------------------- |
+| `/`               | Home screen — specialist profile, bio, contact, services list, location map |
+| `/services`       | Full services listing with prices and durations                             |
+| `/book`           | Booking flow — calendar, time slots, duration picker                        |
+| `/bookings`       | Client's bookings list with cancel/confirm/decline actions                  |
+| `/recurring`      | Client's recurring schedules list                                           |
+| `/recurring/[id]` | Recurring schedule detail with per-booking management                       |
+| `/profile`        | Client profile and notification preferences                                 |
 
 ### Admin pages
 
-| Route | Description |
-|-------|-------------|
-| `/admin` | Dashboard — today's timeline, pending bookings, quick actions |
-| `/admin/bookings` | All bookings with status filters |
-| `/admin/book` | Create booking for a client (or ghost client) |
-| `/admin/clients` | Client list with display name editing and ghost client creation |
-| `/admin/recurring` | Recurring schedules management with approve/decline |
-| `/admin/recurring/[id]` | Recurring schedule detail with per-booking move/cancel |
-| `/admin/settings` | Settings hub |
-| `/admin/settings/profile` | Specialist profile (name, bio, photo, location, phone) |
-| `/admin/settings/schedule` | Working hours per day of week |
-| `/admin/settings/services` | Session types with price, duration, image |
-| `/admin/settings/days-off` | Days off management |
-| `/admin/settings/notifications` | Notification preferences |
-| `/admin/settings/help` | Help page |
+| Route                           | Description                                                     |
+| ------------------------------- | --------------------------------------------------------------- |
+| `/admin`                        | Dashboard — today's timeline, pending bookings, quick actions   |
+| `/admin/bookings`               | All bookings with status filters                                |
+| `/admin/book`                   | Create booking for a client (or ghost client)                   |
+| `/admin/clients`                | Client list with display name editing and ghost client creation |
+| `/admin/recurring`              | Recurring schedules management with approve/decline             |
+| `/admin/recurring/[id]`         | Recurring schedule detail with per-booking move/cancel          |
+| `/admin/settings`               | Settings hub                                                    |
+| `/admin/settings/profile`       | Specialist profile (name, bio, photo, location, phone)          |
+| `/admin/settings/schedule`      | Working hours per day of week                                   |
+| `/admin/settings/services`      | Session types with price, duration, image                       |
+| `/admin/settings/days-off`      | Days off management                                             |
+| `/admin/settings/notifications` | Notification preferences                                        |
+| `/admin/settings/help`          | Help page                                                       |
 
 ---
 
@@ -146,72 +146,72 @@ sudo ss -tlnp | grep 8080
 
 ### Public
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/api/photo/{fileId}` | Photo proxy (no auth) |
+| Method | Path                  | Description           |
+| ------ | --------------------- | --------------------- |
+| `GET`  | `/health`             | Health check          |
+| `GET`  | `/api/photo/{fileId}` | Photo proxy (no auth) |
 
 ### Client (auth via Telegram initData)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/specialist` | Specialist profile |
-| `GET` | `/api/services` | Session types list |
-| `GET` | `/api/working-hours` | Working hours |
-| `GET` | `/api/availability` | Available time slots for a date |
-| `GET` | `/api/days-off` | Days off |
-| `GET` | `/api/durations` | Available booking durations |
-| `GET` | `/api/bookings` | Client's bookings |
-| `POST` | `/api/bookings` | Create booking |
-| `DELETE` | `/api/bookings/{id}` | Cancel booking |
-| `PUT` | `/api/bookings/{id}/confirm` | Confirm specialist-created booking |
-| `PUT` | `/api/bookings/{id}/decline` | Decline specialist-created booking |
-| `GET/PUT` | `/api/profile` | Client profile |
-| `PUT` | `/api/profile/notifications` | Notification preferences |
-| `POST` | `/api/upload/photo` | Upload photo |
-| `GET/POST` | `/api/recurring` | Recurring schedules |
-| `POST` | `/api/recurring/preview` | Preview recurring bookings |
-| `GET/DELETE` | `/api/recurring/{id}` | Recurring schedule detail |
-| `PUT` | `/api/recurring/{scheduleId}/bookings/{bookingId}/cancel-request` | Request cancel |
-| `POST` | `/api/recurring/{scheduleId}/bookings/{bookingId}/move` | Request move |
+| Method       | Path                                                              | Description                        |
+| ------------ | ----------------------------------------------------------------- | ---------------------------------- |
+| `GET`        | `/api/specialist`                                                 | Specialist profile                 |
+| `GET`        | `/api/services`                                                   | Session types list                 |
+| `GET`        | `/api/working-hours`                                              | Working hours                      |
+| `GET`        | `/api/availability`                                               | Available time slots for a date    |
+| `GET`        | `/api/days-off`                                                   | Days off                           |
+| `GET`        | `/api/durations`                                                  | Available booking durations        |
+| `GET`        | `/api/bookings`                                                   | Client's bookings                  |
+| `POST`       | `/api/bookings`                                                   | Create booking                     |
+| `DELETE`     | `/api/bookings/{id}`                                              | Cancel booking                     |
+| `PUT`        | `/api/bookings/{id}/confirm`                                      | Confirm specialist-created booking |
+| `PUT`        | `/api/bookings/{id}/decline`                                      | Decline specialist-created booking |
+| `GET/PUT`    | `/api/profile`                                                    | Client profile                     |
+| `PUT`        | `/api/profile/notifications`                                      | Notification preferences           |
+| `POST`       | `/api/upload/photo`                                               | Upload photo                       |
+| `GET/POST`   | `/api/recurring`                                                  | Recurring schedules                |
+| `POST`       | `/api/recurring/preview`                                          | Preview recurring bookings         |
+| `GET/DELETE` | `/api/recurring/{id}`                                             | Recurring schedule detail          |
+| `PUT`        | `/api/recurring/{scheduleId}/bookings/{bookingId}/cancel-request` | Request cancel                     |
+| `POST`       | `/api/recurring/{scheduleId}/bookings/{bookingId}/move`           | Request move                       |
 
 ### Admin (requires specialist auth)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET/PUT` | `/api/admin/settings` | Specialist settings |
-| `GET/PUT` | `/api/admin/profile` | Specialist profile |
-| `GET/PUT` | `/api/admin/notifications` | Notification preferences |
-| `GET` | `/api/admin/durations` | Available durations |
-| `GET/POST` | `/api/admin/services` | Services CRUD |
-| `PUT/DELETE` | `/api/admin/services/{id}` | Service update/delete |
-| `GET/PUT` | `/api/admin/working-hours` | Working hours |
-| `PUT/DELETE` | `/api/admin/working-hours/{day}` | Per-day working hours |
-| `GET/POST` | `/api/admin/bookings` | Bookings management |
-| `PUT` | `/api/admin/bookings/{id}/status` | Update booking status |
-| `PUT` | `/api/admin/bookings/{id}/reschedule` | Reschedule booking |
-| `GET/POST` | `/api/admin/days-off` | Days off CRUD |
-| `DELETE` | `/api/admin/days-off/{id}` | Delete day off |
-| `GET/POST` | `/api/admin/clients` | Clients list / create ghost client |
-| `PUT/DELETE` | `/api/admin/clients/{id}` | Update/delete client |
-| `GET/POST` | `/api/admin/recurring` | Recurring schedules |
-| `POST` | `/api/admin/recurring/preview` | Preview recurring bookings |
-| `GET/DELETE` | `/api/admin/recurring/{id}` | Recurring schedule detail |
-| `PUT` | `/api/admin/recurring/{id}/approve` | Approve recurring schedule |
-| `PUT` | `/api/admin/recurring/{id}/decline` | Decline recurring schedule |
-| `POST` | `/api/admin/upload/photo` | Upload photo |
+| Method       | Path                                  | Description                        |
+| ------------ | ------------------------------------- | ---------------------------------- |
+| `GET/PUT`    | `/api/admin/settings`                 | Specialist settings                |
+| `GET/PUT`    | `/api/admin/profile`                  | Specialist profile                 |
+| `GET/PUT`    | `/api/admin/notifications`            | Notification preferences           |
+| `GET`        | `/api/admin/durations`                | Available durations                |
+| `GET/POST`   | `/api/admin/services`                 | Services CRUD                      |
+| `PUT/DELETE` | `/api/admin/services/{id}`            | Service update/delete              |
+| `GET/PUT`    | `/api/admin/working-hours`            | Working hours                      |
+| `PUT/DELETE` | `/api/admin/working-hours/{day}`      | Per-day working hours              |
+| `GET/POST`   | `/api/admin/bookings`                 | Bookings management                |
+| `PUT`        | `/api/admin/bookings/{id}/status`     | Update booking status              |
+| `PUT`        | `/api/admin/bookings/{id}/reschedule` | Reschedule booking                 |
+| `GET/POST`   | `/api/admin/days-off`                 | Days off CRUD                      |
+| `DELETE`     | `/api/admin/days-off/{id}`            | Delete day off                     |
+| `GET/POST`   | `/api/admin/clients`                  | Clients list / create ghost client |
+| `PUT/DELETE` | `/api/admin/clients/{id}`             | Update/delete client               |
+| `GET/POST`   | `/api/admin/recurring`                | Recurring schedules                |
+| `POST`       | `/api/admin/recurring/preview`        | Preview recurring bookings         |
+| `GET/DELETE` | `/api/admin/recurring/{id}`           | Recurring schedule detail          |
+| `PUT`        | `/api/admin/recurring/{id}/approve`   | Approve recurring schedule         |
+| `PUT`        | `/api/admin/recurring/{id}/decline`   | Decline recurring schedule         |
+| `POST`       | `/api/admin/upload/photo`             | Upload photo                       |
 
 ---
 
 ## Master Bot Commands
 
-| Command | Access | Description |
-|---------|--------|-------------|
-| `/start` | Anyone | Begin specialist onboarding (provide bot token, then name) |
-| `/cancel` | Anyone | Cancel current onboarding session |
-| `/help` | Anyone | Show help (admins see extended help) |
-| `/specialists` | Admin | List all registered specialists |
-| `/stats` | Admin | Show total specialist count |
+| Command        | Access | Description                                                |
+| -------------- | ------ | ---------------------------------------------------------- |
+| `/start`       | Anyone | Begin specialist onboarding (provide bot token, then name) |
+| `/cancel`      | Anyone | Cancel current onboarding session                          |
+| `/help`        | Anyone | Show help (admins see extended help)                       |
+| `/specialists` | Admin  | List all registered specialists                            |
+| `/stats`       | Admin  | Show total specialist count                                |
 
 On registration, each specialist is seeded with default session types (personal, pair, consultation) and working hours (Mon-Fri 09:00-18:00, Sat 10:00-15:00).
 
@@ -275,6 +275,7 @@ volumes:
 ```
 
 Key points:
+
 - `network_mode: host` — container shares host network (avoids Docker DNS issues)
 - `DATABASE_PATH=/data/scheduler.db` — always set in compose, never relies on `.env`
 - Production and dev have completely separate databases and env files
@@ -303,6 +304,7 @@ WEB_APP_URL=https://your-vercel-preview-url
 ```
 
 Generate secrets once and never change them:
+
 ```bash
 openssl rand -hex 32   # for MASTER_WEBHOOK_SECRET
 openssl rand -hex 32   # for ENCRYPTION_KEY
@@ -328,33 +330,34 @@ Caddy handles SSL automatically.
 
 ### Dual database support
 
-| | SQLite | PostgreSQL |
-|---|---|---|
-| **Default** | Yes | No (opt-in) |
-| **Config** | `DATABASE_PATH` | `DATABASE_URL` |
-| **Use case** | Production (single server) | Dev/staging |
-| **Driver** | `modernc.org/sqlite` | `jackc/pgx/v5` |
+|              | SQLite                     | PostgreSQL     |
+| ------------ | -------------------------- | -------------- |
+| **Default**  | Yes                        | No (opt-in)    |
+| **Config**   | `DATABASE_PATH`            | `DATABASE_URL` |
+| **Use case** | Production (single server) | Dev/staging    |
+| **Driver**   | `modernc.org/sqlite`       | `jackc/pgx/v5` |
 
 Detection is automatic: if `DATABASE_URL` starts with `postgres`, PostgreSQL is used; otherwise SQLite.
 
 ### Schema
 
-| Table | Description |
-|-------|-------------|
-| `specialists` | Registered specialists (name, bot token, webhook, profile, location, durations) |
-| `clients` | Clients per specialist (name, display_name, preferences, ghost flag) |
-| `session_types` | Service types with price, duration, image |
-| `working_hours` | Per-day working hours |
-| `bookings` | All bookings (pending/confirmed/rejected/cancelled/completed) |
-| `days_off` | Days off per specialist |
-| `recurring_schedules` | Weekly recurring booking schedules with per-day times |
-| `waitlist` | Schema kept for compat, feature removed |
+| Table                 | Description                                                                     |
+| --------------------- | ------------------------------------------------------------------------------- |
+| `specialists`         | Registered specialists (name, bot token, webhook, profile, location, durations) |
+| `clients`             | Clients per specialist (name, display_name, preferences, ghost flag)            |
+| `session_types`       | Service types with price, duration, image                                       |
+| `working_hours`       | Per-day working hours                                                           |
+| `bookings`            | All bookings (pending/confirmed/rejected/cancelled/completed)                   |
+| `days_off`            | Days off per specialist                                                         |
+| `recurring_schedules` | Weekly recurring booking schedules with per-day times                           |
+| `waitlist`            | Schema kept for compat, feature removed                                         |
 
 Migrations run automatically on startup via idempotent `ALTER TABLE` statements.
 
 ### Viewing with Drizzle Studio
 
 **Option 1: Locally with SSH tunnel**
+
 ```bash
 scp root@your-vps:/root/sport-app/bot-data/scheduler.db ./bot-data/scheduler.db
 cd db-viewer
@@ -362,6 +365,7 @@ bunx drizzle-kit studio
 ```
 
 **Option 2: On VPS with port forward**
+
 ```bash
 ssh -L 4983:localhost:4983 root@your-vps
 cd /root/sport-app/db-viewer
@@ -389,6 +393,7 @@ cp /root/sport-app/bot-data/scheduler.db /root/sport-app/bot-data/scheduler-back
 ```
 
 Automatic daily backups with cron:
+
 ```bash
 crontab -e
 # Add:
@@ -409,20 +414,20 @@ Encrypted values in the DB are prefixed with `enc:` so the migration is idempote
 
 ## Environment Variables Reference
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `PUBLIC_BASE_URL` | Yes | VPS public URL (e.g., `https://sport-app.rainingman.online`) |
-| `WEB_APP_URL` | Yes | Vercel mini-app URL |
-| `MASTER_BOT_TOKEN` | Yes | Master bot token from BotFather |
-| `MASTER_WEBHOOK_SECRET` | Recommended | Fixed hex secret for master bot webhook (generate with `openssl rand -hex 32`) |
-| `ADMIN_IDS` | No | Telegram user IDs with admin access (e.g., `[123456789]`) |
-| `ENCRYPTION_KEY` | No | Hex-encoded 32-byte AES key for encrypting bot tokens |
-| `DATABASE_PATH` | Set in compose | SQLite file path (default: `./data/scheduler.db`) |
-| `DATABASE_URL` | No | PostgreSQL connection string; if set, overrides `DATABASE_PATH` |
-| `PORT` | No | HTTP port (default: `8080`) |
-| `TELEGRAM_BOT_TOKEN` | Legacy | Single-bot token (dev without master bot) |
-| `SPECIALIST_TELEGRAM_ID` | Legacy | Specialist Telegram ID (single-bot setup) |
-| `SPECIALIST_NAME` | Legacy | Specialist display name (single-bot setup, default: `Specialist`) |
+| Variable                 | Required       | Description                                                                    |
+| ------------------------ | -------------- | ------------------------------------------------------------------------------ |
+| `PUBLIC_BASE_URL`        | Yes            | VPS public URL (e.g., `https://sport-app.rainingman.online`)                   |
+| `WEB_APP_URL`            | Yes            | Vercel mini-app URL                                                            |
+| `MASTER_BOT_TOKEN`       | Yes            | Master bot token from BotFather                                                |
+| `MASTER_WEBHOOK_SECRET`  | Recommended    | Fixed hex secret for master bot webhook (generate with `openssl rand -hex 32`) |
+| `ADMIN_IDS`              | No             | Telegram user IDs with admin access (e.g., `[123456789]`)                      |
+| `ENCRYPTION_KEY`         | No             | Hex-encoded 32-byte AES key for encrypting bot tokens                          |
+| `DATABASE_PATH`          | Set in compose | SQLite file path (default: `./data/scheduler.db`)                              |
+| `DATABASE_URL`           | No             | PostgreSQL connection string; if set, overrides `DATABASE_PATH`                |
+| `PORT`                   | No             | HTTP port (default: `8080`)                                                    |
+| `TELEGRAM_BOT_TOKEN`     | Legacy         | Single-bot token (dev without master bot)                                      |
+| `SPECIALIST_TELEGRAM_ID` | Legacy         | Specialist Telegram ID (single-bot setup)                                      |
+| `SPECIALIST_NAME`        | Legacy         | Specialist display name (single-bot setup, default: `Specialist`)              |
 
 ---
 
@@ -431,15 +436,17 @@ Encrypted values in the DB are prefixed with `enc:` so the migration is idempote
 ### Local development
 
 #### Mini-app
+
 ```bash
 cd mini-app
 bun install
-bun dev           # http://localhost:3000
-bun build         # production build
-bun lint          # ESLint
+bun run dev       # http://localhost:3000
+bun run build     # production build
+bun run lint      # ESLint
 ```
 
 #### Bot
+
 ```bash
 cd bot
 go run .          # requires env vars (see bot/.env.example)
@@ -450,6 +457,7 @@ go test ./...     # run tests
 ### Pre-commit hooks
 
 Husky + lint-staged run automatically on `git commit`:
+
 - **Go files**: `gofmt -w` + `go test ./...`
 - **TypeScript/TSX**: `prettier --write` + `eslint --fix` + `vitest related --run`
 - **CSS**: `prettier --write`
@@ -457,11 +465,13 @@ Husky + lint-staged run automatically on `git commit`:
 ### Testing
 
 **Backend** (Go):
+
 ```bash
 cd bot && go test ./...
 ```
 
 **Frontend** (Vitest + happy-dom):
+
 ```bash
 cd mini-app && bunx vitest run       # all tests
 cd mini-app && bunx vitest           # watch mode
@@ -480,6 +490,7 @@ PUBLIC_BASE_URL=https://xxxx.ngrok.io go run .
 ```
 
 Verify webhook configuration:
+
 ```bash
 curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo" | jq
 ```
@@ -487,6 +498,7 @@ curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo" | jq
 ### Versioning
 
 Update `bot/version.go` before each production release:
+
 - Bump `Version` (semver, current: `1.3.0`)
 - Changelog content managed via i18n locale files
 
@@ -495,11 +507,13 @@ Update `bot/version.go` before each production release:
 ## Troubleshooting
 
 ### Bot not responding to messages
+
 1. Check webhook: `curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo" | python3 -m json.tool`
 2. Check logs: `docker compose logs --tail 30 bot`
 3. Verify bot is running: `docker compose ps`
 
 ### "address already in use" on port 8080
+
 ```bash
 docker compose down
 sudo fuser -k 8080/tcp
@@ -507,11 +521,14 @@ docker compose up -d
 ```
 
 ### "network is unreachable" in logs
+
 Make sure `docker-compose.yml` uses `network_mode: host` instead of port mapping.
 
 ### Webhook 401 Unauthorized
+
 The `MASTER_WEBHOOK_SECRET` in `.env` must be set. Without it, a random secret is generated on each restart, causing mismatches.
 
 ### Database appears empty in Drizzle Studio
+
 - Make sure you're pointing to the correct file (`/root/sport-app/bot-data/scheduler.db`)
 - If the DB was recreated, re-register via the master bot (`/start`)
