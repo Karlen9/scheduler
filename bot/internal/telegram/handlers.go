@@ -745,11 +745,7 @@ func (h *Handler) UpdateBookingNotificationMessage(loc *i18n.Localizer, chatID i
 	case models.BookingStatusRejected:
 		text = FormatBookingRejectedSpecialist(loc, booking)
 	case models.BookingStatusCancelled:
-		text = myI18n.Tf(loc, "Booking.CancelledSpecialistView", map[string]interface{}{
-			"ClientName": booking.ClientName,
-			"Service":    bookingServiceDisplay(loc, booking),
-			"DateTime":   formatDateTime(loc, booking.StartsAt),
-		})
+		text = myI18n.Tf(loc, "Booking.CancelledSpecialistView", bookingTemplateData(loc, booking))
 	default:
 		text = FormatNewBookingMessage(loc, booking)
 	}

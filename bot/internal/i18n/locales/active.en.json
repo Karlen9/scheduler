@@ -30,91 +30,91 @@
     "other": "❌ Decline"
   },
   "Booking.New": {
-    "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+    "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.ConfirmedSpecialist": {
-    "other": "✅ Booking confirmed\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+    "other": "✅ Booking confirmed\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.RejectedSpecialist": {
-    "other": "❌ Booking rejected\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+    "other": "❌ Booking rejected\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.ConfirmedClient": {
-    "other": "✅ Your booking is confirmed!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "✅ Your booking is confirmed\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.RejectedClient": {
-    "other": "❌ Unfortunately, your booking request was declined"
+    "other": "❌ Your booking request was declined\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.RejectedClientRetry": {
     "other": "\n\nPlease try choosing another time."
   },
   "Booking.CancelledBySpecialistClient": {
-    "other": "❌ Your booking was cancelled by the specialist\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Your booking was cancelled by the specialist\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.CancelledBySpecialistClientRetry": {
     "other": "\n\nYou can book another time."
   },
   "Booking.PendingClient": {
-    "other": "⏳ Your request has been sent!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nWaiting for specialist confirmation."
+    "other": "⏳ Your booking request has been sent\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n\nWaiting for specialist confirmation."
   },
   "Booking.ReminderClient": {
-    "other": "🔔 Reminder: your session is in 1 hour!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nHave a great session! 💪"
+    "other": "🔔 Reminder: your session starts within an hour\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.CancelledForSpecialist": {
-    "other": "❌ Client cancelled the booking\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Client cancelled the booking\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.CancelledForClient": {
-    "other": "❌ The specialist cancelled your booking\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ The specialist cancelled your booking\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.CancelReason": {
     "other": "\n💬 Reason: {{.Reason}}"
   },
   "Booking.SpecialistCreatedClient": {
-    "other": "📅 The specialist booked a session for you\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "📅 The specialist created a booking for you\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n\nPlease accept or decline."
   },
   "Booking.SpecialistCreatedClientAccepted": {
-    "other": "✅ You accepted the booking\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "✅ You accepted the booking\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.SpecialistCreatedClientDeclined": {
-    "other": "❌ You declined the booking\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ You declined the booking\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.ClientAcceptedSpecialist": {
-    "other": "✅ Client confirmed the booking\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "✅ Client accepted the booking\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.ClientDeclinedSpecialist": {
-    "other": "❌ Client declined the booking\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Client declined the booking\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.ClientMessage": {
     "other": "\n💬 Message: {{.Message}}"
   },
   "Move.RequestForSpecialist": {
-    "other": "🔄 Reschedule request\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Was: {{.OldDateTime}}\n🕐 New: {{.NewDateTime}}"
+    "other": "🔄 Reschedule request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Current time: {{.OldDateTime}}\n🕐 Requested time: {{.NewDateTime}}"
   },
   "Move.RequestForClient": {
-    "other": "🔄 The specialist suggests rescheduling\n\n📋 {{.Service}}\n🕐 Was: {{.OldDateTime}}\n🕐 New: {{.NewDateTime}}"
+    "other": "🔄 The specialist suggests rescheduling\n\n📋 Service: {{.Service}}\n🕐 Current time: {{.OldDateTime}}\n🕐 Proposed time: {{.NewDateTime}}"
   },
   "Move.Approved": {
-    "other": "✅ Reschedule confirmed\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Was: {{.OldDateTime}}\n🕐 New: {{.NewDateTime}}"
+    "other": "✅ Reschedule confirmed\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Previous time: {{.OldDateTime}}\n🕐 New time: {{.NewDateTime}}"
   },
   "Move.Declined": {
-    "other": "↩️ Reschedule declined\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nThe session remains in the schedule."
+    "other": "↩️ Reschedule declined\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n\nThe session remains in the schedule."
   },
   "Recurring.Request": {
-    "other": "🔄 New schedule\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "🔄 New recurring schedule request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}"
   },
   "Recurring.RequestForClient": {
-    "other": "📅 The specialist suggests a recurring schedule\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "📅 The specialist suggests a recurring schedule\n\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}"
   },
   "Recurring.Approved": {
-    "other": "✅ Schedule confirmed\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} bookings created"
+    "other": "✅ Recurring schedule confirmed\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}\n📊 {{.Count}} bookings created"
   },
   "Recurring.ApprovedClient": {
-    "other": "✅ Your schedule is confirmed!\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} bookings created"
+    "other": "✅ Your recurring schedule is confirmed\n\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}\n📊 {{.Count}} bookings created"
   },
   "Recurring.Declined": {
-    "other": "❌ Schedule declined\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "❌ Recurring schedule declined\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}"
   },
   "Recurring.DeclinedClient": {
-    "other": "❌ Unfortunately, your schedule was declined\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "❌ Your recurring schedule was declined\n\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}"
   },
   "Recurring.SessionCount": {
     "one": "\n📊 {{.Count}} session",
@@ -163,10 +163,10 @@
     "other": "Open admin panel"
   },
   "Booking.CancelledSpecialistView": {
-    "other": "❌ Booking cancelled\n\n👤 Client: {{.ClientName}}\n📋 {{.Service}}\n🕐 Time: {{.DateTime}}"
+    "other": "❌ Booking cancelled\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },
   "Booking.RejectedClientWithReason": {
-    "other": "❌ Unfortunately, your booking request was declined\n\n💬 Reason: {{.Reason}}"
+    "other": "❌ Your booking request was declined\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n💬 Reason: {{.Reason}}"
   },
   "Date.Sun": {
     "other": "Sun"
@@ -227,6 +227,9 @@
   },
   "Duration.Hour": {
     "other": "h"
+  },
+  "Duration.Minute": {
+    "other": "min"
   },
   "Version": {
     "other": "📌 Version {{.Version}}"

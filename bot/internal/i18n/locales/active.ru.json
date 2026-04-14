@@ -30,91 +30,91 @@
     "other": "❌ Отклонить"
   },
   "Booking.New": {
-    "other": "📅 Новая заявка на запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+    "other": "📅 Новая заявка на запись\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.ConfirmedSpecialist": {
-    "other": "✅ Запись подтверждена\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+    "other": "✅ Запись подтверждена\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.RejectedSpecialist": {
-    "other": "❌ Запись отклонена\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+    "other": "❌ Запись отклонена\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.ConfirmedClient": {
-    "other": "✅ Ваша запись подтверждена!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "✅ Ваша запись подтверждена\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.RejectedClient": {
-    "other": "❌ К сожалению, ваша заявка отклонена"
+    "other": "❌ Ваша заявка отклонена\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.RejectedClientRetry": {
     "other": "\n\nПопробуйте выбрать другое время."
   },
   "Booking.CancelledBySpecialistClient": {
-    "other": "❌ Ваша запись отменена специалистом\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Ваша запись отменена специалистом\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.CancelledBySpecialistClientRetry": {
     "other": "\n\nВы можете записаться на другое время."
   },
   "Booking.PendingClient": {
-    "other": "⏳ Ваша заявка отправлена!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nОжидайте подтверждения от специалиста."
+    "other": "⏳ Ваша заявка отправлена\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}\n\nОжидайте подтверждения от специалиста."
   },
   "Booking.ReminderClient": {
-    "other": "🔔 Напоминание: через 1 час у вас сеанс!\n\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nХорошего сеанса! 💪"
+    "other": "🔔 Напоминание: сеанс начнётся в течение часа\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.CancelledForSpecialist": {
-    "other": "❌ Клиент отменил запись\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Клиент отменил запись\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.CancelledForClient": {
-    "other": "❌ Специалист отменил вашу запись\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Специалист отменил вашу запись\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.CancelReason": {
     "other": "\n💬 Причина: {{.Reason}}"
   },
   "Booking.SpecialistCreatedClient": {
-    "other": "📅 Специалист записал вас на сеанс\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "📅 Специалист создал запись для вас\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}\n\nПодтвердите или отклоните запись."
   },
   "Booking.SpecialistCreatedClientAccepted": {
-    "other": "✅ Вы приняли запись\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "✅ Вы приняли запись\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.SpecialistCreatedClientDeclined": {
-    "other": "❌ Вы отклонили запись\n\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Вы отклонили запись\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.ClientAcceptedSpecialist": {
-    "other": "✅ Клиент подтвердил запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "✅ Клиент принял запись\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.ClientDeclinedSpecialist": {
-    "other": "❌ Клиент отклонил запись\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}"
+    "other": "❌ Клиент отклонил запись\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.ClientMessage": {
     "other": "\n💬 Сообщение: {{.Message}}"
   },
   "Move.RequestForSpecialist": {
-    "other": "🔄 Запрос на перенос\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Было: {{.OldDateTime}}\n🕐 Новое: {{.NewDateTime}}"
+    "other": "🔄 Запрос на перенос\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Текущее время: {{.OldDateTime}}\n🕐 Запрошенное время: {{.NewDateTime}}"
   },
   "Move.RequestForClient": {
-    "other": "🔄 Специалист предлагает перенести сеанс\n\n📋 {{.Service}}\n🕐 Было: {{.OldDateTime}}\n🕐 Новое: {{.NewDateTime}}"
+    "other": "🔄 Специалист предлагает перенести сеанс\n\n📋 Услуга: {{.Service}}\n🕐 Текущее время: {{.OldDateTime}}\n🕐 Предложенное время: {{.NewDateTime}}"
   },
   "Move.Approved": {
-    "other": "✅ Перенос подтверждён\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 Было: {{.OldDateTime}}\n🕐 Новое: {{.NewDateTime}}"
+    "other": "✅ Перенос подтверждён\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Предыдущее время: {{.OldDateTime}}\n🕐 Новое время: {{.NewDateTime}}"
   },
   "Move.Declined": {
-    "other": "↩️ Перенос отклонён\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n🕐 {{.DateTime}}\n\nСеанс остаётся в расписании."
+    "other": "↩️ Перенос отклонён\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}\n\nСеанс остаётся в расписании."
   },
   "Recurring.Request": {
-    "other": "🔄 Новое расписание\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "🔄 Новая заявка на регулярное расписание\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n📅 Расписание: {{.Schedule}}\n📆 Период: {{.DateRange}}"
   },
   "Recurring.RequestForClient": {
-    "other": "📅 Специалист предлагает регулярное расписание\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "📅 Специалист предлагает регулярное расписание\n\n📋 Услуга: {{.Service}}\n📅 Расписание: {{.Schedule}}\n📆 Период: {{.DateRange}}"
   },
   "Recurring.Approved": {
-    "other": "✅ Расписание подтверждено\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} записей создано"
+    "other": "✅ Регулярное расписание подтверждено\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n📅 Расписание: {{.Schedule}}\n📆 Период: {{.DateRange}}\n📊 {{.Count}} записей создано"
   },
   "Recurring.ApprovedClient": {
-    "other": "✅ Ваше расписание подтверждено!\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}\n📊 {{.Count}} записей создано"
+    "other": "✅ Ваше регулярное расписание подтверждено\n\n📋 Услуга: {{.Service}}\n📅 Расписание: {{.Schedule}}\n📆 Период: {{.DateRange}}\n📊 {{.Count}} записей создано"
   },
   "Recurring.Declined": {
-    "other": "❌ Расписание отклонено\n\n👤 {{.ClientName}}\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "❌ Регулярное расписание отклонено\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n📅 Расписание: {{.Schedule}}\n📆 Период: {{.DateRange}}"
   },
   "Recurring.DeclinedClient": {
-    "other": "❌ К сожалению, ваше расписание отклонено\n\n📋 {{.Service}}\n📅 {{.Schedule}}\n📆 {{.DateRange}}"
+    "other": "❌ Ваше регулярное расписание отклонено\n\n📋 Услуга: {{.Service}}\n📅 Расписание: {{.Schedule}}\n📆 Период: {{.DateRange}}"
   },
   "Recurring.SessionCount": {
     "one": "\n📊 {{.Count}} сеанс",
@@ -165,10 +165,10 @@
     "other": "Открыть панель управления"
   },
   "Booking.CancelledSpecialistView": {
-    "other": "❌ Запись отменена\n\n👤 Клиент: {{.ClientName}}\n📋 {{.Service}}\n🕐 Время: {{.DateTime}}"
+    "other": "❌ Запись отменена\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },
   "Booking.RejectedClientWithReason": {
-    "other": "❌ К сожалению, ваша заявка отклонена\n\n💬 Причина: {{.Reason}}"
+    "other": "❌ Ваша заявка отклонена\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}\n💬 Причина: {{.Reason}}"
   },
   "Date.Sun": {
     "other": "Вс"
@@ -229,6 +229,9 @@
   },
   "Duration.Hour": {
     "other": "ч"
+  },
+  "Duration.Minute": {
+    "other": "мин"
   },
   "Version": {
     "other": "📌 Версия {{.Version}}"
