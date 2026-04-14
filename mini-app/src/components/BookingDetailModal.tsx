@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { ClientAvatar } from '@/components/ClientAvatar';
@@ -61,8 +62,17 @@ export function BookingDetailModal({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const locale = useLocale();
+  const [retainedBooking, setRetainedBooking] = useState(booking);
 
-  if (!booking) {
+  useEffect(() => {
+    if (booking) {
+      setRetainedBooking(booking);
+    }
+  }, [booking]);
+
+  const displayBooking = booking ?? retainedBooking;
+
+  if (!displayBooking) {
     return null;
   }
 
@@ -72,16 +82,16 @@ export function BookingDetailModal({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const startsAt = new Date(booking.startsAt);
+  const startsAt = new Date(displayBooking.startsAt);
   /***************************************************************************************************
    * Defines the ends at value used by the component layer.
    *
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const endsAt = new Date(booking.endsAt);
+  const endsAt = new Date(displayBooking.endsAt);
   const canMessageClient =
-    !!onMessageClient && !booking.clientIsGhost && !!booking.clientTelegramUserId;
+    !!onMessageClient && !displayBooking.clientIsGhost && !!displayBooking.clientTelegramUserId;
 
   /***************************************************************************************************
    * Formats date.
@@ -140,15 +150,15 @@ export function BookingDetailModal({
        ***************************************************************************************************/}
       <div className={'mb-4 flex items-center gap-4'}>
         <ClientAvatar
-          name={booking.clientDisplayName || booking.clientName}
-          photoUrl={booking.clientPhotoUrl}
+          name={displayBooking.clientDisplayName || displayBooking.clientName}
+          photoUrl={displayBooking.clientPhotoUrl}
           size={'lg'}
         />
         <div>
           <h3 className={'text-foreground text-xl font-medium'}>
-            {booking.clientDisplayName || booking.clientName}
+            {displayBooking.clientDisplayName || displayBooking.clientName}
           </h3>
-          <StatusBadge status={booking.status} className={'inline-block px-2 py-0.5'} />
+          <StatusBadge status={displayBooking.status} className={'inline-block px-2 py-0.5'} />
         </div>
       </div>
 
@@ -159,7 +169,7 @@ export function BookingDetailModal({
         <div className={'border-border flex justify-between border-b py-2'}>
           <span className={'text-muted-foreground'}>{t('serviceLabel')}</span>
           <span className={'text-foreground font-medium'}>
-            {booking.sessionType?.name || tc('workout')}
+            {displayBooking.sessionType?.name || tc('workout')}
           </span>
         </div>
         <div className={'border-border flex justify-between border-b py-2'}>
@@ -174,27 +184,28 @@ export function BookingDetailModal({
             {formatTime(endsAt)}
           </span>
         </div>
-        {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
+        {(displayBooking.durationMinutes || displayBooking.sessionType?.durationMinutes) && (
           <div className={'border-border flex justify-between border-b py-2'}>
             <span className={'text-muted-foreground'}>{t('durationLabel')}</span>
             <span className={'text-foreground font-medium'}>
-              {booking.durationMinutes || booking.sessionType?.durationMinutes} {tc('min')}
+              {displayBooking.durationMinutes || displayBooking.sessionType?.durationMinutes}{' '}
+              {tc('min')}
             </span>
           </div>
         )}
-        {booking.clientMessage && (
+        {displayBooking.clientMessage && (
           <div className={'border-border border-b py-2'}>
             <span className={'text-muted-foreground text-sm'}>{t('clientComment')}</span>
-            <p className={'text-foreground mt-1 text-sm'}>{booking.clientMessage}</p>
+            <p className={'text-foreground mt-1 text-sm'}>{displayBooking.clientMessage}</p>
           </div>
         )}
-        {booking.cancelReason && (
+        {displayBooking.cancelReason && (
           <div className={'border-border border-b py-2'}>
             <span className={'text-muted-foreground text-sm'}>{t('cancelReason')}</span>
             <p className={'text-foreground mt-1 text-sm'}>
-              {t.has(`cancelReasons.${booking.cancelReason}`)
-                ? t(`cancelReasons.${booking.cancelReason}`)
-                : booking.cancelReason}
+              {t.has(`cancelReasons.${displayBooking.cancelReason}`)
+                ? t(`cancelReasons.${displayBooking.cancelReason}`)
+                : displayBooking.cancelReason}
             </p>
           </div>
         )}
@@ -203,7 +214,7 @@ export function BookingDetailModal({
       {/***************************************************************************************************
        * Waiting for client response on specialist-created bookings.
        ***************************************************************************************************/}
-      {booking.status === 'pending' && booking.createdBy === 'specialist' && (
+      {displayBooking.status === 'pending' && displayBooking.createdBy === 'specialist' && (
         <div className={'text-secondary mb-3 py-2 text-center text-sm'}>
           {t('waitingForClient')}
         </div>
@@ -212,12 +223,12 @@ export function BookingDetailModal({
       {/***************************************************************************************************
        * Accept / Reject for pending client-created bookings.
        ***************************************************************************************************/}
-      {booking.status === 'pending' &&
-        booking.createdBy !== 'specialist' &&
+      {displayBooking.status === 'pending' &&
+        displayBooking.createdBy !== 'specialist' &&
         (onAccept || onReject) && (
           <div className={'mb-3 flex gap-3'}>
             <button
-              onClick={() => onAccept?.(booking)}
+              onClick={() => onAccept?.(displayBooking)}
               className={
                 'bg-action-confirm-bg text-action-confirm-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
               }
@@ -225,7 +236,7 @@ export function BookingDetailModal({
               {tc('confirm')}
             </button>
             <button
-              onClick={() => onReject?.(booking)}
+              onClick={() => onReject?.(displayBooking)}
               className={
                 'bg-action-danger-bg text-action-danger-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
               }
@@ -240,7 +251,7 @@ export function BookingDetailModal({
        ***************************************************************************************************/}
       {canMessageClient && (
         <button
-          onClick={() => onMessageClient(booking)}
+          onClick={() => onMessageClient(displayBooking)}
           className={
             'bg-card text-foreground mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
           }
@@ -249,10 +260,10 @@ export function BookingDetailModal({
         </button>
       )}
 
-      {(booking.status === 'pending' || booking.status === 'confirmed') && (
+      {(displayBooking.status === 'pending' || displayBooking.status === 'confirmed') && (
         <div className={'flex gap-3'}>
           <button
-            onClick={() => onReschedule?.(booking)}
+            onClick={() => onReschedule?.(displayBooking)}
             className={
               'bg-card text-foreground flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
             }
@@ -260,7 +271,7 @@ export function BookingDetailModal({
             {t('rescheduleButton')}
           </button>
           <button
-            onClick={() => onCancel?.(booking)}
+            onClick={() => onCancel?.(displayBooking)}
             className={
               'bg-action-danger-bg text-action-danger-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
             }
