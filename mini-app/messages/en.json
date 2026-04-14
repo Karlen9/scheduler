@@ -339,9 +339,9 @@
     "phoneLabel": "Phone",
     "telegramLabel": "Telegram",
     "telegramPlaceholder": "@username",
-    "gymCoordsLabel": "Location coordinates",
-    "gymCoordsPlaceholder": "40.748817, -73.985428",
-    "gymCoordsHint": "Open a map service, click on the building (not the business listing) and copy the coordinates"
+    "useTelegramPhoto": "Use Telegram photo",
+    "removePhoto": "Remove photo",
+    "telegramPhotoActive": "Telegram photo is active"
   },
   "AdminSchedule": {
     "title": "Schedule",
@@ -617,6 +617,7 @@
   "Success": {
     "profileSaved": "Profile saved",
     "photoUpdated": "Photo updated",
+    "photoRemoved": "Photo removed",
     "scheduleSaved": "Schedule saved",
     "bookingCancelled": "Booking cancelled",
     "bookingConfirmed": "Booking confirmed",
