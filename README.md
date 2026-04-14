@@ -8,9 +8,11 @@ A multi-tenant scheduling platform where professionals (fitness trainers, teache
 scheduler/
 ├── bot/              # Go backend (Telegram webhooks + REST API)
 ├── mini-app/         # Next.js 15 frontend (Telegram Mini App)
-├── db-viewer/        # Drizzle Studio for DB inspection
+├── load-tests/       # k6 scripts + Prometheus/Grafana config
+├── deploy/           # VPS redeploy helper and webhook payload examples
+├── docs/             # implementation plans and workflow docs
 ├── docker-compose.yml
-└── bot-data/         # SQLite database (created on VPS, gitignored)
+└── docker-compose.loadtest.yml
 ```
 
 ### How it works
@@ -27,33 +29,37 @@ scheduler/
 - **Dual booking flow**: clients create bookings (specialist approves) or specialist creates bookings (client approves)
 - **Recurring schedules**: weekly repeating bookings with per-day time selection and two-sided approval
 - **Duration-based booking**: clients pick duration (1h, 1.5h, etc.) instead of rigid session types
+- **Flexible schedule grid**: multiple working intervals per weekday, days off, and availability preview
 - **Ghost clients**: specialists can create bookings for clients without Telegram accounts
 - **Display names**: specialists can set custom display names for clients
+- **Analytics**: client and admin stats endpoints with mini-app dashboard cards
+- **Frontend cache sync**: lightweight change versions for refreshing mutated resources
 - **i18n**: Russian and English, both backend (go-i18n) and frontend (next-intl)
 - **Light/dark theme**: auto-detected from Telegram's color scheme
 - **Token encryption**: bot tokens encrypted at rest with AES-256-GCM
+- **Observability and load testing**: Prometheus HTTP metrics, Grafana dashboards, k6 smoke/load/stress scripts
 
 ### Infrastructure
 
-| Component          | Where        | URL                                  |
-| ------------------ | ------------ | ------------------------------------ |
-| Bot (Go)           | VPS (Docker) | `sport-app.rainingman.online`        |
-| Mini-app (Next.js) | Vercel       | deployed via `bunx vercel`           |
-| SSL                | Caddy (VPS)  | auto-TLS, proxies to `:8080`         |
-| DB                 | SQLite       | `/root/bot-data/scheduler.db` on VPS |
-| Images             | Docker Hub   | `rainingman/scheduler-bot`           |
+| Component          | Where        | URL                                            |
+| ------------------ | ------------ | ---------------------------------------------- |
+| Bot (Go)           | VPS (Docker) | `sport-app.rainingman.online`                  |
+| Mini-app (Next.js) | Vercel       | deployed via `bunx vercel`                     |
+| SSL                | Caddy (VPS)  | auto-TLS, proxies to `:8080`                   |
+| DB                 | SQLite       | `/root/sport-app/bot-data/scheduler.db` on VPS |
+| Images             | Docker Hub   | `rainingman/scheduler-bot`                     |
 
 ### Tech stack
 
-| Component  | Technology                                         |
-| ---------- | -------------------------------------------------- |
-| Backend    | Go 1.24, chi router                                |
-| Database   | SQLite (default) / PostgreSQL (opt-in)             |
-| Frontend   | Next.js 15, React 19, Tailwind CSS 4, SWR          |
-| i18n       | go-i18n (backend), next-intl (frontend)            |
-| Testing    | `go test` (backend), Vitest + happy-dom (frontend) |
-| Linting    | gofmt, ESLint 9, Prettier                          |
-| Pre-commit | Husky + lint-staged + test runners                 |
+| Component  | Technology                                                        |
+| ---------- | ----------------------------------------------------------------- |
+| Backend    | Go 1.24, chi router                                               |
+| Database   | SQLite (default) / PostgreSQL (opt-in)                            |
+| Frontend   | Next.js 15, React 19, Tailwind CSS 4, SWR                         |
+| i18n       | go-i18n (backend), next-intl (frontend)                           |
+| Testing    | `go test` (backend), Vitest + happy-dom (frontend), k6 load tests |
+| Linting    | gofmt, ESLint 8, Prettier                                         |
+| Pre-commit | Lefthook with Prettier + ESLint                                   |
 
 ---
 
@@ -127,6 +133,7 @@ sudo ss -tlnp | grep 8080
 | Route                           | Description                                                     |
 | ------------------------------- | --------------------------------------------------------------- |
 | `/admin`                        | Dashboard — today's timeline, pending bookings, quick actions   |
+| `/admin/analytics`              | Admin analytics and operational stats                           |
 | `/admin/bookings`               | All bookings with status filters                                |
 | `/admin/book`                   | Create booking for a client (or ghost client)                   |
 | `/admin/clients`                | Client list with display name editing and ghost client creation |
@@ -140,66 +147,102 @@ sudo ss -tlnp | grep 8080
 | `/admin/settings/notifications` | Notification preferences                                        |
 | `/admin/settings/help`          | Help page                                                       |
 
+### Test routes
+
+The mini-app has browser-only test routes backed by `mini-app/src/lib/mock-api.ts`. These routes are useful for UI checks outside Telegram because API calls are resolved by the mock API instead of the Go backend.
+
+| Route              | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `/test/client`     | Mocked client home page                              |
+| `/test/client/...` | Mocked client pages, preserving the normal path      |
+| `/test/admin`      | Mocked admin dashboard                               |
+| `/test/admin/...`  | Mocked admin pages, preserving the normal admin path |
+
+Examples:
+
+```text
+/test/client/book
+/test/client/bookings
+/test/client/recurring
+/test/client/profile
+/test/admin/book
+/test/admin/bookings
+/test/admin/analytics
+/test/admin/settings/schedule
+```
+
 ---
 
 ## API Routes
 
-### Public
+### Public and operational
 
-| Method | Path                  | Description           |
-| ------ | --------------------- | --------------------- |
-| `GET`  | `/health`             | Health check          |
-| `GET`  | `/api/photo/{fileId}` | Photo proxy (no auth) |
+| Method | Path                      | Description                                 |
+| ------ | ------------------------- | ------------------------------------------- |
+| `GET`  | `/health`                 | Health check                                |
+| `GET`  | `/metrics`                | Prometheus metrics; internal or superadmin  |
+| `GET`  | `/api/photo/{fileId}`     | Telegram photo proxy; no app auth           |
+| `GET`  | `/superadmin/specialists` | List all specialists; bearer token required |
 
-### Client (auth via Telegram initData)
+### Client (Telegram initData auth)
 
 | Method       | Path                                                              | Description                        |
 | ------------ | ----------------------------------------------------------------- | ---------------------------------- |
 | `GET`        | `/api/specialist`                                                 | Specialist profile                 |
-| `GET`        | `/api/services`                                                   | Session types list                 |
+| `GET`        | `/api/services`                                                   | Services/session types list        |
 | `GET`        | `/api/working-hours`                                              | Working hours                      |
+| `GET`        | `/api/schedule-context`                                           | Working hours, services, days off  |
 | `GET`        | `/api/availability`                                               | Available time slots for a date    |
-| `GET`        | `/api/days-off`                                                   | Days off                           |
+| `GET`        | `/api/days-off`                                                   | Public days off                    |
 | `GET`        | `/api/durations`                                                  | Available booking durations        |
 | `GET`        | `/api/bookings`                                                   | Client's bookings                  |
 | `POST`       | `/api/bookings`                                                   | Create booking                     |
 | `DELETE`     | `/api/bookings/{id}`                                              | Cancel booking                     |
+| `PUT`        | `/api/bookings/{id}/reschedule`                                   | Reschedule client booking          |
 | `PUT`        | `/api/bookings/{id}/confirm`                                      | Confirm specialist-created booking |
 | `PUT`        | `/api/bookings/{id}/decline`                                      | Decline specialist-created booking |
+| `GET`        | `/api/stats`                                                      | Client analytics                   |
+| `GET`        | `/api/changes`                                                    | Resource version counters          |
 | `GET/PUT`    | `/api/profile`                                                    | Client profile                     |
 | `PUT`        | `/api/profile/notifications`                                      | Notification preferences           |
-| `POST`       | `/api/upload/photo`                                               | Upload photo                       |
+| `POST`       | `/api/upload/photo`                                               | Upload client photo                |
 | `GET/POST`   | `/api/recurring`                                                  | Recurring schedules                |
 | `POST`       | `/api/recurring/preview`                                          | Preview recurring bookings         |
-| `GET/DELETE` | `/api/recurring/{id}`                                             | Recurring schedule detail          |
-| `PUT`        | `/api/recurring/{scheduleId}/bookings/{bookingId}/cancel-request` | Request cancel                     |
-| `POST`       | `/api/recurring/{scheduleId}/bookings/{bookingId}/move`           | Request move                       |
+| `GET/DELETE` | `/api/recurring/{id}`                                             | Recurring schedule detail/cancel   |
+| `PUT`        | `/api/recurring/{scheduleId}/bookings/{bookingId}/cancel-request` | Request recurring booking cancel   |
+| `POST`       | `/api/recurring/{scheduleId}/bookings/{bookingId}/move`           | Request recurring booking move     |
 
-### Admin (requires specialist auth)
+### Admin (specialist auth)
 
-| Method       | Path                                  | Description                        |
-| ------------ | ------------------------------------- | ---------------------------------- |
-| `GET/PUT`    | `/api/admin/settings`                 | Specialist settings                |
-| `GET/PUT`    | `/api/admin/profile`                  | Specialist profile                 |
-| `GET/PUT`    | `/api/admin/notifications`            | Notification preferences           |
-| `GET`        | `/api/admin/durations`                | Available durations                |
-| `GET/POST`   | `/api/admin/services`                 | Services CRUD                      |
-| `PUT/DELETE` | `/api/admin/services/{id}`            | Service update/delete              |
-| `GET/PUT`    | `/api/admin/working-hours`            | Working hours                      |
-| `PUT/DELETE` | `/api/admin/working-hours/{day}`      | Per-day working hours              |
-| `GET/POST`   | `/api/admin/bookings`                 | Bookings management                |
-| `PUT`        | `/api/admin/bookings/{id}/status`     | Update booking status              |
-| `PUT`        | `/api/admin/bookings/{id}/reschedule` | Reschedule booking                 |
-| `GET/POST`   | `/api/admin/days-off`                 | Days off CRUD                      |
-| `DELETE`     | `/api/admin/days-off/{id}`            | Delete day off                     |
-| `GET/POST`   | `/api/admin/clients`                  | Clients list / create ghost client |
-| `PUT/DELETE` | `/api/admin/clients/{id}`             | Update/delete client               |
-| `GET/POST`   | `/api/admin/recurring`                | Recurring schedules                |
-| `POST`       | `/api/admin/recurring/preview`        | Preview recurring bookings         |
-| `GET/DELETE` | `/api/admin/recurring/{id}`           | Recurring schedule detail          |
-| `PUT`        | `/api/admin/recurring/{id}/approve`   | Approve recurring schedule         |
-| `PUT`        | `/api/admin/recurring/{id}/decline`   | Decline recurring schedule         |
-| `POST`       | `/api/admin/upload/photo`             | Upload photo                       |
+| Method       | Path                                                                    | Description                        |
+| ------------ | ----------------------------------------------------------------------- | ---------------------------------- |
+| `GET/PUT`    | `/api/admin/settings`                                                   | Specialist settings                |
+| `GET/PUT`    | `/api/admin/profile`                                                    | Specialist profile                 |
+| `GET/PUT`    | `/api/admin/notifications`                                              | Notification preferences           |
+| `GET`        | `/api/admin/durations`                                                  | Available durations                |
+| `GET/POST`   | `/api/admin/services`                                                   | Services list/create               |
+| `PUT/DELETE` | `/api/admin/services/{id}`                                              | Service update/delete              |
+| `GET/PUT`    | `/api/admin/working-hours`                                              | Working hours                      |
+| `GET`        | `/api/admin/schedule-context`                                           | Working hours, services, days off  |
+| `PUT/DELETE` | `/api/admin/working-hours/{day}`                                        | Per-day working-hour intervals     |
+| `GET/POST`   | `/api/admin/bookings`                                                   | Bookings list/create               |
+| `GET`        | `/api/admin/stats`                                                      | Admin analytics                    |
+| `PUT`        | `/api/admin/bookings/{id}/status`                                       | Update booking status              |
+| `PUT`        | `/api/admin/bookings/{id}/reschedule`                                   | Reschedule booking                 |
+| `GET/POST`   | `/api/admin/days-off`                                                   | Days off list/create               |
+| `DELETE`     | `/api/admin/days-off/{id}`                                              | Delete day off                     |
+| `GET/POST`   | `/api/admin/clients`                                                    | Clients list / create ghost client |
+| `PUT/DELETE` | `/api/admin/clients/{id}`                                               | Update/delete client               |
+| `GET/POST`   | `/api/admin/recurring`                                                  | Recurring schedules list/create    |
+| `POST`       | `/api/admin/recurring/preview`                                          | Preview recurring bookings         |
+| `GET/DELETE` | `/api/admin/recurring/{id}`                                             | Recurring schedule detail/cancel   |
+| `PUT`        | `/api/admin/recurring/{id}/approve`                                     | Approve recurring schedule         |
+| `PUT`        | `/api/admin/recurring/{id}/decline`                                     | Decline recurring schedule         |
+| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/cancel-request` | Request recurring booking cancel   |
+| `POST`       | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/move`           | Request recurring booking move     |
+| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/approve-move`   | Approve recurring booking move     |
+| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/decline-move`   | Decline recurring booking move     |
+| `POST`       | `/api/admin/upload/photo`                                               | Upload specialist photo            |
 
 ---
 
@@ -224,12 +267,12 @@ On registration, each specialist is seeded with default session types (personal,
 ```
 /root/sport-app/
 ├── docker-compose.yml
-├── .env                  # production env
-├── .env.dev              # dev env
+├── bot/
+│   ├── .env              # production env
+│   └── .env.dev          # dev env
 ├── bot-data/
 │   └── scheduler.db      # production database
-└── bot-data-dev/
-    └── scheduler.db      # dev database
+└── pgdata/               # PostgreSQL volume managed by Docker
 ```
 
 ### docker-compose.yml
@@ -242,7 +285,7 @@ services:
     volumes:
       - ./bot-data:/data
     env_file:
-      - .env
+      - bot/.env
     environment:
       - DATABASE_PATH=/data/scheduler.db
     restart: unless-stopped
@@ -250,25 +293,26 @@ services:
   bot-dev:
     image: rainingman/scheduler-bot:dev
     network_mode: host
-    volumes:
-      - ./bot-data-dev:/data
     env_file:
-      - .env.dev
+      - bot/.env.dev
     environment:
-      - DATABASE_PATH=/data/scheduler.db
+      - DATABASE_URL=postgres://scheduler:${DB_PASSWORD:-scheduler}@localhost:5432/scheduler?sslmode=disable
       - PORT=8081
+    depends_on:
+      - db
     restart: unless-stopped
 
   db:
     image: postgres:16-alpine
-    ports:
-      - "127.0.0.1:5432:5432"
-    environment:
-      POSTGRES_USER: scheduler
-      POSTGRES_PASSWORD: scheduler
-      POSTGRES_DB: scheduler
+    restart: unless-stopped
     volumes:
       - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: scheduler
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-scheduler}
+    ports:
+      - "127.0.0.1:5432:5432"
 
 volumes:
   pgdata:
@@ -278,9 +322,10 @@ Key points:
 
 - `network_mode: host` — container shares host network (avoids Docker DNS issues)
 - `DATABASE_PATH=/data/scheduler.db` — always set in compose, never relies on `.env`
-- Production and dev have completely separate databases and env files
-- Production on port 8080, dev on port 8081
-- `db` service is PostgreSQL for local dev/staging only
+- Production and dev have separate env files and databases
+- Production uses SQLite on port 8080, dev uses PostgreSQL on port 8081
+- `db` service is PostgreSQL for dev/staging and local migration checks
+- `DB_PASSWORD` is read by Docker Compose from the shell or project-root `.env`; it defaults to `scheduler`
 
 ### .env (production)
 
@@ -291,6 +336,7 @@ MASTER_BOT_TOKEN=your-master-bot-token
 MASTER_WEBHOOK_SECRET=your-fixed-secret-hex-string
 ADMIN_IDS=[your-telegram-id]
 ENCRYPTION_KEY=your-64-char-hex-string
+SUPERADMIN_SECRET=your-superadmin-bearer-secret
 ```
 
 ### .env.dev
@@ -346,33 +392,14 @@ Detection is automatic: if `DATABASE_URL` starts with `postgres`, PostgreSQL is 
 | `specialists`         | Registered specialists (name, bot token, webhook, profile, location, durations) |
 | `clients`             | Clients per specialist (name, display_name, preferences, ghost flag)            |
 | `session_types`       | Service types with price, duration, image                                       |
-| `working_hours`       | Per-day working hours                                                           |
+| `working_hours`       | Per-day working-hour intervals                                                  |
 | `bookings`            | All bookings (pending/confirmed/rejected/cancelled/completed)                   |
 | `days_off`            | Days off per specialist                                                         |
 | `recurring_schedules` | Weekly recurring booking schedules with per-day times                           |
-| `waitlist`            | Schema kept for compat, feature removed                                         |
 
 Migrations run automatically on startup via idempotent `ALTER TABLE` statements.
 
-### Viewing with Drizzle Studio
-
-**Option 1: Locally with SSH tunnel**
-
-```bash
-scp root@your-vps:/root/sport-app/bot-data/scheduler.db ./bot-data/scheduler.db
-cd db-viewer
-bunx drizzle-kit studio
-```
-
-**Option 2: On VPS with port forward**
-
-```bash
-ssh -L 4983:localhost:4983 root@your-vps
-cd /root/sport-app/db-viewer
-DB_PATH=/root/sport-app/bot-data/scheduler.db bunx drizzle-kit studio
-```
-
-### Direct SQLite queries
+### Direct database queries
 
 ```bash
 # On VPS, via Docker
@@ -380,6 +407,9 @@ docker compose exec bot sh -c "sqlite3 /data/scheduler.db \"SELECT name, telegra
 
 # Or directly
 sqlite3 /root/sport-app/bot-data/scheduler.db "SELECT * FROM specialists;"
+
+# Dev PostgreSQL
+psql "postgres://scheduler:${DB_PASSWORD:-scheduler}@localhost:5432/scheduler?sslmode=disable"
 ```
 
 ### Backups
@@ -422,12 +452,21 @@ Encrypted values in the DB are prefixed with `enc:` so the migration is idempote
 | `MASTER_WEBHOOK_SECRET`  | Recommended    | Fixed hex secret for master bot webhook (generate with `openssl rand -hex 32`) |
 | `ADMIN_IDS`              | No             | Telegram user IDs with admin access (e.g., `[123456789]`)                      |
 | `ENCRYPTION_KEY`         | No             | Hex-encoded 32-byte AES key for encrypting bot tokens                          |
+| `SUPERADMIN_SECRET`      | No             | Bearer token for `/superadmin/*` endpoints and remote `/metrics` access        |
 | `DATABASE_PATH`          | Set in compose | SQLite file path (default: `./data/scheduler.db`)                              |
 | `DATABASE_URL`           | No             | PostgreSQL connection string; if set, overrides `DATABASE_PATH`                |
 | `PORT`                   | No             | HTTP port (default: `8080`)                                                    |
+| `LOAD_TEST_MODE`         | Test only      | Enables `X-Test-User-ID` auth bypass and seeded load-test specialist           |
+| `DB_PASSWORD`            | Dev compose    | PostgreSQL password used by `docker-compose.yml`                               |
 | `TELEGRAM_BOT_TOKEN`     | Legacy         | Single-bot token (dev without master bot)                                      |
 | `SPECIALIST_TELEGRAM_ID` | Legacy         | Specialist Telegram ID (single-bot setup)                                      |
 | `SPECIALIST_NAME`        | Legacy         | Specialist display name (single-bot setup, default: `Specialist`)              |
+
+### Mini-app environment
+
+| Variable  | Required | Description                                                               |
+| --------- | -------- | ------------------------------------------------------------------------- |
+| `API_URL` | No       | Backend URL for Next.js API rewrites; defaults to `http://localhost:8080` |
 
 ---
 
@@ -443,7 +482,10 @@ bun install
 bun run dev       # http://localhost:3000
 bun run build     # production build
 bun run lint      # ESLint
+bun run test      # Vitest
 ```
+
+When the dev server is running, use `/test/client` and `/test/admin` for mocked UI testing without Telegram initData or backend access.
 
 #### Bot
 
@@ -456,11 +498,10 @@ go test ./...     # run tests
 
 ### Pre-commit hooks
 
-Husky + lint-staged run automatically on `git commit`:
+Lefthook runs automatically on `git commit`:
 
-- **Go files**: `gofmt -w` + `go test ./...`
-- **TypeScript/TSX**: `prettier --write` + `eslint --fix` + `vitest related --run`
-- **CSS**: `prettier --write`
+- **JS/TS/TSX/CSS/MD/JSON**: `prettier --write`
+- **JS/TS/TSX**: `eslint --fix` followed by `eslint`
 
 ### Testing
 
@@ -470,14 +511,34 @@ Husky + lint-staged run automatically on `git commit`:
 cd bot && go test ./...
 ```
 
+Backend tests cover route/auth behavior, security headers, rate limiting, stats endpoints, config parsing, token crypto, database compatibility, booking completion, and i18n.
+
 **Frontend** (Vitest + happy-dom):
 
 ```bash
-cd mini-app && bunx vitest run       # all tests
-cd mini-app && bunx vitest           # watch mode
+cd mini-app && bun run test          # all tests
+cd mini-app && bun run test:watch    # watch mode
 ```
 
-Test files: `mini-app/src/**/*.test.{ts,tsx}` (currently covers API client, BookingCard, StatusBadge).
+Frontend tests cover the API client, mock API, time-slot helpers, BookingCard, and StatusBadge.
+
+**Load tests** (k6 + Prometheus + Grafana):
+
+```bash
+# Start load-test stack: Postgres, bot in LOAD_TEST_MODE, Prometheus, Grafana
+docker compose -f docker-compose.loadtest.yml up db bot prometheus grafana -d
+
+# Smoke test
+docker compose -f docker-compose.loadtest.yml run --rm k6 /scripts/smoke.js
+
+# Sustained load test
+docker compose -f docker-compose.loadtest.yml run --rm k6 /scripts/load.js
+
+# Stress test up to 1000 VUs
+docker compose -f docker-compose.loadtest.yml run --rm k6 /scripts/stress.js
+```
+
+Load-test auth uses `LOAD_TEST_MODE=true` plus `X-Test-User-ID`; do not enable it in production.
 
 ### Webhook testing locally
 
@@ -528,7 +589,7 @@ Make sure `docker-compose.yml` uses `network_mode: host` instead of port mapping
 
 The `MASTER_WEBHOOK_SECRET` in `.env` must be set. Without it, a random secret is generated on each restart, causing mismatches.
 
-### Database appears empty in Drizzle Studio
+### Database appears empty
 
 - Make sure you're pointing to the correct file (`/root/sport-app/bot-data/scheduler.db`)
 - If the DB was recreated, re-register via the master bot (`/start`)
