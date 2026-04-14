@@ -127,6 +127,11 @@ function addMinutesToTime(time: string, minutes: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
+function timeToMinutes(time: string): number {
+  const [hours, mins] = time.split(':').map(Number);
+  return hours * 60 + mins;
+}
+
 function buildBooking({
   client,
   createdBy,
@@ -629,6 +634,7 @@ function createBookingFromBody(
   createdBy: 'client' | 'specialist',
 ): TBooking {
   const service =
+    state.services.find((item) => item.id === body.sessionTypeId) ??
     state.services.find((item) => item.durationMinutes === getNumber(body.duration, 60)) ??
     state.services[0];
   const client: TClientInfo =
@@ -698,18 +704,43 @@ function getAvailableSlots(state: TMockState, endpoint: string): TTimeSlot[] {
   );
 
   const slots: TTimeSlot[] = [];
-  const startMinutes = 9 * 60;
-  const endMinutes = 19 * 60;
-  for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += duration) {
-    const time = addMinutesToTime('00:00', minutes);
-    const booked = visibleBookings.find((booking) => booking.startsAt.slice(11, 16) === time);
+  const slotDate = new Date(`${date}T00:00:00Z`);
+  const dayWorkingHours = state.workingHours.filter(
+    (workingHours) => workingHours.dayOfWeek === slotDate.getUTCDay(),
+  );
+  const dayOff = state.daysOff.some((item) => item.date === date);
 
-    slots.push({
-      time,
-      endTime: addMinutesToTime(time, duration),
-      available: !booked,
-      mine: booked?.clientName === state.clientProfile.name,
-    });
+  if (duration <= 0 || dayOff) {
+    return slots;
+  }
+
+  const seen = new Set<string>();
+  for (const workingHours of dayWorkingHours) {
+    const startMinutes = timeToMinutes(workingHours.startTime);
+    const endMinutes = timeToMinutes(workingHours.endTime);
+    for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += duration) {
+      const time = addMinutesToTime('00:00', minutes);
+      if (seen.has(time)) {
+        continue;
+      }
+
+      const slotStart = new Date(`${date}T${time}:00Z`);
+      const slotEnd = new Date(slotStart);
+      slotEnd.setUTCMinutes(slotEnd.getUTCMinutes() + duration);
+      const booked = visibleBookings.find((booking) => {
+        const bookingStart = new Date(booking.startsAt);
+        const bookingEnd = new Date(booking.endsAt);
+        return slotStart < bookingEnd && slotEnd > bookingStart;
+      });
+
+      seen.add(time);
+      slots.push({
+        time,
+        endTime: addMinutesToTime(time, duration),
+        available: !booked,
+        mine: booked?.clientName === state.clientProfile.name,
+      });
+    }
   }
   return slots;
 }
