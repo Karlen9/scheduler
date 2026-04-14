@@ -29,6 +29,18 @@ function getCardStyle(status: string): { bg: string; text: string; subtext: stri
   }
 }
 
+function getBookingDuration(booking: TTimelineBookingCardProps['booking']): number {
+  if (booking.durationMinutes) {
+    return booking.durationMinutes;
+  }
+  if (booking.sessionType?.durationMinutes) {
+    return booking.sessionType.durationMinutes;
+  }
+  const start = new Date(booking.startsAt).getTime();
+  const end = new Date(booking.endsAt).getTime();
+  return Math.max(0, Math.round((end - start) / 60000));
+}
+
 /***************************************************************************************************
  * Renders the timeline booking card UI and related interactions.
  *
@@ -62,39 +74,60 @@ function TimelineBookingCardComponent({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const style = getCardStyle(booking.status);
+  const compact = height < 50;
+  const serviceName = booking.sessionType?.name || tc('workout');
+  const duration = getBookingDuration(booking);
+  const durationLabel = duration ? `${duration} ${tc('min')}` : '';
+  const timeRange = `${formatTime(booking.startsAt)} - ${formatTime(booking.endsAt)}`;
 
   return (
     <button
       key={booking.id}
       onClick={() => onBookingClick?.(booking)}
-      className={`absolute right-0 left-12 ${style.bg} overflow-hidden rounded-xl px-3 py-2 text-left transition-opacity active:opacity-80`}
+      className={`absolute right-0 left-12 ${style.bg} overflow-hidden text-left transition-opacity active:opacity-80 ${
+        compact ? 'rounded-lg px-2 py-1' : 'rounded-xl px-3 py-1.5'
+      }`}
       style={{ top: top + 3, height: height - 3 }}
     >
-      <div className={'flex h-full items-center gap-2'}>
-        <div className={'min-w-0 flex-1'}>
-          <p className={`text-sm font-medium ${style.text} truncate`}>
+      {compact ? (
+        <div className={'flex h-full min-w-0 items-center gap-2'}>
+          <p className={`min-w-0 flex-1 truncate text-xs font-medium ${style.text}`}>
             {booking.clientDisplayName || booking.clientName}
           </p>
+          <span className={`shrink-0 text-[10px] leading-none ${style.subtext}`}>
+            {formatTime(booking.startsAt)}
+          </span>
+        </div>
+      ) : (
+        <div className={'flex h-full items-center gap-2'}>
+          <div className={'min-w-0 flex-1'}>
+            <div className={'flex min-w-0 items-center gap-2'}>
+              <p className={`min-w-0 flex-1 truncate text-sm font-medium ${style.text}`}>
+                {booking.clientDisplayName || booking.clientName}
+              </p>
+              <span
+                className={`shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] leading-none ${style.text}`}
+              >
+                {formatTime(booking.startsAt)}
+              </span>
+            </div>
+            {height >= 54 && (
+              <div className={`flex min-w-0 items-center gap-1 text-xs ${style.subtext}`}>
+                <span className={'min-w-0 truncate'}>{serviceName}</span>
+                {durationLabel && <span className={'shrink-0'}>{durationLabel}</span>}
+              </div>
+            )}
+            {height >= 68 && <p className={`truncate text-xs ${style.subtext}`}>{timeRange}</p>}
+          </div>
           {height >= 54 && (
-            <p className={`text-xs ${style.subtext} truncate`}>
-              {tc('workout')}
-              {booking.durationMinutes ? ` \u00b7 ${booking.durationMinutes} ${tc('min')}` : ''}
-            </p>
-          )}
-          {height >= 68 && (
-            <p className={`text-xs ${style.subtext}`}>
-              {formatTime(booking.startsAt)}
-              {' – '}
-              {formatTime(booking.endsAt)}
-            </p>
+            <ClientAvatar
+              name={booking.clientDisplayName || booking.clientName}
+              photoUrl={booking.clientPhotoUrl}
+              size={'sm'}
+            />
           )}
         </div>
-        <ClientAvatar
-          name={booking.clientDisplayName || booking.clientName}
-          photoUrl={booking.clientPhotoUrl}
-          size={'sm'}
-        />
-      </div>
+      )}
     </button>
   );
 }

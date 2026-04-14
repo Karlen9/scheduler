@@ -307,6 +307,10 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.MissingFields", http.StatusBadRequest)
 		return
 	}
+	if !isAllowedServiceDuration(req.DurationMinutes) {
+		httpError(w, r, "Error.InvalidDuration", http.StatusBadRequest)
+		return
+	}
 
 	if len(req.Name) > 100 {
 		httpError(w, r, "Error.NameTooLong", http.StatusBadRequest)
@@ -394,6 +398,10 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 
 	duration := existing.DurationMinutes
 	if req.DurationMinutes != nil {
+		if !isAllowedServiceDuration(*req.DurationMinutes) {
+			httpError(w, r, "Error.InvalidDuration", http.StatusBadRequest)
+			return
+		}
 		duration = *req.DurationMinutes
 	}
 
@@ -1323,11 +1331,12 @@ var NotifySpecialistBookingFunc func(booking *models.Booking) error
 * Defines the admin create booking request type used by the api layer.
 ***************************************************************************************************/
 type AdminCreateBookingRequest struct {
-	ClientID string `json:"clientId"`
-	Duration int    `json:"duration"`
-	Date     string `json:"date"`
-	Time     string `json:"time"`
-	Message  string `json:"message,omitempty"`
+	ClientID      string `json:"clientId"`
+	SessionTypeID string `json:"sessionTypeId,omitempty"`
+	Duration      int    `json:"duration"`
+	Date          string `json:"date"`
+	Time          string `json:"time"`
+	Message       string `json:"message,omitempty"`
 }
 
 /***************************************************************************************************
@@ -1399,8 +1408,20 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sessionType, errMsg, err := resolveSessionTypeForBooking(specialist.ID, req.SessionTypeID, req.Duration)
+	if err != nil {
+		log.Printf("Error resolving session type: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	duration := sessionType.DurationMinutes
 	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
-	endsAt := startsAt.Add(time.Duration(req.Duration) * time.Minute)
+	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
 
 	/***************************************************************************************************
 	* Check for conflicts.
@@ -1417,25 +1438,9 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/***************************************************************************************************
-	* Find session type by duration (same pattern as waitlist).
-	***************************************************************************************************/
-	services, err := db.GetSessionTypesBySpecialistID(specialist.ID)
-	if err != nil || len(services) == 0 {
-		httpError(w, r, "Error.NoServices", http.StatusBadRequest)
-		return
-	}
-	sessionTypeID := services[0].ID
-	for _, s := range services {
-		if s.DurationMinutes == req.Duration {
-			sessionTypeID = s.ID
-			break
-		}
-	}
-
-	/***************************************************************************************************
 	* Create booking with created_by = "specialist".
 	***************************************************************************************************/
-	booking, err := db.CreateBookingBySpecialist(specialist.ID, client.ID, sessionTypeID, startsAt, endsAt, client.Name, req.Message, req.Duration)
+	booking, err := db.CreateBookingBySpecialist(specialist.ID, client.ID, sessionType.ID, startsAt, endsAt, client.Name, req.Message, duration)
 	if err != nil {
 		log.Printf("Error creating booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1443,7 +1448,7 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("SPECIALIST BOOKING [%s] Specialist: %s booked client: %s | Duration: %dmin | Time: %s %s",
-		booking.ID[:8], specialist.Name, client.Name, req.Duration, req.Date, req.Time)
+		booking.ID[:8], specialist.Name, client.Name, duration, req.Date, req.Time)
 
 	/***************************************************************************************************
 	* Ghost clients: auto-confirm and skip notification.

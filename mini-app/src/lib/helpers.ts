@@ -82,6 +82,7 @@ export function formatDateISO(date: Date): string {
  * Parameters:
  * - minutes: Minutes used by the current operation.
  * - hourLabel: Hour label used by the current operation.
+ * - minuteLabel: Minute label used by the current operation.
  *
  * Returns:
  * - The computed value for the current operation as string.
@@ -89,7 +90,7 @@ export function formatDateISO(date: Date): string {
  * Side effects:
  * - May read browser state, call shared helpers, or perform network requests.
  ***************************************************************************************************/
-export function formatDuration(minutes: number, hourLabel = 'h'): string {
+export function formatDuration(minutes: number, hourLabel = 'h', minuteLabel = 'min'): string {
   /***************************************************************************************************
    * Defines the hours value used by the shared utility layer.
    *
@@ -97,6 +98,9 @@ export function formatDuration(minutes: number, hourLabel = 'h'): string {
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
   const hours = minutes / 60;
+  if (minutes < 60 || minutes % 30 !== 0) {
+    return `${minutes} ${minuteLabel}`;
+  }
   if (hours === Math.floor(hours)) {
     return `${Math.floor(hours)} ${hourLabel}`;
   }
@@ -202,7 +206,7 @@ export function generateTimeSlotsForDay(
      * - Reused by the shared utility layer to keep shared values centralized.
      ***************************************************************************************************/
     const endMin = endH * 60 + endM;
-    for (let m = startMin; m + durationMinutes <= endMin; m += 30) {
+    for (let m = startMin; m + durationMinutes <= endMin; m += durationMinutes) {
       /***************************************************************************************************
        * Defines the h value used by the shared utility layer.
        *

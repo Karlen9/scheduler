@@ -16,11 +16,21 @@ export function TimelineEmptySlot({
   top,
   height,
   collapsed,
+  serviceDurations,
   onEmptySlotClick,
 }: TTimelineEmptySlotProps): ReactNode {
   const t = useTranslations('DayTimeline');
+  const tc = useTranslations('Common');
   const isBreak = slot.kind === 'break';
   const canBook = !isBreak && Boolean(onEmptySlotClick);
+  const compact = height < 50;
+  const slotDuration = slot.endMin - slot.startMin;
+  const timeRange = `${formatMinutes(slot.startMin)} - ${formatMinutes(slot.endMin)}`;
+  const fittingDurations = serviceDurations?.filter((duration) => duration <= slotDuration) ?? [];
+  const durationHint =
+    !isBreak && fittingDurations.length > 0
+      ? t('fitsDurations', { durations: `${fittingDurations.join(', ')} ${tc('min')}` })
+      : `${slotDuration} ${tc('min')}`;
 
   function bookSlot(): void {
     if (!isBreak) {
@@ -55,9 +65,8 @@ export function TimelineEmptySlot({
             {isBreak ? t('breakSlot') : t('emptySlot')}
           </p>
           <p className={'text-muted-foreground/60 truncate text-xs'}>
-            {formatMinutes(slot.startMin)}
-            {' – '}
-            {formatMinutes(slot.endMin)}
+            {timeRange}
+            {!isBreak && ` · ${durationHint}`}
           </p>
         </div>
         {!isBreak && (
@@ -91,11 +100,40 @@ export function TimelineEmptySlot({
             <p className={'text-muted-foreground text-sm font-medium'}>{t('breakSlot')}</p>
             {height >= 68 && (
               <p className={'text-muted-foreground/60 text-xs'}>
-                {formatMinutes(slot.startMin)}
-                {' – '}
-                {formatMinutes(slot.endMin)}
+                {timeRange}
+                {' · '}
+                {durationHint}
               </p>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div
+        role={canBook ? 'button' : undefined}
+        tabIndex={canBook ? 0 : undefined}
+        onClick={canBook ? bookSlot : undefined}
+        onKeyDown={handleBookKeyDown}
+        className={
+          'bg-card border-surface-border absolute right-0 left-12 overflow-hidden rounded-lg border border-dashed px-2 py-1 text-left transition-opacity active:opacity-80'
+        }
+        style={{ top: top + 3, height: height - 3 }}
+      >
+        <div className={'flex h-full min-w-0 items-center gap-2'}>
+          <span className={'text-muted-foreground min-w-0 flex-1 truncate text-xs'}>
+            {timeRange}
+          </span>
+          <span className={'text-muted-foreground/60 shrink-0 text-[10px] leading-none'}>
+            {slotDuration} {tc('min')}
+          </span>
+          <div
+            className={'bg-brand/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-md'}
+          >
+            <Plus className={'text-brand h-3 w-3'} />
           </div>
         </div>
       </div>
@@ -117,15 +155,9 @@ export function TimelineEmptySlot({
         <div className={'min-w-0 flex-1'}>
           <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
           {height >= 54 && (
-            <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
+            <p className={'text-muted-foreground/60 truncate text-xs'}>{durationHint}</p>
           )}
-          {height >= 68 && (
-            <p className={'text-muted-foreground/60 text-xs'}>
-              {formatMinutes(slot.startMin)}
-              {' – '}
-              {formatMinutes(slot.endMin)}
-            </p>
-          )}
+          {height >= 68 && <p className={'text-muted-foreground/60 text-xs'}>{timeRange}</p>}
         </div>
         <div
           className={'bg-brand/10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full'}

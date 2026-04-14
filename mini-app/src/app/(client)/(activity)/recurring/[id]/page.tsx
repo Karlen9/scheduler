@@ -227,7 +227,7 @@ export default function RecurringScheduleDetailPage(): ReactNode {
     if (sched.sessionType?.name) {
       return sched.sessionType.name;
     }
-    return formatDuration(sched.durationMinutes, td('hour'));
+    return formatDuration(sched.durationMinutes, td('hour'), td('minutes'));
   };
 
   /***************************************************************************************************
@@ -333,7 +333,7 @@ export default function RecurringScheduleDetailPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const durationLabel = formatDuration(schedule.durationMinutes, td('hour'));
+  const durationLabel = formatDuration(schedule.durationMinutes, td('hour'), td('minutes'));
 
   /***************************************************************************************************
    * Defines the sorted bookings value used by the page layer.

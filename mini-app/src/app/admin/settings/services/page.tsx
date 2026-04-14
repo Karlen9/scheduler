@@ -16,6 +16,8 @@ import { api, getPhotoUrl } from '@/lib/api';
 import type { TServiceFormData, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
 
+const serviceDurationOptions = [30, 45, 60, 75, 90, 105, 120, 180];
+
 /***************************************************************************************************
  * Renders the services page UI and related interactions.
  *
@@ -43,13 +45,6 @@ export default function ServicesPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const tc = useTranslations('Common');
-  /***************************************************************************************************
-   * Defines the td value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const td = useTranslations('Duration');
   /***************************************************************************************************
    * Defines the te value used by the page layer.
    *
@@ -311,25 +306,18 @@ export default function ServicesPage(): ReactNode {
               {t('durationLabel')}
             </label>
             <div className={'grid grid-cols-3 gap-2'}>
-              {[
-                { label: td('min30'), value: '30' },
-                { label: td('hour1'), value: '60' },
-                { label: td('hour1_5'), value: '90' },
-                { label: td('hour2'), value: '120' },
-                { label: td('hour2_5'), value: '150' },
-                { label: td('hour3'), value: '180' },
-              ].map((opt) => (
+              {serviceDurationOptions.map((duration) => (
                 <button
-                  key={opt.value}
+                  key={duration}
                   type={'button'}
-                  onClick={() => setFormData({ ...formData, duration: opt.value })}
+                  onClick={() => setFormData({ ...formData, duration: duration.toString() })}
                   className={`rounded-lg py-3 text-sm font-medium transition-colors ${
-                    formData.duration === opt.value
+                    formData.duration === duration.toString()
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-card text-foreground'
                   }`}
                 >
-                  {opt.label}
+                  {duration} {tc('min')}
                 </button>
               ))}
             </div>

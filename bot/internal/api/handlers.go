@@ -39,6 +39,60 @@ func httpError(w http.ResponseWriter, r *http.Request, msgID string, code int) {
 }
 
 /***************************************************************************************************
+* Defines the allowed service duration values shared by service management and booking requests.
+***************************************************************************************************/
+var allowedServiceDurations = map[int]bool{
+	30:  true,
+	45:  true,
+	60:  true,
+	75:  true,
+	90:  true,
+	105: true,
+	120: true,
+	180: true,
+}
+
+/***************************************************************************************************
+* Checks whether a duration can be assigned to a service.
+***************************************************************************************************/
+func isAllowedServiceDuration(duration int) bool {
+	return allowedServiceDurations[duration]
+}
+
+/***************************************************************************************************
+* Resolves the session type selected for a booking.
+***************************************************************************************************/
+func resolveSessionTypeForBooking(specialistID, sessionTypeID string, duration int) (*models.SessionType, string, error) {
+	if sessionTypeID != "" {
+		sessionType, err := db.GetSessionTypeByID(sessionTypeID)
+		if err != nil {
+			return nil, "", err
+		}
+		if sessionType == nil || sessionType.SpecialistID != specialistID || !sessionType.IsActive {
+			return nil, "Error.ServiceNotFound", nil
+		}
+		if duration > 0 && sessionType.DurationMinutes != duration {
+			return nil, "Error.InvalidDuration", nil
+		}
+		return sessionType, "", nil
+	}
+
+	services, err := db.GetSessionTypesBySpecialistID(specialistID)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(services) == 0 {
+		return nil, "Error.NoServices", nil
+	}
+	for i := range services {
+		if services[i].DurationMinutes == duration {
+			return &services[i], "", nil
+		}
+	}
+	return nil, "Error.InvalidDuration", nil
+}
+
+/***************************************************************************************************
 * maxBookingDate returns the latest allowed booking date (3 months from today).
 *
 * Parameters:
@@ -527,7 +581,7 @@ func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration
 			continue
 		}
 
-		for minutes := startMinutes; minutes+duration <= endMinutes; minutes += 30 {
+		for minutes := startMinutes; minutes+duration <= endMinutes; minutes += duration {
 			hour := minutes / 60
 			min := minutes % 60
 			timeStr := formatTime(hour, min)
@@ -731,11 +785,12 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 * Client Create Booking.
 ***************************************************************************************************/
 type CreateBookingRequest struct {
-	Duration int    `json:"duration"`
-	Date     string `json:"date"`
-	Time     string `json:"time"`
-	Name     string `json:"name,omitempty"`
-	Message  string `json:"message,omitempty"`
+	SessionTypeID string `json:"sessionTypeId,omitempty"`
+	Duration      int    `json:"duration"`
+	Date          string `json:"date"`
+	Time          string `json:"time"`
+	Name          string `json:"name,omitempty"`
+	Message       string `json:"message,omitempty"`
 }
 
 /***************************************************************************************************
@@ -813,8 +868,20 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sessionType, errMsg, err := resolveSessionTypeForBooking(specialist.ID, req.SessionTypeID, req.Duration)
+	if err != nil {
+		log.Printf("Error resolving session type: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	duration := sessionType.DurationMinutes
 	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
-	endsAt := startsAt.Add(time.Duration(req.Duration) * time.Minute)
+	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
 
 	/***************************************************************************************************
 	* Check for conflicts.
@@ -831,22 +898,6 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/***************************************************************************************************
-	* Find session type by duration.
-	***************************************************************************************************/
-	services, err := db.GetSessionTypesBySpecialistID(specialist.ID)
-	if err != nil || len(services) == 0 {
-		httpError(w, r, "Error.NoServices", http.StatusBadRequest)
-		return
-	}
-	sessionTypeID := services[0].ID
-	for _, s := range services {
-		if s.DurationMinutes == req.Duration {
-			sessionTypeID = s.ID
-			break
-		}
-	}
-
-	/***************************************************************************************************
 	* Use client name from request or from DB.
 	***************************************************************************************************/
 	clientName := req.Name
@@ -854,7 +905,7 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		clientName = client.Name
 	}
 
-	booking, err := db.CreateBooking(specialist.ID, client.ID, sessionTypeID, startsAt, endsAt, clientName, req.Message, req.Duration)
+	booking, err := db.CreateBooking(specialist.ID, client.ID, sessionType.ID, startsAt, endsAt, clientName, req.Message, duration)
 	if err != nil {
 		log.Printf("Error creating booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -862,7 +913,7 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("BOOKING CREATED [%s] Client: %s | Duration: %dmin | Time: %s %s",
-		booking.ID[:8], clientName, req.Duration, req.Date, req.Time)
+		booking.ID[:8], clientName, duration, req.Date, req.Time)
 
 	changes.Publish(specialist.ID, changes.GroupBookings, changes.GroupClients)
 

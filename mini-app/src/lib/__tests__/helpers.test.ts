@@ -13,20 +13,7 @@ describe('generateTimeSlotsForDay', () => {
       60,
     );
 
-    expect(slots).toEqual([
-      '09:00',
-      '09:30',
-      '10:00',
-      '10:30',
-      '11:00',
-      '14:00',
-      '14:30',
-      '15:00',
-      '15:30',
-      '16:00',
-      '16:30',
-      '17:00',
-    ]);
+    expect(slots).toEqual(['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']);
   });
 
   it('deduplicates slots if intervals overlap in stored data', () => {
@@ -39,6 +26,16 @@ describe('generateTimeSlotsForDay', () => {
       60,
     );
 
-    expect(slots).toEqual(['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00']);
+    expect(slots).toEqual(['09:00', '10:00', '11:00', '12:00']);
+  });
+
+  it('divides the day by the selected duration', () => {
+    const slots = generateTimeSlotsForDay(
+      [{ dayOfWeek: 1, startTime: '09:00', endTime: '12:00' }],
+      1,
+      45,
+    );
+
+    expect(slots).toEqual(['09:00', '09:45', '10:30', '11:15']);
   });
 });

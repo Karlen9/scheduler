@@ -79,6 +79,7 @@ export default function AdminBookPage(): ReactNode {
       onCreateBooking={async (params) => {
         await api.admin.createBooking({
           clientId: params.clientId!,
+          sessionTypeId: params.sessionTypeId,
           duration: params.duration,
           date: params.date,
           time: params.time,

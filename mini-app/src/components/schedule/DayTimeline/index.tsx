@@ -38,6 +38,30 @@ function formatMinuteTime(minutes: number): string {
   return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
+function collapsedSlotOffset(minute: number, slot: TEmptySlot): number {
+  const duration = slot.endMin - slot.startMin;
+  if (duration <= 0) {
+    return 0;
+  }
+  if (slot.startMin % 60 === 0) {
+    return ((minute - slot.startMin) / duration) * COLLAPSED_HEIGHT;
+  }
+
+  const firstFullHour = Math.min(slot.endMin, (Math.floor(slot.startMin / 60) + 1) * 60);
+  const firstFullHourOffset = ((firstFullHour - slot.startMin) / 60) * HOUR_HEIGHT;
+  if (minute <= firstFullHour) {
+    return ((minute - slot.startMin) / 60) * HOUR_HEIGHT;
+  }
+
+  const remainingDuration = slot.endMin - firstFullHour;
+  if (remainingDuration <= 0) {
+    return firstFullHourOffset;
+  }
+
+  const remainingHeight = Math.max(0, COLLAPSED_HEIGHT - firstFullHourOffset);
+  return firstFullHourOffset + ((minute - firstFullHour) / remainingDuration) * remainingHeight;
+}
+
 /**
  * Maps a time-in-minutes to a pixel offset, accounting for collapsed empty slots.
  * Normal regions: 1 hour = HOUR_HEIGHT pixels.
@@ -48,36 +72,24 @@ function minuteToPixel(minute: number, minHourMin: number, collapsedSlots: TEmpt
   let cursor = minHourMin;
 
   for (const slot of collapsedSlots) {
-    if (minute <= cursor) {
-      break;
-    }
-    if (slot.startMin <= cursor) {
-      const segEnd = Math.min(minute, slot.endMin);
-      if (segEnd > cursor) {
-        const frac = (segEnd - cursor) / (slot.endMin - Math.max(slot.startMin, cursor));
-        pixel += frac * COLLAPSED_HEIGHT;
-        cursor = segEnd;
-      }
-      continue;
-    }
-    const normalEnd = Math.min(minute, slot.startMin);
-    pixel += ((normalEnd - cursor) / 60) * HOUR_HEIGHT;
-    cursor = normalEnd;
     if (minute <= slot.startMin) {
-      break;
+      pixel += ((minute - cursor) / 60) * HOUR_HEIGHT;
+      return pixel;
     }
-    const collEnd = Math.min(minute, slot.endMin);
-    const frac = (collEnd - slot.startMin) / (slot.endMin - slot.startMin);
-    pixel += frac * COLLAPSED_HEIGHT;
-    cursor = collEnd;
+
+    if (slot.startMin > cursor) {
+      pixel += ((slot.startMin - cursor) / 60) * HOUR_HEIGHT;
+    }
+
+    if (minute <= slot.endMin) {
+      return pixel + collapsedSlotOffset(minute, slot);
+    }
+
+    pixel += COLLAPSED_HEIGHT;
+    cursor = slot.endMin;
   }
 
-  // Remaining normal segment
-  if (minute > cursor) {
-    pixel += ((minute - cursor) / 60) * HOUR_HEIGHT;
-  }
-
-  return pixel;
+  return pixel + ((minute - cursor) / 60) * HOUR_HEIGHT;
 }
 
 function DayTimelineComponent({
@@ -85,9 +97,11 @@ function DayTimelineComponent({
   date,
   onBookingClick,
   workingHours,
+  serviceDurations,
   onEmptySlotClick,
 }: TDayTimelineProps): ReactNode {
   const t = useTranslations('DayTimeline');
+  const tc = useTranslations('Common');
   const locale = useLocale();
 
   const today = useMemo(() => new Date(), []);
@@ -198,6 +212,22 @@ function DayTimelineComponent({
     [minHour, sortedCollapsed],
   );
 
+  const formatDurationHint = useCallback(
+    (slot: TEmptySlot): string => {
+      const duration = slot.endMin - slot.startMin;
+      if (slot.kind === 'break') {
+        return `${duration} ${tc('min')}`;
+      }
+      const fittingDurations =
+        serviceDurations?.filter((serviceDuration) => serviceDuration <= duration) ?? [];
+      if (fittingDurations.length > 0) {
+        return t('fitsDurations', { durations: `${fittingDurations.join(', ')} ${tc('min')}` });
+      }
+      return `${duration} ${tc('min')}`;
+    },
+    [serviceDurations, t, tc],
+  );
+
   // No working hours and no bookings
   if (bookings.length === 0 && dayWH.length === 0) {
     return (
@@ -245,6 +275,9 @@ function DayTimelineComponent({
                 <div>
                   <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
                   <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
+                  <p className={'text-muted-foreground/60 mt-1 text-xs'}>
+                    {formatDurationHint(slot)}
+                  </p>
                   <p className={'text-muted-foreground mt-1 text-xs'}>
                     {formatMinuteTime(slot.startMin)}
                     {' – '}
@@ -275,17 +308,28 @@ function DayTimelineComponent({
   }
 
   const compressedHourLabels = sortedCollapsed.flatMap((slot) => {
-    const labels: number[] = [];
+    const labels: { hour: number; emphasized: boolean }[] = [];
     const startHour = Math.floor(slot.startMin / 60) + 1;
     const endHour = Math.ceil(slot.endMin / 60) - 1;
     for (let h = startHour; h <= endHour; h++) {
       const hMin = h * 60;
       if (hMin > slot.startMin && hMin < slot.endMin) {
-        labels.push(h);
+        labels.push({ hour: h, emphasized: slot.startMin % 60 !== 0 && labels.length === 0 });
       }
     }
     return labels;
   });
+
+  const quarterMarkers: { minute: number; offset: 15 | 30 | 45 }[] = [];
+  for (let h = minHour; h < maxHour; h++) {
+    for (const offset of [15, 30, 45] as const) {
+      const minute = h * 60 + offset;
+      const insideCollapsed = sortedCollapsed.some((s) => minute > s.startMin && minute < s.endMin);
+      if (!insideCollapsed) {
+        quarterMarkers.push({ minute, offset });
+      }
+    }
+  }
 
   const totalHeight = toPixel(maxHour * 60);
 
@@ -301,16 +345,34 @@ function DayTimelineComponent({
 
   return (
     <div className={'relative mt-10'} style={{ height: totalHeight + 16 }}>
-      {/* Hour labels (no lines) */}
+      {/* Hour labels */}
       {hourLabels.map((hour) => (
         <div
           key={hour}
-          className={'absolute right-0 left-0 flex items-center'}
+          className={
+            'pointer-events-none absolute left-0 flex w-12 -translate-y-1/2 items-center gap-1'
+          }
+          style={{ top: toPixel(hour * 60) }}
+        >
+          <span className={'text-muted-foreground text-xs leading-none font-semibold'}>
+            {formatHour(hour)}
+          </span>
+        </div>
+      ))}
+
+      {compressedHourLabels.map(({ hour, emphasized }) => (
+        <div
+          key={`compressed-${hour}`}
+          className={
+            'pointer-events-none absolute left-0 flex w-12 -translate-y-1/2 items-center gap-1'
+          }
           style={{ top: toPixel(hour * 60) }}
         >
           <span
             className={
-              'text-muted-foreground w-12 shrink-0 -translate-y-1/2 pr-2 text-right text-xs'
+              emphasized
+                ? 'text-muted-foreground text-xs leading-none font-semibold'
+                : 'text-muted-foreground/50 text-[10px] leading-none'
             }
           >
             {formatHour(hour)}
@@ -318,15 +380,17 @@ function DayTimelineComponent({
         </div>
       ))}
 
-      {compressedHourLabels.map((hour) => (
+      {quarterMarkers.map(({ minute, offset }) => (
         <div
-          key={`compressed-${hour}`}
-          className={'absolute left-0 flex w-12 -translate-y-1/2 items-center justify-end pr-2'}
-          style={{ top: toPixel(hour * 60) }}
+          key={`quarter-marker-${minute}`}
+          className={
+            'pointer-events-none absolute left-0 flex w-12 -translate-y-1/2 items-center gap-1'
+          }
+          style={{ top: toPixel(minute) }}
         >
-          <span className={'text-muted-foreground/50 text-[10px] leading-none'}>
-            {formatHour(hour)}
-          </span>
+          <span
+            className={`bg-muted-foreground/45 h-0.5 shrink-0 rounded-full ${offset === 30 ? 'w-5' : 'w-3'}`}
+          />
         </div>
       ))}
 
@@ -345,6 +409,7 @@ function DayTimelineComponent({
             top={slotTop}
             height={slotHeight}
             collapsed={isCollapsed}
+            serviceDurations={serviceDurations}
             onEmptySlotClick={onEmptySlotClick}
           />
         );

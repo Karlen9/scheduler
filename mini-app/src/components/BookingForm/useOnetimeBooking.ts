@@ -501,6 +501,7 @@ export function useOnetimeBooking({
       const dateStr = formatDateISO(selectedDate);
       await onCreateBooking({
         clientId: selectedClient?.id,
+        sessionTypeId: selectedService.id,
         duration: selectedService.durationMinutes,
         date: dateStr,
         time: selectedTime,
@@ -558,6 +559,7 @@ export function useOnetimeBooking({
         }
         await onCreateBooking({
           clientId: selectedClient?.id,
+          sessionTypeId: selectedService.id,
           duration: selectedService.durationMinutes,
           date: iso,
           time,
