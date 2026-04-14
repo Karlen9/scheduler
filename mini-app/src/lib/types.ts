@@ -438,6 +438,7 @@ export type TViewMode = 'day' | 'week' | 'month';
 export type TEmptySlot = {
   startMin: number;
   endMin: number;
+  kind?: 'available' | 'break';
 };
 
 /***************************************************************************************************
@@ -760,6 +761,7 @@ export type TPendingBookingCardProps = {
   booking: TBooking;
   onAccept: (booking: TBooking) => void;
   onReject: (booking: TBooking) => void;
+  onMessageClient?: (booking: TBooking) => void;
 };
 
 /***************************************************************************************************
@@ -1015,7 +1017,6 @@ export type TTimelineEmptySlotProps = {
   top: number;
   height: number;
   collapsed?: boolean;
-  onToggleCollapse?: () => void;
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 

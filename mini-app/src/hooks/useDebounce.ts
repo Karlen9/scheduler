@@ -1,0 +1,24 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+/***************************************************************************************************
+ * Debounces a changing value.
+ *
+ * Parameters:
+ * - value: Value to debounce.
+ * - delayMs: Delay in milliseconds before publishing the latest value.
+ *
+ * Returns:
+ * - The debounced value.
+ ***************************************************************************************************/
+export function useDebounce<T>(value: T, delayMs: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [delayMs, value]);
+
+  return debouncedValue;
+}

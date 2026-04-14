@@ -1,8 +1,9 @@
 'use client';
 
-import { Pencil, Trash2, Users } from 'lucide-react';
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
+import { Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
@@ -10,6 +11,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { invalidateBookings, invalidateClients, invalidateRecurring } from '@/hooks/mutations';
 import { useClients } from '@/hooks/queries';
+import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
 
 import type { TClientInfo } from '@/lib/types';
@@ -46,6 +48,11 @@ export default function AdminClientsPage(): ReactNode {
   const [deleteTarget, setDeleteTarget] = useState<TClientInfo | null>(null);
   const [editTarget, setEditTarget] = useState<TClientInfo | null>(null);
   const [editName, setEditName] = useState('');
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [isAddingClient, setIsAddingClient] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
 
   /***************************************************************************************************
    * Handles delete.
@@ -125,6 +132,33 @@ export default function AdminClientsPage(): ReactNode {
   };
 
   /***************************************************************************************************
+   * Handles add client confirm.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const handleAddClientConfirm = async (): Promise<void> => {
+    const trimmed = newClientName.trim();
+    if (!trimmed) {
+      toast.error(t('nameRequired'));
+      return;
+    }
+    try {
+      setIsAddingClient(true);
+      await api.admin.createGhostClient(trimmed);
+      await invalidateClients();
+      toast.success(t('createSuccess', { name: trimmed }));
+      setNewClientName('');
+      setAddClientOpen(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('createError');
+      toast.error(msg);
+    } finally {
+      setIsAddingClient(false);
+    }
+  };
+
+  /***************************************************************************************************
    * Defines the client display name value used by the page layer.
    *
    * Usage context:
@@ -132,11 +166,158 @@ export default function AdminClientsPage(): ReactNode {
    ***************************************************************************************************/
   const clientDisplayName = (client: TClientInfo): string => client.displayName || client.name;
 
+  const filteredClients = useMemo(() => {
+    const query = debouncedSearchQuery.trim().toLowerCase();
+    if (!query) {
+      return clients;
+    }
+    return clients.filter((client) =>
+      [clientDisplayName(client), client.name, client.phone ?? '']
+        .join(' ')
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [clients, debouncedSearchQuery]);
+
+  const header = (
+    <div className={'space-y-3'}>
+      <div className={'flex items-center justify-between gap-3'}>
+        <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
+        <button
+          type={'button'}
+          onClick={() => setAddClientOpen(true)}
+          className={
+            'bg-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white transition-opacity active:opacity-80'
+          }
+          aria-label={t('addClient')}
+        >
+          <Plus className={'h-5 w-5'} />
+        </button>
+      </div>
+      <label className={'relative block'}>
+        <Search
+          className={
+            'text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2'
+          }
+        />
+        <input
+          type={'search'}
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder={t('searchPlaceholder')}
+          className={
+            'bg-card text-foreground placeholder:text-muted-foreground w-full rounded-lg py-3 pr-4 pl-10 text-sm outline-none'
+          }
+        />
+      </label>
+    </div>
+  );
+
+  const addClientDialog = (
+    <Transition show={addClientOpen} appear as={Fragment}>
+      <Dialog
+        onClose={() => {
+          if (!isAddingClient) {
+            setAddClientOpen(false);
+            setNewClientName('');
+          }
+        }}
+        className={'relative z-[100]'}
+      >
+        <TransitionChild
+          as={Fragment}
+          enter={'ease-out duration-200'}
+          enterFrom={'opacity-0'}
+          enterTo={'opacity-100'}
+          leave={'ease-in duration-150'}
+          leaveFrom={'opacity-100'}
+          leaveTo={'opacity-0'}
+        >
+          <div className={'fixed inset-0 bg-black/50'} aria-hidden={'true'} />
+        </TransitionChild>
+        <div className={'fixed inset-0 flex items-center justify-center p-4'}>
+          <TransitionChild
+            as={Fragment}
+            enter={'ease-out duration-200'}
+            enterFrom={'scale-95 opacity-0'}
+            enterTo={'scale-100 opacity-100'}
+            leave={'ease-in duration-150'}
+            leaveFrom={'scale-100 opacity-100'}
+            leaveTo={'scale-95 opacity-0'}
+          >
+            <DialogPanel className={'bg-card w-full max-w-sm rounded-2xl p-6 shadow-lg'}>
+              <div className={'mb-4 flex items-center justify-between gap-3'}>
+                <DialogTitle className={'text-foreground text-lg font-medium'}>
+                  {t('addDialog')}
+                </DialogTitle>
+                <button
+                  type={'button'}
+                  onClick={() => {
+                    setAddClientOpen(false);
+                    setNewClientName('');
+                  }}
+                  disabled={isAddingClient}
+                  className={'text-muted-foreground rounded-lg p-1 disabled:opacity-40'}
+                >
+                  <X className={'h-5 w-5'} />
+                </button>
+              </div>
+              <p className={'text-muted-foreground mb-4 text-sm'}>{t('addDialogDescription')}</p>
+              <form
+                className={'space-y-4'}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  handleAddClientConfirm();
+                }}
+              >
+                <input
+                  type={'text'}
+                  value={newClientName}
+                  onChange={(event) => setNewClientName(event.target.value)}
+                  placeholder={t('namePlaceholder')}
+                  disabled={isAddingClient}
+                  className={
+                    'bg-background text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 disabled:opacity-60'
+                  }
+                />
+                <div className={'flex gap-3'}>
+                  <button
+                    type={'button'}
+                    onClick={() => {
+                      setAddClientOpen(false);
+                      setNewClientName('');
+                    }}
+                    disabled={isAddingClient}
+                    className={
+                      'bg-card text-foreground flex-1 rounded-xl px-4 py-3 text-base font-medium transition-opacity active:opacity-70 disabled:opacity-40'
+                    }
+                  >
+                    {tc('cancel')}
+                  </button>
+                  <button
+                    type={'submit'}
+                    disabled={isAddingClient}
+                    className={
+                      'bg-brand flex-1 rounded-xl px-4 py-3 text-base font-medium text-white transition-opacity active:opacity-70 disabled:opacity-40'
+                    }
+                  >
+                    {t('addClient')}
+                  </button>
+                </div>
+              </form>
+            </DialogPanel>
+          </TransitionChild>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+
   if (isLoading) {
     return (
       <div>
         <div className={'space-y-3 p-4'}>
           <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
+          <div className={'bg-card h-11 rounded-lg'} />
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className={'bg-card flex animate-pulse items-center gap-3 rounded-xl p-4'}>
               <div className={'bg-border h-10 w-10 rounded-full'} />
@@ -154,9 +335,7 @@ export default function AdminClientsPage(): ReactNode {
   if (clients.length === 0) {
     return (
       <div className={'flex flex-1 flex-col'}>
-        <div className={'p-4'}>
-          <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
-        </div>
+        <div className={'p-4'}>{header}</div>
         <div className={'flex min-h-[300px] flex-1 items-center justify-center'}>
           <EmptyState
             icon={<Users className={'h-16 w-16'} />}
@@ -164,6 +343,7 @@ export default function AdminClientsPage(): ReactNode {
             description={t('emptyDescription')}
           />
         </div>
+        {addClientDialog}
       </div>
     );
   }
@@ -171,8 +351,17 @@ export default function AdminClientsPage(): ReactNode {
   return (
     <div>
       <div className={'space-y-3 p-4'}>
-        <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
-        {clients.map((client) => (
+        {header}
+        {filteredClients.length === 0 && (
+          <div className={'flex min-h-[240px] items-center justify-center'}>
+            <EmptyState
+              icon={<Search className={'h-16 w-16'} />}
+              title={t('emptySearchTitle')}
+              description={t('emptySearchDescription')}
+            />
+          </div>
+        )}
+        {filteredClients.map((client) => (
           <div key={client.id} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
             <ClientAvatar name={clientDisplayName(client)} photoUrl={client.photoUrl} size={'md'} />
             <div className={'min-w-0 flex-1'}>
@@ -206,6 +395,8 @@ export default function AdminClientsPage(): ReactNode {
           </div>
         ))}
       </div>
+
+      {addClientDialog}
 
       <ConfirmDialog
         isOpen={!!editTarget}
