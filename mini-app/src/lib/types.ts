@@ -866,6 +866,7 @@ export type TRescheduleSheetProps = {
   isOpen: boolean;
   onClose: TVoidFunction;
   onSuccess: TVoidFunction;
+  mode?: 'admin' | 'client';
 };
 
 /***************************************************************************************************

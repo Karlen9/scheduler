@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Clock, Dumbbell } from 'lucide-react';
+import { Calendar, CalendarCheck, Clock } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { memo } from 'react';
 
@@ -161,7 +161,7 @@ function BookingCardComponent({
             </span>
           </div>
           <div className={'flex items-center gap-2'}>
-            <Dumbbell className={'text-muted-foreground h-4 w-4'} />
+            <CalendarCheck className={'text-muted-foreground h-4 w-4'} />
             <span className={'text-foreground text-sm'}>
               {tc('workout')}
               {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (

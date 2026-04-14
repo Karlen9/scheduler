@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"scheduler-bot/internal/changes"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -203,6 +204,16 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			if client.PhotoURL == "" && user.PhotoURL != "" {
 				if err := db.UpdateClientPhoto(client.ID, user.PhotoURL); err == nil {
 					client.PhotoURL = user.PhotoURL
+				}
+			}
+
+			/***************************************************************************************************
+			* Auto-set specialist Telegram profile photo if the owner has no custom photo.
+			***************************************************************************************************/
+			if specialist.PhotoURL == "" && user.PhotoURL != "" && user.ID == specialist.TelegramUserID {
+				if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
+					specialist.PhotoURL = user.PhotoURL
+					changes.Publish(specialist.ID, changes.GroupSpecialist)
 				}
 			}
 

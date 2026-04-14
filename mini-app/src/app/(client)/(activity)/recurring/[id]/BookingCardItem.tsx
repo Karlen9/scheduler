@@ -1,4 +1,4 @@
-import { ArrowRight, Calendar, Clock, Dumbbell, X } from 'lucide-react';
+import { ArrowRight, Calendar, CalendarCheck, Clock, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { formatTime } from '@/lib/helpers';
@@ -93,7 +93,7 @@ export function BookingCardItem({
           </div>
           {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
             <div className={'flex items-center gap-2'}>
-              <Dumbbell className={'text-muted-foreground h-4 w-4 shrink-0'} />
+              <CalendarCheck className={'text-muted-foreground h-4 w-4 shrink-0'} />
               <span className={'text-foreground text-sm'}>
                 {tc('workout')}
                 <span className={'text-muted-foreground'}>

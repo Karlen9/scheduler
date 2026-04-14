@@ -793,6 +793,11 @@ type CreateBookingRequest struct {
 	Message       string `json:"message,omitempty"`
 }
 
+type RescheduleBookingRequest struct {
+	Date string `json:"date"`
+	Time string `json:"time"`
+}
+
 /***************************************************************************************************
 * Handles create booking.
 *
@@ -927,6 +932,134 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	writeJSON(w, booking)
+}
+
+/***************************************************************************************************
+* Handles client reschedule booking.
+*
+* Parameters:
+* - w: HTTP response writer used to send the reply.
+* - r: HTTP request carrying headers, params, query values, and body data.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
+*
+***************************************************************************************************/
+func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	if bookingID == "" {
+		httpError(w, r, "Error.InvalidBookingID", http.StatusBadRequest)
+		return
+	}
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil {
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
+		return
+	}
+	if booking.ClientID != client.ID || booking.SpecialistID != specialist.ID {
+		httpError(w, r, "Error.Forbidden", http.StatusForbidden)
+		return
+	}
+	if booking.Status != models.BookingStatusPending && booking.Status != models.BookingStatusConfirmed {
+		httpError(w, r, "Error.BookingCannotModify", http.StatusBadRequest)
+		return
+	}
+
+	var req RescheduleBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+	if req.Date == "" || req.Time == "" {
+		httpError(w, r, "Error.MissingDateTime", http.StatusBadRequest)
+		return
+	}
+
+	date, err := parseDate(req.Date)
+	if err != nil {
+		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+		return
+	}
+	if errMsg := validateBookingDate(date); errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	hour, minute, err := parseTime(req.Time)
+	if err != nil {
+		httpError(w, r, "Error.SelectTime", http.StatusBadRequest)
+		return
+	}
+
+	duration := booking.DurationMinutes
+	if duration == 0 && booking.SessionType != nil {
+		duration = booking.SessionType.DurationMinutes
+	}
+	if duration == 0 {
+		duration = 60
+	}
+
+	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
+	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
+
+	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, bookingID)
+	if err != nil {
+		log.Printf("Error checking conflicts: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if hasConflict {
+		httpError(w, r, "Error.BookingConflict", http.StatusConflict)
+		return
+	}
+
+	if err := db.UpdateBookingDateTime(bookingID, startsAt, endsAt, duration); err != nil {
+		log.Printf("Error updating booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("RESCHEDULE [%s] Client: %s moved booking | New: %s %s",
+		bookingID[:8], booking.ClientName, req.Date, req.Time)
+
+	booking, _ = db.GetBookingByID(bookingID)
+	if booking != nil {
+		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	}
+
+	if UpdateSpecialistMessageFunc != nil && booking != nil {
+		if err := UpdateSpecialistMessageFunc(booking); err != nil {
+			log.Printf("Error updating specialist booking notification: %v", err)
+		}
+	}
+	if NotifyBookingFunc != nil && booking != nil {
+		if err := NotifyBookingFunc(booking); err != nil {
+			log.Printf("Error notifying specialist about reschedule: %v", err)
+		}
+	}
+
 	writeJSON(w, booking)
 }
 

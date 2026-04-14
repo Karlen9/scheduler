@@ -107,6 +107,7 @@ func NewRouter() http.Handler {
 		r.Get("/changes", HandleGetChangeVersions)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
+		r.Put("/bookings/{id}/reschedule", HandleClientRescheduleBooking)
 		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
 		r.Put("/bookings/{id}/decline", HandleClientDeclineBooking)
 

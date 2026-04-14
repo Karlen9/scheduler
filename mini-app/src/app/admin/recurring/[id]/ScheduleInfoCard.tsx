@@ -1,4 +1,4 @@
-import { Calendar, Clock, Dumbbell, Repeat } from 'lucide-react';
+import { Calendar, CalendarCheck, Clock, Repeat } from 'lucide-react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 
@@ -50,7 +50,7 @@ export function ScheduleInfoCard({
         </div>
 
         <div className={'flex items-center gap-2'}>
-          <Dumbbell className={'text-muted-foreground h-4 w-4'} />
+          <CalendarCheck className={'text-muted-foreground h-4 w-4'} />
           <span className={'text-foreground text-sm'}>{serviceName}</span>
         </div>
 

@@ -7,7 +7,7 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { CalendarView } from '@/components/CalendarView';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
-import { useAdminScheduleContext } from '@/hooks/queries';
+import { useScheduleContext } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { formatDateISO, getNonWorkingDays } from '@/lib/helpers';
 
@@ -31,6 +31,7 @@ export function RescheduleSheet({
   isOpen,
   onClose,
   onSuccess,
+  mode = 'admin',
 }: TRescheduleSheetProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -53,7 +54,7 @@ export function RescheduleSheet({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const te = useTranslations('Errors');
-  const { data: scheduleData } = useAdminScheduleContext();
+  const { data: scheduleData } = useScheduleContext();
 
   /***************************************************************************************************
    * Defines the non working days value used by the component layer.
@@ -172,10 +173,15 @@ export function RescheduleSheet({
     setIsSubmitting(true);
     setError(null);
     try {
-      await api.admin.rescheduleBooking(booking.id, {
+      const payload = {
         date: formatDateISO(selectedDate),
         time: selectedTime,
-      });
+      };
+      if (mode === 'admin') {
+        await api.admin.rescheduleBooking(booking.id, payload);
+      } else {
+        await api.rescheduleBooking(booking.id, payload);
+      }
       onSuccess();
       handleClose();
     } catch (err) {
