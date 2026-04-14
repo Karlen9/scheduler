@@ -1,5 +1,3 @@
-import { ActivityBackButton } from '@/components/ActivityBackButton';
-
 import type { ReactNode } from 'react';
 
 /***************************************************************************************************
@@ -15,10 +13,5 @@ import type { ReactNode } from 'react';
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
 export default function ActivityLayout({ children }: { children: React.ReactNode }): ReactNode {
-  return (
-    <>
-      <ActivityBackButton href={'/'} />
-      {children}
-    </>
-  );
+  return children;
 }

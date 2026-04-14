@@ -3,12 +3,12 @@
 import { CalendarDays, ClipboardList, ListChecks, Settings } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { resolveTestAwareHref } from '@/lib/routes';
-import { getTelegramWebApp } from '@/lib/telegram';
 
 import { BottomTabBar } from './BottomTabBar';
+import { TelegramBackButtonProvider } from './TelegramBackButtonProvider';
 
 import type { TAdminLayoutProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -100,38 +100,16 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
     [adminBookHref, adminBookingsHref, adminHref, adminRecurringHref, adminSettingsHref, tn],
   );
 
-  useEffect(() => {
-    /***************************************************************************************************
-     * Defines the web app value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const webApp = getTelegramWebApp();
-    if (!webApp) {
-      return;
-    }
-
-    if (isHome) {
-      webApp.BackButton.hide();
-    } else {
-      webApp.BackButton.show();
-      /***************************************************************************************************
-       * Defines the handler value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const handler = (): void => router.push(adminHref);
-      webApp.BackButton.onClick(handler);
-      return () => webApp.BackButton.offClick(handler);
-    }
-  }, [adminHref, isHome, router]);
+  const handleBack = useCallback((): void => {
+    router.push(adminHref);
+  }, [adminHref, router]);
 
   return (
-    <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
-      <div className={isBookPage ? '' : 'pb-24'}>{children}</div>
-      {!isBookPage && <BottomTabBar tabs={adminTabs} />}
-    </div>
+    <TelegramBackButtonProvider isRoot={isHome} onBack={handleBack}>
+      <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
+        <div className={isBookPage ? '' : 'pb-24'}>{children}</div>
+        {!isBookPage && <BottomTabBar tabs={adminTabs} />}
+      </div>
+    </TelegramBackButtonProvider>
   );
 }

@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { setLocale } from '@/actions/locale';
-import { ActivityBackButton } from '@/components/ActivityBackButton';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { PhotoEditor } from '@/components/PhotoEditor';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -306,7 +305,6 @@ export default function ClientProfilePage(): ReactNode {
 
   return (
     <div>
-      <ActivityBackButton href={'/'} />
       <div className={'space-y-6 p-4'}>
         <AvatarSection
           name={name}

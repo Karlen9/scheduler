@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 
-import { ActivityBackButton } from '@/components/ActivityBackButton';
 import { BookingForm } from '@/components/BookingForm';
 import { invalidateClients } from '@/hooks/mutations';
 import { useAdminScheduleContext, useAdminServices, useClients } from '@/hooks/queries';
@@ -57,53 +56,50 @@ export default function AdminBookPage(): ReactNode {
   const daysOff = daysOffData.map((d) => d.date);
 
   return (
-    <>
-      <ActivityBackButton href={'/admin'} />
-      <BookingForm
-        services={services}
-        workingHours={workingHours}
-        daysOff={daysOff}
-        isLoading={clientsLoading || svcLoading || scheduleLoading}
-        clients={clients}
-        showRecurring={false}
-        successRedirect={'/admin'}
-        title={t('adminTitle')}
-        onCreateGhostClient={async (name) => {
-          /***************************************************************************************************
-           * Defines the client value used by the page layer.
-           *
-           * Usage context:
-           * - Reused by the page layer to keep shared values centralized.
-           ***************************************************************************************************/
-          const client = await api.admin.createGhostClient(name);
-          invalidateClients();
-          return client;
-        }}
-        onCreateBooking={async (params) => {
-          await api.admin.createBooking({
-            clientId: params.clientId!,
-            duration: params.duration,
-            date: params.date,
-            time: params.time,
-            message: params.message,
-          });
-        }}
-        onCreateRecurring={async (params) => {
-          await api.admin.createRecurringSchedule({
-            clientId: params.clientId!,
-            sessionTypeId: params.sessionTypeId,
-            dayTimes: params.dayTimes,
-            period: params.period,
-          });
-        }}
-        onPreviewRecurring={async (params) => {
-          return api.admin.previewRecurringSchedule({
-            sessionTypeId: params.sessionTypeId,
-            dayTimes: params.dayTimes,
-            period: params.period,
-          });
-        }}
-      />
-    </>
+    <BookingForm
+      services={services}
+      workingHours={workingHours}
+      daysOff={daysOff}
+      isLoading={clientsLoading || svcLoading || scheduleLoading}
+      clients={clients}
+      showRecurring={false}
+      successRedirect={'/admin'}
+      title={t('adminTitle')}
+      onCreateGhostClient={async (name) => {
+        /***************************************************************************************************
+         * Defines the client value used by the page layer.
+         *
+         * Usage context:
+         * - Reused by the page layer to keep shared values centralized.
+         ***************************************************************************************************/
+        const client = await api.admin.createGhostClient(name);
+        invalidateClients();
+        return client;
+      }}
+      onCreateBooking={async (params) => {
+        await api.admin.createBooking({
+          clientId: params.clientId!,
+          duration: params.duration,
+          date: params.date,
+          time: params.time,
+          message: params.message,
+        });
+      }}
+      onCreateRecurring={async (params) => {
+        await api.admin.createRecurringSchedule({
+          clientId: params.clientId!,
+          sessionTypeId: params.sessionTypeId,
+          dayTimes: params.dayTimes,
+          period: params.period,
+        });
+      }}
+      onPreviewRecurring={async (params) => {
+        return api.admin.previewRecurringSchedule({
+          sessionTypeId: params.sessionTypeId,
+          dayTimes: params.dayTimes,
+          period: params.period,
+        });
+      }}
+    />
   );
 }

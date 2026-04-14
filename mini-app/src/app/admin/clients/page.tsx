@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { ActivityBackButton } from '@/components/ActivityBackButton';
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
@@ -136,7 +135,6 @@ export default function AdminClientsPage(): ReactNode {
   if (isLoading) {
     return (
       <div>
-        <ActivityBackButton href={'/admin'} />
         <div className={'space-y-3 p-4'}>
           <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -156,7 +154,6 @@ export default function AdminClientsPage(): ReactNode {
   if (clients.length === 0) {
     return (
       <div className={'flex flex-1 flex-col'}>
-        <ActivityBackButton href={'/admin'} />
         <div className={'p-4'}>
           <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
         </div>
@@ -173,7 +170,6 @@ export default function AdminClientsPage(): ReactNode {
 
   return (
     <div>
-      <ActivityBackButton href={'/admin'} />
       <div className={'space-y-3 p-4'}>
         <h2 className={'text-lg font-semibold'}>{t('title')}</h2>
         {clients.map((client) => (
