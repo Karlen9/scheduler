@@ -434,21 +434,40 @@ func GetBookingsBySpecialistID(specialistID string, status string) ([]models.Boo
 }
 
 type BookingListFilters struct {
-	Status        string
-	ClientSearch  string
-	SessionTypeID string
-	DateFrom      *time.Time
-	DateTo        *time.Time
-	Sort          string
-	Limit         int
-	Offset        int
+	Status         string
+	Statuses       []string
+	ClientID       string
+	ClientIDs      []string
+	ClientSearch   string
+	SessionTypeID  string
+	SessionTypeIDs []string
+	DateFrom       *time.Time
+	DateTo         *time.Time
+	Sort           string
+	Limit          int
+	Offset         int
+}
+
+func bookingListAppendInClause(clauses []string, args []interface{}, column string, values []string) ([]string, []interface{}) {
+	if len(values) == 0 {
+		return clauses, args
+	}
+
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(values)), ",")
+	clauses = append(clauses, fmt.Sprintf("%s IN (%s)", column, placeholders))
+	for _, value := range values {
+		args = append(args, value)
+	}
+	return clauses, args
 }
 
 func bookingListWhereClause(specialistID string, filters BookingListFilters) (string, []interface{}) {
 	clauses := []string{"b.specialist_id = ?"}
 	args := []interface{}{specialistID}
 
-	if filters.Status != "" {
+	if len(filters.Statuses) > 0 {
+		clauses, args = bookingListAppendInClause(clauses, args, "b.status", filters.Statuses)
+	} else if filters.Status != "" {
 		clauses = append(clauses, "b.status = ?")
 		args = append(args, filters.Status)
 	}
@@ -460,9 +479,17 @@ func bookingListWhereClause(specialistID string, filters BookingListFilters) (st
 		clauses = append(clauses, "b.starts_at < ?")
 		args = append(args, *filters.DateTo)
 	}
-	if filters.SessionTypeID != "" {
+	if len(filters.SessionTypeIDs) > 0 {
+		clauses, args = bookingListAppendInClause(clauses, args, "b.session_type_id", filters.SessionTypeIDs)
+	} else if filters.SessionTypeID != "" {
 		clauses = append(clauses, "b.session_type_id = ?")
 		args = append(args, filters.SessionTypeID)
+	}
+	if len(filters.ClientIDs) > 0 {
+		clauses, args = bookingListAppendInClause(clauses, args, "b.client_id", filters.ClientIDs)
+	} else if filters.ClientID != "" {
+		clauses = append(clauses, "b.client_id = ?")
+		args = append(args, filters.ClientID)
 	}
 	if filters.ClientSearch != "" {
 		like := "%" + strings.ToLower(filters.ClientSearch) + "%"

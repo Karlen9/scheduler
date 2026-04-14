@@ -80,6 +80,7 @@ export type TWorkingHours = {
  ***************************************************************************************************/
 export type TBooking = {
   id: string;
+  clientId?: string;
   sessionType?: TSessionType;
   startsAt: string;
   endsAt: string;
@@ -364,11 +365,11 @@ export type TAdminBookingsSort = 'created_desc' | 'starts_at_asc' | 'starts_at_d
 export type TAdminBookingsQuery = {
   page: number;
   limit: number;
-  status?: TBooking['status'] | '';
+  statuses?: TBooking['status'][];
   dateFrom?: string;
   dateTo?: string;
-  client?: string;
-  serviceId?: string;
+  clientId?: string;
+  serviceIds?: string[];
   sort?: TAdminBookingsSort;
 };
 
@@ -930,6 +931,7 @@ export type TStatCardProps = {
   iconBg: string;
   value: number | string;
   label: string;
+  valueSize?: 'base' | 'lg' | 'xl' | '2xl';
   onClick?: TVoidFunction;
 };
 

@@ -152,6 +152,7 @@ function buildBooking({
 
   return {
     id,
+    clientId: client.id,
     sessionType: service,
     startsAt,
     endsAt: addMinutesToISO(startsAt, service.durationMinutes),
@@ -481,17 +482,18 @@ function getAllBookings(state: TMockState): TBooking[] {
 
 function getAdminBookingsPage(state: TMockState, endpoint: string): TAdminBookingsResponse {
   const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
-  const status = params.get('status');
+  const statuses = params.getAll('status');
   const dateFrom = params.get('dateFrom');
   const dateTo = params.get('dateTo');
   const client = (params.get('client') ?? '').trim().toLowerCase();
-  const serviceId = params.get('serviceId');
+  const clientIds = params.getAll('clientId');
+  const serviceIds = params.getAll('serviceId');
   const sort = params.get('sort') ?? 'created_desc';
   const page = Math.max(Number(params.get('page') ?? 1) || 1, 1);
   const limit = Math.max(Number(params.get('limit') ?? 20) || 20, 1);
 
   let bookings = getAllBookings(state).filter((booking) => {
-    if (status && booking.status !== status) {
+    if (statuses.length > 0 && !statuses.includes(booking.status)) {
       return false;
     }
     if (dateFrom && booking.startsAt.slice(0, 10) < dateFrom) {
@@ -500,7 +502,10 @@ function getAdminBookingsPage(state: TMockState, endpoint: string): TAdminBookin
     if (dateTo && booking.startsAt.slice(0, 10) > dateTo) {
       return false;
     }
-    if (serviceId && booking.sessionType?.id !== serviceId) {
+    if (serviceIds.length > 0 && !serviceIds.includes(booking.sessionType?.id ?? '')) {
+      return false;
+    }
+    if (clientIds.length > 0 && !clientIds.includes(booking.clientId ?? '')) {
       return false;
     }
     if (client) {
@@ -644,6 +649,7 @@ function createBookingFromBody(
   const startsAt = `${date}T${time}:00Z`;
   const booking: TBooking = {
     id: `mock-booking-${Date.now()}`,
+    clientId: client.id,
     sessionType: service,
     startsAt,
     endsAt: addMinutesToISO(startsAt, service.durationMinutes),
