@@ -339,9 +339,9 @@
     "phoneLabel": "Телефон",
     "telegramLabel": "Telegram",
     "telegramPlaceholder": "@username",
-    "gymCoordsLabel": "Координаты локации",
-    "gymCoordsPlaceholder": "55.753207, 37.618493",
-    "gymCoordsHint": "Откройте Яндекс Карты, нажмите на здание на карте (не на организацию) и скопируйте координаты"
+    "useTelegramPhoto": "Использовать фото Telegram",
+    "removePhoto": "Удалить фото",
+    "telegramPhotoActive": "Используется фото Telegram"
   },
   "AdminSchedule": {
     "title": "Расписание",
@@ -617,6 +617,7 @@
   "Success": {
     "profileSaved": "Профиль сохранен",
     "photoUpdated": "Фото обновлено",
+    "photoRemoved": "Фото удалено",
     "scheduleSaved": "Расписание сохранено",
     "bookingCancelled": "Запись отменена",
     "bookingConfirmed": "Запись подтверждена",
