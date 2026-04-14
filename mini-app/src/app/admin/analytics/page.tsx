@@ -112,7 +112,6 @@ export default function AdminAnalyticsPage(): ReactNode {
           iconColor={'text-success'}
           iconBg={'bg-success/20'}
           value={formatCompactCurrency(stats.revenueThisMonth, stats.revenueCurrency, locale)}
-          valueSize={'lg'}
           label={t('revenueThisMonth')}
         />
         <StatCard
