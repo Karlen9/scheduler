@@ -72,12 +72,17 @@ func formatDuration(loc *i18n.Localizer, minutes int) string {
 	if minutes <= 0 {
 		return ""
 	}
-	hours := float64(minutes) / 60.0
-	unit := myI18n.T(loc, "Duration.Hour")
-	if hours == float64(int(hours)) {
-		return fmt.Sprintf("%d %s", int(hours), unit)
+
+	hours := minutes / 60
+	remainingMinutes := minutes % 60
+	parts := make([]string, 0, 2)
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%d %s", hours, myI18n.T(loc, "Duration.Hour")))
 	}
-	return fmt.Sprintf("%.1g %s", hours, unit)
+	if remainingMinutes > 0 {
+		parts = append(parts, fmt.Sprintf("%d %s", remainingMinutes, myI18n.T(loc, "Duration.Minute")))
+	}
+	return strings.Join(parts, " ")
 }
 
 /***************************************************************************************************
@@ -127,6 +132,27 @@ func bookingServiceDisplay(loc *i18n.Localizer, booking *models.Booking) string 
 		return fmt.Sprintf("%s %s", myI18n.T(loc, "Hint.DefaultSession"), formatDuration(loc, booking.DurationMinutes))
 	}
 	return myI18n.T(loc, "Hint.DefaultSession")
+}
+
+/***************************************************************************************************
+* Implements the common booking template data logic used by this module.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+* - booking: Booking used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as map[string]interface{}.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
+func bookingTemplateData(loc *i18n.Localizer, booking *models.Booking) map[string]interface{} {
+	return map[string]interface{}{
+		"ClientName": booking.ClientName,
+		"Service":    bookingServiceDisplay(loc, booking),
+		"DateTime":   formatDateTime(loc, booking.StartsAt),
+	}
 }
 
 /***************************************************************************************************
@@ -325,12 +351,7 @@ func FormatHelpSpecialist(loc *i18n.Localizer, clientURL string) string {
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatNewBookingMessage(loc *i18n.Localizer, booking *models.Booking) string {
-	data := map[string]interface{}{
-		"ClientName": booking.ClientName,
-		"Service":    bookingServiceDisplay(loc, booking),
-		"DateTime":   formatDateTime(loc, booking.StartsAt),
-	}
-	msg := myI18n.Tf(loc, "Booking.New", data)
+	msg := myI18n.Tf(loc, "Booking.New", bookingTemplateData(loc, booking))
 	if booking.ClientMessage != "" {
 		msg += myI18n.Tf(loc, "Booking.ClientMessage", map[string]interface{}{"Message": booking.ClientMessage})
 	}
@@ -351,11 +372,7 @@ func FormatNewBookingMessage(loc *i18n.Localizer, booking *models.Booking) strin
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingAcceptedSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ConfirmedSpecialist", map[string]interface{}{
-		"ClientName": booking.ClientName,
-		"Service":    bookingServiceDisplay(loc, booking),
-		"DateTime":   formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.ConfirmedSpecialist", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -372,11 +389,7 @@ func FormatBookingAcceptedSpecialist(loc *i18n.Localizer, booking *models.Bookin
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingRejectedSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.RejectedSpecialist", map[string]interface{}{
-		"ClientName": booking.ClientName,
-		"Service":    bookingServiceDisplay(loc, booking),
-		"DateTime":   formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.RejectedSpecialist", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -393,10 +406,7 @@ func FormatBookingRejectedSpecialist(loc *i18n.Localizer, booking *models.Bookin
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingConfirmedClient(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ConfirmedClient", map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.ConfirmedClient", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -413,11 +423,13 @@ func FormatBookingConfirmedClient(loc *i18n.Localizer, booking *models.Booking) 
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingRejectedClient(loc *i18n.Localizer, booking *models.Booking) string {
+	data := bookingTemplateData(loc, booking)
 	var msg string
 	if booking.CancelReason != "" {
-		msg = myI18n.Tf(loc, "Booking.RejectedClientWithReason", map[string]interface{}{"Reason": localizeCancelReason(loc, booking.CancelReason)})
+		data["Reason"] = localizeCancelReason(loc, booking.CancelReason)
+		msg = myI18n.Tf(loc, "Booking.RejectedClientWithReason", data)
 	} else {
-		msg = myI18n.T(loc, "Booking.RejectedClient")
+		msg = myI18n.Tf(loc, "Booking.RejectedClient", data)
 	}
 	msg += myI18n.T(loc, "Booking.RejectedClientRetry")
 	return msg
@@ -438,10 +450,7 @@ func FormatBookingRejectedClient(loc *i18n.Localizer, booking *models.Booking) s
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingCancelledBySpecialistClient(loc *i18n.Localizer, booking *models.Booking) string {
-	msg := myI18n.Tf(loc, "Booking.CancelledBySpecialistClient", map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	})
+	msg := myI18n.Tf(loc, "Booking.CancelledBySpecialistClient", bookingTemplateData(loc, booking))
 	if booking.CancelReason != "" {
 		msg += myI18n.Tf(loc, "Booking.CancelReason", map[string]interface{}{"Reason": localizeCancelReason(loc, booking.CancelReason)})
 	}
@@ -463,10 +472,7 @@ func FormatBookingCancelledBySpecialistClient(loc *i18n.Localizer, booking *mode
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingPendingClient(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.PendingClient", map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.PendingClient", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -483,10 +489,7 @@ func FormatBookingPendingClient(loc *i18n.Localizer, booking *models.Booking) st
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatReminderClient(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ReminderClient", map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.ReminderClient", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -819,12 +822,7 @@ func FormatRecurringScheduleDeclinedClient(loc *i18n.Localizer, schedule *models
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingCancelledForSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
-	data := map[string]interface{}{
-		"ClientName": booking.ClientName,
-		"Service":    bookingServiceDisplay(loc, booking),
-		"DateTime":   formatDateTime(loc, booking.StartsAt),
-	}
-	msg := myI18n.Tf(loc, "Booking.CancelledForSpecialist", data)
+	msg := myI18n.Tf(loc, "Booking.CancelledForSpecialist", bookingTemplateData(loc, booking))
 	if booking.CancelReason != "" {
 		msg += myI18n.Tf(loc, "Booking.CancelReason", map[string]interface{}{"Reason": localizeCancelReason(loc, booking.CancelReason)})
 	}
@@ -845,11 +843,7 @@ func FormatBookingCancelledForSpecialist(loc *i18n.Localizer, booking *models.Bo
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatBookingCancelledForClient(loc *i18n.Localizer, booking *models.Booking) string {
-	data := map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	}
-	msg := myI18n.Tf(loc, "Booking.CancelledForClient", data)
+	msg := myI18n.Tf(loc, "Booking.CancelledForClient", bookingTemplateData(loc, booking))
 	if booking.CancelReason != "" {
 		msg += myI18n.Tf(loc, "Booking.CancelReason", map[string]interface{}{"Reason": localizeCancelReason(loc, booking.CancelReason)})
 	}
@@ -964,11 +958,7 @@ func FormatMoveDeclined(loc *i18n.Localizer, oldBooking *models.Booking) string 
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatSpecialistCreatedBookingClient(loc *i18n.Localizer, booking *models.Booking) string {
-	data := map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	}
-	msg := myI18n.Tf(loc, "Booking.SpecialistCreatedClient", data)
+	msg := myI18n.Tf(loc, "Booking.SpecialistCreatedClient", bookingTemplateData(loc, booking))
 	if booking.ClientMessage != "" {
 		msg += myI18n.Tf(loc, "Booking.ClientMessage", map[string]interface{}{"Message": booking.ClientMessage})
 	}
@@ -989,10 +979,7 @@ func FormatSpecialistCreatedBookingClient(loc *i18n.Localizer, booking *models.B
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatSpecialistCreatedBookingClientAccepted(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientAccepted", map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientAccepted", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -1009,10 +996,7 @@ func FormatSpecialistCreatedBookingClientAccepted(loc *i18n.Localizer, booking *
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatSpecialistCreatedBookingClientDeclined(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientDeclined", map[string]interface{}{
-		"Service":  bookingServiceDisplay(loc, booking),
-		"DateTime": formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.SpecialistCreatedClientDeclined", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -1029,11 +1013,7 @@ func FormatSpecialistCreatedBookingClientDeclined(loc *i18n.Localizer, booking *
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatClientAcceptedBookingSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ClientAcceptedSpecialist", map[string]interface{}{
-		"ClientName": booking.ClientName,
-		"Service":    bookingServiceDisplay(loc, booking),
-		"DateTime":   formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.ClientAcceptedSpecialist", bookingTemplateData(loc, booking))
 }
 
 /***************************************************************************************************
@@ -1050,9 +1030,5 @@ func FormatClientAcceptedBookingSpecialist(loc *i18n.Localizer, booking *models.
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func FormatClientDeclinedBookingSpecialist(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.ClientDeclinedSpecialist", map[string]interface{}{
-		"ClientName": booking.ClientName,
-		"Service":    bookingServiceDisplay(loc, booking),
-		"DateTime":   formatDateTime(loc, booking.StartsAt),
-	})
+	return myI18n.Tf(loc, "Booking.ClientDeclinedSpecialist", bookingTemplateData(loc, booking))
 }
