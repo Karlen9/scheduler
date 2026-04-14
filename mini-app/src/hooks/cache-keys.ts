@@ -1,3 +1,10 @@
+import { getDataScope } from '@/lib/routes';
+
+function scopedKey(key: string): string {
+  const scope = getDataScope();
+  return scope === 'live' ? key : `${scope}:${key}`;
+}
+
 /***************************************************************************************************
  * Static data keys.
  *
@@ -5,30 +12,70 @@
  * - Reused by the hook layer to keep shared values centralized.
  ***************************************************************************************************/
 export const CACHE_KEYS = {
-  specialist: 'specialist',
-  workingHours: 'workingHours',
-  scheduleContext: 'scheduleContext',
-  daysOff: 'daysOff',
-  sessionTypes: 'sessionTypes',
-  profile: 'profile',
-  bookings: 'bookings',
-  clientStats: 'clientStats',
-  recurringSchedules: 'recurringSchedules',
-  recurringDetail: (id: string) => `recurringDetail:${id}`,
-  changeVersions: 'changeVersions',
+  get specialist(): string {
+    return scopedKey('specialist');
+  },
+  get workingHours(): string {
+    return scopedKey('workingHours');
+  },
+  get scheduleContext(): string {
+    return scopedKey('scheduleContext');
+  },
+  get daysOff(): string {
+    return scopedKey('daysOff');
+  },
+  get sessionTypes(): string {
+    return scopedKey('sessionTypes');
+  },
+  get profile(): string {
+    return scopedKey('profile');
+  },
+  get bookings(): string {
+    return scopedKey('bookings');
+  },
+  get clientStats(): string {
+    return scopedKey('clientStats');
+  },
+  get recurringSchedules(): string {
+    return scopedKey('recurringSchedules');
+  },
+  recurringDetail: (id: string) => scopedKey(`recurringDetail:${id}`),
+  get changeVersions(): string {
+    return scopedKey('changeVersions');
+  },
 
   /***************************************************************************************************
    * Admin keys.
    ***************************************************************************************************/
-  adminBookings: 'adminBookings',
-  adminStats: 'adminStats',
-  adminClients: 'adminClients',
-  adminProfile: 'adminProfile',
-  adminServices: 'adminServices',
-  adminWorkingHours: 'adminWorkingHours',
-  adminScheduleContext: 'adminScheduleContext',
-  adminDaysOff: 'adminDaysOff',
-  adminNotifications: 'adminNotifications',
-  adminRecurringSchedules: 'adminRecurringSchedules',
-  adminRecurringDetail: (id: string) => `adminRecurringDetail:${id}`,
+  get adminBookings(): string {
+    return scopedKey('adminBookings');
+  },
+  get adminStats(): string {
+    return scopedKey('adminStats');
+  },
+  get adminClients(): string {
+    return scopedKey('adminClients');
+  },
+  get adminProfile(): string {
+    return scopedKey('adminProfile');
+  },
+  get adminServices(): string {
+    return scopedKey('adminServices');
+  },
+  get adminWorkingHours(): string {
+    return scopedKey('adminWorkingHours');
+  },
+  get adminScheduleContext(): string {
+    return scopedKey('adminScheduleContext');
+  },
+  get adminDaysOff(): string {
+    return scopedKey('adminDaysOff');
+  },
+  get adminNotifications(): string {
+    return scopedKey('adminNotifications');
+  },
+  get adminRecurringSchedules(): string {
+    return scopedKey('adminRecurringSchedules');
+  },
+  adminRecurringDetail: (id: string) => scopedKey(`adminRecurringDetail:${id}`),
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import { useAdminBookings, useAdminScheduleContext, useClients } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { getNonWorkingDays } from '@/lib/helpers';
+import { resolveTestAwareHref } from '@/lib/routes';
 
 import { CancelDialog } from './CancelDialog';
 import { RejectDialog } from './RejectDialog';
@@ -43,6 +44,7 @@ export default function AdminHomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
+  const pathname = usePathname();
   /***************************************************************************************************
    * Defines the t value used by the page layer.
    *
@@ -295,9 +297,9 @@ export default function AdminHomePage(): ReactNode {
    ***************************************************************************************************/
   const handleEmptySlotClick = useCallback(
     (_date: Date, _time: string): void => {
-      router.push('/admin/book');
+      router.push(resolveTestAwareHref(pathname, '/admin/book'));
     },
-    [router],
+    [pathname, router],
   );
 
   if (isLoading) {
@@ -345,7 +347,7 @@ export default function AdminHomePage(): ReactNode {
           pendingCount={pendingCount}
           clientsCount={clients.length}
           onPendingClick={pendingCount > 0 ? () => setShowPendingSheet(true) : undefined}
-          onClientsClick={() => router.push('/admin/clients')}
+          onClientsClick={() => router.push(resolveTestAwareHref(pathname, '/admin/clients'))}
         />
 
         {/***************************************************************************************************

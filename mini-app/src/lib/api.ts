@@ -1,5 +1,7 @@
+import { fetchMockAPI } from './mock-api';
 import { emitMutation } from './mutation-events';
 import { dedupeRequest } from './request-cache';
+import { isTestRoute } from './routes';
 import { getSpecialistId, waitForInitData } from './telegram';
 
 import type {
@@ -43,6 +45,10 @@ const API_BASE_URL = '';
  * - May read browser state, call shared helpers, or perform network requests.
  ***************************************************************************************************/
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  if (isTestRoute()) {
+    return fetchMockAPI<T>(endpoint, options);
+  }
+
   /***************************************************************************************************
    * Defines the init data value used by the shared utility layer.
    *
@@ -154,7 +160,11 @@ export function getPhotoUrl(fileIdOrUrl: string): string {
   /***************************************************************************************************
    * Direct URLs (e.g. Telegram profile photos) — use as-is.
    ***************************************************************************************************/
-  if (fileIdOrUrl.startsWith('http')) {
+  if (
+    fileIdOrUrl.startsWith('http') ||
+    fileIdOrUrl.startsWith('data:') ||
+    fileIdOrUrl.startsWith('blob:')
+  ) {
     return fileIdOrUrl;
   }
   /***************************************************************************************************

@@ -2,7 +2,7 @@
 
 import { Clock, Dumbbell, MessageCircle, Phone, Share2 } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -10,6 +10,7 @@ import { useSessionTypes, useSpecialist, useWorkingHours } from '@/hooks/queries
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 import { formatDuration } from '@/lib/helpers';
+import { isTestRoute, resolveTestAwareHref } from '@/lib/routes';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
 import type { TWorkingHours } from '@/lib/types';
@@ -67,6 +68,7 @@ export default function HomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
+  const pathname = usePathname();
   /***************************************************************************************************
    * Defines the t value used by the page layer.
    *
@@ -97,18 +99,24 @@ export default function HomePage(): ReactNode {
   const [ownerRedirecting, setOwnerRedirecting] = useState(false);
   const adminHref = useMemo(() => {
     const specialistId = getSpecialistId();
-    return `/admin${specialistId ? `?specialist=${specialistId}` : ''}`;
-  }, []);
+    const href = `/admin${specialistId ? `?specialist=${specialistId}` : ''}`;
+    return resolveTestAwareHref(pathname, href);
+  }, [pathname]);
+  const isTestInstance = isTestRoute(pathname);
 
   useEffect(() => {
-    router.prefetch('/admin');
+    router.prefetch(adminHref);
+
+    if (isTestInstance) {
+      return;
+    }
 
     const cachedOwner = sessionStorage.getItem(getOwnerCacheKey());
     if (cachedOwner === 'true') {
       setOwnerRedirecting(true);
       router.replace(adminHref);
     }
-  }, [adminHref, router]);
+  }, [adminHref, isTestInstance, router]);
 
   /***************************************************************************************************
    * Redirect specialist to admin panel.
@@ -120,12 +128,12 @@ export default function HomePage(): ReactNode {
 
     sessionStorage.setItem(getOwnerCacheKey(), specialist.isOwner ? 'true' : 'false');
 
-    if (specialist.isOwner) {
+    if (specialist.isOwner && !isTestInstance) {
       setOwnerRedirecting(true);
-      router.prefetch('/admin');
+      router.prefetch(adminHref);
       router.replace(adminHref);
     }
-  }, [adminHref, router, specialist]);
+  }, [adminHref, isTestInstance, router, specialist]);
 
   useEffect(() => {
     setBioExpanded(false);
@@ -375,7 +383,7 @@ export default function HomePage(): ReactNode {
               </button>
             )}
             <button
-              onClick={() => router.push('/services')}
+              onClick={() => router.push(resolveTestAwareHref(pathname, '/services'))}
               className={
                 'bg-surface-hover border-surface-border text-muted-foreground flex-1 rounded-[28px] border px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
               }

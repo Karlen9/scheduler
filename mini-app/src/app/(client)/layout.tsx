@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
 
 import { BottomTabBar } from '@/components/BottomTabBar';
+import { resolveTestAwareHref } from '@/lib/routes';
 import { getTelegramWebApp } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
@@ -44,20 +45,25 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const tn = useTranslations('Navigation');
+  const homeHref = resolveTestAwareHref(pathname, '/');
+  const bookHref = resolveTestAwareHref(pathname, '/book');
+  const bookingsHref = resolveTestAwareHref(pathname, '/bookings');
+  const recurringHref = resolveTestAwareHref(pathname, '/recurring');
+  const profileHref = resolveTestAwareHref(pathname, '/profile');
   /***************************************************************************************************
    * Defines the is home value used by the page layer.
    *
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const isHome = pathname === '/' || pathname === '';
+  const isHome = pathname === homeHref || pathname === `${homeHref}/` || pathname === '';
   /***************************************************************************************************
    * Defines the is book page value used by the page layer.
    *
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const isBookPage = pathname === '/book';
+  const isBookPage = pathname === bookHref;
 
   /***************************************************************************************************
    * Defines the client tabs value used by the page layer.
@@ -71,19 +77,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         key: 'specialist',
         label: tn('specialist'),
         icon: House,
-        href: '/',
+        href: homeHref,
       },
-      { key: 'book', label: tn('book'), icon: CalendarDays, href: '/book', isCenter: true },
+      { key: 'book', label: tn('book'), icon: CalendarDays, href: bookHref, isCenter: true },
       {
         key: 'bookings',
         label: tn('bookings'),
         icon: CalendarDays,
-        href: '/bookings',
-        matchPaths: ['/bookings', '/recurring'],
+        href: bookingsHref,
+        matchPaths: [bookingsHref, recurringHref],
       },
-      { key: 'profile', label: tn('profile'), icon: User, href: '/profile' },
+      { key: 'profile', label: tn('profile'), icon: User, href: profileHref },
     ],
-    [tn],
+    [bookHref, bookingsHref, homeHref, profileHref, recurringHref, tn],
   );
 
   useEffect(() => {
@@ -108,11 +114,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
        * Usage context:
        * - Reused by the page layer to keep shared values centralized.
        ***************************************************************************************************/
-      const handler = (): void => router.push('/');
+      const handler = (): void => router.push(homeHref);
       webApp.BackButton.onClick(handler);
       return () => webApp.BackButton.offClick(handler);
     }
-  }, [isHome, router]);
+  }, [homeHref, isHome, router]);
 
   return (
     <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>

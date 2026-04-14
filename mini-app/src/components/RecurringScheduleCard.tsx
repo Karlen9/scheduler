@@ -1,12 +1,13 @@
 'use client';
 
 import { Calendar, Check, ChevronRight, Clock, Repeat, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { StatusBadge, statusBorders } from '@/components/StatusBadge';
 import { formatDuration } from '@/lib/helpers';
+import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { TRecurringSchedule, TRecurringScheduleCardProps, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -68,6 +69,7 @@ export function RecurringScheduleCard({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
+  const pathname = usePathname();
   /***************************************************************************************************
    * Defines the tc value used by the component layer.
    *
@@ -333,7 +335,7 @@ export function RecurringScheduleCard({
    ***************************************************************************************************/
   const handleCardClick = (): void => {
     if (detailPath && isActive) {
-      router.push(`${detailPath}/${schedule.id}`);
+      router.push(resolveTestAwareHref(pathname, `${detailPath}/${schedule.id}`));
     }
   };
 

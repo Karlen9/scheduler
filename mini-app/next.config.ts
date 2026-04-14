@@ -14,6 +14,22 @@ const nextConfig: NextConfig = {
     const apiUrl = process.env.API_URL || 'http://localhost:8080';
     return [
       {
+        source: '/test/client',
+        destination: '/',
+      },
+      {
+        source: '/test/client/:path*',
+        destination: '/:path*',
+      },
+      {
+        source: '/test/admin',
+        destination: '/admin',
+      },
+      {
+        source: '/test/admin/:path*',
+        destination: '/admin/:path*',
+      },
+      {
         source: '/api/:path*',
         destination: `${apiUrl}/api/:path*`,
       },

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
 
+import { resolveTestAwareHref } from '@/lib/routes';
 import { getTelegramWebApp } from '@/lib/telegram';
 
 import { BottomTabBar } from './BottomTabBar';
@@ -46,20 +47,25 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const tn = useTranslations('Navigation');
+  const adminHref = resolveTestAwareHref(pathname, '/admin');
+  const adminBookHref = resolveTestAwareHref(pathname, '/admin/book');
+  const adminClientsHref = resolveTestAwareHref(pathname, '/admin/clients');
+  const adminRecurringHref = resolveTestAwareHref(pathname, '/admin/recurring');
+  const adminSettingsHref = resolveTestAwareHref(pathname, '/admin/settings');
   /***************************************************************************************************
    * Defines the is home value used by the component layer.
    *
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const isHome = pathname === '/admin' || pathname === '/admin/';
+  const isHome = pathname === adminHref || pathname === `${adminHref}/`;
   /***************************************************************************************************
    * Defines the is book page value used by the component layer.
    *
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const isBookPage = pathname === '/admin/book';
+  const isBookPage = pathname === adminBookHref;
 
   /***************************************************************************************************
    * Defines the admin tabs value used by the component layer.
@@ -73,25 +79,25 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         key: 'home',
         label: tn('bookings'),
         icon: ClipboardList,
-        href: '/admin',
-        matchPaths: ['/admin/recurring'],
+        href: adminHref,
+        matchPaths: [adminRecurringHref],
       },
-      { key: 'book', label: tn('book'), icon: CalendarDays, href: '/admin/book', isCenter: true },
+      { key: 'book', label: tn('book'), icon: CalendarDays, href: adminBookHref, isCenter: true },
       {
         key: 'clients',
         label: tn('clients'),
         icon: Users,
-        href: '/admin/clients',
+        href: adminClientsHref,
       },
       {
         key: 'profile',
         label: tn('settings'),
         icon: Settings,
-        href: '/admin/settings',
-        matchPaths: ['/admin/settings'],
+        href: adminSettingsHref,
+        matchPaths: [adminSettingsHref],
       },
     ],
-    [tn],
+    [adminBookHref, adminClientsHref, adminHref, adminRecurringHref, adminSettingsHref, tn],
   );
 
   useEffect(() => {
@@ -116,11 +122,11 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
        * Usage context:
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
-      const handler = (): void => router.push('/admin');
+      const handler = (): void => router.push(adminHref);
       webApp.BackButton.onClick(handler);
       return () => webApp.BackButton.offClick(handler);
     }
-  }, [isHome, router]);
+  }, [adminHref, isHome, router]);
 
   return (
     <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>

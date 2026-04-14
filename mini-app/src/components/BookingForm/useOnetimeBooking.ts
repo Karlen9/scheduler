@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import { api } from '@/lib/api';
 import { formatDateISO } from '@/lib/helpers';
 import { monthGenKeys } from '@/lib/mappings';
+import { resolveTestAwareHref } from '@/lib/routes';
 
 import type {
   TSessionType,
@@ -44,6 +45,7 @@ export function useOnetimeBooking({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const router = useRouter();
+  const pathname = usePathname();
   /***************************************************************************************************
    * Defines the t value used by the component layer.
    *
@@ -506,7 +508,7 @@ export function useOnetimeBooking({
       });
       invalidateBookings();
       toast.success(t('successTitle'), { description: getOnetimeSuccessDescription() });
-      router.push(successRedirect);
+      router.push(resolveTestAwareHref(pathname, successRedirect));
     } catch (err) {
       /***************************************************************************************************
        * Defines the msg value used by the component layer.
@@ -564,7 +566,7 @@ export function useOnetimeBooking({
       }
       invalidateBookings();
       toast.success(t('successTitle'), { description: getOnetimeSuccessDescription() });
-      router.push(successRedirect);
+      router.push(resolveTestAwareHref(pathname, successRedirect));
     } catch (err) {
       /***************************************************************************************************
        * Defines the msg value used by the component layer.
