@@ -69,6 +69,11 @@ export default function HelpPage(): ReactNode {
     { question: t('faq_q3'), answer: t('faq_a3') },
     { question: t('faq_q4'), answer: t('faq_a4') },
     { question: t('faq_q5'), answer: t('faq_a5') },
+    { question: t('faq_q6'), answer: t('faq_a6') },
+    { question: t('faq_q7'), answer: t('faq_a7') },
+    { question: t('faq_q8'), answer: t('faq_a8') },
+    { question: t('faq_q9'), answer: t('faq_a9') },
+    { question: t('faq_q10'), answer: t('faq_a10') },
   ];
 
   /***************************************************************************************************
@@ -78,7 +83,7 @@ export default function HelpPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const handleContactSupport = (): void => {
-    window.open('https://t.me/support', '_blank');
+    window.open('https://t.me/karlenptsd', '_blank');
   };
 
   return (

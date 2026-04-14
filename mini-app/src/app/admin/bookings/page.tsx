@@ -434,27 +434,27 @@ export default function AdminAllBookingsPage(): ReactNode {
           <div className={'flex items-center justify-between gap-3 py-2'}>
             <button
               type={'button'}
+              aria-label={t('previous')}
               onClick={() => setPage((value) => Math.max(1, value - 1))}
               disabled={!canGoBack}
               className={
-                'bg-card text-foreground flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-40'
+                'bg-card text-foreground flex h-10 w-24 items-center justify-center rounded-lg disabled:opacity-40'
               }
             >
               <ChevronLeft className={'h-4 w-4'} />
-              {t('previous')}
             </button>
             <span className={'text-muted-foreground text-sm'}>
               {t('pageStatus', { page, totalPages: displayTotalPages })}
             </span>
             <button
               type={'button'}
+              aria-label={t('next')}
               onClick={() => setPage((value) => value + 1)}
               disabled={!canGoForward}
               className={
-                'bg-card text-foreground flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-40'
+                'bg-card text-foreground flex h-10 w-24 items-center justify-center rounded-lg disabled:opacity-40'
               }
             >
-              {t('next')}
               <ChevronRight className={'h-4 w-4'} />
             </button>
           </div>

@@ -299,7 +299,8 @@
     "cancelDialog": "Cancel booking?",
     "cancelDialogDescription": "Are you sure you want to cancel the booking for {name}?",
     "cancelConfirm": "Cancel Booking",
-    "cancelReasonPlaceholder": "Cancellation reason (optional)"
+    "cancelReasonPlaceholder": "Cancellation reason (optional)",
+    "dmUnavailable": "This client cannot be messaged"
   },
   "AdminSettings": {
     "title": "Profile",
@@ -373,8 +374,18 @@
   },
   "AdminClients": {
     "title": "Clients",
+    "addClient": "Add client",
+    "addDialog": "Add client",
+    "addDialogDescription": "Add a guest client if they do not use Telegram, then book sessions for them yourself.",
+    "namePlaceholder": "Client name",
+    "nameRequired": "Client name is required",
+    "searchPlaceholder": "Search clients",
     "emptyTitle": "No clients yet",
     "emptyDescription": "Clients will appear here after their first booking",
+    "emptySearchTitle": "No matching clients",
+    "emptySearchDescription": "Change search to see more clients",
+    "createSuccess": "Client {name} added",
+    "createError": "Failed to add client",
     "deleteDialog": "Delete client?",
     "deleteDialogDescription": "Client \"{name}\" will be deleted. Deletion will fail if the client has existing bookings.",
     "deleteConfirm": "Delete",
@@ -423,16 +434,26 @@
     "faqTitle": "FAQ",
     "needHelp": "Need help?",
     "contactSupport": "Contact Support",
-    "faq_q1": "How do I add a new service?",
-    "faq_a1": "Go to Settings > Services & Prices > tap \"Add Service\". Fill in the name, price, and duration.",
-    "faq_q2": "How do I change working hours?",
-    "faq_a2": "Go to Settings > Schedule. Set the start and end times for each working day.",
-    "faq_q3": "How do I cancel a client's booking?",
-    "faq_a3": "On the main screen, tap the booking, then tap \"Cancel\". The client will receive a cancellation notification.",
-    "faq_q4": "How do I reschedule a booking?",
-    "faq_a4": "Tap the booking, then \"Edit\". Select a new date and time. The client will be notified of the change.",
-    "faq_q5": "Why can't the client cancel a booking?",
-    "faq_a5": "If cancellation blocking is enabled, clients cannot cancel within a certain number of hours before the session. This can be configured in Settings > Schedule."
+    "faq_q1": "How do I add or edit a service?",
+    "faq_a1": "Go to Settings > Services & Prices. Add a service or open an existing one, then set its name, price, duration, and photo.",
+    "faq_q2": "How do I set working hours and breaks?",
+    "faq_a2": "Go to Settings > Schedule. Add one or more working intervals for a day. Any gap between intervals appears as a break in the admin calendar.",
+    "faq_q3": "How do I add a client who does not use Telegram?",
+    "faq_a3": "Go to Settings > Clients, tap +, and add a guest client. You can then book sessions for them yourself from the admin booking flow.",
+    "faq_q4": "How do I find a client?",
+    "faq_a4": "Use the search bar in Settings > Clients. Search works by client name, display name, and phone after a short debounce.",
+    "faq_q5": "How do I handle new booking requests?",
+    "faq_a5": "On the admin home screen, open New Requests. You can accept, reject, or message the client if they can be reached in Telegram.",
+    "faq_q6": "How do I message a client?",
+    "faq_a6": "Open a booking or a new request and tap Message. Messaging is available only for clients with a Telegram account linked to the booking.",
+    "faq_q7": "Where can I see all bookings?",
+    "faq_a7": "Go to All Bookings from the admin dashboard. Use filters for status, date, client, service, and sorting. Pagination buttons move between pages.",
+    "faq_q8": "How do I reschedule or cancel a booking?",
+    "faq_a8": "Open the booking from the calendar or All Bookings. Choose Reschedule to pick a new date and time, or Cancel to cancel with an optional reason.",
+    "faq_q9": "How do I block days off?",
+    "faq_a9": "Go to Settings > Days Off, select a date, add an optional reason, and save it. Clients will not be able to book blocked days.",
+    "faq_q10": "Why can't a client cancel a booking?",
+    "faq_a10": "If cancellation blocking is enabled, clients cannot cancel within the configured cutoff before the session. You can change it in Settings > Schedule."
   },
   "ThemeSelector": {
     "auto": "Auto",
@@ -471,6 +492,7 @@
   },
   "PendingBookingCard": {
     "accept": "Accept",
+    "message": "Message",
     "reject": "Reject"
   },
   "ScheduleView": {
@@ -482,7 +504,9 @@
   "DayTimeline": {
     "noBookings": "No bookings for this day",
     "emptySlot": "Empty slot",
-    "timeNotOccupied": "Time not occupied"
+    "timeNotOccupied": "Time not occupied",
+    "breakSlot": "Break",
+    "breakNotWorking": "Specialist timeout"
   },
   "NextBookingBanner": {
     "title": "Next Booking",

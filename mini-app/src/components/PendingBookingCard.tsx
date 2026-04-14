@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, X } from 'lucide-react';
+import { Check, MessageCircle, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { memo } from 'react';
 
@@ -53,6 +53,7 @@ function PendingBookingCardComponent({
   booking,
   onAccept,
   onReject,
+  onMessageClient,
 }: TPendingBookingCardProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -182,8 +183,22 @@ function PendingBookingCardComponent({
         </div>
       </div>
 
+      {onMessageClient && !booking.clientIsGhost && booking.clientTelegramUserId && (
+        <button
+          type={'button'}
+          onClick={() => onMessageClient(booking)}
+          className={
+            'bg-card border-border text-foreground mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-opacity active:opacity-70'
+          }
+        >
+          <MessageCircle className={'h-4 w-4'} />
+          {t('message')}
+        </button>
+      )}
+
       <div className={'mt-3 flex gap-2'}>
         <button
+          type={'button'}
           onClick={() => onAccept(booking)}
           className={
             'bg-action-success-bg text-action-success-text flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-opacity active:opacity-70'
@@ -193,6 +208,7 @@ function PendingBookingCardComponent({
           {t('accept')}
         </button>
         <button
+          type={'button'}
           onClick={() => onReject(booking)}
           className={
             'bg-action-danger-bg text-action-danger-text flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-opacity active:opacity-70'

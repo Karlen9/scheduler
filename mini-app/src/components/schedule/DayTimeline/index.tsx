@@ -2,7 +2,7 @@
 
 import { Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 
 import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 import { TimelineBookingCard } from './TimelineBookingCard';
@@ -12,8 +12,8 @@ import type { TDayTimelineProps, TEmptySlot } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 const HOUR_HEIGHT = 72;
-const COLLAPSED_HEIGHT = 40;
-const COLLAPSE_THRESHOLD_MIN = 180; // 3 hours
+const COLLAPSED_HEIGHT = HOUR_HEIGHT * 2;
+const COLLAPSE_THRESHOLD_MIN = 120; // 2 hours
 
 function formatHour(hour: number): string {
   return `${hour.toString().padStart(2, '0')}:00`;
@@ -139,49 +139,41 @@ function DayTimelineComponent({
         const slotStart = Math.max(slot.start, whStart);
         const slotEnd = Math.min(slot.end, whEnd);
         if (cursor < slotStart) {
-          gaps.push({ startMin: cursor, endMin: slotStart });
+          gaps.push({ startMin: cursor, endMin: slotStart, kind: 'available' });
         }
         cursor = Math.max(cursor, slotEnd);
       }
       if (cursor < whEnd) {
-        gaps.push({ startMin: cursor, endMin: whEnd });
+        gaps.push({ startMin: cursor, endMin: whEnd, kind: 'available' });
       }
     }
     return gaps;
   }, [bookings, dayWH]);
 
-  const [collapsedSet, setCollapsedSet] = useState<Set<number>>(new Set());
-
-  // Reset collapsed state when empty slots change (date/booking change)
-  useEffect(() => {
-    const set = new Set<number>();
-    for (const slot of emptySlots) {
-      if (slot.endMin - slot.startMin > COLLAPSE_THRESHOLD_MIN) {
-        set.add(slot.startMin);
+  const breakSlots = useMemo<TEmptySlot[]>(() => {
+    const slots: TEmptySlot[] = [];
+    for (let i = 0; i < dayWH.length - 1; i++) {
+      const currentEnd = parseTimeToMin(dayWH[i].endTime);
+      const nextStart = parseTimeToMin(dayWH[i + 1].startTime);
+      if (currentEnd < nextStart) {
+        slots.push({ startMin: currentEnd, endMin: nextStart, kind: 'break' });
       }
     }
-    setCollapsedSet(set);
-  }, [emptySlots]);
+    return slots;
+  }, [dayWH]);
 
-  const toggleCollapse = useCallback((startMin: number) => {
-    setCollapsedSet((prev) => {
-      const next = new Set(prev);
-      if (next.has(startMin)) {
-        next.delete(startMin);
-      } else {
-        next.add(startMin);
-      }
-      return next;
-    });
-  }, []);
+  const timelineSlots = useMemo(
+    () => [...emptySlots, ...breakSlots].sort((a, b) => a.startMin - b.startMin),
+    [emptySlots, breakSlots],
+  );
 
-  // Sorted collapsed slots for the mapping function
+  // Sorted capped slots for the mapping function.
   const sortedCollapsed = useMemo(
     () =>
-      emptySlots
-        .filter((s) => collapsedSet.has(s.startMin))
+      timelineSlots
+        .filter((s) => s.endMin - s.startMin > COLLAPSE_THRESHOLD_MIN)
         .sort((a, b) => a.startMin - b.startMin),
-    [emptySlots, collapsedSet],
+    [timelineSlots],
   );
 
   const { minHour, maxHour } = useMemo(() => {
@@ -217,30 +209,57 @@ function DayTimelineComponent({
   if (bookings.length === 0 && dayWH.length > 0) {
     return (
       <div className={'space-y-2'}>
-        {emptySlots.map((slot) => (
-          <button
-            key={`empty-${slot.startMin}`}
-            onClick={() => onEmptySlotClick?.(date, formatMinuteTime(slot.startMin))}
-            className={
-              'border-border w-full rounded-xl border border-dashed p-4 text-left transition-opacity active:opacity-80'
-            }
-          >
-            <div className={'flex items-center justify-between'}>
-              <div>
-                <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
-                <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
+        {timelineSlots.map((slot) =>
+          slot.kind === 'break' ? (
+            <div
+              key={`break-${slot.startMin}`}
+              className={
+                'border-border bg-muted/40 relative w-full overflow-hidden rounded-xl border border-dashed p-4'
+              }
+            >
+              <div
+                className={'pointer-events-none absolute inset-0'}
+                style={{
+                  backgroundImage:
+                    'repeating-linear-gradient(-45deg, rgba(239, 68, 68, 0.14) 0 8px, transparent 8px 16px)',
+                }}
+              />
+              <div className={'relative'}>
+                <p className={'text-muted-foreground text-sm font-medium'}>{t('breakSlot')}</p>
                 <p className={'text-muted-foreground mt-1 text-xs'}>
                   {formatMinuteTime(slot.startMin)}
                   {' – '}
                   {formatMinuteTime(slot.endMin)}
                 </p>
               </div>
-              <div className={'bg-brand/10 flex h-8 w-8 items-center justify-center rounded-full'}>
-                <Plus className={'text-brand h-4 w-4'} />
-              </div>
             </div>
-          </button>
-        ))}
+          ) : (
+            <button
+              key={`empty-${slot.startMin}`}
+              onClick={() => onEmptySlotClick?.(date, formatMinuteTime(slot.startMin))}
+              className={
+                'border-border w-full rounded-xl border border-dashed p-4 text-left transition-opacity active:opacity-80'
+              }
+            >
+              <div className={'flex items-center justify-between'}>
+                <div>
+                  <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
+                  <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
+                  <p className={'text-muted-foreground mt-1 text-xs'}>
+                    {formatMinuteTime(slot.startMin)}
+                    {' – '}
+                    {formatMinuteTime(slot.endMin)}
+                  </p>
+                </div>
+                <div
+                  className={'bg-brand/10 flex h-8 w-8 items-center justify-center rounded-full'}
+                >
+                  <Plus className={'text-brand h-4 w-4'} />
+                </div>
+              </div>
+            </button>
+          ),
+        )}
       </div>
     );
   }
@@ -255,6 +274,19 @@ function DayTimelineComponent({
     }
   }
 
+  const compressedHourLabels = sortedCollapsed.flatMap((slot) => {
+    const labels: number[] = [];
+    const startHour = Math.floor(slot.startMin / 60) + 1;
+    const endHour = Math.ceil(slot.endMin / 60) - 1;
+    for (let h = startHour; h <= endHour; h++) {
+      const hMin = h * 60;
+      if (hMin > slot.startMin && hMin < slot.endMin) {
+        labels.push(h);
+      }
+    }
+    return labels;
+  });
+
   const totalHeight = toPixel(maxHour * 60);
 
   // Current time indicator
@@ -268,7 +300,7 @@ function DayTimelineComponent({
   }
 
   return (
-    <div className={'relative'} style={{ height: totalHeight + 16 }}>
+    <div className={'relative mt-10'} style={{ height: totalHeight + 16 }}>
       {/* Hour labels (no lines) */}
       {hourLabels.map((hour) => (
         <div
@@ -286,23 +318,33 @@ function DayTimelineComponent({
         </div>
       ))}
 
+      {compressedHourLabels.map((hour) => (
+        <div
+          key={`compressed-${hour}`}
+          className={'absolute left-0 flex w-12 -translate-y-1/2 items-center justify-end pr-2'}
+          style={{ top: toPixel(hour * 60) }}
+        >
+          <span className={'text-muted-foreground/50 text-[10px] leading-none'}>
+            {formatHour(hour)}
+          </span>
+        </div>
+      ))}
+
       {/* Empty slot cards */}
-      {emptySlots.map((slot) => {
+      {timelineSlots.map((slot) => {
         const slotTop = toPixel(slot.startMin);
         const slotBottom = toPixel(slot.endMin);
         const slotHeight = slotBottom - slotTop;
-        const isCollapsed = collapsedSet.has(slot.startMin);
-        const isLong = slot.endMin - slot.startMin > COLLAPSE_THRESHOLD_MIN;
+        const isCollapsed = slot.endMin - slot.startMin > COLLAPSE_THRESHOLD_MIN;
 
         return (
           <TimelineEmptySlot
-            key={`empty-${slot.startMin}`}
+            key={`${slot.kind ?? 'empty'}-${slot.startMin}`}
             slot={slot}
             date={date}
             top={slotTop}
             height={slotHeight}
             collapsed={isCollapsed}
-            onToggleCollapse={isLong ? () => toggleCollapse(slot.startMin) : undefined}
             onEmptySlotClick={onEmptySlotClick}
           />
         );

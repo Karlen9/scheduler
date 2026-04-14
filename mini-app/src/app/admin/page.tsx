@@ -16,6 +16,7 @@ import { useAdminBookings, useAdminScheduleContext } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { getNonWorkingDays } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 import { CancelDialog } from './CancelDialog';
 import { RejectDialog } from './RejectDialog';
@@ -252,6 +253,28 @@ export default function AdminHomePage(): ReactNode {
     setRescheduleBooking(booking);
   }, []);
 
+  const handleMessageClient = useCallback(
+    (booking: TBooking): void => {
+      if (booking.clientIsGhost || !booking.clientTelegramUserId) {
+        toast.error(t('dmUnavailable'));
+        return;
+      }
+
+      const url = `tg://user?id=${booking.clientTelegramUserId}`;
+      try {
+        const webApp = getTelegramWebApp();
+        if (webApp?.openTelegramLink) {
+          webApp.openTelegramLink(url);
+        } else {
+          window.location.href = url;
+        }
+      } catch {
+        window.location.href = url;
+      }
+    },
+    [t],
+  );
+
   /***************************************************************************************************
    * Handles cancel click.
    *
@@ -389,6 +412,7 @@ export default function AdminHomePage(): ReactNode {
         onCancel={handleCancelClick}
         onAccept={handleAccept}
         onReject={handleRejectClick}
+        onMessageClient={handleMessageClient}
       />
 
       {/***************************************************************************************************
@@ -428,7 +452,7 @@ export default function AdminHomePage(): ReactNode {
         title={t('newRequests')}
         className={'max-h-[70vh] overflow-y-auto'}
       >
-        <div className={'space-y-3'}>
+        <div className={'space-y-3 pb-6'}>
           {pendingBookings.map((booking) => (
             <PendingBookingCard
               key={booking.id}
@@ -443,6 +467,7 @@ export default function AdminHomePage(): ReactNode {
                 setShowPendingSheet(false);
                 handleRejectClick(b);
               }}
+              onMessageClient={handleMessageClient}
             />
           ))}
         </div>
