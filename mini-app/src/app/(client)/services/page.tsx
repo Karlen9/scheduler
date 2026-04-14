@@ -105,7 +105,7 @@ export default function ServicesPage(): ReactNode {
                 <div className={'flex items-center gap-1'}>
                   <Clock className={'text-muted-foreground h-3 w-3'} />
                   <span className={'text-muted-foreground text-sm'}>
-                    {formatDuration(service.durationMinutes, td('hour'))}
+                    {formatDuration(service.durationMinutes, td('hour'), td('minutes'))}
                   </span>
                 </div>
               </div>

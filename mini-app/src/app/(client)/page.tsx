@@ -465,7 +465,7 @@ export default function HomePage(): ReactNode {
                     <div className={'mt-0.5 flex items-center gap-1'}>
                       <Clock className={'text-muted-foreground h-3 w-3'} />
                       <p className={'text-muted-foreground text-xs'}>
-                        {formatDuration(service.durationMinutes, td('hour'))}
+                        {formatDuration(service.durationMinutes, td('hour'), td('minutes'))}
                       </p>
                     </div>
                   </div>

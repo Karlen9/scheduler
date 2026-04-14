@@ -12,7 +12,7 @@ import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { NextBookingBanner } from '@/components/schedule/NextBookingBanner';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { invalidateBookings } from '@/hooks/mutations';
-import { useAdminBookings, useAdminScheduleContext } from '@/hooks/queries';
+import { useAdminBookings, useAdminScheduleContext, useAdminServices } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { getNonWorkingDays } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
@@ -74,6 +74,7 @@ export default function AdminHomePage(): ReactNode {
     error: fetchError,
   } = useAdminBookings({ refreshInterval: isPageVisible ? 15000 : 0 });
   const { data: scheduleData } = useAdminScheduleContext();
+  const { data: services } = useAdminServices();
 
   /***************************************************************************************************
    * Defines the non working days value used by the page layer.
@@ -93,6 +94,11 @@ export default function AdminHomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const daysOff = useMemo(() => (scheduleData?.daysOff ?? []).map((d) => d.date), [scheduleData]);
+  const serviceDurations = useMemo(
+    () =>
+      Array.from(new Set(services.map((service) => service.durationMinutes))).sort((a, b) => a - b),
+    [services],
+  );
   const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<TBooking | null>(null);
@@ -381,6 +387,7 @@ export default function AdminHomePage(): ReactNode {
           nonWorkingDays={nonWorkingDays}
           daysOff={daysOff}
           workingHours={scheduleData?.workingHours ?? []}
+          serviceDurations={serviceDurations}
           onEmptySlotClick={handleEmptySlotClick}
         />
       </div>

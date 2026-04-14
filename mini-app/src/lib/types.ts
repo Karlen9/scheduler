@@ -354,6 +354,7 @@ export type TThemePreference = 'auto' | 'light' | 'dark';
  ***************************************************************************************************/
 export type TCreateBookingParams = {
   clientId?: string;
+  sessionTypeId?: string;
   duration: number;
   date: string;
   time: string;
@@ -671,6 +672,7 @@ export type TDayTimelineProps = {
   date: Date;
   onBookingClick?: (booking: TBooking) => void;
   workingHours?: TWorkingHours[];
+  serviceDurations?: number[];
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 
@@ -875,6 +877,7 @@ export type TScheduleViewProps = {
   nonWorkingDays?: number[];
   daysOff?: string[];
   workingHours?: TWorkingHours[];
+  serviceDurations?: number[];
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 
@@ -1017,6 +1020,7 @@ export type TTimelineEmptySlotProps = {
   top: number;
   height: number;
   collapsed?: boolean;
+  serviceDurations?: number[];
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
 

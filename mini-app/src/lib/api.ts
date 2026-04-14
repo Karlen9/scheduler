@@ -351,10 +351,11 @@ export const api = {
     time: string,
     name: string,
     message?: string,
+    sessionTypeId?: string,
   ): Promise<TBooking> {
     return fetchAPI<TBooking>('/api/bookings', {
       method: 'POST',
-      body: JSON.stringify({ duration, date, time, name, message }),
+      body: JSON.stringify({ duration, date, time, name, message, sessionTypeId }),
     });
   },
 
@@ -1150,6 +1151,7 @@ export const api = {
      ***************************************************************************************************/
     async createBooking(data: {
       clientId: string;
+      sessionTypeId?: string;
       duration: number;
       date: string;
       time: string;

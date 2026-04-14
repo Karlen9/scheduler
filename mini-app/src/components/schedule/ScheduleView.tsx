@@ -110,6 +110,7 @@ export function ScheduleView({
   nonWorkingDays,
   daysOff,
   workingHours,
+  serviceDurations,
   onEmptySlotClick,
 }: TScheduleViewProps): ReactNode {
   /***************************************************************************************************
@@ -365,6 +366,7 @@ export function ScheduleView({
         date={selectedDate}
         onBookingClick={onBookingClick}
         workingHours={workingHours}
+        serviceDurations={serviceDurations}
         onEmptySlotClick={onEmptySlotClick}
       />
     </div>

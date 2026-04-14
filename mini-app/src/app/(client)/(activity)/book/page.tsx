@@ -86,7 +86,14 @@ function ClientBookContent(): ReactNode {
          * - Reused by the page layer to keep shared values centralized.
          ***************************************************************************************************/
         const name = getUserName();
-        await api.createBooking(params.duration, params.date, params.time, name, params.message);
+        await api.createBooking(
+          params.duration,
+          params.date,
+          params.time,
+          name,
+          params.message,
+          params.sessionTypeId,
+        );
       }}
       onCreateRecurring={async (params) => {
         await api.createRecurringSchedule({

@@ -260,7 +260,7 @@ export function RecurringScheduleCard({
         return match.name;
       }
     }
-    return formatDuration(sched.durationMinutes, tdu('hour'));
+    return formatDuration(sched.durationMinutes, tdu('hour'), tdu('minutes'));
   }
 
   /***************************************************************************************************

@@ -505,6 +505,7 @@
     "noBookings": "No bookings for this day",
     "emptySlot": "Empty slot",
     "timeNotOccupied": "Time not occupied",
+    "fitsDurations": "Fits: {durations}",
     "breakSlot": "Break",
     "breakNotWorking": "Specialist timeout"
   },

@@ -930,8 +930,8 @@ func TestGetAvailabilityWithMultipleIntervalsPerDay(t *testing.T) {
 	parseJSON(t, w, &slots)
 
 	expectedTimes := []string{
-		"09:00", "09:30", "10:00", "10:30", "11:00",
-		"14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
+		"09:00", "10:00", "11:00",
+		"14:00", "15:00", "16:00", "17:00",
 	}
 	if len(slots) != len(expectedTimes) {
 		t.Fatalf("expected %d availability slots, got %d", len(expectedTimes), len(slots))

@@ -505,6 +505,7 @@
     "noBookings": "Нет записей на этот день",
     "emptySlot": "Пустой слот",
     "timeNotOccupied": "Время не занято",
+    "fitsDurations": "Подойдёт: {durations}",
     "breakSlot": "Перерыв",
     "breakNotWorking": "Таймаут специалиста"
   },

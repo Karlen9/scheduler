@@ -697,17 +697,21 @@ function getAvailableSlots(state: TMockState, endpoint: string): TTimeSlot[] {
       ['pending', 'confirmed', 'reschedule_pending'].includes(booking.status),
   );
 
-  return Array.from({ length: 20 }, (_, index) => {
-    const time = addMinutesToTime('09:00', index * 30);
+  const slots: TTimeSlot[] = [];
+  const startMinutes = 9 * 60;
+  const endMinutes = 19 * 60;
+  for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += duration) {
+    const time = addMinutesToTime('00:00', minutes);
     const booked = visibleBookings.find((booking) => booking.startsAt.slice(11, 16) === time);
 
-    return {
+    slots.push({
       time,
       endTime: addMinutesToTime(time, duration),
       available: !booked,
       mine: booked?.clientName === state.clientProfile.name,
-    };
-  });
+    });
+  }
+  return slots;
 }
 
 function createRecurringSchedule(
