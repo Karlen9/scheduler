@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera } from 'lucide-react';
+import { Camera, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -13,6 +13,7 @@ import { invalidateSpecialist } from '@/hooks/mutations';
 import { useAdminProfile } from '@/hooks/queries';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
+import { getTelegramUserPhotoUrl } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
@@ -63,12 +64,13 @@ export default function ProfilePage(): ReactNode {
   const [bio, setBio] = useState('');
   const [phone, setPhone] = useState('');
   const [telegram, setTelegram] = useState('');
-  const [gymCoords, setGymCoords] = useState('');
   const [initialized, setInitialized] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
+  const [telegramPhotoUrl, setTelegramPhotoUrl] = useState('');
   const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
   const [editorImage, setEditorImage] = useState<string | null>(null);
   /***************************************************************************************************
    * Defines the file input ref value used by the page layer.
@@ -89,9 +91,7 @@ export default function ProfilePage(): ReactNode {
     setPhone(profile.phone || '');
     setTelegram(profile.telegramHandle || '');
     setPhotoUrl(profile.photoUrl || '');
-    if (profile.locationLatitude && profile.locationLongitude) {
-      setGymCoords(`${profile.locationLatitude}, ${profile.locationLongitude}`);
-    }
+    setTelegramPhotoUrl(getTelegramUserPhotoUrl());
     setInitialized(true);
   }, [profile, isLoading, initialized]);
 
@@ -162,6 +162,28 @@ export default function ProfilePage(): ReactNode {
   };
 
   /***************************************************************************************************
+   * Handles delete photo.
+   *
+   * Usage context:
+   * - Reused by the page layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const handleDeletePhoto = async (): Promise<void> => {
+    setIsDeletingPhoto(true);
+    try {
+      const updated = await api.admin.updateProfile({ photoUrl: '' });
+      setPhotoUrl(updated.photoUrl || telegramPhotoUrl);
+      setPhotoError(false);
+      invalidateSpecialist();
+      toast.success(ts('photoRemoved'));
+    } catch (err) {
+      console.error('Failed to delete photo:', err);
+      toast.error(te('saveFailed'));
+    } finally {
+      setIsDeletingPhoto(false);
+    }
+  };
+
+  /***************************************************************************************************
    * Handles save.
    *
    * Usage context:
@@ -170,41 +192,12 @@ export default function ProfilePage(): ReactNode {
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);
     try {
-      /***************************************************************************************************
-       * Defines the location latitude value used by the page layer.
-       *
-       * Usage context:
-       * - Reused by the page layer to keep shared values centralized.
-       ***************************************************************************************************/
-      let locationLatitude = 0;
-      /***************************************************************************************************
-       * Defines the location longitude value used by the page layer.
-       *
-       * Usage context:
-       * - Reused by the page layer to keep shared values centralized.
-       ***************************************************************************************************/
-      let locationLongitude = 0;
-      if (gymCoords.trim()) {
-        /***************************************************************************************************
-         * Defines the parts value used by the page layer.
-         *
-         * Usage context:
-         * - Reused by the page layer to keep shared values centralized.
-         ***************************************************************************************************/
-        const parts = gymCoords.split(',').map((s) => parseFloat(s.trim()));
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          locationLatitude = parts[0];
-          locationLongitude = parts[1];
-        }
-      }
       await api.admin.updateProfile({
         name,
         specialization,
         bio,
         phone,
         telegramHandle: telegram,
-        locationLatitude,
-        locationLongitude,
       });
       invalidateSpecialist();
       toast.success(ts('profileSaved'));
@@ -237,6 +230,10 @@ export default function ProfilePage(): ReactNode {
       </div>
     );
   }
+
+  const hasPhoto = Boolean(photoUrl);
+  const isTelegramPhotoActive = Boolean(telegramPhotoUrl && photoUrl === telegramPhotoUrl);
+  const canDeletePhoto = hasPhoto && !isTelegramPhotoActive;
 
   return (
     <div>
@@ -288,6 +285,35 @@ export default function ProfilePage(): ReactNode {
             />
           </div>
         </div>
+        {hasPhoto && (
+          <div className={'-mt-4 flex justify-center'}>
+            {canDeletePhoto ? (
+              <button
+                type={'button'}
+                onClick={handleDeletePhoto}
+                disabled={isDeletingPhoto || isUploading}
+                className={
+                  'text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-50'
+                }
+              >
+                {isDeletingPhoto ? (
+                  <div
+                    className={
+                      'border-muted-foreground h-4 w-4 animate-spin rounded-full border-2 border-t-transparent'
+                    }
+                  />
+                ) : (
+                  <Trash2 className={'h-4 w-4'} />
+                )}
+                {telegramPhotoUrl ? t('useTelegramPhoto') : t('removePhoto')}
+              </button>
+            ) : (
+              <p className={'text-muted-foreground px-3 py-2 text-sm'}>
+                {t('telegramPhotoActive')}
+              </p>
+            )}
+          </div>
+        )}
 
         {/***************************************************************************************************
          * Form.
@@ -366,25 +392,6 @@ export default function ProfilePage(): ReactNode {
                 'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
               }
             />
-          </div>
-
-          {/***************************************************************************************************
-           * Location.
-           ***************************************************************************************************/}
-          <div className={'pt-2'}>
-            <label className={'text-muted-foreground mb-1 block text-sm'}>
-              {t('gymCoordsLabel')}
-            </label>
-            <input
-              type={'text'}
-              value={gymCoords}
-              onChange={(e) => setGymCoords(e.target.value)}
-              placeholder={t('gymCoordsPlaceholder')}
-              className={
-                'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
-              }
-            />
-            <p className={'text-muted-foreground mt-1.5 text-xs'}>{t('gymCoordsHint')}</p>
           </div>
         </div>
 
