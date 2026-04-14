@@ -612,6 +612,16 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	completedCount, err := db.CompletePastConfirmedBookingsForSpecialist(client.SpecialistID, time.Now().UTC())
+	if err != nil {
+		log.Printf("Error completing past bookings: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if completedCount > 0 {
+		changes.Publish(client.SpecialistID, changes.GroupBookings)
+	}
+
 	bookings, err := db.GetBookingsByClientID(client.ID)
 	if err != nil {
 		log.Printf("Error getting bookings: %v", err)
