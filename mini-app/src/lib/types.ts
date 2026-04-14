@@ -337,6 +337,7 @@ export type TTelegramWebApp = {
       first_name: string;
       last_name?: string;
       username?: string;
+      photo_url?: string;
     };
   };
   onEvent: (event: string, callback: TVoidFunction) => void;
