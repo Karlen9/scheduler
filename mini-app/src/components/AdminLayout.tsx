@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, ClipboardList, ListChecks, Settings } from 'lucide-react';
+import { CalendarDays, ChartColumn, ClipboardList, Settings } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
@@ -49,6 +49,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   const tn = useTranslations('Navigation');
   const adminHref = resolveTestAwareHref(pathname, '/admin');
   const adminBookHref = resolveTestAwareHref(pathname, '/admin/book');
+  const adminAnalyticsHref = resolveTestAwareHref(pathname, '/admin/analytics');
   const adminBookingsHref = resolveTestAwareHref(pathname, '/admin/bookings');
   const adminRecurringHref = resolveTestAwareHref(pathname, '/admin/recurring');
   const adminSettingsHref = resolveTestAwareHref(pathname, '/admin/settings');
@@ -80,14 +81,14 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         label: tn('bookings'),
         icon: ClipboardList,
         href: adminHref,
-        matchPaths: [adminRecurringHref],
+        matchPaths: [adminBookingsHref, adminRecurringHref],
       },
       { key: 'book', label: tn('book'), icon: CalendarDays, href: adminBookHref, isCenter: true },
       {
-        key: 'all-bookings',
-        label: tn('allBookings'),
-        icon: ListChecks,
-        href: adminBookingsHref,
+        key: 'analytics',
+        label: tn('analytics'),
+        icon: ChartColumn,
+        href: adminAnalyticsHref,
       },
       {
         key: 'profile',
@@ -97,7 +98,15 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         matchPaths: [adminSettingsHref],
       },
     ],
-    [adminBookHref, adminBookingsHref, adminHref, adminRecurringHref, adminSettingsHref, tn],
+    [
+      adminAnalyticsHref,
+      adminBookHref,
+      adminBookingsHref,
+      adminHref,
+      adminRecurringHref,
+      adminSettingsHref,
+      tn,
+    ],
   );
 
   const handleBack = useCallback((): void => {

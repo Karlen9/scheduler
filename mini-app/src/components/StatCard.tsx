@@ -19,16 +19,26 @@ export function StatCard({
   iconBg,
   value,
   label,
+  valueSize = '2xl',
   onClick,
 }: TStatCardProps): ReactNode {
+  const valueSizeClass = {
+    base: 'text-base',
+    lg: 'text-lg',
+    xl: 'text-xl',
+    '2xl': 'text-2xl',
+  }[valueSize];
+
   const content = (
     <>
       <p className={'text-muted-foreground text-xs'}>{label}</p>
-      <div className={'mt-4 flex items-center justify-between pr-6'}>
+      <div className={'mt-4 flex items-center justify-between'}>
         <div className={`h-8 w-8 rounded-full ${iconBg} flex items-center justify-center`}>
           <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
-        <p className={'text-foreground text-2xl font-semibold'}>{value}</p>
+        <p className={`text-foreground whitespace-nowrap ${valueSizeClass} font-semibold`}>
+          {value}
+        </p>
       </div>
     </>
   );
