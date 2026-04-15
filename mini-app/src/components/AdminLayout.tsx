@@ -83,7 +83,13 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         href: adminHref,
         matchPaths: [adminBookingsHref, adminRecurringHref],
       },
-      { key: 'book', label: tn('book'), icon: CalendarDays, href: adminBookHref, isCenter: true },
+      {
+        key: 'book',
+        label: tn('adminBook'),
+        icon: CalendarDays,
+        href: adminBookHref,
+        isCenter: true,
+      },
       {
         key: 'analytics',
         label: tn('analytics'),

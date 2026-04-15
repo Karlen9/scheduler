@@ -640,6 +640,8 @@ export type TConfirmDialogProps = {
   inputPlaceholder?: string;
   inputValue?: string;
   onInputChange?: (value: string) => void;
+  confirmDisabled?: boolean;
+  children?: ReactNode;
 };
 
 /***************************************************************************************************

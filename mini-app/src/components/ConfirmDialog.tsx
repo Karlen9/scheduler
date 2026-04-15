@@ -19,6 +19,7 @@ type TConfirmDialogContent = Pick<
   | 'showInput'
   | 'inputPlaceholder'
   | 'inputValue'
+  | 'confirmDisabled'
 >;
 
 /***************************************************************************************************
@@ -46,6 +47,8 @@ export function ConfirmDialog({
   inputPlaceholder,
   inputValue,
   onInputChange,
+  confirmDisabled = false,
+  children,
 }: TConfirmDialogProps): ReactNode {
   /***************************************************************************************************
    * Defines the tc value used by the component layer.
@@ -63,6 +66,7 @@ export function ConfirmDialog({
     showInput,
     inputPlaceholder,
     inputValue,
+    confirmDisabled,
   });
 
   useEffect(() => {
@@ -76,11 +80,13 @@ export function ConfirmDialog({
         showInput,
         inputPlaceholder,
         inputValue,
+        confirmDisabled,
       });
     }
   }, [
     cancelText,
     confirmText,
+    confirmDisabled,
     description,
     destructive,
     inputPlaceholder,
@@ -100,6 +106,7 @@ export function ConfirmDialog({
         showInput,
         inputPlaceholder,
         inputValue,
+        confirmDisabled,
       }
     : retainedContent;
 
@@ -125,6 +132,10 @@ export function ConfirmDialog({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const handleConfirm = (): void => {
+    if (content.confirmDisabled) {
+      return;
+    }
+
     onConfirm();
     onClose();
   };
@@ -171,6 +182,7 @@ export function ConfirmDialog({
                   }
                 />
               )}
+              {children}
               <div className={'flex gap-3'}>
                 <button
                   onClick={onClose}
@@ -183,15 +195,18 @@ export function ConfirmDialog({
                 {content.destructive ? (
                   <button
                     onClick={handleConfirm}
+                    disabled={content.confirmDisabled}
                     className={
-                      'bg-destructive flex-1 rounded-xl px-4 py-3 text-base font-medium text-white transition-opacity active:opacity-70'
+                      'bg-destructive flex-1 rounded-xl px-4 py-3 text-base font-medium text-white transition-opacity active:opacity-70 disabled:cursor-not-allowed disabled:opacity-40'
                     }
                   >
                     {resolvedConfirmText}
                   </button>
                 ) : (
                   <div className={'flex-1'}>
-                    <PrimaryButton onClick={handleConfirm}>{resolvedConfirmText}</PrimaryButton>
+                    <PrimaryButton onClick={handleConfirm} disabled={content.confirmDisabled}>
+                      {resolvedConfirmText}
+                    </PrimaryButton>
                   </div>
                 )}
               </div>

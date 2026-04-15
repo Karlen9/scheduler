@@ -143,12 +143,13 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Always send to specialist's chat (used as CDN, not meant for the client to see).
 	***************************************************************************************************/
-	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
+	fileID, messageID, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
 		return
 	}
+	deleteUploadedPhotoMessage(bot, specialist.TelegramUserID, messageID)
 
 	if client != nil {
 		if err := db.UpdateClientPhoto(client.ID, fileID); err != nil {
@@ -198,12 +199,13 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	bot := &telegram.Bot{Token: specialist.BotToken}
 
-	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
+	fileID, messageID, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
 		return
 	}
+	deleteUploadedPhotoMessage(bot, specialist.TelegramUserID, messageID)
 
 	if err := db.UpdateSpecialistPhoto(specialist.ID, fileID); err != nil {
 		log.Printf("UpdateSpecialistPhoto error: %v", err)
@@ -213,6 +215,29 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	writeJSON(w, map[string]string{"fileId": fileID})
+}
+
+/***************************************************************************************************
+* deleteUploadedPhotoMessage removes the temporary Telegram chat message used to obtain a file_id.
+*
+* Parameters:
+* - bot: Bot used by the current operation.
+* - chatID: Identifier used to target the current record.
+* - messageID: Identifier used to target the current record.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - Calls Telegram APIs and logs non-fatal cleanup failures.
+***************************************************************************************************/
+func deleteUploadedPhotoMessage(bot *telegram.Bot, chatID int64, messageID int) {
+	if messageID == 0 {
+		return
+	}
+	if err := bot.DeleteMessage(chatID, messageID); err != nil {
+		log.Printf("Delete uploaded photo message error: %v", err)
+	}
 }
 
 /***************************************************************************************************

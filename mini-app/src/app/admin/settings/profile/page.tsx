@@ -17,6 +17,12 @@ import { getTelegramUserPhotoUrl } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
+function isDirectPhotoUrl(photoUrl: string): boolean {
+  return (
+    photoUrl.startsWith('http') || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')
+  );
+}
+
 /***************************************************************************************************
  * Renders the profile page UI and related interactions.
  *
@@ -251,6 +257,7 @@ export default function ProfilePage(): ReactNode {
                 height={96}
                 src={getPhotoUrl(photoUrl)}
                 alt={name}
+                unoptimized={isDirectPhotoUrl(photoUrl)}
                 className={'h-24 w-24 rounded-full object-cover'}
                 onError={() => setPhotoError(true)}
               />

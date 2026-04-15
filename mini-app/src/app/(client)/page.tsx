@@ -351,7 +351,6 @@ export default function HomePage(): ReactNode {
 
   const hasPhoto = specialist.photoUrl && !photoError;
   const hasMessage = Boolean(specialist.telegramHandle || specialist.botUsername);
-  const hasLocation = Boolean(specialist.locationLatitude && specialist.locationLongitude);
 
   return (
     <div className={'bg-background'}>
@@ -460,7 +459,7 @@ export default function HomePage(): ReactNode {
 
       <section className={'bg-background text-foreground min-h-[250px] px-4 pt-5 pb-8'}>
         <div className={'mb-4 flex items-center justify-between gap-4'}>
-          <h2 className={'text-2xl font-semibold'}>{t('yourBookings')}</h2>
+          <h2 className={'text-lg font-semibold'}>{t('yourBookings')}</h2>
           <button
             type={'button'}
             onClick={() => router.push(bookingsHref)}
@@ -600,26 +599,6 @@ export default function HomePage(): ReactNode {
             </div>
           ))}
         </div>
-
-        {hasLocation && (
-          <div className={'mt-5'}>
-            <h3 className={'text-foreground mb-2 text-sm font-semibold'}>{t('locationTitle')}</h3>
-            <a
-              href={`https://yandex.ru/maps/?pt=${specialist.locationLongitude},${specialist.locationLatitude}&z=15&l=map`}
-              target={'_blank'}
-              rel={'noopener noreferrer'}
-              className={'bg-background block overflow-hidden rounded-lg'}
-            >
-              <iframe
-                src={`https://yandex.ru/map-widget/v1/?ll=${specialist.locationLongitude},${specialist.locationLatitude}&z=15&pt=${specialist.locationLongitude},${specialist.locationLatitude},pm2rdm`}
-                width={'100%'}
-                height={'200'}
-                style={{ border: 'none', display: 'block', pointerEvents: 'none' }}
-                allowFullScreen
-              />
-            </a>
-          </div>
-        )}
       </BottomSheet>
 
       <BottomSheet
