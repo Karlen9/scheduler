@@ -38,6 +38,7 @@
     "bookings": "Bookings",
     "allBookings": "All Bookings",
     "book": "Book",
+    "adminBook": "Book",
     "specialist": "Specialist",
     "analytics": "Analytics",
     "clients": "Clients",
@@ -183,8 +184,7 @@
     "scheduleTitle": "Schedule",
     "closed": "Closed",
     "servicesTitle": "Services:",
-    "servicesEmpty": "The specialist has not added services yet",
-    "locationTitle": "Location:"
+    "servicesEmpty": "The specialist has not added services yet"
   },
   "BookingForm": {
     "title": "Book a Session",
@@ -346,10 +346,22 @@
   "AdminSchedule": {
     "title": "Schedule",
     "workingDays": "Working Days",
+    "scheduleHint": "Set the time clients can book. Add separate ranges when you need a break.",
     "startTime": "Start time",
     "endTime": "End time",
-    "addInterval": "Add interval",
-    "invalidIntervals": "Fix overlapping or invalid intervals before saving"
+    "addWorkingTime": "Add working time",
+    "closed": "Closed",
+    "copyDay": "Copy this day",
+    "expandDay": "Expand day",
+    "collapseDay": "Collapse day",
+    "copyForTitle": "Copy for:",
+    "copyForDescription": "Choose the days that should use this schedule.",
+    "copyConfirm": "Copy",
+    "copied": "Schedule copied",
+    "emptyIntervals": "Add at least one time range or close this day",
+    "invalidRange": "End time must be later than start time",
+    "overlapIntervals": "Time ranges cannot overlap",
+    "invalidIntervals": "Fix highlighted days before saving"
   },
   "AdminServices": {
     "title": "Services & Prices",
@@ -529,7 +541,9 @@
     "noUpcomingSessions": "No upcoming sessions"
   },
   "TimePickerModal": {
-    "title": "Select a time"
+    "title": "Select a time",
+    "cancel": "Cancel",
+    "done": "Done"
   },
   "ServiceCard": {
     "priceLabel": "Price:",
