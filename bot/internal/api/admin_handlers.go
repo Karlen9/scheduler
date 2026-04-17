@@ -2146,3 +2146,66 @@ func HandleListAllSpecialists(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, result)
 }
+
+func HandleAdminBlockClient(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	clientID := chi.URLParam(r, "id")
+	if clientID == "" {
+		httpError(w, r, "Error.MissingClientID", http.StatusBadRequest)
+		return
+	}
+
+	client, err := db.GetClientByID(clientID)
+	if err != nil {
+		log.Printf("Error getting client: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if client == nil || client.SpecialistID != specialist.ID {
+		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
+		return
+	}
+
+	var req struct {
+		Blocked        bool `json:"blocked"`
+		CancelBookings bool `json:"cancelBookings"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.SetClientBlocked(clientID, req.Blocked); err != nil {
+		log.Printf("Error setting client blocked: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	if req.Blocked && req.CancelBookings {
+		if n, err := db.CancelAllClientBookings(clientID, specialist.ID); err != nil {
+			log.Printf("Error cancelling client bookings: %v", err)
+		} else if n > 0 {
+			log.Printf("Cancelled %d bookings for blocked client %s", n, clientID[:8])
+		}
+		if n, err := db.CancelAllClientRecurring(clientID, specialist.ID); err != nil {
+			log.Printf("Error cancelling client recurring: %v", err)
+		} else if n > 0 {
+			log.Printf("Cancelled %d recurring schedules for blocked client %s", n, clientID[:8])
+		}
+	}
+
+	updated, err := db.GetClientByID(clientID)
+	if err != nil {
+		log.Printf("Error getting updated client: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring)
+	writeJSON(w, updated)
+}

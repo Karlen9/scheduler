@@ -47,6 +47,7 @@ type Client struct {
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
 	Language            string    `json:"language,omitempty"`
 	IsGhost             bool      `json:"isGhost,omitempty"`
+	IsBlocked           bool      `json:"isBlocked,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`
 	NotifyDaysOff       bool      `json:"notifyDaysOff"`

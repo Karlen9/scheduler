@@ -195,6 +195,7 @@ func NewRouter() http.Handler {
 			r.Post("/clients", HandleAdminCreateGhostClient)
 			r.Put("/clients/{id}", HandleAdminUpdateClient)
 			r.Delete("/clients/{id}", HandleAdminDeleteClient)
+			r.Put("/clients/{id}/block", HandleAdminBlockClient)
 
 			/***************************************************************************************************
 			* Profile management.

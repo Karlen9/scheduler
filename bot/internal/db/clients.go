@@ -28,10 +28,11 @@ func scanClient(row interface {
 	var phone, photoURL sql.NullString
 	var preferredDuration sql.NullInt64
 	var isGhost sql.NullInt64
+	var isBlocked sql.NullInt64
 	var language, displayName sql.NullString
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
 	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &preferredDuration,
-		&isGhost, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName)
+		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName)
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +46,7 @@ func scanClient(row interface {
 		c.PreferredDuration = int(preferredDuration.Int64)
 	}
 	c.IsGhost = isGhost.Valid && isGhost.Int64 == 1
+	c.IsBlocked = isBlocked.Valid && isBlocked.Int64 == 1
 	c.NotifyBookingStatus = !notifyBookingStatus.Valid || notifyBookingStatus.Int64 == 1
 	c.NotifyReminders = !notifyReminders.Valid || notifyReminders.Int64 == 1
 	c.NotifyDaysOff = notifyDaysOff.Valid && notifyDaysOff.Int64 == 1
@@ -72,7 +74,7 @@ func scanClient(row interface {
 ***************************************************************************************************/
 func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
 		WHERE telegram_user_id = ? AND specialist_id = ?
 	`), telegramUserID, specialistID)
@@ -101,7 +103,7 @@ func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.C
 ***************************************************************************************************/
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
 		WHERE id = ?
 	`), id)
@@ -298,7 +300,7 @@ func UpdateSpecialistPhoto(specialistID, fileID string) error {
 ***************************************************************************************************/
 func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
 		FROM clients
 		WHERE specialist_id = ?
 		ORDER BY name ASC
@@ -430,4 +432,27 @@ func CreateGhostClient(specialistID, name string) (*models.Client, error) {
 	}
 
 	return GetClientByID(id)
+}
+
+func SetClientBlocked(clientID string, blocked bool) error {
+	_, err := DB.Exec(Q(`UPDATE clients SET is_blocked = ? WHERE id = ?`), boolToInt(blocked), clientID)
+	return err
+}
+
+func CancelAllClientBookings(clientID, specialistID string) (int, error) {
+	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancelled_by = 'specialist' WHERE client_id = ? AND specialist_id = ? AND status IN ('pending', 'confirmed')`), clientID, specialistID)
+	if err != nil {
+		return 0, err
+	}
+	n, _ := result.RowsAffected()
+	return int(n), nil
+}
+
+func CancelAllClientRecurring(clientID, specialistID string) (int, error) {
+	result, err := DB.Exec(Q(`UPDATE recurring_schedules SET status = 'cancelled' WHERE client_id = ? AND specialist_id = ? AND status IN ('pending', 'active')`), clientID, specialistID)
+	if err != nil {
+		return 0, err
+	}
+	n, _ := result.RowsAffected()
+	return int(n), nil
 }

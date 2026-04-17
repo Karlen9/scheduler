@@ -54,6 +54,10 @@ export default function AdminClientsPage(): ReactNode {
   const [selectedClient, setSelectedClient] = useState<TClientInfo | null>(null);
   const [bookingsCount, setBookingsCount] = useState(0);
   const [bookingsCountLoading, setBookingsCountLoading] = useState(false);
+  const [blockTarget, setBlockTarget] = useState<TClientInfo | null>(null);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showUnblockDialog, setShowUnblockDialog] = useState(false);
+  const [cancelBookingsOnBlock, setCancelBookingsOnBlock] = useState(false);
 
   useEffect(() => {
     if (!selectedClient) {
@@ -88,6 +92,51 @@ export default function AdminClientsPage(): ReactNode {
   const handleViewBookings = (client: TClientInfo): void => {
     setSelectedClient(null);
     router.push(`/admin/bookings?clientId=${client.id}`);
+  };
+
+  const handleBlockClient = (client: TClientInfo): void => {
+    setSelectedClient(null);
+    setBlockTarget(client);
+    setCancelBookingsOnBlock(false);
+    setShowBlockDialog(true);
+  };
+
+  const handleBlockConfirm = async (): Promise<void> => {
+    if (!blockTarget) {
+      return;
+    }
+    try {
+      await api.admin.blockClient(blockTarget.id, cancelBookingsOnBlock);
+      invalidateClients();
+      invalidateBookings();
+      invalidateRecurring();
+      toast.success(t('blockSuccess', { name: blockTarget.displayName || blockTarget.name }));
+    } catch {
+      toast.error(t('blockError'));
+    }
+    setShowBlockDialog(false);
+    setBlockTarget(null);
+  };
+
+  const handleUnblockClient = (client: TClientInfo): void => {
+    setSelectedClient(null);
+    setBlockTarget(client);
+    setShowUnblockDialog(true);
+  };
+
+  const handleUnblockConfirm = async (): Promise<void> => {
+    if (!blockTarget) {
+      return;
+    }
+    try {
+      await api.admin.unblockClient(blockTarget.id);
+      invalidateClients();
+      toast.success(t('unblockSuccess', { name: blockTarget.displayName || blockTarget.name }));
+    } catch {
+      toast.error(t('unblockError'));
+    }
+    setShowUnblockDialog(false);
+    setBlockTarget(null);
   };
 
   /***************************************************************************************************
@@ -415,6 +464,11 @@ export default function AdminClientsPage(): ReactNode {
                     {tc('ghost')}
                   </span>
                 )}
+                {client.isBlocked && (
+                  <span className={'text-action-danger-text ml-1.5 text-xs font-normal'}>
+                    {t('blocked')}
+                  </span>
+                )}
               </div>
               {client.displayName && !client.isGhost && (
                 <div className={'text-muted-foreground truncate text-xs'}>{client.name}</div>
@@ -471,8 +525,45 @@ export default function AdminClientsPage(): ReactNode {
         onClose={() => setSelectedClient(null)}
         onMessageClient={handleMessageClient}
         onViewBookings={handleViewBookings}
+        onBlockClient={handleBlockClient}
+        onUnblockClient={handleUnblockClient}
         bookingsCount={bookingsCount}
         bookingsCountLoading={bookingsCountLoading}
+      />
+
+      <ConfirmDialog
+        isOpen={showBlockDialog}
+        onClose={() => {
+          setShowBlockDialog(false);
+          setBlockTarget(null);
+        }}
+        onConfirm={handleBlockConfirm}
+        title={t('blockDialog')}
+        description={t('blockDialogDescription')}
+        confirmText={t('blockClient')}
+        destructive
+      >
+        <label className={'mt-3 flex items-center gap-2 text-sm'}>
+          <input
+            type={'checkbox'}
+            checked={cancelBookingsOnBlock}
+            onChange={(e) => setCancelBookingsOnBlock(e.target.checked)}
+            className={'accent-action-danger-text h-4 w-4 rounded'}
+          />
+          <span className={'text-foreground'}>{t('cancelBookingsCheckbox')}</span>
+        </label>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        isOpen={showUnblockDialog}
+        onClose={() => {
+          setShowUnblockDialog(false);
+          setBlockTarget(null);
+        }}
+        onConfirm={handleUnblockConfirm}
+        title={t('unblockDialog')}
+        description={t('unblockDialogDescription')}
+        confirmText={t('unblockClient')}
       />
     </div>
   );

@@ -429,7 +429,19 @@
     "createdLabel": "Клиент с",
     "messageClient": "Написать клиенту",
     "bookingsHistory": "История записей ({count})",
-    "dmUnavailable": "Этому клиенту нельзя написать"
+    "dmUnavailable": "Этому клиенту нельзя написать",
+    "blockClient": "Заблокировать",
+    "unblockClient": "Разблокировать",
+    "blockDialog": "Заблокировать клиента?",
+    "blockDialogDescription": "Клиент не сможет создавать новые записи.",
+    "cancelBookingsCheckbox": "Отменить все активные записи",
+    "unblockDialog": "Разблокировать клиента?",
+    "unblockDialogDescription": "Клиент сможет снова записываться.",
+    "blockSuccess": "Клиент {name} заблокирован",
+    "unblockSuccess": "Клиент {name} разблокирован",
+    "blockError": "Не удалось заблокировать",
+    "unblockError": "Не удалось разблокировать",
+    "blocked": "(заблокирован)"
   },
   "AdminAllBookings": {
     "title": "Все записи",
@@ -635,7 +647,8 @@
     "deleteDayOffFailed": "Ошибка удаления",
     "clientCreateFailed": "Не удалось создать клиента",
     "clientDeleteFailed": "Не удалось удалить клиента",
-    "loadBookingsFailed": "Не удалось загрузить записи"
+    "loadBookingsFailed": "Не удалось загрузить записи",
+    "clientBlocked": "Вы заблокированы и не можете записаться"
   },
   "Success": {
     "profileSaved": "Профиль сохранен",
