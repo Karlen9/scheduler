@@ -48,6 +48,7 @@ export default function BookingsPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const t = useTranslations('BookingsPage');
+  const tc = useTranslations('Common');
   /***************************************************************************************************
    * Defines the te value used by the page layer.
    *
@@ -290,7 +291,8 @@ export default function BookingsPage(): ReactNode {
         onConfirm={handleCancelBooking}
         title={t('cancelDialog')}
         description={t('cancelConfirmMessage')}
-        confirmText={t('cancelConfirmButton')}
+        confirmText={tc('yes')}
+        cancelText={tc('no')}
         destructive
         showInput
         inputPlaceholder={t('cancelReasonPlaceholder')}
