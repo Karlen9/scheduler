@@ -20,6 +20,7 @@ export function StatCard({
   value,
   label,
   valueSize = '2xl',
+  animated,
   onClick,
 }: TStatCardProps): ReactNode {
   const valueSizeClass = {
@@ -33,8 +34,16 @@ export function StatCard({
     <>
       <p className={'text-muted-foreground text-xs'}>{label}</p>
       <div className={'mt-4 flex items-center justify-between'}>
-        <div className={`h-8 w-8 rounded-full ${iconBg} flex items-center justify-center`}>
-          <Icon className={`h-4 w-4 ${iconColor}`} />
+        <div className={`relative h-8 w-8 rounded-full ${iconBg} flex items-center justify-center`}>
+          {animated && (
+            <span
+              className={`absolute inset-0 rounded-full ${iconBg}`}
+              style={{ animation: 'ping-wave 2s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+            />
+          )}
+          <Icon
+            className={`relative h-4 w-4 ${iconColor} ${animated ? 'animate-bell-ring' : ''}`}
+          />
         </div>
         <p className={`text-foreground whitespace-nowrap ${valueSizeClass} font-semibold`}>
           {value}

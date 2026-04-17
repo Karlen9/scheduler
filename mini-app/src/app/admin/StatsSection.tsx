@@ -35,13 +35,14 @@ export function StatsSection({
   const t = useTranslations('AdminDashboard');
 
   return (
-    <div className={'grid grid-cols-2 gap-3'}>
+    <div className={'grid grid-cols-2 gap-3 px-4'}>
       <StatCard
         icon={Bell}
         iconColor={'text-warning'}
         iconBg={'bg-warning/20'}
         value={pendingCount}
         label={t('newRequests')}
+        animated={pendingCount > 0}
         onClick={onPendingClick}
       />
       <StatCard
