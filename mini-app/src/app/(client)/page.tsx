@@ -1,16 +1,17 @@
 'use client';
 
-import { CalendarCheck, CalendarDays, Clock, MessageCircle, Share2 } from 'lucide-react';
+import { CalendarCheck, Clock, MessageCircle, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { StatusBadge } from '@/components/StatusBadge';
+import { WallpaperBackground } from '@/components/WallpaperPicker';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useBookings, useSessionTypes, useSpecialist, useWorkingHours } from '@/hooks/queries';
 import { api, getPhotoUrl } from '@/lib/api';
@@ -67,20 +68,17 @@ function formatPrice(price: number, currency: string, locale: string): string {
   return `${amount} ${currency === 'RUB' ? '\u20BD' : currency}`;
 }
 
-function formatBookingDateTime(booking: TBooking, locale: string): string {
+function formatBookingDateWithDay(booking: TBooking, locale: string): string {
+  const resolvedLocale = locale === 'en' ? 'en-US' : 'ru-RU';
   const startsAt = new Date(booking.startsAt);
-  const date = startsAt.toLocaleDateString(locale === 'en' ? 'en-US' : 'ru-RU', {
+  const formatted = startsAt.toLocaleDateString(resolvedLocale, {
+    weekday: 'short',
     day: 'numeric',
     month: 'long',
     timeZone: 'UTC',
   });
-  const time = startsAt.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  });
 
-  return `${date}, ${time}`;
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
 function formatBookingDate(booking: TBooking, locale: string): string {
@@ -239,6 +237,63 @@ export default function HomePage(): ReactNode {
       )[0];
   }, [bookings]);
 
+  const activeBookingsCount = useMemo(() => {
+    const now = Date.now();
+    return bookings.filter(
+      (booking) =>
+        ACTIVE_BOOKING_STATUSES.has(booking.status) && new Date(booking.startsAt).getTime() > now,
+    ).length;
+  }, [bookings]);
+
+  const formatCountdown = useCallback(
+    (diffMs: number): string => {
+      const totalMinutes = Math.floor(diffMs / 60_000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+
+      let timePart: string;
+      if (locale === 'en') {
+        if (days > 0) {
+          timePart = hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+        } else if (hours > 0) {
+          timePart = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+        } else {
+          timePart = `${Math.max(1, minutes)}m`;
+        }
+      } else {
+        if (days > 0) {
+          timePart = hours > 0 ? `${days} д. ${hours} ч.` : `${days} д.`;
+        } else if (hours > 0) {
+          timePart = minutes > 0 ? `${hours} ч. ${minutes} мин.` : `${hours} ч.`;
+        } else {
+          timePart = `${Math.max(1, minutes)} мин.`;
+        }
+      }
+
+      return t('startsIn', { time: timePart });
+    },
+    [locale, t],
+  );
+
+  const [countdownLabel, setCountdownLabel] = useState('');
+
+  useEffect(() => {
+    if (!nextBooking) {
+      setCountdownLabel('');
+      return;
+    }
+
+    const update = (): void => {
+      const diffMs = new Date(nextBooking.startsAt).getTime() - Date.now();
+      setCountdownLabel(diffMs > 0 ? formatCountdown(diffMs) : '');
+    };
+
+    update();
+    const interval = setInterval(update, 60_000);
+    return () => clearInterval(interval);
+  }, [nextBooking, formatCountdown]);
+
   const handleMessage = (): void => {
     if (specialist?.telegramHandle) {
       const handle = specialist.telegramHandle.replace('@', '');
@@ -353,21 +408,24 @@ export default function HomePage(): ReactNode {
   const hasMessage = Boolean(specialist.telegramHandle || specialist.botUsername);
 
   return (
-    <div className={'bg-background'}>
-      <div className={'relative h-[160px] px-4 pt-5'}>
-        <button
-          type={'button'}
-          onClick={handleShare}
-          className={
-            'border-surface-border bg-card text-muted-foreground absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border shadow-sm transition-opacity active:opacity-80'
-          }
-          aria-label={t('share')}
-        >
-          <Share2 className={'h-5 w-5'} />
-        </button>
+    <div className={'bg-bookings-bg -mb-24 min-h-screen'}>
+      <div className={'bg-background relative h-[192px] overflow-hidden'}>
+        <WallpaperBackground wallpaper={specialist.wallpaper} />
+        <div className={'relative h-[160px] px-4 pt-5'}>
+          <button
+            type={'button'}
+            onClick={handleShare}
+            className={
+              'border-surface-border bg-card text-muted-foreground absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border shadow-sm transition-opacity active:opacity-80'
+            }
+            aria-label={t('share')}
+          >
+            <Share2 className={'h-5 w-5'} />
+          </button>
+        </div>
       </div>
 
-      <section className={'bg-card relative rounded-t-[32px] px-4 pt-20 pb-6'}>
+      <section className={'bg-card relative -mt-8 rounded-[16px] px-4 pt-20 pb-14'}>
         <div className={'absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2'}>
           <div className={'bg-card rounded-full p-2'}>
             {hasPhoto ? (
@@ -457,14 +515,29 @@ export default function HomePage(): ReactNode {
         </div>
       </section>
 
-      <section className={'bg-background text-foreground min-h-[250px] px-4 pt-5 pb-8'}>
+      <section
+        className={
+          'bg-bookings-bg relative z-10 -mt-8 min-h-[250px] rounded-t-[16px] px-4 pt-5 pb-8 text-white'
+        }
+      >
         <div className={'mb-4 flex items-center justify-between gap-4'}>
-          <h2 className={'text-lg font-semibold'}>{t('yourBookings')}</h2>
+          <h2 className={'flex items-center gap-2 text-lg font-semibold'}>
+            {t('yourBookings')}
+            {activeBookingsCount > 0 && (
+              <span
+                className={
+                  'text-bookings-bg inline-flex size-6 items-center justify-center rounded-full bg-white text-sm font-bold'
+                }
+              >
+                {activeBookingsCount}
+              </span>
+            )}
+          </h2>
           <button
             type={'button'}
             onClick={() => router.push(bookingsHref)}
             className={
-              'text-muted-foreground shrink-0 text-base font-medium transition-opacity active:opacity-80'
+              'shrink-0 text-base font-medium text-white/70 transition-opacity active:opacity-80'
             }
           >
             {t('viewAll')}
@@ -481,28 +554,24 @@ export default function HomePage(): ReactNode {
               'bg-card text-foreground w-full rounded-lg p-4 text-left transition-transform active:scale-[0.99]'
             }
           >
-            <div className={'flex items-start gap-3'}>
-              <div
-                className={
-                  'bg-background text-brand flex h-11 w-11 shrink-0 items-center justify-center rounded-lg'
-                }
+            {countdownLabel && (
+              <div className={'text-muted-foreground mb-2 flex items-center gap-1.5 text-sm'}>
+                <Clock className={'h-3.5 w-3.5 shrink-0'} />
+                <span>{countdownLabel}</span>
+              </div>
+            )}
+            <p className={'mb-3 truncate text-base font-semibold'}>
+              {nextBooking.sessionType?.name ?? tc('workout')}
+            </p>
+            <div className={'bg-bookings-bg grid grid-cols-2 rounded-lg text-sm text-white'}>
+              <span
+                className={'truncate border-r-2 border-white px-3 py-2.5 text-center font-medium'}
               >
-                <CalendarDays className={'h-5 w-5'} />
-              </div>
-              <div className={'min-w-0 flex-1'}>
-                <p className={'truncate text-base font-semibold'}>
-                  {nextBooking.sessionType?.name ?? tc('workout')}
-                </p>
-                <p className={'text-muted-foreground mt-1 text-sm'}>
-                  {formatBookingDateTime(nextBooking, locale)}
-                </p>
-                {(nextBooking.durationMinutes || nextBooking.sessionType?.durationMinutes) && (
-                  <p className={'text-muted-foreground mt-1 text-sm'}>
-                    {nextBooking.durationMinutes || nextBooking.sessionType?.durationMinutes}{' '}
-                    {tc('min')}
-                  </p>
-                )}
-              </div>
+                {formatBookingDateWithDay(nextBooking, locale)}
+              </span>
+              <span className={'px-3 py-2.5 text-center font-medium'}>
+                {formatBookingTimeRange(nextBooking, locale)}
+              </span>
             </div>
           </button>
         ) : (
@@ -700,7 +769,8 @@ export default function HomePage(): ReactNode {
         onConfirm={handleCancelBooking}
         title={t('cancelDialog')}
         description={t('cancelConfirmMessage')}
-        confirmText={t('cancelConfirmButton')}
+        confirmText={tc('yes')}
+        cancelText={tc('no')}
         destructive
         showInput
         inputPlaceholder={t('cancelReasonPlaceholder')}
