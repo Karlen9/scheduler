@@ -261,6 +261,9 @@
   "Error.Forbidden": {
     "other": "Access denied"
   },
+  "Error.ClientBlocked": {
+    "other": "You are blocked and cannot book"
+  },
   "Error.Internal": {
     "other": "Internal server error"
   },

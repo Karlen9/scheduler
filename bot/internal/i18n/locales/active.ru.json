@@ -263,6 +263,9 @@
   "Error.Forbidden": {
     "other": "Нет доступа"
   },
+  "Error.ClientBlocked": {
+    "other": "Вы заблокированы и не можете записаться"
+  },
   "Error.Internal": {
     "other": "Внутренняя ошибка сервера"
   },

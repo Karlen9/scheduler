@@ -88,12 +88,23 @@ export function ClientDetailModal({
         </button>
       )}
 
+      <button
+        onClick={() => onViewBookings(displayClient)}
+        className={
+          'bg-brand w-full rounded-[28px] px-4 py-3 text-sm font-medium text-white transition-opacity active:opacity-80'
+        }
+      >
+        {bookingsCountLoading
+          ? t('bookingsHistory', { count: '...' })
+          : t('bookingsHistory', { count: bookingsCount })}
+      </button>
+
       {displayClient.isBlocked
         ? onUnblockClient && (
             <button
               onClick={() => onUnblockClient(displayClient)}
               className={
-                'bg-card text-foreground mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                'bg-card text-foreground mt-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
               }
             >
               {t('unblockClient')}
@@ -103,23 +114,12 @@ export function ClientDetailModal({
             <button
               onClick={() => onBlockClient(displayClient)}
               className={
-                'bg-action-danger-bg text-action-danger-text mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                'bg-action-danger-bg text-action-danger-text mt-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
               }
             >
               {t('blockClient')}
             </button>
           )}
-
-      <button
-        onClick={() => onViewBookings(displayClient)}
-        className={
-          'bg-brand mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium text-white transition-opacity active:opacity-80'
-        }
-      >
-        {bookingsCountLoading
-          ? t('bookingsHistory', { count: '...' })
-          : t('bookingsHistory', { count: bookingsCount })}
-      </button>
     </BottomSheet>
   );
 }

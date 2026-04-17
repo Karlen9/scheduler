@@ -502,7 +502,7 @@ export default function SchedulePage(): ReactNode {
     <div>
       <TopBar title={t('title')} showBack />
 
-      <div className={'space-y-5 px-4 pt-4 pb-28'}>
+      <div className={'space-y-5 px-4 pt-4'}>
         {/***************************************************************************************************
          * Working Hours per Day.
          ***************************************************************************************************/}
