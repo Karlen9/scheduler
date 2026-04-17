@@ -6,6 +6,8 @@
     "cancel": "Отмена",
     "cancelVerb": "Отменить",
     "confirm": "Подтвердить",
+    "yes": "Да",
+    "no": "Нет",
     "loading": "Загрузка...",
     "back": "Назад",
     "delete": "Удалить",
@@ -184,7 +186,8 @@
     "scheduleTitle": "График работы",
     "closed": "Выходной",
     "servicesTitle": "Услуги:",
-    "servicesEmpty": "Специалист пока не добавил услуги"
+    "servicesEmpty": "Специалист пока не добавил услуги",
+    "startsIn": "Через {time}"
   },
   "BookingForm": {
     "title": "Онлайн запись",
@@ -216,7 +219,7 @@
     "btnSelectDate": "Выберите дату",
     "btnSelectDays": "Выберите дни",
     "btnSelectTime": "Выберите время",
-    "btnSubmit": "Записать",
+    "btnSubmit": "Записаться",
     "service": "Услуга",
     "daysOfWeek": "Дни недели",
     "timeForDay": "Время для {day}",
@@ -341,7 +344,8 @@
     "telegramPlaceholder": "@username",
     "useTelegramPhoto": "Использовать фото Telegram",
     "removePhoto": "Удалить фото",
-    "telegramPhotoActive": "Используется фото Telegram"
+    "telegramPhotoActive": "Используется фото Telegram",
+    "wallpaperLabel": "Фон шапки"
   },
   "AdminSchedule": {
     "title": "Расписание",
@@ -419,7 +423,13 @@
     "deleteError": "Не удалось удалить клиента",
     "renameDialog": "Переименовать клиента",
     "renameSuccess": "Имя клиента обновлено",
-    "renameError": "Не удалось переименовать клиента"
+    "renameError": "Не удалось переименовать клиента",
+    "detailTitle": "Информация о клиенте",
+    "phoneLabel": "Телефон",
+    "createdLabel": "Клиент с",
+    "messageClient": "Написать клиенту",
+    "bookingsHistory": "История записей ({count})",
+    "dmUnavailable": "Этому клиенту нельзя написать"
   },
   "AdminAllBookings": {
     "title": "Все записи",
@@ -450,9 +460,8 @@
     "emptyDescription": "Записи появятся здесь после бронирования",
     "emptyFilteredTitle": "Нет подходящих записей",
     "emptyFilteredDescription": "Измените фильтры, чтобы увидеть больше записей",
-    "previous": "Назад",
-    "next": "Вперёд",
-    "pageStatus": "Страница {page} из {totalPages}",
+    "loadMore": "Загрузить ещё",
+    "loading": "Загрузка...",
     "dmUnavailable": "Этому клиенту нельзя написать"
   },
   "AdminHelp": {

@@ -6,6 +6,8 @@
     "cancel": "Cancel",
     "cancelVerb": "Cancel",
     "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
     "loading": "Loading...",
     "back": "Back",
     "delete": "Delete",
@@ -184,7 +186,8 @@
     "scheduleTitle": "Schedule",
     "closed": "Closed",
     "servicesTitle": "Services:",
-    "servicesEmpty": "The specialist has not added services yet"
+    "servicesEmpty": "The specialist has not added services yet",
+    "startsIn": "In {time}"
   },
   "BookingForm": {
     "title": "Book a Session",
@@ -341,7 +344,8 @@
     "telegramPlaceholder": "@username",
     "useTelegramPhoto": "Use Telegram photo",
     "removePhoto": "Remove photo",
-    "telegramPhotoActive": "Telegram photo is active"
+    "telegramPhotoActive": "Telegram photo is active",
+    "wallpaperLabel": "Header wallpaper"
   },
   "AdminSchedule": {
     "title": "Schedule",
@@ -419,7 +423,13 @@
     "deleteError": "Failed to delete client",
     "renameDialog": "Rename client",
     "renameSuccess": "Client name updated",
-    "renameError": "Failed to rename client"
+    "renameError": "Failed to rename client",
+    "detailTitle": "Client details",
+    "phoneLabel": "Phone",
+    "createdLabel": "Client since",
+    "messageClient": "Message client",
+    "bookingsHistory": "Bookings history ({count})",
+    "dmUnavailable": "This client cannot be messaged"
   },
   "AdminAllBookings": {
     "title": "All Bookings",
@@ -450,9 +460,8 @@
     "emptyDescription": "Bookings will appear here after clients book sessions",
     "emptyFilteredTitle": "No matching bookings",
     "emptyFilteredDescription": "Change filters to see more bookings",
-    "previous": "Previous",
-    "next": "Next",
-    "pageStatus": "Page {page} of {totalPages}",
+    "loadMore": "Load more",
+    "loading": "Loading...",
     "dmUnavailable": "This client cannot be messaged"
   },
   "AdminHelp": {

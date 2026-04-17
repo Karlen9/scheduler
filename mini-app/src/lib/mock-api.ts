@@ -299,6 +299,15 @@ function createMockState(): TMockState {
       message: 'Travel day.',
     }),
     buildBooking({
+      id: 'mock-booking-confirmed-2',
+      client: clients[2],
+      service: services[2],
+      days: 7,
+      time: '11:00',
+      status: 'confirmed',
+      createdBy: 'client',
+    }),
+    buildBooking({
       id: 'mock-booking-completed',
       client: clients[1],
       service: services[0],
@@ -419,6 +428,7 @@ function createMockState(): TMockState {
     phone: '+7 900 555-44-33',
     specialization: 'Strength and mobility coach',
     bio: 'Focused strength work, posture, mobility, and habit-based progress for busy clients.',
+    wallpaper: 'w3',
   };
 
   return {

@@ -243,7 +243,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
 
   if (!booking) {
     return (
-      <div>
+      <div className={''}>
         <h2 className={'text-foreground mb-3 text-base font-medium'}>{t('title')}</h2>
         <div className={'bg-card border-l-border rounded-xl border-l-4 p-4'}>
           <div className={'flex items-center justify-between'}>
@@ -266,7 +266,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
   }
 
   return (
-    <div>
+    <div className={'px-4 pt-4'}>
       <h2 className={'text-foreground mb-3 text-base font-medium'}>{t('title')}</h2>
       <button
         onClick={() => onBookingClick?.(booking)}
