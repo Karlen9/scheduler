@@ -1,6 +1,5 @@
 'use client';
 
-import { Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
 
@@ -30,12 +29,6 @@ function isSameDay(a: Date, b: Date): boolean {
 function parseTimeToMin(time: string): number {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m;
-}
-
-function formatMinuteTime(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
 function collapsedSlotOffset(minute: number, slot: TEmptySlot): number {
@@ -123,7 +116,6 @@ function DayTimelineComponent({
   onEmptySlotClick,
 }: TDayTimelineProps): ReactNode {
   const t = useTranslations('DayTimeline');
-  const tc = useTranslations('Common');
   const locale = useLocale();
 
   const today = useMemo(() => new Date(), []);
@@ -234,22 +226,6 @@ function DayTimelineComponent({
     [minHour, sortedCollapsed],
   );
 
-  const formatDurationHint = useCallback(
-    (slot: TEmptySlot): string => {
-      const duration = slot.endMin - slot.startMin;
-      if (slot.kind === 'break') {
-        return `${duration} ${tc('min')}`;
-      }
-      const fittingDurations =
-        serviceDurations?.filter((serviceDuration) => serviceDuration <= duration) ?? [];
-      if (fittingDurations.length > 0) {
-        return t('fitsDurations', { durations: `${fittingDurations.join(', ')} ${tc('min')}` });
-      }
-      return `${duration} ${tc('min')}`;
-    },
-    [serviceDurations, t, tc],
-  );
-
   // No working hours and no bookings
   if (bookings.length === 0 && dayWH.length === 0) {
     return (
@@ -261,60 +237,18 @@ function DayTimelineComponent({
   if (bookings.length === 0 && dayWH.length > 0) {
     return (
       <div className={'space-y-2'}>
-        {timelineSlots.map((slot) =>
-          slot.kind === 'break' ? (
-            <div
-              key={`break-${slot.startMin}`}
-              className={
-                'border-border bg-muted/40 relative w-full overflow-hidden rounded-xl border border-dashed p-4'
-              }
-            >
-              <div
-                className={'pointer-events-none absolute inset-0'}
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(-45deg, rgba(239, 68, 68, 0.14) 0 8px, transparent 8px 16px)',
-                }}
-              />
-              <div className={'relative'}>
-                <p className={'text-muted-foreground text-sm font-medium'}>{t('breakSlot')}</p>
-                <p className={'text-muted-foreground mt-1 text-xs'}>
-                  {formatMinuteTime(slot.startMin)}
-                  {' – '}
-                  {formatMinuteTime(slot.endMin)}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <button
-              key={`empty-${slot.startMin}`}
-              onClick={() => onEmptySlotClick?.(date, formatMinuteTime(slot.startMin))}
-              className={
-                'border-border w-full rounded-xl border border-dashed p-4 text-left transition-opacity active:opacity-80'
-              }
-            >
-              <div className={'flex items-center justify-between'}>
-                <div>
-                  <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
-                  <p className={'text-muted-foreground/60 text-xs'}>{t('timeNotOccupied')}</p>
-                  <p className={'text-muted-foreground/60 mt-1 text-xs'}>
-                    {formatDurationHint(slot)}
-                  </p>
-                  <p className={'text-muted-foreground mt-1 text-xs'}>
-                    {formatMinuteTime(slot.startMin)}
-                    {' – '}
-                    {formatMinuteTime(slot.endMin)}
-                  </p>
-                </div>
-                <div
-                  className={'bg-brand/10 flex h-8 w-8 items-center justify-center rounded-full'}
-                >
-                  <Plus className={'text-brand h-4 w-4'} />
-                </div>
-              </div>
-            </button>
-          ),
-        )}
+        {timelineSlots.map((slot) => (
+          <TimelineEmptySlot
+            key={`${slot.kind}-${slot.startMin}`}
+            slot={slot}
+            date={date}
+            top={0}
+            height={0}
+            listMode
+            serviceDurations={serviceDurations}
+            onEmptySlotClick={onEmptySlotClick}
+          />
+        ))}
       </div>
     );
   }
