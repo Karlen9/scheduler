@@ -44,7 +44,7 @@ func generateWebhookSecret() string {
 ***************************************************************************************************/
 func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, error) {
 	var t models.Specialist
-	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language sql.NullString
+	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper sql.NullString
 	var notifyNewBookings, notifyCancellations sql.NullInt64
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
@@ -55,6 +55,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&notifyNewBookings, &notifyCancellations,
 		&t.IsActive, &t.CreatedAt,
 		&language,
+		&wallpaper,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -74,6 +75,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	if t.Language == "" {
 		t.Language = "ru"
 	}
+	t.Wallpaper = wallpaper.String
 
 	/***************************************************************************************************
 	* Decrypt bot token (passthrough for plain text).
@@ -92,7 +94,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -321,13 +323,13 @@ func UpdateSpecialist(id, name, timezone string, cancelCutoffHrs int) (*models.S
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
-func UpdateSpecialistProfile(id, telegramHandle, phone, specialization, bio, photoURL string, locationLatitude, locationLongitude float64) (*models.Specialist, error) {
+func UpdateSpecialistProfile(id, telegramHandle, phone, specialization, bio, photoURL string, locationLatitude, locationLongitude float64, wallpaper string) (*models.Specialist, error) {
 	_, err := DB.Exec(Q(`
 		UPDATE specialists
 		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?, photo_url = ?,
-		    location_latitude = ?, location_longitude = ?
+		    location_latitude = ?, location_longitude = ?, wallpaper = ?
 		WHERE id = ?
-	`), telegramHandle, phone, specialization, bio, photoURL, locationLatitude, locationLongitude, id)
+	`), telegramHandle, phone, specialization, bio, photoURL, locationLatitude, locationLongitude, wallpaper, id)
 	if err != nil {
 		return nil, err
 	}

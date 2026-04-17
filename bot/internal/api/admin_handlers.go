@@ -1627,6 +1627,7 @@ type UpdateProfileRequest struct {
 	LocationLatitude  *float64 `json:"locationLatitude,omitempty"`
 	LocationLongitude *float64 `json:"locationLongitude,omitempty"`
 	Language          string   `json:"language,omitempty"`
+	Wallpaper         *string  `json:"wallpaper,omitempty"`
 }
 
 /***************************************************************************************************
@@ -1663,6 +1664,7 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 		LocationLatitude:  specialist.LocationLatitude,
 		LocationLongitude: specialist.LocationLongitude,
 		Language:          specialist.Language,
+		Wallpaper:         specialist.Wallpaper,
 	}
 
 	writeJSON(w, resp)
@@ -1754,8 +1756,12 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if req.LocationLongitude != nil {
 		locationLongitude = *req.LocationLongitude
 	}
+	wallpaper := specialist.Wallpaper
+	if req.Wallpaper != nil {
+		wallpaper = *req.Wallpaper
+	}
 
-	updated, err := db.UpdateSpecialistProfile(specialist.ID, telegramHandle, phone, specialization, bio, photoURL, locationLatitude, locationLongitude)
+	updated, err := db.UpdateSpecialistProfile(specialist.ID, telegramHandle, phone, specialization, bio, photoURL, locationLatitude, locationLongitude, wallpaper)
 	if err != nil {
 		log.Printf("Error updating profile: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1783,6 +1789,7 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		LocationLatitude:  updated.LocationLatitude,
 		LocationLongitude: updated.LocationLongitude,
 		Language:          updated.Language,
+		Wallpaper:         updated.Wallpaper,
 	}
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
