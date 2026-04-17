@@ -43,6 +43,7 @@ export type TSpecialist = {
   locationLongitude?: number;
   isOwner?: boolean;
   language?: string;
+  wallpaper?: string;
 };
 
 /***************************************************************************************************
@@ -512,6 +513,16 @@ export type TBookingDetailModalProps = {
   onMessageClient?: (booking: TBooking) => void;
 };
 
+export type TClientDetailModalProps = {
+  client: TClientInfo | null;
+  isOpen: boolean;
+  onClose: TVoidFunction;
+  onMessageClient: (client: TClientInfo) => void;
+  onViewBookings: (client: TClientInfo) => void;
+  bookingsCount: number;
+  bookingsCountLoading: boolean;
+};
+
 /***************************************************************************************************
  * Defines the booking form props shape shared by the shared utility layer.
  ***************************************************************************************************/
@@ -941,6 +952,7 @@ export type TStatCardProps = {
   value: number | string;
   label: string;
   valueSize?: 'base' | 'lg' | 'xl' | '2xl';
+  animated?: boolean;
   onClick?: TVoidFunction;
 };
 
@@ -1024,6 +1036,7 @@ export type TTimelineEmptySlotProps = {
   top: number;
   height: number;
   collapsed?: boolean;
+  listMode?: boolean;
   serviceDurations?: number[];
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
