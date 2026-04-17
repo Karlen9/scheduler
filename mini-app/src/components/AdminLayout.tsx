@@ -122,7 +122,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   return (
     <TelegramBackButtonProvider isRoot={isHome} onBack={handleBack}>
       <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
-        <div className={isBookPage ? '' : ''}>{children}</div>
+        <div className={isBookPage ? '' : 'pb-28'}>{children}</div>
         {!isBookPage && <BottomTabBar tabs={adminTabs} />}
       </div>
     </TelegramBackButtonProvider>

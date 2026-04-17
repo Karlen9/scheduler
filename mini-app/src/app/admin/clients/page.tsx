@@ -543,15 +543,34 @@ export default function AdminClientsPage(): ReactNode {
         confirmText={t('blockClient')}
         destructive
       >
-        <label className={'mt-3 flex items-center gap-2 text-sm'}>
-          <input
-            type={'checkbox'}
-            checked={cancelBookingsOnBlock}
-            onChange={(e) => setCancelBookingsOnBlock(e.target.checked)}
-            className={'accent-action-danger-text h-4 w-4 rounded'}
-          />
-          <span className={'text-foreground'}>{t('cancelBookingsCheckbox')}</span>
-        </label>
+        <button
+          type={'button'}
+          onClick={() => setCancelBookingsOnBlock(!cancelBookingsOnBlock)}
+          className={
+            'bg-background mt-4 mb-3 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors active:opacity-80'
+          }
+        >
+          <div
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+              cancelBookingsOnBlock
+                ? 'border-action-danger-text bg-action-danger-text'
+                : 'border-muted-foreground bg-transparent'
+            }`}
+          >
+            {cancelBookingsOnBlock && (
+              <svg className={'h-3 w-3 text-white'} viewBox={'0 0 12 12'} fill={'none'}>
+                <path
+                  d={'M2.5 6L5 8.5L9.5 3.5'}
+                  stroke={'currentColor'}
+                  strokeWidth={'2'}
+                  strokeLinecap={'round'}
+                  strokeLinejoin={'round'}
+                />
+              </svg>
+            )}
+          </div>
+          <span className={'text-foreground text-sm'}>{t('cancelBookingsCheckbox')}</span>
+        </button>
       </ConfirmDialog>
 
       <ConfirmDialog
