@@ -361,8 +361,8 @@ export default function AdminHomePage(): ReactNode {
   }
 
   return (
-    <div>
-      <div className={'space-y-6 p-4'}>
+    <div className={'flex min-h-screen flex-col'}>
+      <div className={'flex min-h-0 flex-1 flex-col space-y-6'}>
         {/***************************************************************************************************
          * Next upcoming booking.
          ***************************************************************************************************/}
@@ -381,15 +381,17 @@ export default function AdminHomePage(): ReactNode {
         {/***************************************************************************************************
          * Schedule.
          ***************************************************************************************************/}
-        <ScheduleView
-          bookings={scheduleBookings}
-          onBookingClick={handleBookingClick}
-          nonWorkingDays={nonWorkingDays}
-          daysOff={daysOff}
-          workingHours={scheduleData?.workingHours ?? []}
-          serviceDurations={serviceDurations}
-          onEmptySlotClick={handleEmptySlotClick}
-        />
+        <div className={'bg-card min-h-0 flex-1 rounded-t-[16px] pb-24'}>
+          <ScheduleView
+            bookings={scheduleBookings}
+            onBookingClick={handleBookingClick}
+            nonWorkingDays={nonWorkingDays}
+            daysOff={daysOff}
+            workingHours={scheduleData?.workingHours ?? []}
+            serviceDurations={serviceDurations}
+            onEmptySlotClick={handleEmptySlotClick}
+          />
+        </div>
       </div>
 
       {/***************************************************************************************************
