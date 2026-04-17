@@ -427,6 +427,10 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	if client.IsBlocked {
+		httpError(w, r, "Error.ClientBlocked", http.StatusForbidden)
+		return
+	}
 
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {

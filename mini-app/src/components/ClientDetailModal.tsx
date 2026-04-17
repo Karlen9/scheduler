@@ -15,6 +15,8 @@ export function ClientDetailModal({
   onClose,
   onMessageClient,
   onViewBookings,
+  onBlockClient,
+  onUnblockClient,
   bookingsCount,
   bookingsCountLoading,
 }: TClientDetailModalProps): ReactNode {
@@ -85,6 +87,28 @@ export function ClientDetailModal({
           {t('messageClient')}
         </button>
       )}
+
+      {displayClient.isBlocked
+        ? onUnblockClient && (
+            <button
+              onClick={() => onUnblockClient(displayClient)}
+              className={
+                'bg-card text-foreground mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+              }
+            >
+              {t('unblockClient')}
+            </button>
+          )
+        : onBlockClient && (
+            <button
+              onClick={() => onBlockClient(displayClient)}
+              className={
+                'bg-action-danger-bg text-action-danger-text mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+              }
+            >
+              {t('blockClient')}
+            </button>
+          )}
 
       <button
         onClick={() => onViewBookings(displayClient)}

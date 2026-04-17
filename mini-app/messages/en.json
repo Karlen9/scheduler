@@ -429,7 +429,19 @@
     "createdLabel": "Client since",
     "messageClient": "Message client",
     "bookingsHistory": "Bookings history ({count})",
-    "dmUnavailable": "This client cannot be messaged"
+    "dmUnavailable": "This client cannot be messaged",
+    "blockClient": "Block",
+    "unblockClient": "Unblock",
+    "blockDialog": "Block client?",
+    "blockDialogDescription": "Client will not be able to create new bookings.",
+    "cancelBookingsCheckbox": "Cancel all active bookings",
+    "unblockDialog": "Unblock client?",
+    "unblockDialogDescription": "Client will be able to book again.",
+    "blockSuccess": "Client {name} blocked",
+    "unblockSuccess": "Client {name} unblocked",
+    "blockError": "Failed to block client",
+    "unblockError": "Failed to unblock client",
+    "blocked": "(blocked)"
   },
   "AdminAllBookings": {
     "title": "All Bookings",
@@ -635,7 +647,8 @@
     "deleteDayOffFailed": "Failed to delete day off",
     "clientCreateFailed": "Failed to create client",
     "clientDeleteFailed": "Failed to delete client",
-    "loadBookingsFailed": "Failed to load bookings"
+    "loadBookingsFailed": "Failed to load bookings",
+    "clientBlocked": "You are blocked and cannot book"
   },
   "Success": {
     "profileSaved": "Profile saved",

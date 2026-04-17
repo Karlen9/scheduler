@@ -1160,6 +1160,20 @@ export const api = {
       await fetchAPI<void>(`/api/admin/clients/${id}`, { method: 'DELETE' });
     },
 
+    async blockClient(id: string, cancelBookings: boolean): Promise<TClientInfo> {
+      return fetchAPI<TClientInfo>(`/api/admin/clients/${id}/block`, {
+        method: 'PUT',
+        body: JSON.stringify({ blocked: true, cancelBookings }),
+      });
+    },
+
+    async unblockClient(id: string): Promise<TClientInfo> {
+      return fetchAPI<TClientInfo>(`/api/admin/clients/${id}/block`, {
+        method: 'PUT',
+        body: JSON.stringify({ blocked: false }),
+      });
+    },
+
     /***************************************************************************************************
      * Specialist-initiated bookings.
      *

@@ -146,6 +146,7 @@ export type TClientInfo = {
   phone?: string;
   photoUrl?: string;
   isGhost?: boolean;
+  isBlocked?: boolean;
   createdAt: string;
 };
 
@@ -519,6 +520,8 @@ export type TClientDetailModalProps = {
   onClose: TVoidFunction;
   onMessageClient: (client: TClientInfo) => void;
   onViewBookings: (client: TClientInfo) => void;
+  onBlockClient?: (client: TClientInfo) => void;
+  onUnblockClient?: (client: TClientInfo) => void;
   bookingsCount: number;
   bookingsCountLoading: boolean;
 };
