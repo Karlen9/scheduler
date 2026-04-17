@@ -206,13 +206,6 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
 
   return (
     <div className={'fixed right-0 bottom-0 left-0 z-50'}>
-      <div
-        className={'absolute right-0 bottom-[-10px] left-0'}
-        style={{
-          backgroundColor: 'var(--background)',
-          height: 'calc(env(safe-area-inset-bottom) + 88px)',
-        }}
-      />
       <div className={'relative flex justify-center pb-6'}>
         <div
           className={
@@ -221,6 +214,7 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
           style={{
             backgroundColor: 'var(--color-tab-bar)',
             borderColor: 'var(--color-tab-bar-border)',
+            boxShadow: '0px 4px 12px 0px #00000030',
           }}
         >
           {showSubTabs ? (

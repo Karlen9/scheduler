@@ -278,7 +278,7 @@ export function ScheduleView({
   };
 
   return (
-    <div>
+    <div className={'p-4'}>
       <h2 className={'text-foreground mb-3 text-base font-medium'}>{t('title')}</h2>
 
       {/***************************************************************************************************

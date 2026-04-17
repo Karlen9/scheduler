@@ -17,6 +17,8 @@
   --tg-theme-subtitle-text-color: #999999;
   --tg-theme-destructive-text-color: #e53935;
 
+  --bookings-bg: #455f93;
+
   /* Semantic mapping from Telegram vars */
   --app-text: var(--tg-theme-text-color);
   --app-subtext: var(--tg-theme-hint-color);
@@ -313,6 +315,9 @@
   /* Calendar day-off */
   --color-dayoff-bg: var(--dayoff-bg);
   --color-dayoff-text: var(--dayoff-text);
+
+  /* Bookings section */
+  --color-bookings-bg: var(--bookings-bg);
 
   /* Tab bar */
   --color-tab-bar: var(--tab-bar-bg);
