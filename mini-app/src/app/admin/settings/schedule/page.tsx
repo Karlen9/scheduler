@@ -76,6 +76,13 @@ function formatMinutes(minutes: number): string {
   return `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
+function formatSummaryTime(time: string): string {
+  const [hours = '0', minutes = '00'] = time.split(':');
+  const hourLabel = hours === '00' ? '00' : String(Number(hours));
+
+  return minutes === '00' ? hourLabel : `${hourLabel}.${minutes}`;
+}
+
 function sortIntervals(intervals: TWorkingInterval[]): TWorkingInterval[] {
   return [...intervals].sort((a, b) => {
     const startDiff = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
@@ -481,7 +488,10 @@ export default function SchedulePage(): ReactNode {
     }
 
     return sortIntervals(daySchedule.intervals)
-      .map((interval) => `${interval.startTime}-${interval.endTime}`)
+      .map(
+        (interval) =>
+          `${formatSummaryTime(interval.startTime)}-${formatSummaryTime(interval.endTime)}`,
+      )
       .join(', ');
   };
 
