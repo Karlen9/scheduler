@@ -2,17 +2,20 @@
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { ClientDetailModal } from '@/components/ClientDetailModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { invalidateBookings, invalidateClients, invalidateRecurring } from '@/hooks/mutations';
 import { useClients } from '@/hooks/queries';
 import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 import type { TClientInfo } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -36,13 +39,8 @@ export default function AdminClientsPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
+  const router = useRouter();
   const t = useTranslations('AdminClients');
-  /***************************************************************************************************
-   * Defines the tc value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
   const tc = useTranslations('Common');
   const { data: clients, isLoading } = useClients();
   const [deleteTarget, setDeleteTarget] = useState<TClientInfo | null>(null);
@@ -53,6 +51,44 @@ export default function AdminClientsPage(): ReactNode {
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 250);
+  const [selectedClient, setSelectedClient] = useState<TClientInfo | null>(null);
+  const [bookingsCount, setBookingsCount] = useState(0);
+  const [bookingsCountLoading, setBookingsCountLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedClient) {
+      return;
+    }
+    setBookingsCountLoading(true);
+    api.admin
+      .getBookingsPage({ page: 1, limit: 1, clientId: selectedClient.id })
+      .then((res) => setBookingsCount(res.total))
+      .catch(() => setBookingsCount(0))
+      .finally(() => setBookingsCountLoading(false));
+  }, [selectedClient]);
+
+  const handleMessageClient = (client: TClientInfo): void => {
+    if (client.isGhost || client.telegramUserId <= 0) {
+      toast.error(t('dmUnavailable'));
+      return;
+    }
+    const url = `tg://user?id=${client.telegramUserId}`;
+    try {
+      const webApp = getTelegramWebApp();
+      if (webApp?.openTelegramLink) {
+        webApp.openTelegramLink(url);
+      } else {
+        window.location.href = url;
+      }
+    } catch {
+      window.location.href = url;
+    }
+  };
+
+  const handleViewBookings = (client: TClientInfo): void => {
+    setSelectedClient(null);
+    router.push(`/admin/bookings?clientId=${client.id}`);
+  };
 
   /***************************************************************************************************
    * Handles delete.
@@ -362,7 +398,14 @@ export default function AdminClientsPage(): ReactNode {
           </div>
         )}
         {filteredClients.map((client) => (
-          <div key={client.id} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
+          <button
+            key={client.id}
+            type={'button'}
+            onClick={() => setSelectedClient(client)}
+            className={
+              'bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left active:opacity-80'
+            }
+          >
             <ClientAvatar name={clientDisplayName(client)} photoUrl={client.photoUrl} size={'md'} />
             <div className={'min-w-0 flex-1'}>
               <div className={'text-foreground truncate font-medium'}>
@@ -376,23 +419,26 @@ export default function AdminClientsPage(): ReactNode {
               {client.displayName && !client.isGhost && (
                 <div className={'text-muted-foreground truncate text-xs'}>{client.name}</div>
               )}
-              {client.phone && (
-                <div className={'text-muted-foreground text-sm'}>{client.phone}</div>
-              )}
             </div>
             <button
-              onClick={() => handleEdit(client)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(client);
+              }}
               className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
             >
               <Pencil className={'h-4 w-4'} />
             </button>
             <button
-              onClick={() => setDeleteTarget(client)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(client);
+              }}
               className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
             >
               <Trash2 className={'h-4 w-4'} />
             </button>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -417,6 +463,16 @@ export default function AdminClientsPage(): ReactNode {
         description={t('deleteDialogDescription', { name: deleteTarget?.name || '' })}
         confirmText={t('deleteConfirm')}
         destructive
+      />
+
+      <ClientDetailModal
+        client={selectedClient}
+        isOpen={!!selectedClient}
+        onClose={() => setSelectedClient(null)}
+        onMessageClient={handleMessageClient}
+        onViewBookings={handleViewBookings}
+        bookingsCount={bookingsCount}
+        bookingsCountLoading={bookingsCountLoading}
       />
     </div>
   );
