@@ -1,9 +1,9 @@
 'use client';
 
-import { CalendarX, ChevronLeft, ChevronRight, Filter, ListChecks } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { CalendarX, ChevronRight, Filter, ListChecks } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BookingDetailModal } from '@/components/BookingDetailModal';
@@ -83,6 +83,7 @@ function clientBaseName(client: TClientInfo): string {
 export default function AdminAllBookingsPage(): ReactNode {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useTranslations('AdminAllBookings');
   const tc = useTranslations('Common');
@@ -91,8 +92,10 @@ export default function AdminAllBookingsPage(): ReactNode {
   const tst = useTranslations('Status');
 
   const [page, setPage] = useState(1);
+  const [allBookings, setAllBookings] = useState<TBooking[]>([]);
   const [filters, setFilters] = useState<TBookingPageFilters>({ ...defaultFilters });
   const [draftFilters, setDraftFilters] = useState<TBookingPageFilters>({ ...defaultFilters });
+  const prevPageRef = useRef(1);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
   const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
@@ -125,11 +128,51 @@ export default function AdminAllBookingsPage(): ReactNode {
   const { data: services } = useAdminServices();
   const { data: clients } = useClients();
 
+  const urlClientIdApplied = useRef(false);
   useEffect(() => {
-    if (data.totalPages > 0 && page > data.totalPages) {
-      setPage(data.totalPages);
+    if (urlClientIdApplied.current) {
+      return;
     }
-  }, [data.totalPages, page]);
+    const urlClientId = searchParams.get('clientId');
+    if (!urlClientId || clients.length === 0) {
+      return;
+    }
+    urlClientIdApplied.current = true;
+    const matchedClient = clients.find((c) => c.id === urlClientId);
+    const nextFilters = { ...defaultFilters, clientId: urlClientId };
+    setFilters(nextFilters);
+    setDraftFilters(nextFilters);
+    if (matchedClient) {
+      const label = `${clientBaseName(matchedClient)}${matchedClient.phone ? `, ${matchedClient.phone}` : ''}${matchedClient.isGhost ? ` ${tc('ghost')}` : ''}`;
+      setClientFilterSearch(label);
+    }
+    setPage(1);
+    setAllBookings([]);
+    prevPageRef.current = 1;
+  }, [searchParams, clients, tc]);
+
+  useEffect(() => {
+    if (data.bookings.length === 0) {
+      if (page === 1) {
+        setAllBookings([]);
+      }
+      return;
+    }
+    if (page === 1) {
+      setAllBookings(data.bookings);
+    } else if (page !== prevPageRef.current) {
+      setAllBookings((prev) => [...prev, ...data.bookings]);
+    }
+    prevPageRef.current = page;
+  }, [data.bookings, page]);
+
+  const hasMore = data.totalPages > 0 && page < data.totalPages;
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoading) {
+      setPage((p) => p + 1);
+    }
+  }, [hasMore, isLoading]);
 
   const activeFiltersCount = [
     filters.statuses.length > 0,
@@ -204,6 +247,8 @@ export default function AdminAllBookingsPage(): ReactNode {
   const applyFilters = (): void => {
     setFilters(draftFilters);
     setPage(1);
+    setAllBookings([]);
+    prevPageRef.current = 1;
     setClientDropdownOpen(false);
     setStatusDropdownOpen(false);
     setServiceDropdownOpen(false);
@@ -220,6 +265,8 @@ export default function AdminAllBookingsPage(): ReactNode {
     setServiceDropdownOpen(false);
     setDateInputResetKey((value) => value + 1);
     setPage(1);
+    setAllBookings([]);
+    prevPageRef.current = 1;
     setShowFilters(false);
   };
 
@@ -308,10 +355,6 @@ export default function AdminAllBookingsPage(): ReactNode {
     }
   };
 
-  const displayTotalPages = Math.max(data.totalPages, 1);
-  const canGoBack = page > 1;
-  const canGoForward = data.totalPages > 0 && page < data.totalPages;
-
   return (
     <div>
       <TopBar
@@ -320,13 +363,12 @@ export default function AdminAllBookingsPage(): ReactNode {
         onBack={() => router.push(resolveTestAwareHref(pathname, '/admin'))}
       />
 
-      <div className={'space-y-4 p-4'}>
+      <div className={'space-y-4 p-4 pb-32'}>
         <div className={'flex items-center justify-between gap-3'}>
           <div className={'min-w-0'}>
             <p className={'text-muted-foreground text-sm'}>
               {t('totalCount', { count: data.total })}
             </p>
-            <h2 className={'text-foreground text-xl font-semibold'}>{t('title')}</h2>
           </div>
           <button
             type={'button'}
@@ -356,7 +398,7 @@ export default function AdminAllBookingsPage(): ReactNode {
           </div>
         )}
 
-        {isLoading && data.bookings.length === 0 ? (
+        {isLoading && allBookings.length === 0 ? (
           <div className={'space-y-3'}>
             {Array.from({ length: 4 }).map((_, index) => (
               <div
@@ -371,7 +413,7 @@ export default function AdminAllBookingsPage(): ReactNode {
               </div>
             ))}
           </div>
-        ) : data.bookings.length === 0 ? (
+        ) : allBookings.length === 0 ? (
           <div className={'flex min-h-[320px] items-center justify-center'}>
             <EmptyState
               icon={
@@ -389,7 +431,7 @@ export default function AdminAllBookingsPage(): ReactNode {
           </div>
         ) : (
           <div className={'space-y-3'}>
-            {data.bookings.map((booking) => (
+            {allBookings.map((booking) => (
               <button
                 key={booking.id}
                 type={'button'}
@@ -427,36 +469,19 @@ export default function AdminAllBookingsPage(): ReactNode {
                 <ChevronRight className={'text-muted-foreground h-5 w-5 shrink-0'} />
               </button>
             ))}
-          </div>
-        )}
 
-        {data.total > 0 && (
-          <div className={'flex items-center justify-between gap-3 py-2'}>
-            <button
-              type={'button'}
-              aria-label={t('previous')}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-              disabled={!canGoBack}
-              className={
-                'bg-card text-foreground flex h-10 w-24 items-center justify-center rounded-lg disabled:opacity-40'
-              }
-            >
-              <ChevronLeft className={'h-4 w-4'} />
-            </button>
-            <span className={'text-muted-foreground text-sm'}>
-              {t('pageStatus', { page, totalPages: displayTotalPages })}
-            </span>
-            <button
-              type={'button'}
-              aria-label={t('next')}
-              onClick={() => setPage((value) => value + 1)}
-              disabled={!canGoForward}
-              className={
-                'bg-card text-foreground flex h-10 w-24 items-center justify-center rounded-lg disabled:opacity-40'
-              }
-            >
-              <ChevronRight className={'h-4 w-4'} />
-            </button>
+            {hasMore && (
+              <button
+                type={'button'}
+                onClick={loadMore}
+                disabled={isLoading}
+                className={
+                  'bg-card text-brand w-full rounded-xl py-3 text-center text-sm font-medium active:opacity-80 disabled:opacity-50'
+                }
+              >
+                {isLoading ? t('loading') : t('loadMore')}
+              </button>
+            )}
           </div>
         )}
       </div>
