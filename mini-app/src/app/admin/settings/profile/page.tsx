@@ -9,12 +9,14 @@ import { toast } from 'sonner';
 import { PhotoEditor } from '@/components/PhotoEditor';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TopBar } from '@/components/TopBar';
+import { WallpaperPicker } from '@/components/WallpaperPicker';
 import { invalidateSpecialist } from '@/hooks/mutations';
 import { useAdminProfile } from '@/hooks/queries';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 import { getTelegramUserPhotoUrl } from '@/lib/telegram';
 
+import type { TWallpaperId } from '@/components/WallpaperPicker';
 import type { ReactNode } from 'react';
 
 function isDirectPhotoUrl(photoUrl: string): boolean {
@@ -77,6 +79,7 @@ export default function ProfilePage(): ReactNode {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
+  const [wallpaper, setWallpaper] = useState<TWallpaperId>('none');
   const [editorImage, setEditorImage] = useState<string | null>(null);
   /***************************************************************************************************
    * Defines the file input ref value used by the page layer.
@@ -97,6 +100,7 @@ export default function ProfilePage(): ReactNode {
     setPhone(profile.phone || '');
     setTelegram(profile.telegramHandle || '');
     setPhotoUrl(profile.photoUrl || '');
+    setWallpaper((profile.wallpaper as TWallpaperId) || 'none');
     setTelegramPhotoUrl(getTelegramUserPhotoUrl());
     setInitialized(true);
   }, [profile, isLoading, initialized]);
@@ -204,6 +208,7 @@ export default function ProfilePage(): ReactNode {
         bio,
         phone,
         telegramHandle: telegram,
+        wallpaper,
       });
       invalidateSpecialist();
       toast.success(ts('profileSaved'));
@@ -321,6 +326,8 @@ export default function ProfilePage(): ReactNode {
             )}
           </div>
         )}
+
+        <WallpaperPicker value={wallpaper} onChange={setWallpaper} />
 
         {/***************************************************************************************************
          * Form.
