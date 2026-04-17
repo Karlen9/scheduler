@@ -16,6 +16,7 @@ export function TimelineEmptySlot({
   top,
   height,
   collapsed,
+  listMode,
   serviceDurations,
   onEmptySlotClick,
 }: TTimelineEmptySlotProps): ReactNode {
@@ -48,6 +49,52 @@ export function TimelineEmptySlot({
     }
   }
 
+  if (listMode) {
+    if (isBreak) {
+      return (
+        <div
+          className={
+            'border-border relative w-full overflow-hidden rounded-xl border border-dashed bg-black/[0.03] p-4'
+          }
+        >
+          <div
+            className={'pointer-events-none absolute inset-0'}
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(-45deg, rgba(239, 68, 68, 0.14) 0 8px, transparent 8px 16px)',
+            }}
+          />
+          <div className={'relative'}>
+            <p className={'text-foreground/70 text-sm font-medium'}>{t('breakSlot')}</p>
+            <p className={'text-foreground/40 mt-1 text-xs'}>{timeRange}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={bookSlot}
+        className={
+          'border-border w-full rounded-xl border border-dashed bg-black/[0.03] p-4 text-left transition-opacity active:opacity-80'
+        }
+      >
+        <div className={'flex items-center justify-between'}>
+          <div>
+            <p className={'text-foreground/70 text-sm font-medium'}>{t('emptySlot')}</p>
+            <p className={'text-foreground/40 mt-1 text-xs'}>{durationHint}</p>
+            <p className={'text-foreground/40 mt-1 text-xs'}>{timeRange}</p>
+          </div>
+          <div
+            className={'bg-brand/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full'}
+          >
+            <Plus className={'text-brand h-4 w-4'} />
+          </div>
+        </div>
+      </button>
+    );
+  }
+
   if (collapsed) {
     return (
       <div
@@ -56,15 +103,15 @@ export function TimelineEmptySlot({
         onClick={canBook ? bookSlot : undefined}
         onKeyDown={handleBookKeyDown}
         className={
-          'bg-card border-surface-border absolute right-0 left-12 flex items-center gap-3 overflow-hidden rounded-xl border border-dashed px-3 text-left transition-opacity active:opacity-80'
+          'border-surface-border absolute right-0 left-12 flex items-center gap-3 overflow-hidden rounded-xl border border-dashed bg-black/[0.03] px-3 text-left transition-opacity active:opacity-80'
         }
         style={{ top: top + 3, height: height - 3 }}
       >
         <div className={'min-w-0 flex-1'}>
-          <p className={'text-muted-foreground text-sm font-medium'}>
+          <p className={'text-foreground/70 text-sm font-medium'}>
             {isBreak ? t('breakSlot') : t('emptySlot')}
           </p>
-          <p className={'text-muted-foreground/60 truncate text-xs'}>
+          <p className={'text-foreground/40 truncate text-xs'}>
             {timeRange}
             {!isBreak && ` · ${durationHint}`}
           </p>
@@ -84,7 +131,7 @@ export function TimelineEmptySlot({
     return (
       <div
         className={
-          'bg-muted/40 border-surface-border absolute right-0 left-12 overflow-hidden rounded-xl border border-dashed px-3 py-2'
+          'border-surface-border absolute right-0 left-12 overflow-hidden rounded-xl border border-dashed bg-black/[0.03] px-3 py-2'
         }
         style={{ top: top + 3, height: height - 3 }}
       >
@@ -97,9 +144,9 @@ export function TimelineEmptySlot({
         />
         <div className={'relative flex h-full items-center justify-between'}>
           <div className={'min-w-0'}>
-            <p className={'text-muted-foreground text-sm font-medium'}>{t('breakSlot')}</p>
+            <p className={'text-foreground/70 text-sm font-medium'}>{t('breakSlot')}</p>
             {height >= 68 && (
-              <p className={'text-muted-foreground/60 text-xs'}>
+              <p className={'text-foreground/40 text-xs'}>
                 {timeRange}
                 {' · '}
                 {durationHint}
@@ -119,15 +166,13 @@ export function TimelineEmptySlot({
         onClick={canBook ? bookSlot : undefined}
         onKeyDown={handleBookKeyDown}
         className={
-          'bg-card border-surface-border absolute right-0 left-12 overflow-hidden rounded-lg border border-dashed px-2 py-1 text-left transition-opacity active:opacity-80'
+          'border-surface-border absolute right-0 left-12 overflow-hidden rounded-lg border border-dashed bg-black/[0.03] px-2 py-1 text-left transition-opacity active:opacity-80'
         }
         style={{ top: top + 3, height: height - 3 }}
       >
         <div className={'flex h-full min-w-0 items-center gap-2'}>
-          <span className={'text-muted-foreground min-w-0 flex-1 truncate text-xs'}>
-            {timeRange}
-          </span>
-          <span className={'text-muted-foreground/60 shrink-0 text-[10px] leading-none'}>
+          <span className={'text-foreground/70 min-w-0 flex-1 truncate text-xs'}>{timeRange}</span>
+          <span className={'text-foreground/40 shrink-0 text-[10px] leading-none'}>
             {slotDuration} {tc('min')}
           </span>
           <div
@@ -147,17 +192,15 @@ export function TimelineEmptySlot({
       onClick={canBook ? bookSlot : undefined}
       onKeyDown={handleBookKeyDown}
       className={
-        'bg-card border-surface-border absolute right-0 left-12 overflow-hidden rounded-xl border border-dashed px-3 py-2 text-left transition-opacity active:opacity-80'
+        'border-surface-border absolute right-0 left-12 overflow-hidden rounded-xl border border-dashed bg-black/[0.03] px-3 py-2 text-left transition-opacity active:opacity-80'
       }
       style={{ top: top + 3, height: height - 3 }}
     >
       <div className={'flex h-full items-center gap-3'}>
         <div className={'min-w-0 flex-1'}>
-          <p className={'text-muted-foreground text-sm font-medium'}>{t('emptySlot')}</p>
-          {height >= 54 && (
-            <p className={'text-muted-foreground/60 truncate text-xs'}>{durationHint}</p>
-          )}
-          {height >= 68 && <p className={'text-muted-foreground/60 text-xs'}>{timeRange}</p>}
+          <p className={'text-foreground/70 text-sm font-medium'}>{t('emptySlot')}</p>
+          {height >= 54 && <p className={'text-foreground/40 truncate text-xs'}>{durationHint}</p>}
+          {height >= 68 && <p className={'text-foreground/40 text-xs'}>{timeRange}</p>}
         </div>
         <div
           className={'bg-brand/10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full'}
