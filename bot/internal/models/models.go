@@ -25,6 +25,7 @@ type Specialist struct {
 	LocationLatitude    float64   `json:"locationLatitude"`
 	LocationLongitude   float64   `json:"locationLongitude"`
 	Language            string    `json:"language,omitempty"`
+	Wallpaper           string    `json:"wallpaper,omitempty"`
 	AvailableDurations  string    `json:"availableDurations,omitempty"`
 	NotifyNewBookings   bool      `json:"notifyNewBookings"`
 	NotifyCancellations bool      `json:"notifyCancellations"`

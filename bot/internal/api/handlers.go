@@ -202,6 +202,7 @@ type SpecialistResponse struct {
 	LocationLongitude float64 `json:"locationLongitude,omitempty"`
 	IsOwner           bool    `json:"isOwner"`
 	Language          string  `json:"language,omitempty"`
+	Wallpaper         string  `json:"wallpaper,omitempty"`
 }
 
 /***************************************************************************************************
@@ -243,6 +244,7 @@ func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 		LocationLongitude: specialist.LocationLongitude,
 		IsOwner:           isOwner,
 		Language:          specialist.Language,
+		Wallpaper:         specialist.Wallpaper,
 	}
 
 	setPrivateCache(w, 60, 300)
