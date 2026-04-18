@@ -12,6 +12,7 @@ import { ClientAvatar } from '@/components/ClientAvatar';
 import { EmptyState } from '@/components/EmptyState';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Switch } from '@/components/Switch';
 import { TopBar } from '@/components/TopBar';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useAdminBookingsPage, useAdminServices, useClients } from '@/hooks/queries';
@@ -51,6 +52,7 @@ type TBookingPageFilters = {
   clientId: string;
   serviceIds: string[];
   sort: TAdminBookingsSort;
+  showPast: boolean;
 };
 
 const defaultFilters: TBookingPageFilters = {
@@ -59,8 +61,61 @@ const defaultFilters: TBookingPageFilters = {
   dateTo: '',
   clientId: '',
   serviceIds: [],
-  sort: 'created_desc',
+  sort: 'starts_at_asc',
+  showPast: false,
 };
+
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function parseFiltersFromParams(params: URLSearchParams): TBookingPageFilters {
+  const rawStatuses = params.get('statuses')?.split(',').filter(Boolean) ?? [];
+  const statuses = rawStatuses.filter((s): s is TBooking['status'] =>
+    (statusOptions as string[]).includes(s),
+  );
+  const sortParam = params.get('sort');
+  const sort =
+    sortParam && (sortOptions as string[]).includes(sortParam)
+      ? (sortParam as TAdminBookingsSort)
+      : defaultFilters.sort;
+  return {
+    statuses,
+    dateFrom: params.get('dateFrom') ?? '',
+    dateTo: params.get('dateTo') ?? '',
+    clientId: params.get('clientId') ?? '',
+    serviceIds: params.get('services')?.split(',').filter(Boolean) ?? [],
+    sort,
+    showPast: params.get('showPast') === '1',
+  };
+}
+
+function serializeFiltersToParams(f: TBookingPageFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (f.statuses.length > 0) {
+    params.set('statuses', f.statuses.join(','));
+  }
+  if (f.dateFrom) {
+    params.set('dateFrom', f.dateFrom);
+  }
+  if (f.dateTo) {
+    params.set('dateTo', f.dateTo);
+  }
+  if (f.clientId) {
+    params.set('clientId', f.clientId);
+  }
+  if (f.serviceIds.length > 0) {
+    params.set('services', f.serviceIds.join(','));
+  }
+  if (f.sort !== defaultFilters.sort) {
+    params.set('sort', f.sort);
+  }
+  if (f.showPast) {
+    params.set('showPast', '1');
+  }
+  return params;
+}
 
 const statusTranslationKeys: Record<TBooking['status'], string> = {
   pending: 'pending',
@@ -91,10 +146,20 @@ export default function AdminAllBookingsPage(): ReactNode {
   const ts = useTranslations('Success');
   const tst = useTranslations('Status');
 
+  /***************************************************************************************************
+   * URL is the source of truth for committed filters. Deriving on each render makes refresh,
+   * shared links, and browser back/forward work without any state-sync plumbing. Parsing is
+   * cheap (small number of params) so recomputing per render is fine.
+   ***************************************************************************************************/
+  const searchParamsString = searchParams.toString();
+  const filters = useMemo(
+    () => parseFiltersFromParams(new URLSearchParams(searchParamsString)),
+    [searchParamsString],
+  );
+
   const [page, setPage] = useState(1);
   const [allBookings, setAllBookings] = useState<TBooking[]>([]);
-  const [filters, setFilters] = useState<TBookingPageFilters>({ ...defaultFilters });
-  const [draftFilters, setDraftFilters] = useState<TBookingPageFilters>({ ...defaultFilters });
+  const [draftFilters, setDraftFilters] = useState<TBookingPageFilters>(filters);
   const prevPageRef = useRef(1);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
@@ -110,46 +175,71 @@ export default function AdminAllBookingsPage(): ReactNode {
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
   const [dateInputResetKey, setDateInputResetKey] = useState(0);
 
-  const query = useMemo<TAdminBookingsQuery>(
-    () => ({
+  const query = useMemo<TAdminBookingsQuery>(() => {
+    /***************************************************************************************************
+     * When "show past" is off, the effective dateFrom is max(user's dateFrom, today) so the
+     * user's explicit filter can't resurrect past rows.
+     ***************************************************************************************************/
+    const today = todayISO();
+    const effectiveDateFrom = filters.showPast
+      ? filters.dateFrom
+      : filters.dateFrom && filters.dateFrom > today
+        ? filters.dateFrom
+        : today;
+    return {
       page,
       limit: PAGE_LIMIT,
       statuses: filters.statuses,
-      dateFrom: filters.dateFrom,
+      dateFrom: effectiveDateFrom,
       dateTo: filters.dateTo,
       clientId: filters.clientId,
       serviceIds: filters.serviceIds,
       sort: filters.sort,
-    }),
-    [filters, page],
-  );
+    };
+  }, [filters, page]);
 
   const { data, isLoading, error, mutate } = useAdminBookingsPage(query);
   const { data: services } = useAdminServices();
   const { data: clients } = useClients();
 
-  const urlClientIdApplied = useRef(false);
+  /***************************************************************************************************
+   * Sync the client-search display label with the committed clientId filter. Typing in the
+   * search box mutates draftFilters.clientId (not filters), so this effect won't clobber
+   * the user's in-progress text; it only runs when the committed filter actually changes.
+   ***************************************************************************************************/
   useEffect(() => {
-    if (urlClientIdApplied.current) {
+    if (!filters.clientId) {
+      setClientFilterSearch('');
       return;
     }
-    const urlClientId = searchParams.get('clientId');
-    if (!urlClientId || clients.length === 0) {
+    if (clients.length === 0) {
       return;
     }
-    urlClientIdApplied.current = true;
-    const matchedClient = clients.find((c) => c.id === urlClientId);
-    const nextFilters = { ...defaultFilters, clientId: urlClientId };
-    setFilters(nextFilters);
-    setDraftFilters(nextFilters);
-    if (matchedClient) {
-      const label = `${clientBaseName(matchedClient)}${matchedClient.phone ? `, ${matchedClient.phone}` : ''}${matchedClient.isGhost ? ` ${tc('ghost')}` : ''}`;
-      setClientFilterSearch(label);
+    const matched = clients.find((c) => c.id === filters.clientId);
+    if (!matched) {
+      return;
     }
+    setClientFilterSearch(
+      `${clientBaseName(matched)}${matched.phone ? `, ${matched.phone}` : ''}${matched.isGhost ? ` ${tc('ghost')}` : ''}`,
+    );
+  }, [filters.clientId, clients, tc]);
+
+  /***************************************************************************************************
+   * Reset pagination whenever the URL-driven filters change (via apply, reset, or back/forward).
+   ***************************************************************************************************/
+  useEffect(() => {
     setPage(1);
     setAllBookings([]);
     prevPageRef.current = 1;
-  }, [searchParams, clients, tc]);
+  }, [searchParamsString]);
+
+  const writeFiltersToUrl = useCallback(
+    (next: TBookingPageFilters): void => {
+      const nextQuery = serializeFiltersToParams(next).toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    },
+    [pathname, router],
+  );
 
   useEffect(() => {
     if (data.bookings.length === 0) {
@@ -245,10 +335,7 @@ export default function AdminAllBookingsPage(): ReactNode {
       : [...values, selected];
 
   const applyFilters = (): void => {
-    setFilters(draftFilters);
-    setPage(1);
-    setAllBookings([]);
-    prevPageRef.current = 1;
+    writeFiltersToUrl(draftFilters);
     setClientDropdownOpen(false);
     setStatusDropdownOpen(false);
     setServiceDropdownOpen(false);
@@ -258,15 +345,12 @@ export default function AdminAllBookingsPage(): ReactNode {
   const resetFilters = (): void => {
     const nextFilters = { ...defaultFilters };
     setDraftFilters(nextFilters);
-    setFilters(nextFilters);
+    writeFiltersToUrl(nextFilters);
     setClientFilterSearch('');
     setClientDropdownOpen(false);
     setStatusDropdownOpen(false);
     setServiceDropdownOpen(false);
     setDateInputResetKey((value) => value + 1);
-    setPage(1);
-    setAllBookings([]);
-    prevPageRef.current = 1;
     setShowFilters(false);
   };
 
@@ -726,6 +810,19 @@ export default function AdminAllBookingsPage(): ReactNode {
               )}
             </div>
           </fieldset>
+
+          <div
+            className={
+              'bg-card flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm'
+            }
+          >
+            <span className={'text-foreground min-w-0 truncate'}>{t('showPast')}</span>
+            <Switch
+              checked={draftFilters.showPast}
+              onChange={(next) => setDraftFilters((value) => ({ ...value, showPast: next }))}
+              ariaLabel={t('showPast')}
+            />
+          </div>
 
           <label className={'block space-y-1'}>
             <span className={'text-muted-foreground text-sm'}>{t('sort')}</span>

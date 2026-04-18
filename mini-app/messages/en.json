@@ -456,6 +456,7 @@
   "AdminAllBookings": {
     "title": "All Bookings",
     "totalCount": "{count} bookings",
+    "showPast": "Show past bookings",
     "filters": "Filters",
     "filtersWithCount": "Filters ({count})",
     "filtersTitle": "Filters and Sort",
