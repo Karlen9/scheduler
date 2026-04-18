@@ -543,6 +543,7 @@ export type TBookingFormProps = {
   onCreateGhostClient?: (name: string) => Promise<TClientInfo>;
   successRedirect: string;
   title?: string;
+  initialDate?: Date;
 };
 
 /***************************************************************************************************
@@ -773,6 +774,7 @@ export type TOnetimeBookingFlowProps = {
   nonWorkingDays: number[];
   onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
   successRedirect: string;
+  initialDate?: Date;
 };
 
 /***************************************************************************************************
@@ -1065,6 +1067,7 @@ export type TUseOnetimeBookingParams = {
   hasClientSelector: boolean;
   onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
   successRedirect: string;
+  initialDate?: Date;
 };
 
 /***************************************************************************************************

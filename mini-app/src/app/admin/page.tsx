@@ -324,8 +324,11 @@ export default function AdminHomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const handleEmptySlotClick = useCallback(
-    (_date: Date, _time: string): void => {
-      router.push(resolveTestAwareHref(pathname, '/admin/book'));
+    (date: Date, _time: string): void => {
+      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const href = resolveTestAwareHref(pathname, '/admin/book');
+      const separator = href.includes('?') ? '&' : '?';
+      router.push(`${href}${separator}date=${iso}`);
     },
     [pathname, router],
   );
