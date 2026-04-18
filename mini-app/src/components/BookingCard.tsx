@@ -47,6 +47,8 @@ function BookingCardComponent({
   onCancel,
   onConfirm,
   onDecline,
+  onApproveReschedule,
+  onDeclineReschedule,
 }: TBookingCardProps): ReactNode {
   /***************************************************************************************************
    * Defines the tc value used by the component layer.
@@ -107,6 +109,7 @@ function BookingCardComponent({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const isSpecialistPending = booking.status === 'pending' && booking.createdBy === 'specialist';
+  const isReschedulePending = booking.status === 'reschedule_pending';
 
   /***************************************************************************************************
    * Formats date.
@@ -177,7 +180,36 @@ function BookingCardComponent({
         <StatusBadge status={displayStatus} />
       </div>
 
-      {isSpecialistPending && onConfirm && onDecline ? (
+      {isReschedulePending && onApproveReschedule && onDeclineReschedule ? (
+        <div className={'border-border space-y-2 border-t pt-3'}>
+          <p className={'text-muted-foreground mb-2 text-xs'}>{tb('rescheduleRequested')}</p>
+          {booking.clientMessage && (
+            <p
+              className={
+                'bg-background text-foreground mb-2 rounded-lg px-3 py-2 text-sm whitespace-pre-wrap'
+              }
+            >
+              {booking.clientMessage}
+            </p>
+          )}
+          <button
+            onClick={() => onApproveReschedule(booking)}
+            className={
+              'bg-action-confirm-bg text-action-confirm-text w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+            }
+          >
+            {tb('approveRescheduleButton')}
+          </button>
+          <button
+            onClick={() => onDeclineReschedule(booking)}
+            className={
+              'bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70'
+            }
+          >
+            {tb('declineRescheduleButton')}
+          </button>
+        </div>
+      ) : isSpecialistPending && onConfirm && onDecline ? (
         <div className={'border-border space-y-2 border-t pt-3'}>
           <p className={'text-muted-foreground mb-2 text-xs'}>{tb('specialistBookedYou')}</p>
           <button

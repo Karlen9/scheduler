@@ -749,18 +749,28 @@ func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
-func CreateRescheduleBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID, replacesBookingID string) (*models.Booking, error) {
+func CreateRescheduleBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, message, createdBy string, durationMinutes int, recurringScheduleID, replacesBookingID string) (*models.Booking, error) {
 	id := uuid.New().String()
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id, replaces_booking_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, '', 'reschedule_pending', ?, ?, ?)
-	`), id, specialistID, clientID, sessionTypeID, startsAt, endsAt, clientName, durationMinutes, recurringScheduleID, replacesBookingID)
+		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id, replaces_booking_id, created_by)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reschedule_pending', ?, ?, ?, ?)
+	`), id, specialistID, clientID, sessionTypeID, startsAt, endsAt, clientName, message, durationMinutes, recurringScheduleID, replacesBookingID, createdBy)
 	if err != nil {
 		return nil, err
 	}
 
 	return GetBookingByID(id)
+}
+
+/***************************************************************************************************
+* DeleteReschedulePendingFor deletes any reschedule_pending shadows whose replaces_booking_id
+* points to the given booking. Used to supersede an in-flight reschedule proposal before
+* creating a new one, so we never accumulate duplicate shadows for the same original booking.
+***************************************************************************************************/
+func DeleteReschedulePendingFor(originalBookingID string) error {
+	_, err := DB.Exec(Q(`DELETE FROM bookings WHERE replaces_booking_id = ? AND status = 'reschedule_pending'`), originalBookingID)
+	return err
 }
 
 /***************************************************************************************************

@@ -896,6 +896,11 @@ func FormatMoveRequestForClient(loc *i18n.Localizer, newBooking, oldBooking *mod
 		"OldDateTime": formatDateTime(loc, oldBooking.StartsAt),
 		"NewDateTime": formatDateTime(loc, newBooking.StartsAt),
 	})
+	if newBooking.ClientMessage != "" {
+		msg += "\n\n" + myI18n.Tf(loc, "Move.SpecialistNote", map[string]interface{}{
+			"Message": newBooking.ClientMessage,
+		})
+	}
 	msg += myI18n.T(loc, "Hint.OpenApp")
 	return msg
 }
