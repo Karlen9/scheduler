@@ -408,7 +408,7 @@ export default function HomePage(): ReactNode {
   const hasMessage = Boolean(specialist.telegramHandle || specialist.botUsername);
 
   return (
-    <div className={'bg-bookings-bg -mb-24 min-h-screen'}>
+    <div className={'bg-bookings-bg -mb-[calc(7rem+env(safe-area-inset-bottom))] min-h-screen'}>
       <div className={'bg-background relative h-[192px] overflow-hidden'}>
         <WallpaperBackground wallpaper={specialist.wallpaper} />
         <div className={'relative h-[160px] px-4 pt-5'}>
@@ -517,7 +517,7 @@ export default function HomePage(): ReactNode {
 
       <section
         className={
-          'bg-bookings-bg relative z-10 -mt-8 min-h-[250px] rounded-t-[16px] px-4 pt-5 pb-8 text-white'
+          'bg-bookings-bg relative z-10 -mt-8 min-h-[250px] rounded-t-[16px] px-4 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] text-white'
         }
       >
         <div className={'mb-4 flex items-center justify-between gap-4'}>
