@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 Multi-tenant Telegram Mini App scheduler for specialists (trainers, teachers, beauty professionals, etc.). Two main components:
+
 - **bot/** - Go backend (chi router, SQLite/PostgreSQL, Telegram webhooks + REST API)
 - **mini-app/** - Next.js 15 frontend (Telegram Mini App) for booking UI
 
@@ -13,6 +14,7 @@ Language: Russian UI throughout, English supported via i18n (go-i18n backend, ne
 ## Commands
 
 ### Mini App (Next.js)
+
 ```bash
 cd mini-app
 bun install       # Install dependencies
@@ -23,6 +25,7 @@ bunx vitest run   # Run tests
 ```
 
 ### Bot (Go)
+
 ```bash
 cd bot
 go run .          # Run server (webhook + API)
@@ -35,6 +38,7 @@ Optional: `ADMIN_IDS`, `MASTER_WEBHOOK_SECRET`, `ENCRYPTION_KEY`
 Legacy (single-bot): `TELEGRAM_BOT_TOKEN`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST_NAME`
 
 ### Deployment
+
 ```bash
 # Frontend
 cd mini-app && bunx vercel --prod
@@ -47,8 +51,9 @@ docker push rainingman/scheduler-bot:latest
 ## Architecture
 
 ### Mini App Structure (mini-app/src/)
+
 - **app/(client)/** - Client-facing pages (home, book, bookings, recurring, profile, services)
-- **app/admin/** - Admin pages (dashboard, bookings, clients, recurring, settings/*)
+- **app/admin/** - Admin pages (dashboard, bookings, clients, recurring, settings/\*)
 - **components/** - Reusable UI (Calendar, TimeSlots, BookingCard, StatusBadge, DurationSelector, etc.)
 - **hooks/** - SWR cache keys, query hooks, mutation/invalidation helpers
 - **lib/** - Core utilities
@@ -57,6 +62,7 @@ docker push rainingman/scheduler-bot:latest
   - `types.ts` - TypeScript interfaces (Specialist, SessionType, Booking, RecurringSchedule, etc.)
 
 ### Bot Structure (bot/)
+
 - `main.go` - HTTP server, bot manager, background workers (reminders, notifications)
 - `internal/telegram/` - Bot handlers, master bot onboarding, message templates
 - `internal/api/` - REST API handlers, middleware, router
@@ -67,6 +73,7 @@ docker push rainingman/scheduler-bot:latest
 - `internal/models/` - Shared data structures
 
 ### Data Flow
+
 1. Specialist registers via master bot → gets their own Telegram bot
 2. Client opens specialist's bot → /start → "Open Scheduler" button
 3. Mini-app loads → client picks date/time/duration → booking created (status: pending)
@@ -74,7 +81,9 @@ docker push rainingman/scheduler-bot:latest
 5. Specialist clicks button → webhook → booking status updated → client notified
 
 ### Webhook Setup
+
 Bot uses Telegram webhooks (not long polling):
+
 - Master bot: `{PUBLIC_BASE_URL}/master/{MASTER_WEBHOOK_SECRET}/webhook`
 - Per-specialist bots: `{PUBLIC_BASE_URL}/specialist/{id}/{secret}/webhook`
 - Secret token validated via `X-Telegram-Bot-Api-Secret-Token` header
@@ -92,4 +101,7 @@ Bot uses Telegram webhooks (not long polling):
 - Auth via `X-Specialist-ID` header and `X-Telegram-Init-Data`
 - Ghost clients get negative `telegram_user_id` (preserves UNIQUE constraint)
 - Recurring schedules use `day_times` JSON for per-day time selection
-- Pre-commit hooks: gofmt, prettier, eslint, go test, vitest (via Husky + lint-staged)
+- Clients can be blocked (`is_blocked` flag); blocked clients cannot create bookings, specialist may auto-cancel their active bookings/recurring via `PUT /api/admin/clients/{id}/block`
+- Specialist profiles support `wallpaper` customization (shown in client home header)
+- Specialist photo falls back to Telegram user photo when no custom photo is set
+- Pre-commit hooks: gofmt, prettier, eslint, go test, vitest (via Lefthook)

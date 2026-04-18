@@ -32,6 +32,9 @@ scheduler/
 - **Flexible schedule grid**: multiple working intervals per weekday, days off, and availability preview
 - **Ghost clients**: specialists can create bookings for clients without Telegram accounts
 - **Display names**: specialists can set custom display names for clients
+- **Block clients**: specialists can block abusive clients, optionally auto-cancelling their active bookings and recurring schedules
+- **Client detail modal**: admin views client contact info and booking history inline from the clients list
+- **Profile customization**: specialists pick a wallpaper shown in the client home header; Telegram photo auto-fallback when no custom photo is set
 - **Analytics**: client and admin stats endpoints with mini-app dashboard cards
 - **Frontend cache sync**: lightweight change versions for refreshing mutated resources
 - **i18n**: Russian and English, both backend (go-i18n) and frontend (next-intl)
@@ -130,22 +133,22 @@ sudo ss -tlnp | grep 8080
 
 ### Admin pages
 
-| Route                           | Description                                                     |
-| ------------------------------- | --------------------------------------------------------------- |
-| `/admin`                        | Dashboard — today's timeline, pending bookings, quick actions   |
-| `/admin/analytics`              | Admin analytics and operational stats                           |
-| `/admin/bookings`               | All bookings with status filters                                |
-| `/admin/book`                   | Create booking for a client (or ghost client)                   |
-| `/admin/clients`                | Client list with display name editing and ghost client creation |
-| `/admin/recurring`              | Recurring schedules management with approve/decline             |
-| `/admin/recurring/[id]`         | Recurring schedule detail with per-booking move/cancel          |
-| `/admin/settings`               | Settings hub                                                    |
-| `/admin/settings/profile`       | Specialist profile (name, bio, photo, location, phone)          |
-| `/admin/settings/schedule`      | Working hours per day of week                                   |
-| `/admin/settings/services`      | Session types with price, duration, image                       |
-| `/admin/settings/days-off`      | Days off management                                             |
-| `/admin/settings/notifications` | Notification preferences                                        |
-| `/admin/settings/help`          | Help page                                                       |
+| Route                           | Description                                                                                   |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| `/admin`                        | Dashboard — today's timeline, pending bookings, quick actions                                 |
+| `/admin/analytics`              | Admin analytics and operational stats                                                         |
+| `/admin/bookings`               | All bookings with status filters                                                              |
+| `/admin/book`                   | Create booking for a client (or ghost client)                                                 |
+| `/admin/clients`                | Client list with display name editing, ghost client creation, block/unblock, and detail modal |
+| `/admin/recurring`              | Recurring schedules management with approve/decline                                           |
+| `/admin/recurring/[id]`         | Recurring schedule detail with per-booking move/cancel                                        |
+| `/admin/settings`               | Settings hub                                                                                  |
+| `/admin/settings/profile`       | Specialist profile (name, bio, photo, location, phone)                                        |
+| `/admin/settings/schedule`      | Working hours per day of week                                                                 |
+| `/admin/settings/services`      | Session types with price, duration, image                                                     |
+| `/admin/settings/days-off`      | Days off management                                                                           |
+| `/admin/settings/notifications` | Notification preferences                                                                      |
+| `/admin/settings/help`          | Help page                                                                                     |
 
 ### Test routes
 
@@ -214,35 +217,36 @@ Examples:
 
 ### Admin (specialist auth)
 
-| Method       | Path                                                                    | Description                        |
-| ------------ | ----------------------------------------------------------------------- | ---------------------------------- |
-| `GET/PUT`    | `/api/admin/settings`                                                   | Specialist settings                |
-| `GET/PUT`    | `/api/admin/profile`                                                    | Specialist profile                 |
-| `GET/PUT`    | `/api/admin/notifications`                                              | Notification preferences           |
-| `GET`        | `/api/admin/durations`                                                  | Available durations                |
-| `GET/POST`   | `/api/admin/services`                                                   | Services list/create               |
-| `PUT/DELETE` | `/api/admin/services/{id}`                                              | Service update/delete              |
-| `GET/PUT`    | `/api/admin/working-hours`                                              | Working hours                      |
-| `GET`        | `/api/admin/schedule-context`                                           | Working hours, services, days off  |
-| `PUT/DELETE` | `/api/admin/working-hours/{day}`                                        | Per-day working-hour intervals     |
-| `GET/POST`   | `/api/admin/bookings`                                                   | Bookings list/create               |
-| `GET`        | `/api/admin/stats`                                                      | Admin analytics                    |
-| `PUT`        | `/api/admin/bookings/{id}/status`                                       | Update booking status              |
-| `PUT`        | `/api/admin/bookings/{id}/reschedule`                                   | Reschedule booking                 |
-| `GET/POST`   | `/api/admin/days-off`                                                   | Days off list/create               |
-| `DELETE`     | `/api/admin/days-off/{id}`                                              | Delete day off                     |
-| `GET/POST`   | `/api/admin/clients`                                                    | Clients list / create ghost client |
-| `PUT/DELETE` | `/api/admin/clients/{id}`                                               | Update/delete client               |
-| `GET/POST`   | `/api/admin/recurring`                                                  | Recurring schedules list/create    |
-| `POST`       | `/api/admin/recurring/preview`                                          | Preview recurring bookings         |
-| `GET/DELETE` | `/api/admin/recurring/{id}`                                             | Recurring schedule detail/cancel   |
-| `PUT`        | `/api/admin/recurring/{id}/approve`                                     | Approve recurring schedule         |
-| `PUT`        | `/api/admin/recurring/{id}/decline`                                     | Decline recurring schedule         |
-| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/cancel-request` | Request recurring booking cancel   |
-| `POST`       | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/move`           | Request recurring booking move     |
-| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/approve-move`   | Approve recurring booking move     |
-| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/decline-move`   | Decline recurring booking move     |
-| `POST`       | `/api/admin/upload/photo`                                               | Upload specialist photo            |
+| Method       | Path                                                                    | Description                                    |
+| ------------ | ----------------------------------------------------------------------- | ---------------------------------------------- |
+| `GET/PUT`    | `/api/admin/settings`                                                   | Specialist settings                            |
+| `GET/PUT`    | `/api/admin/profile`                                                    | Specialist profile                             |
+| `GET/PUT`    | `/api/admin/notifications`                                              | Notification preferences                       |
+| `GET`        | `/api/admin/durations`                                                  | Available durations                            |
+| `GET/POST`   | `/api/admin/services`                                                   | Services list/create                           |
+| `PUT/DELETE` | `/api/admin/services/{id}`                                              | Service update/delete                          |
+| `GET/PUT`    | `/api/admin/working-hours`                                              | Working hours                                  |
+| `GET`        | `/api/admin/schedule-context`                                           | Working hours, services, days off              |
+| `PUT/DELETE` | `/api/admin/working-hours/{day}`                                        | Per-day working-hour intervals                 |
+| `GET/POST`   | `/api/admin/bookings`                                                   | Bookings list/create                           |
+| `GET`        | `/api/admin/stats`                                                      | Admin analytics                                |
+| `PUT`        | `/api/admin/bookings/{id}/status`                                       | Update booking status                          |
+| `PUT`        | `/api/admin/bookings/{id}/reschedule`                                   | Reschedule booking                             |
+| `GET/POST`   | `/api/admin/days-off`                                                   | Days off list/create                           |
+| `DELETE`     | `/api/admin/days-off/{id}`                                              | Delete day off                                 |
+| `GET/POST`   | `/api/admin/clients`                                                    | Clients list / create ghost client             |
+| `PUT/DELETE` | `/api/admin/clients/{id}`                                               | Update/delete client                           |
+| `PUT`        | `/api/admin/clients/{id}/block`                                         | Block/unblock client (optional cascade cancel) |
+| `GET/POST`   | `/api/admin/recurring`                                                  | Recurring schedules list/create                |
+| `POST`       | `/api/admin/recurring/preview`                                          | Preview recurring bookings                     |
+| `GET/DELETE` | `/api/admin/recurring/{id}`                                             | Recurring schedule detail/cancel               |
+| `PUT`        | `/api/admin/recurring/{id}/approve`                                     | Approve recurring schedule                     |
+| `PUT`        | `/api/admin/recurring/{id}/decline`                                     | Decline recurring schedule                     |
+| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/cancel-request` | Request recurring booking cancel               |
+| `POST`       | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/move`           | Request recurring booking move                 |
+| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/approve-move`   | Approve recurring booking move                 |
+| `PUT`        | `/api/admin/recurring/{scheduleId}/bookings/{bookingId}/decline-move`   | Decline recurring booking move                 |
+| `POST`       | `/api/admin/upload/photo`                                               | Upload specialist photo                        |
 
 ---
 
@@ -387,15 +391,15 @@ Detection is automatic: if `DATABASE_URL` starts with `postgres`, PostgreSQL is 
 
 ### Schema
 
-| Table                 | Description                                                                     |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `specialists`         | Registered specialists (name, bot token, webhook, profile, location, durations) |
-| `clients`             | Clients per specialist (name, display_name, preferences, ghost flag)            |
-| `session_types`       | Service types with price, duration, image                                       |
-| `working_hours`       | Per-day working-hour intervals                                                  |
-| `bookings`            | All bookings (pending/confirmed/rejected/cancelled/completed)                   |
-| `days_off`            | Days off per specialist                                                         |
-| `recurring_schedules` | Weekly recurring booking schedules with per-day times                           |
+| Table                 | Description                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------ |
+| `specialists`         | Registered specialists (name, bot token, webhook, profile, location, durations, wallpaper) |
+| `clients`             | Clients per specialist (name, display_name, preferences, ghost/blocked flags)              |
+| `session_types`       | Service types with price, duration, image                                                  |
+| `working_hours`       | Per-day working-hour intervals                                                             |
+| `bookings`            | All bookings (pending/confirmed/rejected/cancelled/completed)                              |
+| `days_off`            | Days off per specialist                                                                    |
+| `recurring_schedules` | Weekly recurring booking schedules with per-day times                                      |
 
 Migrations run automatically on startup via idempotent `ALTER TABLE` statements.
 
