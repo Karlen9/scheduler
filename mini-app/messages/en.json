@@ -365,7 +365,8 @@
     "emptyIntervals": "Add at least one time range or close this day",
     "invalidRange": "End time must be later than start time",
     "overlapIntervals": "Time ranges cannot overlap",
-    "invalidIntervals": "Fix highlighted days before saving"
+    "invalidIntervals": "Fix highlighted days before saving",
+    "saveReminder": "Changes only take effect after you save."
   },
   "AdminServices": {
     "title": "Services & Prices",

@@ -502,7 +502,7 @@ export default function SchedulePage(): ReactNode {
     <div>
       <TopBar title={t('title')} showBack />
 
-      <div className={'space-y-5 px-4 pt-4'}>
+      <div className={'space-y-5 px-4 pt-4 pb-6'}>
         {/***************************************************************************************************
          * Working Hours per Day.
          ***************************************************************************************************/}
@@ -658,15 +658,12 @@ export default function SchedulePage(): ReactNode {
             })}
           </div>
         </div>
-      </div>
 
-      <div
-        className={'bg-background border-border fixed right-0 bottom-0 left-0 z-20 border-t p-4'}
-      >
-        <div className={'mx-auto max-w-[430px]'}>
+        <div>
           {expandedDayErrorKey && (
             <p className={'text-destructive mb-2 text-center text-sm'}>{t(expandedDayErrorKey)}</p>
           )}
+          <p className={'text-muted-foreground mb-3 text-center text-xs'}>{t('saveReminder')}</p>
           <PrimaryButton onClick={handleSave} disabled={isSaving}>
             {isSaving ? tc('saving') : tc('saveChanges')}
           </PrimaryButton>
