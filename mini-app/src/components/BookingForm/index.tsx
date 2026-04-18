@@ -41,6 +41,7 @@ export function BookingForm({
   successRedirect,
   title,
   initialDate,
+  initialService,
 }: TBookingFormProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -199,6 +200,7 @@ export function BookingForm({
                 onCreateBooking={onCreateBooking}
                 successRedirect={successRedirect}
                 initialDate={initialDate}
+                initialService={initialService}
               />
             ) : (
               <RecurringBookingFlow

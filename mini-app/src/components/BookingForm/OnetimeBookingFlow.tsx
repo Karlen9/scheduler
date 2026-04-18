@@ -39,6 +39,7 @@ export function OnetimeBookingFlow({
   onCreateBooking,
   successRedirect,
   initialDate,
+  initialService,
 }: TOnetimeBookingFlowProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -102,6 +103,7 @@ export function OnetimeBookingFlow({
     onCreateBooking,
     successRedirect,
     initialDate,
+    initialService,
   });
 
   const handleServiceSelectAndScroll = (service: (typeof services)[number]): void => {
