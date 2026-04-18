@@ -99,27 +99,28 @@ export function ClientDetailModal({
           : t('bookingsHistory', { count: bookingsCount })}
       </button>
 
-      {displayClient.isBlocked
-        ? onUnblockClient && (
-            <button
-              onClick={() => onUnblockClient(displayClient)}
-              className={
-                'bg-card text-foreground mt-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
-              }
-            >
-              {t('unblockClient')}
-            </button>
-          )
-        : onBlockClient && (
-            <button
-              onClick={() => onBlockClient(displayClient)}
-              className={
-                'bg-action-danger-bg text-action-danger-text mt-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
-              }
-            >
-              {t('blockClient')}
-            </button>
-          )}
+      {!displayClient.isGhost &&
+        (displayClient.isBlocked
+          ? onUnblockClient && (
+              <button
+                onClick={() => onUnblockClient(displayClient)}
+                className={
+                  'bg-card text-foreground mt-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                }
+              >
+                {t('unblockClient')}
+              </button>
+            )
+          : onBlockClient && (
+              <button
+                onClick={() => onBlockClient(displayClient)}
+                className={
+                  'bg-action-danger-bg text-action-danger-text mt-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                }
+              >
+                {t('blockClient')}
+              </button>
+            ))}
     </BottomSheet>
   );
 }
