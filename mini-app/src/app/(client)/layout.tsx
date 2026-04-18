@@ -99,7 +99,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <TelegramBackButtonProvider isRoot={isHome} onBack={handleBack}>
       <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
-        <div className={isBookPage ? '' : 'pb-24'}>{children}</div>
+        <div className={isBookPage ? '' : 'pb-[calc(7rem+env(safe-area-inset-bottom))]'}>
+          {children}
+        </div>
         {!isBookPage && <BottomTabBar tabs={clientTabs} />}
       </div>
     </TelegramBackButtonProvider>
