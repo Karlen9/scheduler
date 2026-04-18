@@ -67,6 +67,13 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const isBookPage = pathname === adminBookHref;
+  /***************************************************************************************************
+   * Settings sub-pages (e.g. /admin/settings/schedule) hide the bottom navbar so full-page
+   * controls like a save-changes bar can render inline without fighting for z-space.
+   * The settings hub itself keeps the navbar.
+   ***************************************************************************************************/
+  const isSettingsSubPage = pathname.startsWith(`${adminSettingsHref}/`);
+  const hideNavbar = isBookPage || isSettingsSubPage;
 
   /***************************************************************************************************
    * Defines the admin tabs value used by the component layer.
@@ -122,8 +129,8 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   return (
     <TelegramBackButtonProvider isRoot={isHome} onBack={handleBack}>
       <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
-        <div className={isBookPage ? '' : 'pb-28'}>{children}</div>
-        {!isBookPage && <BottomTabBar tabs={adminTabs} />}
+        <div className={hideNavbar ? '' : 'pb-28'}>{children}</div>
+        {!hideNavbar && <BottomTabBar tabs={adminTabs} />}
       </div>
     </TelegramBackButtonProvider>
   );
