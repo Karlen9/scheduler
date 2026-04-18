@@ -202,6 +202,58 @@ func DeleteDayOff(id string) error {
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
+func CreateDayOffsBatch(specialistID string, dates []time.Time, reason string) ([]models.DayOff, error) {
+	if len(dates) == 0 {
+		return []models.DayOff{}, nil
+	}
+
+	var reasonVal interface{}
+	if reason != "" {
+		reasonVal = reason
+	} else {
+		reasonVal = nil
+	}
+
+	tx, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	created := make([]models.DayOff, 0, len(dates))
+	now := time.Now()
+	for _, d := range dates {
+		dateStr := d.Format("2006-01-02")
+
+		var existingID string
+		err := tx.QueryRow(Q(`SELECT id FROM days_off WHERE specialist_id = ? AND date = ?`), specialistID, dateStr).Scan(&existingID)
+		if err == nil {
+			continue
+		}
+		if err != sql.ErrNoRows {
+			return nil, err
+		}
+
+		id := uuid.New().String()
+		if _, err := tx.Exec(Q(`INSERT INTO days_off (id, specialist_id, date, reason) VALUES (?, ?, ?, ?)`),
+			id, specialistID, dateStr, reasonVal); err != nil {
+			return nil, err
+		}
+		created = append(created, models.DayOff{
+			ID:           id,
+			SpecialistID: specialistID,
+			Date:         d,
+			Reason:       reason,
+			CreatedAt:    now,
+		})
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
 func IsDayOff(specialistID string, date time.Time) (bool, error) {
 	dateStr := date.Format("2006-01-02")
 	var count int

@@ -392,7 +392,15 @@
     "reasonPlaceholder": "Vacation, sick leave, holiday...",
     "alreadyDayOff": "Already a day off",
     "addDayOff": "Add Day Off",
-    "empty": "No days off scheduled"
+    "addDaysOff": "Add {count} Days",
+    "empty": "No days off scheduled",
+    "modeSingle": "Individual",
+    "modeRange": "Range",
+    "rangePickStart": "Pick start date",
+    "rangePickEnd": "Pick end date",
+    "rangeSummary": "{from} → {to} ({count} days)",
+    "selectedCount": "{count} selected",
+    "selectDates": "Select dates"
   },
   "AdminNotifications": {
     "title": "Notifications",

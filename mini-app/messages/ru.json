@@ -392,7 +392,15 @@
     "reasonPlaceholder": "Отпуск, болезнь, праздник...",
     "alreadyDayOff": "Уже выходной",
     "addDayOff": "Добавить выходной",
-    "empty": "Нет запланированных выходных"
+    "addDaysOff": "Добавить {count} дн.",
+    "empty": "Нет запланированных выходных",
+    "modeSingle": "По одному",
+    "modeRange": "Диапазон",
+    "rangePickStart": "Выберите начало",
+    "rangePickEnd": "Выберите конец",
+    "rangeSummary": "{from} → {to} ({count} дн.)",
+    "selectedCount": "Выбрано: {count}",
+    "selectDates": "Выберите даты"
   },
   "AdminNotifications": {
     "title": "Уведомления",
