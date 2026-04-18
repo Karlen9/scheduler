@@ -368,7 +368,7 @@ export default function SchedulePage(): ReactNode {
    ***************************************************************************************************/
   const openCopySelector = (sourceDay: number): void => {
     setCopySourceDay(sourceDay);
-    setCopyTargetDays(dayOrder.filter((day) => day !== sourceDay));
+    setCopyTargetDays([]);
   };
 
   /***************************************************************************************************
