@@ -227,3 +227,26 @@ export function generateTimeSlotsForDay(
 
   return Array.from(slots).sort();
 }
+
+export function parseDateParam(raw: string | null): Date | undefined {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return undefined;
+  }
+  const [y, m, d] = raw.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== y ||
+    date.getMonth() !== m - 1 ||
+    date.getDate() !== d
+  ) {
+    return undefined;
+  }
+  return date;
+}
+
+export function nextDateForWeekday(targetDay: number, today: Date): Date {
+  const delta = (targetDay - today.getDay() + 7) % 7;
+  const next = new Date(today.getFullYear(), today.getMonth(), today.getDate() + delta);
+  return next;
+}
