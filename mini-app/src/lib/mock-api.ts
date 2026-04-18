@@ -1119,14 +1119,73 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
 
     const adminRescheduleMatch = path.match(/^\/api\/admin\/bookings\/([^/]+)\/reschedule$/);
     if (adminRescheduleMatch) {
+      const originalId = adminRescheduleMatch[1];
+      const original = state.bookings.find((b) => b.id === originalId);
       const date = getString(body.date, dateString(1));
       const time = getString(body.time, '10:00');
       const startsAt = `${date}T${time}:00Z`;
-      return updateBooking(state, adminRescheduleMatch[1], (booking) => ({
+      const duration = original?.durationMinutes ?? 60;
+      const message = getOptionalString(body.message);
+
+      if (original?.status === 'confirmed' && !original.clientIsGhost) {
+        /***************************************************************************************************
+         * Confirmed bookings require client approval: create a reschedule_pending shadow and
+         * clear any existing pending proposal for the same original.
+         ***************************************************************************************************/
+        state.bookings = state.bookings.filter(
+          (b) => !(b.replacesBookingId === originalId && b.status === 'reschedule_pending'),
+        );
+        const shadow: TBooking = {
+          ...original,
+          id: `mock-reschedule-${Date.now()}`,
+          status: 'reschedule_pending',
+          startsAt,
+          endsAt: addMinutesToISO(startsAt, duration),
+          clientMessage: message,
+          createdBy: 'specialist',
+          replacesBookingId: originalId,
+        };
+        state.bookings = [shadow, ...state.bookings];
+        bumpChangeVersions(state, ['bookings']);
+        return clone(shadow) as T;
+      }
+
+      return updateBooking(state, originalId, (booking) => ({
         ...booking,
         startsAt,
         endsAt: addMinutesToISO(startsAt, booking.durationMinutes ?? 60),
       })) as T;
+    }
+
+    const approveRescheduleMatch = path.match(/^\/api\/bookings\/([^/]+)\/approve-reschedule$/);
+    if (approveRescheduleMatch) {
+      const shadowId = approveRescheduleMatch[1];
+      const shadow = state.bookings.find((b) => b.id === shadowId);
+      if (shadow?.status !== 'reschedule_pending') {
+        throw new Error('Mock reschedule not found');
+      }
+      const originalId = shadow.replacesBookingId;
+      state.bookings = state.bookings.map((b) => {
+        if (b.id === shadowId) {
+          return { ...b, status: 'confirmed' as const };
+        }
+        if (originalId && b.id === originalId) {
+          return { ...b, status: 'cancelled' as const, cancelReason: 'rescheduled' };
+        }
+        return b;
+      });
+      bumpChangeVersions(state, ['bookings']);
+      return clone(state.bookings.find((b) => b.id === shadowId)!) as T;
+    }
+
+    const declineRescheduleMatch = path.match(/^\/api\/bookings\/([^/]+)\/decline-reschedule$/);
+    if (declineRescheduleMatch) {
+      const shadowId = declineRescheduleMatch[1];
+      state.bookings = state.bookings.filter(
+        (b) => !(b.id === shadowId && b.status === 'reschedule_pending'),
+      );
+      bumpChangeVersions(state, ['bookings']);
+      return undefined as T;
     }
 
     const serviceMatch = path.match(/^\/api\/admin\/services\/([^/]+)$/);

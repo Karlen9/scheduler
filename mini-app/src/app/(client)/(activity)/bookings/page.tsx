@@ -186,6 +186,31 @@ export default function BookingsPage(): ReactNode {
     [te, ts],
   );
 
+  const handleApproveReschedule = useCallback(
+    async (booking: TBooking): Promise<void> => {
+      try {
+        await api.approveReschedule(booking.id);
+        toast.success(ts('bookingRescheduled'));
+        invalidateBookings();
+      } catch {
+        toast.error(te('bookingRescheduleFailed'));
+      }
+    },
+    [te, ts],
+  );
+
+  const handleDeclineReschedule = useCallback(
+    async (booking: TBooking): Promise<void> => {
+      try {
+        await api.declineReschedule(booking.id);
+        invalidateBookings();
+      } catch {
+        toast.error(te('bookingDeclineFailed'));
+      }
+    },
+    [te],
+  );
+
   if (isLoading) {
     return (
       <div className={'space-y-4 p-4'}>
@@ -250,6 +275,12 @@ export default function BookingsPage(): ReactNode {
                     booking.status === 'pending' && booking.createdBy === 'specialist'
                       ? handleDecline
                       : undefined
+                  }
+                  onApproveReschedule={
+                    booking.status === 'reschedule_pending' ? handleApproveReschedule : undefined
+                  }
+                  onDeclineReschedule={
+                    booking.status === 'reschedule_pending' ? handleDeclineReschedule : undefined
                   }
                 />
               ))}

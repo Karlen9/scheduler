@@ -258,7 +258,10 @@
     "cancelReasonPlaceholder": "Cancellation reason (optional)",
     "cancelDefaultReason": "Cancelled by client",
     "specialistBookedYou": "The specialist booked a session for you",
-    "declineButton": "Decline"
+    "declineButton": "Decline",
+    "rescheduleRequested": "The specialist is requesting a new time",
+    "approveRescheduleButton": "Accept new time",
+    "declineRescheduleButton": "Decline"
   },
   "RecurringPage": {
     "emptyTitle": "No recurring schedules",
@@ -540,13 +543,19 @@
     "rescheduleButton": "Reschedule",
     "cancelButton": "Cancel",
     "messageClientButton": "Message client",
-    "waitingForClient": "Waiting for client response"
+    "waitingForClient": "Waiting for client response",
+    "approveRescheduleButton": "Accept new time",
+    "declineRescheduleButton": "Decline",
+    "specialistNote": "Note from specialist"
   },
   "RescheduleSheet": {
     "title": "Reschedule Booking",
     "selectTime": "Select a time",
     "noSlots": "No available slots for this date",
-    "submitButton": "Reschedule"
+    "submitButton": "Reschedule",
+    "sendRequestButton": "Send request",
+    "approvalRequired": "The client will be asked to approve the new time. Add an optional note:",
+    "messagePlaceholder": "e.g. I need to move because of another appointment"
   },
   "PendingBookingCard": {
     "accept": "Accept",

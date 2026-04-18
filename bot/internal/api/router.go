@@ -110,6 +110,8 @@ func NewRouter() http.Handler {
 		r.Put("/bookings/{id}/reschedule", HandleClientRescheduleBooking)
 		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
 		r.Put("/bookings/{id}/decline", HandleClientDeclineBooking)
+		r.Put("/bookings/{id}/approve-reschedule", HandleClientApproveReschedule)
+		r.Put("/bookings/{id}/decline-reschedule", HandleClientDeclineReschedule)
 
 		/***************************************************************************************************
 		* Photo upload (client).

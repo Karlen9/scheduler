@@ -33,6 +33,8 @@ export function BookingDetailModal({
   onAccept,
   onReject,
   onMessageClient,
+  onApproveReschedule,
+  onDeclineReschedule,
 }: TBookingDetailModalProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -193,7 +195,7 @@ export function BookingDetailModal({
             </span>
           </div>
         )}
-        {displayBooking.clientMessage && (
+        {displayBooking.clientMessage && displayBooking.status !== 'reschedule_pending' && (
           <div className={'border-border border-b py-2'}>
             <span className={'text-muted-foreground text-sm'}>{t('clientComment')}</span>
             <p className={'text-foreground mt-1 text-sm'}>{displayBooking.clientMessage}</p>
@@ -223,15 +225,48 @@ export function BookingDetailModal({
       {(() => {
         const isPending = displayBooking.status === 'pending';
         const isConfirmed = displayBooking.status === 'confirmed';
+        const isReschedulePending = displayBooking.status === 'reschedule_pending';
         const createdByAdmin = displayBooking.createdBy === 'specialist';
         const showApprovalActions = isPending && !createdByAdmin && (onAccept || onReject);
         const showManageActions = isConfirmed || (isPending && createdByAdmin);
+        const showRescheduleApproval =
+          isReschedulePending && (onApproveReschedule || onDeclineReschedule);
 
         return (
           <>
             {isPending && createdByAdmin && (
               <div className={'text-secondary mb-3 py-2 text-center text-sm'}>
                 {t('waitingForClient')}
+              </div>
+            )}
+
+            {isReschedulePending && displayBooking.clientMessage && (
+              <div className={'bg-card mb-3 rounded-lg px-3 py-2'}>
+                <p className={'text-muted-foreground text-xs'}>{t('specialistNote')}</p>
+                <p className={'text-foreground mt-1 text-sm whitespace-pre-wrap'}>
+                  {displayBooking.clientMessage}
+                </p>
+              </div>
+            )}
+
+            {showRescheduleApproval && (
+              <div className={'mb-3 flex gap-3'}>
+                <button
+                  onClick={() => onApproveReschedule?.(displayBooking)}
+                  className={
+                    'bg-action-confirm-bg text-action-confirm-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {t('approveRescheduleButton')}
+                </button>
+                <button
+                  onClick={() => onDeclineReschedule?.(displayBooking)}
+                  className={
+                    'bg-action-danger-bg text-action-danger-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {t('declineRescheduleButton')}
+                </button>
               </div>
             )}
 

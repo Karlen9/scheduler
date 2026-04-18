@@ -258,7 +258,10 @@
     "cancelReasonPlaceholder": "Причина отмены (необязательно)",
     "cancelDefaultReason": "Отменено клиентом",
     "specialistBookedYou": "Специалист записал вас на сеанс",
-    "declineButton": "Отклонить"
+    "declineButton": "Отклонить",
+    "rescheduleRequested": "Специалист предлагает новое время",
+    "approveRescheduleButton": "Принять новое время",
+    "declineRescheduleButton": "Отклонить"
   },
   "RecurringPage": {
     "emptyTitle": "Нет регулярных записей",
@@ -540,13 +543,19 @@
     "rescheduleButton": "Изменить",
     "cancelButton": "Отменить",
     "messageClientButton": "Написать клиенту",
-    "waitingForClient": "Ожидание ответа клиента"
+    "waitingForClient": "Ожидание ответа клиента",
+    "approveRescheduleButton": "Принять новое время",
+    "declineRescheduleButton": "Отклонить",
+    "specialistNote": "Сообщение от специалиста"
   },
   "RescheduleSheet": {
     "title": "Перенос записи",
     "selectTime": "Выберите время",
     "noSlots": "Нет доступных слотов на эту дату",
-    "submitButton": "Перенести"
+    "submitButton": "Перенести",
+    "sendRequestButton": "Отправить запрос",
+    "approvalRequired": "Клиент должен будет подтвердить новое время. Можно добавить комментарий:",
+    "messagePlaceholder": "Например: нужно перенести из-за другой встречи"
   },
   "PendingBookingCard": {
     "accept": "Принять",

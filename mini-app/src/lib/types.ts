@@ -498,6 +498,8 @@ export type TBookingCardProps = {
   onCancel?: (booking: TBooking) => void;
   onConfirm?: (booking: TBooking) => void;
   onDecline?: (booking: TBooking) => void;
+  onApproveReschedule?: (booking: TBooking) => void;
+  onDeclineReschedule?: (booking: TBooking) => void;
 };
 
 /***************************************************************************************************
@@ -512,6 +514,8 @@ export type TBookingDetailModalProps = {
   onAccept?: (booking: TBooking) => void;
   onReject?: (booking: TBooking) => void;
   onMessageClient?: (booking: TBooking) => void;
+  onApproveReschedule?: (booking: TBooking) => void;
+  onDeclineReschedule?: (booking: TBooking) => void;
 };
 
 export type TClientDetailModalProps = {

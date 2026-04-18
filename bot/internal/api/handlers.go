@@ -1070,6 +1070,95 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 }
 
 /***************************************************************************************************
+* HandleClientApproveReschedule lets the client approve an admin-initiated reschedule request.
+* Confirms the new reschedule_pending booking and cancels the original (via db.ApproveRescheduleBooking).
+***************************************************************************************************/
+func HandleClientApproveReschedule(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil || booking.ClientID != client.ID || booking.SpecialistID != specialist.ID {
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
+		return
+	}
+	if booking.Status != models.BookingStatusReschedulePending {
+		httpError(w, r, "Error.NoMoveRequest", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.ApproveRescheduleBooking(bookingID); err != nil {
+		log.Printf("Error approving reschedule: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("RESCHEDULE APPROVED (CLIENT) booking %s", bookingID[:8])
+	updated, _ := db.GetBookingByID(bookingID)
+	if updated != nil {
+		changes.Publish(updated.SpecialistID, changes.GroupBookings)
+	}
+	writeJSON(w, updated)
+}
+
+/***************************************************************************************************
+* HandleClientDeclineReschedule lets the client reject an admin-initiated reschedule request.
+* Deletes the pending shadow; the original confirmed booking stays intact.
+***************************************************************************************************/
+func HandleClientDeclineReschedule(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil || booking.ClientID != client.ID || booking.SpecialistID != specialist.ID {
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
+		return
+	}
+	if booking.Status != models.BookingStatusReschedulePending {
+		httpError(w, r, "Error.NoMoveRequest", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.DeclineRescheduleBooking(bookingID); err != nil {
+		log.Printf("Error declining reschedule: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("RESCHEDULE DECLINED (CLIENT) booking %s", bookingID[:8])
+	changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+/***************************************************************************************************
 * PublicDayOff is the public response for days off (no reason exposed).
 ***************************************************************************************************/
 type PublicDayOff struct {

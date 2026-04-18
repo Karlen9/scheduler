@@ -1187,8 +1187,9 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 * Reschedule Booking.
 ***************************************************************************************************/
 type AdminRescheduleBookingRequest struct {
-	Date string `json:"date"` // "2026-03-10"
-	Time string `json:"time"` // "10:00"
+	Date    string `json:"date"`              // "2026-03-10"
+	Time    string `json:"time"`              // "10:00"
+	Message string `json:"message,omitempty"` // optional note to the client (confirmed reschedules only)
 }
 
 /***************************************************************************************************
@@ -1290,6 +1291,55 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/***************************************************************************************************
+	* Confirmed bookings require client approval: create a reschedule_pending shadow that replaces
+	* the original, and notify the client. The original stays confirmed until the client approves.
+	* Skip for ghost clients (nobody to approve) — apply in-place for them.
+	***************************************************************************************************/
+	if booking.Status == models.BookingStatusConfirmed && !isGhostBooking(booking) {
+		message := strings.TrimSpace(req.Message)
+		if len(message) > 500 {
+			message = message[:500]
+		}
+
+		/***************************************************************************************************
+		* Supersede any prior reschedule proposal on this booking so we never accumulate duplicate
+		* shadows for the same original (admin changing their mind before the client acts).
+		***************************************************************************************************/
+		if err := db.DeleteReschedulePendingFor(booking.ID); err != nil {
+			log.Printf("Error clearing prior reschedule proposal: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+
+		newBooking, err := db.CreateRescheduleBooking(
+			booking.SpecialistID, booking.ClientID, booking.SessionTypeID,
+			startsAt, endsAt, booking.ClientName, message, "specialist",
+			duration, "", booking.ID,
+		)
+		if err != nil {
+			log.Printf("Error creating reschedule request: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("RESCHEDULE REQUEST [%s] Specialist: %s proposed new time for confirmed booking of client: %s | New: %s %s",
+			newBooking.ID[:8], specialist.Name, booking.ClientName, req.Date, req.Time)
+
+		if NotifyMoveRequestFunc != nil {
+			if err := NotifyMoveRequestFunc(newBooking, booking, "specialist"); err != nil {
+				log.Printf("Error notifying client about reschedule request: %v", err)
+			}
+		}
+
+		changes.Publish(specialist.ID, changes.GroupBookings)
+		writeJSON(w, newBooking)
+		return
+	}
+
+	/***************************************************************************************************
+	* Pending bookings: apply in-place (no confirmed commitment exists yet to preserve).
+	***************************************************************************************************/
 	if err := db.UpdateBookingDateTime(bookingID, startsAt, endsAt, duration); err != nil {
 		log.Printf("Error updating booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1299,14 +1349,8 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	log.Printf("RESCHEDULE [%s] Specialist: %s moved booking for client: %s | New: %s %s",
 		bookingID[:8], specialist.Name, booking.ClientName, req.Date, req.Time)
 
-	/***************************************************************************************************
-	* Refresh booking.
-	***************************************************************************************************/
 	booking, _ = db.GetBookingByID(bookingID)
 
-	/***************************************************************************************************
-	* Notify client.
-	***************************************************************************************************/
 	if NotifyStatusChangeFunc != nil && booking != nil {
 		if err := NotifyStatusChangeFunc(booking, "rescheduled"); err != nil {
 			log.Printf("Error notifying client about reschedule: %v", err)
@@ -1317,6 +1361,21 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		changes.Publish(booking.SpecialistID, changes.GroupBookings)
 	}
 	writeJSON(w, booking)
+}
+
+/***************************************************************************************************
+* isGhostBooking returns true when the booking's client is a ghost (negative telegram id or no
+* real telegram account), meaning there's nobody to send approval requests to.
+***************************************************************************************************/
+func isGhostBooking(booking *models.Booking) bool {
+	if booking == nil || booking.ClientID == "" {
+		return false
+	}
+	client, err := db.GetClientByID(booking.ClientID)
+	if err != nil || client == nil {
+		return false
+	}
+	return client.IsGhost
 }
 
 /***************************************************************************************************

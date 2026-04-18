@@ -438,6 +438,18 @@ export const api = {
     });
   },
 
+  async approveReschedule(bookingId: string): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/bookings/${bookingId}/approve-reschedule`, {
+      method: 'PUT',
+    });
+  },
+
+  async declineReschedule(bookingId: string): Promise<void> {
+    await fetchAPI<void>(`/api/bookings/${bookingId}/decline-reschedule`, {
+      method: 'PUT',
+    });
+  },
+
   /***************************************************************************************************
    * Photo Upload.
    *
@@ -1088,7 +1100,7 @@ export const api = {
      ***************************************************************************************************/
     async rescheduleBooking(
       bookingId: string,
-      data: { date: string; time: string },
+      data: { date: string; time: string; message?: string },
     ): Promise<TBooking> {
       return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/reschedule`, {
         method: 'PUT',

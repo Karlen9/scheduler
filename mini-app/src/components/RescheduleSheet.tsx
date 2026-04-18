@@ -77,10 +77,19 @@ export function RescheduleSheet({
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
   const [timeSlots, setTimeSlots] = useState<TTimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /***************************************************************************************************
+   * Admin-mode rescheduling of a confirmed booking creates an approval request rather than
+   * updating in place. Show the admin an explanatory textarea so they can include a note
+   * with the proposal.
+   ***************************************************************************************************/
+  const showApprovalNote =
+    mode === 'admin' && booking?.status === 'confirmed' && !booking?.clientIsGhost;
   /***************************************************************************************************
    * Defines the slots request id ref value used by the component layer.
    *
@@ -178,7 +187,10 @@ export function RescheduleSheet({
         time: selectedTime,
       };
       if (mode === 'admin') {
-        await api.admin.rescheduleBooking(booking.id, payload);
+        await api.admin.rescheduleBooking(booking.id, {
+          ...payload,
+          message: showApprovalNote ? message.trim() || undefined : undefined,
+        });
       } else {
         await api.rescheduleBooking(booking.id, payload);
       }
@@ -201,6 +213,7 @@ export function RescheduleSheet({
     slotsRequestIdRef.current += 1;
     setSelectedDate(null);
     setSelectedTime(null);
+    setMessage('');
     setTimeSlots([]);
     setError(null);
     onClose();
@@ -255,9 +268,29 @@ export function RescheduleSheet({
 
         {error && <p className={'text-destructive text-center text-sm'}>{error}</p>}
 
+        {selectedTime && showApprovalNote && (
+          <div className={'space-y-2'}>
+            <p className={'text-muted-foreground text-xs'}>{t('approvalRequired')}</p>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={t('messagePlaceholder')}
+              rows={3}
+              maxLength={300}
+              className={
+                'border-border bg-background text-foreground focus:border-brand w-full resize-none rounded-lg border px-3 py-2 text-sm outline-none'
+              }
+            />
+          </div>
+        )}
+
         {selectedTime && (
           <PrimaryButton onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? tc('saving') : t('submitButton')}
+            {isSubmitting
+              ? tc('saving')
+              : showApprovalNote
+                ? t('sendRequestButton')
+                : t('submitButton')}
           </PrimaryButton>
         )}
       </div>

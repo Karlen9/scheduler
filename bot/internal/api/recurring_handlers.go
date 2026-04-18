@@ -1125,7 +1125,7 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newBooking, err := createMoveBooking(r, booking, scheduleID, req)
+	newBooking, err := createMoveBooking(r, booking, scheduleID, "client", "", req)
 	if err != nil {
 		handleValidationError(w, r, err)
 		return
@@ -1239,7 +1239,7 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newBooking, err := createMoveBooking(r, booking, scheduleID, req)
+	newBooking, err := createMoveBooking(r, booking, scheduleID, "specialist", "", req)
 	if err != nil {
 		handleValidationError(w, r, err)
 		return
@@ -1367,7 +1367,7 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 * - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
 *
 ***************************************************************************************************/
-func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID string, req MoveBookingRequest) (*models.Booking, error) {
+func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID, createdBy, message string, req MoveBookingRequest) (*models.Booking, error) {
 	if req.Date == "" || req.Time == "" {
 		return nil, fmt.Errorf("Error.MissingDateTime")
 	}
@@ -1394,8 +1394,8 @@ func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID stri
 
 	newBooking, err := db.CreateRescheduleBooking(
 		booking.SpecialistID, booking.ClientID, booking.SessionTypeID,
-		startsAt, endsAt, booking.ClientName, booking.DurationMinutes,
-		scheduleID, booking.ID,
+		startsAt, endsAt, booking.ClientName, message, createdBy,
+		booking.DurationMinutes, scheduleID, booking.ID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Error.Internal")
