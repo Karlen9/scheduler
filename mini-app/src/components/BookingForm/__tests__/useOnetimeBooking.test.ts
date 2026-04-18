@@ -25,12 +25,12 @@ vi.mock('@/lib/api', () => ({
 const makeService = (id: string, minutes = 60): TSessionType =>
   ({
     id,
+    type: 'service',
     name: `Service ${id}`,
     durationMinutes: minutes,
     price: 0,
     currency: 'RUB',
-    imageUrl: null,
-  }) as TSessionType;
+  }) satisfies TSessionType;
 
 describe('useOnetimeBooking initialService', () => {
   it('preselects a service when initialService is provided', () => {
@@ -75,5 +75,32 @@ describe('useOnetimeBooking initialService', () => {
 
     rerender({ initialService: services[1] });
     expect(result.current.selectedService).toBeNull();
+  });
+
+  it('re-applies when a new initialService is passed after the user edited', () => {
+    const services = [makeService('a'), makeService('b')];
+    const { result, rerender } = renderHook(
+      (props: { initialService?: TSessionType }) =>
+        useOnetimeBooking({
+          services,
+          bookedDates: [],
+          selectedClient: null,
+          hasClientSelector: false,
+          onCreateBooking: vi.fn(),
+          successRedirect: '/bookings',
+          initialService: props.initialService,
+        }),
+      { initialProps: { initialService: services[1] } },
+    );
+
+    expect(result.current.selectedService?.id).toBe('b');
+
+    act(() => {
+      result.current.handleEditService();
+    });
+    expect(result.current.selectedService).toBeNull();
+
+    rerender({ initialService: services[0] });
+    expect(result.current.selectedService?.id).toBe('a');
   });
 });
