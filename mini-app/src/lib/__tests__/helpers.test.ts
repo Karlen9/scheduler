@@ -49,6 +49,8 @@ describe('parseDateParam', () => {
     expect(parseDateParam('2026-4-1')).toBeUndefined();
     expect(parseDateParam('not-a-date')).toBeUndefined();
     expect(parseDateParam('')).toBeUndefined();
+    expect(parseDateParam('2026-00-01')).toBeUndefined();
+    expect(parseDateParam('2026-13-01')).toBeUndefined();
   });
 
   it('returns undefined when the date overflows (e.g. Feb 31)', () => {
