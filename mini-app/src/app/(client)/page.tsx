@@ -2,6 +2,7 @@
 
 import { CalendarCheck, Clock, MessageCircle, Share2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -16,7 +17,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import { useBookings, useSessionTypes, useSpecialist, useWorkingHours } from '@/hooks/queries';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
-import { formatDuration } from '@/lib/helpers';
+import { formatDateISO, formatDuration, nextDateForWeekday } from '@/lib/helpers';
 import { isTestRoute, resolveTestAwareHref } from '@/lib/routes';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
@@ -40,7 +41,8 @@ const ACTIVE_BOOKING_STATUSES = new Set<TBooking['status']>([
   'reschedule_pending',
 ]);
 
-type TScheduleGroup = {
+type TScheduleRow = {
+  day: number;
   dayLabel: string;
   hoursLabel: string;
   isClosed: boolean;
@@ -197,7 +199,7 @@ export default function HomePage(): ReactNode {
 
   const isLoading = specialistLoading || servicesLoading || workingHoursLoading;
 
-  const scheduleGroups = useMemo((): TScheduleGroup[] => {
+  const scheduleRows = useMemo((): TScheduleRow[] => {
     const hoursByDay = new Map<number, TWorkingHours[]>();
 
     for (const item of workingHours) {
@@ -206,23 +208,15 @@ export default function HomePage(): ReactNode {
       hoursByDay.set(item.dayOfWeek, dayHours);
     }
 
-    return scheduleDayOrder.reduce<TScheduleGroup[]>((groups, day) => {
+    return scheduleDayOrder.map((day) => {
       const rawHoursLabel = getDayHoursLabel(hoursByDay.get(day.day) ?? []);
-      const hoursLabel = rawHoursLabel || t('closed');
-      const previousGroup = groups[groups.length - 1];
-
-      if (previousGroup?.hoursLabel === hoursLabel) {
-        previousGroup.dayLabel = `${previousGroup.dayLabel}-${tdays(day.key)}`;
-        return groups;
-      }
-
-      groups.push({
+      return {
+        day: day.day,
         dayLabel: tdays(day.key),
-        hoursLabel,
+        hoursLabel: rawHoursLabel || t('closed'),
         isClosed: rawHoursLabel === '',
-      });
-      return groups;
-    }, []);
+      };
+    });
   }, [tdays, t, workingHours]);
 
   const nextBooking = useMemo(() => {
@@ -600,9 +594,13 @@ export default function HomePage(): ReactNode {
         {services.length > 0 ? (
           <div className={'space-y-2'}>
             {services.map((service) => (
-              <div
+              <Link
                 key={service.id}
-                className={'bg-background flex items-center gap-3 rounded-lg p-3'}
+                href={resolveTestAwareHref(pathname, `/book?service=${service.id}`)}
+                onClick={() => setActiveModal(null)}
+                className={
+                  'bg-background flex items-center gap-3 rounded-lg p-3 transition-opacity active:opacity-80'
+                }
               >
                 <div
                   className={
@@ -635,7 +633,7 @@ export default function HomePage(): ReactNode {
                     {formatPrice(service.price, service.currency, locale)}
                   </p>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
@@ -652,21 +650,32 @@ export default function HomePage(): ReactNode {
         className={'pb-6'}
       >
         <div className={'space-y-2'}>
-          {scheduleGroups.map((group) => (
-            <div
-              key={`${group.dayLabel}-${group.hoursLabel}`}
-              className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
-            >
-              <span className={'text-foreground text-sm font-medium'}>{group.dayLabel}</span>
-              <span
-                className={`text-right text-sm ${
-                  group.isClosed ? 'text-muted-foreground' : 'text-foreground'
-                }`}
+          {scheduleRows.map((row) =>
+            row.isClosed ? (
+              <div
+                key={row.day}
+                className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
               >
-                {group.hoursLabel}
-              </span>
-            </div>
-          ))}
+                <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
+                <span className={'text-muted-foreground text-right text-sm'}>{row.hoursLabel}</span>
+              </div>
+            ) : (
+              <Link
+                key={row.day}
+                href={resolveTestAwareHref(
+                  pathname,
+                  `/book?date=${formatDateISO(nextDateForWeekday(row.day, new Date()))}`,
+                )}
+                onClick={() => setActiveModal(null)}
+                className={
+                  'bg-background flex items-center justify-between gap-4 rounded-lg p-3 transition-opacity active:opacity-80'
+                }
+              >
+                <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
+                <span className={'text-foreground text-right text-sm'}>{row.hoursLabel}</span>
+              </Link>
+            ),
+          )}
         </div>
       </BottomSheet>
 
