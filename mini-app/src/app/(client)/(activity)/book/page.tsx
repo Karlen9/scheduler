@@ -1,11 +1,13 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 
 import { BookingForm } from '@/components/BookingForm';
 import { useBookings, useScheduleContext, useSessionTypes } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { parseDateParam } from '@/lib/helpers';
 import { getUserName } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
@@ -48,6 +50,14 @@ function ClientBookContent(): ReactNode {
   const { data: services, isLoading: svcLoading } = useSessionTypes();
   const { data: bookings } = useBookings();
 
+  const searchParams = useSearchParams();
+  const initialDate = useMemo(() => parseDateParam(searchParams.get('date')), [searchParams]);
+  const initialServiceId = searchParams.get('service');
+  const initialService = useMemo(
+    () => services.find((s) => s.id === initialServiceId),
+    [services, initialServiceId],
+  );
+
   /***************************************************************************************************
    * Defines the days off value used by the page layer.
    *
@@ -78,6 +88,8 @@ function ClientBookContent(): ReactNode {
       showRecurring={false}
       successRedirect={'/bookings'}
       title={t('title')}
+      initialDate={initialDate}
+      initialService={initialService}
       onCreateBooking={async (params) => {
         /***************************************************************************************************
          * Defines the name value used by the page layer.
