@@ -1163,8 +1163,9 @@ export const api = {
      * Side effects:
      * - May read browser state, call shared helpers, or perform network requests.
      ***************************************************************************************************/
-    async deleteClient(id: string): Promise<void> {
-      await fetchAPI<void>(`/api/admin/clients/${id}`, { method: 'DELETE' });
+    async deleteClient(id: string, cascade = false): Promise<void> {
+      const suffix = cascade ? '?cascade=1' : '';
+      await fetchAPI<void>(`/api/admin/clients/${id}${suffix}`, { method: 'DELETE' });
     },
 
     async blockClient(id: string, cancelBookings: boolean): Promise<TClientInfo> {

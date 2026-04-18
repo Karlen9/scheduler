@@ -58,6 +58,7 @@ export default function AdminClientsPage(): ReactNode {
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showUnblockDialog, setShowUnblockDialog] = useState(false);
   const [cancelBookingsOnBlock, setCancelBookingsOnBlock] = useState(false);
+  const [cascadeDeleteData, setCascadeDeleteData] = useState(false);
 
   useEffect(() => {
     if (!selectedClient) {
@@ -150,8 +151,12 @@ export default function AdminClientsPage(): ReactNode {
       return;
     }
     try {
-      await api.admin.deleteClient(deleteTarget.id);
+      await api.admin.deleteClient(deleteTarget.id, cascadeDeleteData);
       invalidateClients();
+      if (cascadeDeleteData) {
+        invalidateBookings();
+        invalidateRecurring();
+      }
       toast.success(t('deleteSuccess', { name: deleteTarget.name }));
     } catch (err) {
       /***************************************************************************************************
@@ -511,13 +516,45 @@ export default function AdminClientsPage(): ReactNode {
 
       <ConfirmDialog
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setCascadeDeleteData(false);
+        }}
         onConfirm={handleDelete}
         title={t('deleteDialog')}
         description={t('deleteDialogDescription', { name: deleteTarget?.name || '' })}
         confirmText={t('deleteConfirm')}
         destructive
-      />
+      >
+        <button
+          type={'button'}
+          onClick={() => setCascadeDeleteData(!cascadeDeleteData)}
+          className={
+            'bg-background mt-4 mb-3 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors active:opacity-80'
+          }
+        >
+          <div
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+              cascadeDeleteData
+                ? 'border-action-danger-text bg-action-danger-text'
+                : 'border-muted-foreground bg-transparent'
+            }`}
+          >
+            {cascadeDeleteData && (
+              <svg className={'h-3 w-3 text-white'} viewBox={'0 0 12 12'} fill={'none'}>
+                <path
+                  d={'M2.5 6L5 8.5L9.5 3.5'}
+                  stroke={'currentColor'}
+                  strokeWidth={'2'}
+                  strokeLinecap={'round'}
+                  strokeLinejoin={'round'}
+                />
+              </svg>
+            )}
+          </div>
+          <span className={'text-foreground text-sm'}>{t('deleteAllDataCheckbox')}</span>
+        </button>
+      </ConfirmDialog>
 
       <ClientDetailModal
         client={selectedClient}

@@ -339,6 +339,32 @@ func DeleteClient(clientID string) error {
 }
 
 /***************************************************************************************************
+* DeleteClientCascade removes a client along with all records that reference it
+* (bookings, recurring_schedules). Runs in a single transaction so a mid-delete
+* failure leaves no orphaned rows. Use when the caller explicitly opts into purging
+* all client data (e.g. the admin "delete all data" checkbox).
+***************************************************************************************************/
+func DeleteClientCascade(clientID string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.Exec(Q(`DELETE FROM bookings WHERE client_id = ?`), clientID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(Q(`DELETE FROM recurring_schedules WHERE client_id = ?`), clientID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(Q(`DELETE FROM clients WHERE id = ?`), clientID); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+/***************************************************************************************************
 * Updates client display name.
 *
 * Parameters:
