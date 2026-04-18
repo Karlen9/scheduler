@@ -212,74 +212,84 @@ export function BookingDetailModal({
       </div>
 
       {/***************************************************************************************************
-       * Waiting for client response on specialist-created bookings.
+       * Action-block selection:
+       * - pending + admin-created: waiting message + Reschedule/Cancel (admin can't "confirm" their own request)
+       * - pending + client-created: Accept/Reject only (approve or decline the request)
+       * - confirmed: Reschedule/Cancel
+       *
+       * The two action blocks are mutually exclusive so the modal never shows a redundant
+       * Cancel/Reject pair or a misleading Confirm on a booking the admin originated.
        ***************************************************************************************************/}
-      {displayBooking.status === 'pending' && displayBooking.createdBy === 'specialist' && (
-        <div className={'text-secondary mb-3 py-2 text-center text-sm'}>
-          {t('waitingForClient')}
-        </div>
-      )}
+      {(() => {
+        const isPending = displayBooking.status === 'pending';
+        const isConfirmed = displayBooking.status === 'confirmed';
+        const createdByAdmin = displayBooking.createdBy === 'specialist';
+        const showApprovalActions = isPending && !createdByAdmin && (onAccept || onReject);
+        const showManageActions = isConfirmed || (isPending && createdByAdmin);
 
-      {/***************************************************************************************************
-       * Accept / Reject for pending client-created bookings.
-       ***************************************************************************************************/}
-      {displayBooking.status === 'pending' &&
-        displayBooking.createdBy !== 'specialist' &&
-        (onAccept || onReject) && (
-          <div className={'mb-3 flex gap-3'}>
-            <button
-              onClick={() => onAccept?.(displayBooking)}
-              className={
-                'bg-action-confirm-bg text-action-confirm-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
-              }
-            >
-              {tc('confirm')}
-            </button>
-            <button
-              onClick={() => onReject?.(displayBooking)}
-              className={
-                'bg-action-danger-bg text-action-danger-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
-              }
-            >
-              {tc('cancelVerb')}
-            </button>
-          </div>
-        )}
+        return (
+          <>
+            {isPending && createdByAdmin && (
+              <div className={'text-secondary mb-3 py-2 text-center text-sm'}>
+                {t('waitingForClient')}
+              </div>
+            )}
 
-      {/***************************************************************************************************
-       * Actions.
-       ***************************************************************************************************/}
-      {canMessageClient && (
-        <button
-          onClick={() => onMessageClient(displayBooking)}
-          className={
-            'bg-card text-foreground mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
-          }
-        >
-          {t('messageClientButton')}
-        </button>
-      )}
+            {showApprovalActions && (
+              <div className={'mb-3 flex gap-3'}>
+                <button
+                  onClick={() => onAccept?.(displayBooking)}
+                  className={
+                    'bg-action-confirm-bg text-action-confirm-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {tc('confirm')}
+                </button>
+                <button
+                  onClick={() => onReject?.(displayBooking)}
+                  className={
+                    'bg-action-danger-bg text-action-danger-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {tc('cancelVerb')}
+                </button>
+              </div>
+            )}
 
-      {(displayBooking.status === 'pending' || displayBooking.status === 'confirmed') && (
-        <div className={'flex gap-3'}>
-          <button
-            onClick={() => onReschedule?.(displayBooking)}
-            className={
-              'bg-card text-foreground flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
-            }
-          >
-            {t('rescheduleButton')}
-          </button>
-          <button
-            onClick={() => onCancel?.(displayBooking)}
-            className={
-              'bg-action-danger-bg text-action-danger-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
-            }
-          >
-            {t('cancelButton')}
-          </button>
-        </div>
-      )}
+            {canMessageClient && (
+              <button
+                onClick={() => onMessageClient(displayBooking)}
+                className={
+                  'bg-card text-foreground mb-3 w-full rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                }
+              >
+                {t('messageClientButton')}
+              </button>
+            )}
+
+            {showManageActions && (
+              <div className={'flex gap-3'}>
+                <button
+                  onClick={() => onReschedule?.(displayBooking)}
+                  className={
+                    'bg-card text-foreground flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {t('rescheduleButton')}
+                </button>
+                <button
+                  onClick={() => onCancel?.(displayBooking)}
+                  className={
+                    'bg-action-danger-bg text-action-danger-text flex-1 rounded-[28px] px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {t('cancelButton')}
+                </button>
+              </div>
+            )}
+          </>
+        );
+      })()}
     </BottomSheet>
   );
 }
