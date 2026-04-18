@@ -2,6 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
+import { Switch } from '@/components/Switch';
+
 import type { TNotificationPreferencesProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
@@ -75,19 +77,11 @@ export function NotificationPreferences({
               <div className={'text-sm font-medium'}>{item.label}</div>
               <div className={'text-muted-foreground text-xs'}>{item.desc}</div>
             </div>
-            <button
-              type={'button'}
-              onClick={() => onToggle(item.key, !item.value)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                item.value ? 'bg-brand' : 'bg-switch-background'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  item.value ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <Switch
+              checked={item.value}
+              onChange={(next) => onToggle(item.key, next)}
+              ariaLabel={item.label}
+            />
           </div>
         ))}
       </div>

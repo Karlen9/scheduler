@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { Switch } from '@/components/Switch';
 import { TopBar } from '@/components/TopBar';
 import { invalidateAdminNotifications } from '@/hooks/mutations';
 import { useAdminNotifications } from '@/hooks/queries';
@@ -128,19 +129,13 @@ export default function AdminNotificationsPage(): ReactNode {
                 <div className={'text-sm font-medium'}>{item.label}</div>
                 <div className={'text-muted-foreground text-xs'}>{item.desc}</div>
               </div>
-              <button
-                type={'button'}
-                onClick={async () => handleToggle(item.key, !item.value)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  item.value ? 'bg-brand' : 'bg-switch-background'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    item.value ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+              <Switch
+                checked={item.value}
+                onChange={(next) => {
+                  void handleToggle(item.key, next);
+                }}
+                ariaLabel={item.label}
+              />
             </div>
           ))}
         </div>
