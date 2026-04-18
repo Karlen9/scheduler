@@ -2241,6 +2241,10 @@ func HandleAdminBlockClient(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
+	if client.IsGhost {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
 
 	var req struct {
 		Blocked        bool `json:"blocked"`
