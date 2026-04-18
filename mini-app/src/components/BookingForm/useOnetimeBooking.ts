@@ -37,6 +37,7 @@ export function useOnetimeBooking({
   hasClientSelector,
   onCreateBooking,
   successRedirect,
+  initialDate,
 }: TUseOnetimeBookingParams): TUseOnetimeBookingReturn {
   /***************************************************************************************************
    * Defines the router value used by the component layer.
@@ -123,6 +124,8 @@ export function useOnetimeBooking({
     setMessage('');
   }, [mode]);
 
+  const appliedInitialDateKeyRef = useRef<string | null>(null);
+
   /***************************************************************************************************
    * Helpers.
    *
@@ -182,6 +185,28 @@ export function useOnetimeBooking({
       }
     }
   }, []);
+
+  /***************************************************************************************************
+   * Apply initialDate after a service has been chosen. Service selection resets selectedDate
+   * (see handleServiceSelect), so doing this on mount would be clobbered; gating on
+   * selectedService ensures the preselected date survives into the date-picker stage.
+   * The ref key is the formatted date string, so repeat navigations with a different date
+   * re-apply (admin clicks a second empty slot before leaving the page), while the same
+   * date won't re-apply after a service change and wipe the user's in-progress picks.
+   ***************************************************************************************************/
+  useEffect(() => {
+    if (!initialDate || !selectedService) {
+      return;
+    }
+    const key = formatDateISO(initialDate);
+    if (appliedInitialDateKeyRef.current === key) {
+      return;
+    }
+    appliedInitialDateKeyRef.current = key;
+    setMode('single');
+    setSelectedDate(initialDate);
+    fetchSlots(initialDate, selectedService.durationMinutes);
+  }, [initialDate, selectedService, fetchSlots]);
 
   /***************************************************************************************************
    * Service handlers.

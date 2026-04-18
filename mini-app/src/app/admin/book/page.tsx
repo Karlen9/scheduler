@@ -1,6 +1,8 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import { BookingForm } from '@/components/BookingForm';
 import { invalidateClients } from '@/hooks/mutations';
@@ -8,6 +10,26 @@ import { useAdminScheduleContext, useAdminServices, useClients } from '@/hooks/q
 import { api } from '@/lib/api';
 
 import type { ReactNode } from 'react';
+
+function parseDateParam(raw: string | null): Date | undefined {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return undefined;
+  }
+  const [y, m, d] = raw.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  /***************************************************************************************************
+   * Guard against silent overflow normalization (e.g. 2026-02-31 → 2026-03-03).
+   ***************************************************************************************************/
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== y ||
+    date.getMonth() !== m - 1 ||
+    date.getDate() !== d
+  ) {
+    return undefined;
+  }
+  return date;
+}
 
 /***************************************************************************************************
  * Renders the admin book page UI and related interactions.
@@ -55,6 +77,9 @@ export default function AdminBookPage(): ReactNode {
    ***************************************************************************************************/
   const daysOff = daysOffData.map((d) => d.date);
 
+  const searchParams = useSearchParams();
+  const initialDate = useMemo(() => parseDateParam(searchParams.get('date')), [searchParams]);
+
   return (
     <BookingForm
       services={services}
@@ -65,6 +90,7 @@ export default function AdminBookPage(): ReactNode {
       showRecurring={false}
       successRedirect={'/admin'}
       title={t('adminTitle')}
+      initialDate={initialDate}
       onCreateGhostClient={async (name) => {
         /***************************************************************************************************
          * Defines the client value used by the page layer.

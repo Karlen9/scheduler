@@ -40,6 +40,7 @@ export function BookingForm({
   onCreateGhostClient,
   successRedirect,
   title,
+  initialDate,
 }: TBookingFormProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -197,6 +198,7 @@ export function BookingForm({
                 nonWorkingDays={nonWorkingDays}
                 onCreateBooking={onCreateBooking}
                 successRedirect={successRedirect}
+                initialDate={initialDate}
               />
             ) : (
               <RecurringBookingFlow
