@@ -234,6 +234,9 @@ export function parseDateParam(raw: string | null): Date | undefined {
   }
   const [y, m, d] = raw.split('-').map(Number);
   const date = new Date(y, m - 1, d);
+  /***************************************************************************************************
+   * Guard against silent overflow normalization (e.g. 2026-02-31 → 2026-03-03).
+   ***************************************************************************************************/
   if (
     Number.isNaN(date.getTime()) ||
     date.getFullYear() !== y ||
