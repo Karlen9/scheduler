@@ -1261,7 +1261,19 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
 
     const clientMatch = path.match(/^\/api\/admin\/clients\/([^/]+)$/);
     if (clientMatch) {
-      state.clients = state.clients.filter((client) => client.id !== clientMatch[1]);
+      const clientId = clientMatch[1];
+      const cascadeParam = new URLSearchParams(endpoint.split('?')[1] ?? '').get('cascade');
+      if (cascadeParam === '1') {
+        const removed = state.clients.find((client) => client.id === clientId);
+        const clientName = removed?.name;
+        state.bookings = state.bookings.filter((booking) => booking.clientId !== clientId);
+        if (clientName) {
+          state.recurringSchedules = state.recurringSchedules.filter(
+            (schedule) => schedule.clientName !== clientName,
+          );
+        }
+      }
+      state.clients = state.clients.filter((client) => client.id !== clientId);
       bumpChangeVersions(state, ['clients', 'bookings', 'recurring']);
       return undefined as T;
     }
