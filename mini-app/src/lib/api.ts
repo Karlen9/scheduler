@@ -942,6 +942,13 @@ export const api = {
       });
     },
 
+    async createDayOffsBatch(dates: string[], reason?: string): Promise<TDayOff[]> {
+      return fetchAPI<TDayOff[]>('/api/admin/days-off/batch', {
+        method: 'POST',
+        body: JSON.stringify({ dates, reason }),
+      });
+    },
+
     /***************************************************************************************************
      * Deletes day off.
      *

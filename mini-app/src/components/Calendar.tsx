@@ -156,6 +156,8 @@ export function MonthGrid({
   displayDate,
   selectedDate,
   selectedDates,
+  rangeStart,
+  rangeEnd,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
@@ -468,37 +470,61 @@ export function MonthGrid({
            ***************************************************************************************************/
           const hasDot = dotDates?.has(toISODate(date)) && !selected && !nonWorking;
 
+          /***************************************************************************************************
+           * Range highlight: renders a connecting bar between rangeStart and rangeEnd.
+           ***************************************************************************************************/
+          const hasRange = Boolean(rangeStart && rangeEnd);
+          const isRangeStart = hasRange && isSameDay(date, rangeStart!);
+          const isRangeEnd = hasRange && isSameDay(date, rangeEnd!);
+          const inRange =
+            hasRange && date >= rangeStart! && date <= rangeEnd! && !isRangeStart && !isRangeEnd;
+          const rangeEndpoint = isRangeStart || isRangeEnd;
+          const isRangeSingleDay = hasRange && isSameDay(rangeStart!, rangeEnd!);
+
           return (
             <button
               key={i}
               onClick={() => !disabled && onSelectDate(date)}
               disabled={disabled}
-              className={`flex flex-col items-center ${fillOuterDays ? 'py-1.5' : 'aspect-square justify-center'}`}
+              className={`relative flex flex-col items-center ${fillOuterDays ? 'py-1.5' : 'aspect-square justify-center'}`}
             >
+              {(inRange || (rangeEndpoint && !isRangeSingleDay)) && (
+                <div
+                  className={`bg-brand/15 pointer-events-none absolute top-1/2 h-9 -translate-y-1/2 ${
+                    inRange
+                      ? '-right-0.5 -left-0.5'
+                      : isRangeStart
+                        ? '-right-0.5 left-1/2'
+                        : 'right-1/2 -left-0.5'
+                  }`}
+                />
+              )}
               <span
-                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors ${
-                  selected
+                className={`relative flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors ${
+                  selected || rangeEndpoint
                     ? 'bg-brand font-medium text-white'
-                    : booked && isCurrentMonth
-                      ? 'text-success'
-                      : dayOff && isCurrentMonth
-                        ? 'bg-dayoff-bg text-dayoff-text'
-                        : disabled && (isPast(date) || isBeyondMax(date))
-                          ? 'text-muted-foreground opacity-40'
-                          : nonWorking
-                            ? isCurrentMonth
-                              ? 'text-muted-foreground/30'
-                              : 'text-muted-foreground/20'
-                            : isDayToday
-                              ? 'ring-brand text-brand font-medium ring-1'
-                              : isCurrentMonth
-                                ? 'text-foreground'
-                                : 'text-muted-foreground/40'
+                    : inRange
+                      ? 'text-brand font-medium'
+                      : booked && isCurrentMonth
+                        ? 'text-success'
+                        : dayOff && isCurrentMonth
+                          ? 'bg-dayoff-bg text-dayoff-text'
+                          : disabled && (isPast(date) || isBeyondMax(date))
+                            ? 'text-muted-foreground opacity-40'
+                            : nonWorking
+                              ? isCurrentMonth
+                                ? 'text-muted-foreground/30'
+                                : 'text-muted-foreground/20'
+                              : isDayToday
+                                ? 'ring-brand text-brand font-medium ring-1'
+                                : isCurrentMonth
+                                  ? 'text-foreground'
+                                  : 'text-muted-foreground/40'
                 }`}
               >
                 {date.getDate()}
               </span>
-              {booked && isCurrentMonth && !selected ? (
+              {booked && isCurrentMonth && !selected && !rangeEndpoint && !inRange ? (
                 <div className={'bg-success mt-0.5 h-1.5 w-1.5 rounded-full'} />
               ) : hasDot ? (
                 <div className={'bg-brand mt-0.5 h-1 w-1 rounded-full'} />

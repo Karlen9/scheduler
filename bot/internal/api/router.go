@@ -186,6 +186,7 @@ func NewRouter() http.Handler {
 			***************************************************************************************************/
 			r.Get("/days-off", HandleGetDaysOff)
 			r.Post("/days-off", HandleCreateDayOff)
+			r.Post("/days-off/batch", HandleBatchCreateDayOff)
 			r.Delete("/days-off/{id}", HandleDeleteDayOff)
 
 			/***************************************************************************************************

@@ -720,6 +720,8 @@ export type TMonthGridProps = {
   displayDate: Date;
   selectedDate: Date | null;
   selectedDates?: Date[];
+  rangeStart?: Date | null;
+  rangeEnd?: Date | null;
   onSelectDate: (date: Date) => void;
   onPrevMonth: TVoidFunction;
   onNextMonth: TVoidFunction;

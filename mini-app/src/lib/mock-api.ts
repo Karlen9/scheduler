@@ -1001,6 +1001,30 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
       bumpChangeVersions(state, ['daysOff']);
       return clone(dayOff) as T;
     }
+    if (path === '/api/admin/days-off/batch') {
+      const rawDates = Array.isArray(body.dates) ? (body.dates as unknown[]) : [];
+      const reason = getOptionalString(body.reason);
+      const existing = new Set(state.daysOff.map((d) => d.date.slice(0, 10)));
+      const created: TDayOff[] = [];
+      const seen = new Set<string>();
+      for (const raw of rawDates) {
+        if (typeof raw !== 'string' || seen.has(raw) || existing.has(raw)) {
+          continue;
+        }
+        seen.add(raw);
+        created.push({
+          id: `mock-day-off-${Date.now()}-${created.length}`,
+          date: raw,
+          reason,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      if (created.length > 0) {
+        state.daysOff = [...created, ...state.daysOff];
+        bumpChangeVersions(state, ['daysOff']);
+      }
+      return clone(created) as T;
+    }
     if (path === '/api/admin/clients') {
       const client: TClientInfo = {
         id: `mock-client-${Date.now()}`,
