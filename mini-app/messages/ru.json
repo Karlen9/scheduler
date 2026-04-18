@@ -456,6 +456,7 @@
   "AdminAllBookings": {
     "title": "Все записи",
     "totalCount": "Записей: {count}",
+    "showPast": "Показывать прошедшие записи",
     "filters": "Фильтры",
     "filtersWithCount": "Фильтры ({count})",
     "filtersTitle": "Фильтры и сортировка",
