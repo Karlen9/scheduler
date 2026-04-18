@@ -38,6 +38,7 @@ export function useOnetimeBooking({
   onCreateBooking,
   successRedirect,
   initialDate,
+  initialService,
 }: TUseOnetimeBookingParams): TUseOnetimeBookingReturn {
   /***************************************************************************************************
    * Defines the router value used by the component layer.
@@ -124,6 +125,7 @@ export function useOnetimeBooking({
     setMessage('');
   }, [mode]);
 
+  const appliedInitialServiceKeyRef = useRef<string | null>(null);
   const appliedInitialDateKeyRef = useRef<string | null>(null);
 
   /***************************************************************************************************
@@ -185,6 +187,22 @@ export function useOnetimeBooking({
       }
     }
   }, []);
+
+  /***************************************************************************************************
+   * Apply initialService on mount (or when it changes). Ref-gated by service id so that if the
+   * user subsequently edits the service the effect does not clobber their manual choice.
+   ***************************************************************************************************/
+  useEffect(() => {
+    if (!initialService) {
+      return;
+    }
+    if (appliedInitialServiceKeyRef.current === initialService.id) {
+      return;
+    }
+    appliedInitialServiceKeyRef.current = initialService.id;
+    handleServiceSelect(initialService);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialService]);
 
   /***************************************************************************************************
    * Apply initialDate after a service has been chosen. Service selection resets selectedDate
