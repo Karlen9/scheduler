@@ -60,6 +60,49 @@ func scanClient(row interface {
 }
 
 /***************************************************************************************************
+* scanClientWithRef is used by queries that include the referred_via_code column appended to the
+* standard client column list.
+***************************************************************************************************/
+func scanClientWithRef(row interface {
+	Scan(dest ...interface{}) error
+}) (*models.Client, error) {
+	var c models.Client
+	var phone, photoURL sql.NullString
+	var preferredDuration sql.NullInt64
+	var isGhost sql.NullInt64
+	var isBlocked sql.NullInt64
+	var language, displayName, referredViaCode sql.NullString
+	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
+	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &preferredDuration,
+		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName, &referredViaCode)
+	if err != nil {
+		return nil, err
+	}
+	if phone.Valid {
+		c.Phone = phone.String
+	}
+	if photoURL.Valid {
+		c.PhotoURL = photoURL.String
+	}
+	if preferredDuration.Valid {
+		c.PreferredDuration = int(preferredDuration.Int64)
+	}
+	c.IsGhost = isGhost.Valid && isGhost.Int64 == 1
+	c.IsBlocked = isBlocked.Valid && isBlocked.Int64 == 1
+	c.NotifyBookingStatus = !notifyBookingStatus.Valid || notifyBookingStatus.Int64 == 1
+	c.NotifyReminders = !notifyReminders.Valid || notifyReminders.Int64 == 1
+	c.NotifyDaysOff = notifyDaysOff.Valid && notifyDaysOff.Int64 == 1
+	c.NotifyCancellations = !notifyCancellations.Valid || notifyCancellations.Int64 == 1
+	c.Language = language.String
+	if c.Language == "" {
+		c.Language = "ru"
+	}
+	c.DisplayName = displayName.String
+	c.ReferredViaCode = referredViaCode.String
+	return &c, nil
+}
+
+/***************************************************************************************************
 * Returns client by telegram id.
 *
 * Parameters:
@@ -133,14 +176,32 @@ func GetClientByID(id string) (*models.Client, error) {
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func CreateClient(telegramUserID int64, specialistID string, name string) (*models.Client, error) {
+	return CreateClientWithReferral(telegramUserID, specialistID, name, "")
+}
+
+/***************************************************************************************************
+* CreateClientWithReferral creates a client and records the referral code used to acquire them
+* (empty string means organic signup).
+***************************************************************************************************/
+func CreateClientWithReferral(telegramUserID int64, specialistID string, name string, referralCode string) (*models.Client, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(Q(`
-		INSERT INTO clients (id, telegram_user_id, specialist_id, name)
-		VALUES (?, ?, ?, ?)
-	`), id, telegramUserID, specialistID, name)
-	if err != nil {
-		return nil, err
+	if referralCode == "" {
+		_, err := DB.Exec(Q(`
+			INSERT INTO clients (id, telegram_user_id, specialist_id, name)
+			VALUES (?, ?, ?, ?)
+		`), id, telegramUserID, specialistID, name)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		_, err := DB.Exec(Q(`
+			INSERT INTO clients (id, telegram_user_id, specialist_id, name, referred_via_code)
+			VALUES (?, ?, ?, ?, ?)
+		`), id, telegramUserID, specialistID, name, referralCode)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return GetClientByID(id)
@@ -161,6 +222,15 @@ func CreateClient(telegramUserID int64, specialistID string, name string) (*mode
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func GetOrCreateClient(telegramUserID int64, specialistID string, name string) (*models.Client, error) {
+	return GetOrCreateClientWithReferral(telegramUserID, specialistID, name, "")
+}
+
+/***************************************************************************************************
+* GetOrCreateClientWithReferral returns the existing client or creates a new one tagged with the
+* referral code. Existing clients never have their referral code overwritten — referrals are only
+* credited on initial signup.
+***************************************************************************************************/
+func GetOrCreateClientWithReferral(telegramUserID int64, specialistID string, name string, referralCode string) (*models.Client, error) {
 	client, err := GetClientByTelegramID(telegramUserID, specialistID)
 	if err != nil {
 		return nil, err
@@ -168,7 +238,7 @@ func GetOrCreateClient(telegramUserID int64, specialistID string, name string) (
 	if client != nil {
 		return client, nil
 	}
-	return CreateClient(telegramUserID, specialistID, name)
+	return CreateClientWithReferral(telegramUserID, specialistID, name, referralCode)
 }
 
 /***************************************************************************************************

@@ -31,6 +31,16 @@ func generateWebhookSecret() string {
 }
 
 /***************************************************************************************************
+* generateReferralCode returns a short random referral code (8 bytes → 16 hex chars). Kept
+* compact because it ends up inside shared t.me/bot?start= links.
+***************************************************************************************************/
+func generateReferralCode() string {
+	bytes := make([]byte, 8)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+/***************************************************************************************************
 * Scans specialist.
 *
 * Parameters:
@@ -44,7 +54,7 @@ func generateWebhookSecret() string {
 ***************************************************************************************************/
 func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, error) {
 	var t models.Specialist
-	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper sql.NullString
+	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper, referralCode sql.NullString
 	var notifyNewBookings, notifyCancellations sql.NullInt64
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
@@ -56,6 +66,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&t.IsActive, &t.CreatedAt,
 		&language,
 		&wallpaper,
+		&referralCode,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -76,6 +87,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		t.Language = "ru"
 	}
 	t.Wallpaper = wallpaper.String
+	t.ReferralCode = referralCode.String
 
 	/***************************************************************************************************
 	* Decrypt bot token (passthrough for plain text).
@@ -94,7 +106,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -259,6 +271,7 @@ func GetAllActiveSpecialists() ([]models.Specialist, error) {
 func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezone string, cancelCutoffHrs int) (*models.Specialist, error) {
 	id := uuid.New().String()
 	webhookSecret := generateWebhookSecret()
+	referralCode := generateReferralCode()
 
 	encryptedToken, err := crypto.Encrypt(botToken)
 	if err != nil {
@@ -267,14 +280,109 @@ func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezon
 	tokenHash := crypto.HashToken(botToken)
 
 	_, err = DB.Exec(Q(`
-		INSERT INTO specialists (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`), id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs)
+		INSERT INTO specialists (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, referral_code)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`), id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode)
 	if err != nil {
 		return nil, err
 	}
 
 	return GetSpecialistByID(id)
+}
+
+/***************************************************************************************************
+* GetSpecialistByReferralCode looks up a specialist by their referral code. Returns nil if no
+* match or the code is empty.
+***************************************************************************************************/
+func GetSpecialistByReferralCode(code string) (*models.Specialist, error) {
+	if code == "" {
+		return nil, nil
+	}
+	row := DB.QueryRow(Q(`
+		SELECT `+specialistColumns+`
+		FROM specialists
+		WHERE referral_code = ? AND is_active = 1
+	`), code)
+	return scanSpecialist(row)
+}
+
+/***************************************************************************************************
+* EnsureSpecialistReferralCode assigns and persists a fresh random referral code if the specialist
+* does not already have one. Returns the active code.
+***************************************************************************************************/
+func EnsureSpecialistReferralCode(specialistID string) (string, error) {
+	specialist, err := GetSpecialistByID(specialistID)
+	if err != nil {
+		return "", err
+	}
+	if specialist == nil {
+		return "", fmt.Errorf("specialist not found")
+	}
+	if specialist.ReferralCode != "" {
+		return specialist.ReferralCode, nil
+	}
+
+	for attempt := 0; attempt < 5; attempt++ {
+		code := generateReferralCode()
+		_, err := DB.Exec(Q(`UPDATE specialists SET referral_code = ? WHERE id = ? AND (referral_code IS NULL OR referral_code = '')`), code, specialistID)
+		if err != nil {
+			continue
+		}
+		current, err := GetSpecialistByID(specialistID)
+		if err == nil && current != nil && current.ReferralCode != "" {
+			return current.ReferralCode, nil
+		}
+	}
+	return "", fmt.Errorf("failed to assign referral code")
+}
+
+/***************************************************************************************************
+* GetReferralCountBySpecialist returns the number of real (non-ghost) clients acquired via the
+* specialist's referral link.
+***************************************************************************************************/
+func GetReferralCountBySpecialist(specialistID, referralCode string) (int, error) {
+	if referralCode == "" {
+		return 0, nil
+	}
+	var n int
+	err := DB.QueryRow(Q(`
+		SELECT COUNT(*) FROM clients
+		WHERE specialist_id = ? AND referred_via_code = ? AND COALESCE(is_ghost, 0) = 0
+	`), specialistID, referralCode).Scan(&n)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+/***************************************************************************************************
+* GetReferredClientsBySpecialist returns the list of clients acquired via the specialist's
+* referral link, ordered by newest first.
+***************************************************************************************************/
+func GetReferredClientsBySpecialist(specialistID, referralCode string) ([]models.Client, error) {
+	if referralCode == "" {
+		return []models.Client{}, nil
+	}
+	rows, err := DB.Query(Q(`
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, referred_via_code
+		FROM clients
+		WHERE specialist_id = ? AND referred_via_code = ? AND COALESCE(is_ghost, 0) = 0
+		ORDER BY created_at DESC
+	`), specialistID, referralCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clients []models.Client
+	for rows.Next() {
+		c, err := scanClientWithRef(rows)
+		if err != nil {
+			return nil, err
+		}
+		clients = append(clients, *c)
+	}
+	return clients, rows.Err()
 }
 
 /***************************************************************************************************

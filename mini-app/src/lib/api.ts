@@ -17,6 +17,7 @@ import type {
   TDayOff,
   TRecurringPreviewResponse,
   TRecurringSchedule,
+  TReferralsResponse,
   TScheduleContext,
   TSessionType,
   TSpecialist,
@@ -1482,6 +1483,13 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(prefs),
       });
+    },
+
+    /***************************************************************************************************
+     * Fetches the specialist's referral code, shareable link, and list of referred clients.
+     ***************************************************************************************************/
+    async getReferrals(): Promise<TReferralsResponse> {
+      return fetchAPI<TReferralsResponse>('/api/admin/referrals');
     },
   },
 };

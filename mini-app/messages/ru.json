@@ -331,6 +331,7 @@
     "title": "Профиль",
     "management": "Управление",
     "clients": "Клиенты",
+    "referrals": "Приглашения",
     "main": "Основные",
     "profile": "Профиль",
     "servicesAndPrices": "Услуги и цены",
@@ -340,6 +341,23 @@
     "notifications": "Уведомления",
     "help": "Помощь",
     "theme": "Тема"
+  },
+  "AdminReferrals": {
+    "title": "Приглашения",
+    "heroHeading": "Пригласите друзей",
+    "heroBody": "Поделитесь ботом с друзьями — так вы помогаете нам развивать его, а в будущем получите за это бонусы.",
+    "yourLink": "Ваша ссылка",
+    "copyLink": "Скопировать",
+    "linkCopied": "Ссылка скопирована",
+    "copyFailed": "Не удалось скопировать",
+    "shareTelegram": "Поделиться в Telegram",
+    "shareText": "Приглашаю тебя записаться через бот 👉 {link}",
+    "statsTitle": "Статистика",
+    "statsCount": "Приглашено",
+    "referralsTitle": "Приглашённые клиенты",
+    "referralsEmpty": "Пока никого нет — поделитесь ссылкой, чтобы начать",
+    "referralDate": "Присоединился(ась) {date}",
+    "blocked": "Заблокирован"
   },
   "AdminProfile": {
     "title": "Профиль",

@@ -29,6 +29,27 @@
   "Btn.Decline": {
     "other": "❌ Decline"
   },
+  "Btn.Profile": {
+    "other": "👤 Profile"
+  },
+  "Btn.InviteFriend": {
+    "other": "🎁 Invite a friend"
+  },
+  "Btn.InviteShare": {
+    "other": "📤 Share on Telegram"
+  },
+  "Btn.Back": {
+    "other": "← Back"
+  },
+  "Referral.ProfileMenu": {
+    "other": "👤 Profile\n\nChoose an action:"
+  },
+  "Referral.InviteMessage": {
+    "other": "🎁 <b>Invite your friends to the bot</b>\n\nShare this link with friends — you help us keep the bot running and earn perks in the future.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nReferral stats live in the admin panel → Settings → Referrals."
+  },
+  "Referral.ShareText": {
+    "other": "Book with me through my Telegram bot 👉 {{.Link}}"
+  },
   "Booking.New": {
     "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
   },

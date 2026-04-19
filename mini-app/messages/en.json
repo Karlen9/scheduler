@@ -331,6 +331,7 @@
     "title": "Profile",
     "management": "Management",
     "clients": "Clients",
+    "referrals": "Referrals",
     "main": "General",
     "profile": "Profile",
     "servicesAndPrices": "Services & Prices",
@@ -340,6 +341,23 @@
     "notifications": "Notifications",
     "help": "Help",
     "theme": "Theme"
+  },
+  "AdminReferrals": {
+    "title": "Referrals",
+    "heroHeading": "Invite your friends",
+    "heroBody": "Share the bot with friends — you help us keep it running, and you'll earn perks for it later.",
+    "yourLink": "Your link",
+    "copyLink": "Copy",
+    "linkCopied": "Link copied",
+    "copyFailed": "Couldn't copy link",
+    "shareTelegram": "Share on Telegram",
+    "shareText": "Book with me through my bot 👉 {link}",
+    "statsTitle": "Stats",
+    "statsCount": "Invited",
+    "referralsTitle": "Invited clients",
+    "referralsEmpty": "No one yet — share your link to get started",
+    "referralDate": "Joined {date}",
+    "blocked": "Blocked"
   },
   "AdminProfile": {
     "title": "Profile",

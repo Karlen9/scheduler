@@ -3,6 +3,7 @@ package telegram
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -75,9 +76,19 @@ func (h *Handler) HandleUpdate(update Update) {
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func (h *Handler) handleMessage(msg *Message) {
+	/***************************************************************************************************
+	* /start may carry a deep-link payload: "/start ref_<code>" tags the new client with the
+	* specialist's referral code.
+	***************************************************************************************************/
+	if msg.Text == "/start" || strings.HasPrefix(msg.Text, "/start ") {
+		payload := ""
+		if len(msg.Text) > len("/start ") {
+			payload = strings.TrimSpace(msg.Text[len("/start "):])
+		}
+		h.handleStartWithPayload(msg, payload)
+		return
+	}
 	switch msg.Text {
-	case "/start":
-		h.handleStart(msg)
 	case "/admin":
 		h.handleAdmin(msg)
 	case "/help":
@@ -98,6 +109,33 @@ func (h *Handler) handleMessage(msg *Message) {
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func (h *Handler) handleStart(msg *Message) {
+	h.handleStartWithPayload(msg, "")
+}
+
+/***************************************************************************************************
+* parseReferralPayload extracts the referral code from a /start payload. Accepts both bare codes
+* ("abcd1234") and the ref_-prefixed form ("ref_abcd1234"). Returns an empty string if the payload
+* does not look like a referral.
+***************************************************************************************************/
+func parseReferralPayload(payload string) string {
+	payload = strings.TrimSpace(payload)
+	if payload == "" {
+		return ""
+	}
+	if strings.HasPrefix(payload, "ref_") {
+		return strings.TrimPrefix(payload, "ref_")
+	}
+	return payload
+}
+
+/***************************************************************************************************
+* handleStartWithPayload is the main /start flow. A non-empty payload is interpreted as a
+* referral code: if it matches this specialist's code and the incoming user is a brand-new
+* client (not the specialist themselves, not already registered), the client is tagged with the
+* referral code. Invalid / self / returning-client cases are silently ignored — onboarding
+* continues as normal.
+***************************************************************************************************/
+func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 	/***************************************************************************************************
 	* Get specialist by bot token to include specialist ID in URL.
 	***************************************************************************************************/
@@ -132,6 +170,7 @@ func (h *Handler) handleStart(msg *Message) {
 			InlineKeyboard: [][]InlineKeyboardButton{
 				{{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}}},
 				{{Text: BtnOpenApp(loc), WebApp: &WebAppInfo{URL: clientURL}}},
+				{{Text: BtnProfile(loc), CallbackData: "profile:home"}},
 			},
 		}
 		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), keyboard)
@@ -148,14 +187,22 @@ func (h *Handler) handleStart(msg *Message) {
 	if client == nil {
 		/***************************************************************************************************
 		* New user — show language selection (using Default() since language is not yet chosen; Lang.*
-		* keys are bilingual and identical in both locales).
+		* keys are bilingual and identical in both locales). The referral code is forwarded through the
+		* callback data so it can be recorded on client creation.
 		***************************************************************************************************/
+		refCode := validateReferralForIncomingUser(specialist, msg.From.ID, payload)
 		defLoc := myI18n.Default()
+		ruData := "lang:ru:" + specialist.ID
+		enData := "lang:en:" + specialist.ID
+		if refCode != "" {
+			ruData += ":" + refCode
+			enData += ":" + refCode
+		}
 		keyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
 				{
-					{Text: myI18n.T(defLoc, "Lang.Russian"), CallbackData: "lang:ru:" + specialist.ID},
-					{Text: myI18n.T(defLoc, "Lang.English"), CallbackData: "lang:en:" + specialist.ID},
+					{Text: myI18n.T(defLoc, "Lang.Russian"), CallbackData: ruData},
+					{Text: myI18n.T(defLoc, "Lang.English"), CallbackData: enData},
 				},
 			},
 		}
@@ -304,6 +351,14 @@ func (h *Handler) handleCallbackQuery(update Update) {
 	}
 
 	/***************************************************************************************************
+	* Handle specialist profile menu callbacks.
+	***************************************************************************************************/
+	if strings.HasPrefix(data, "profile:") {
+		h.handleProfileCallback(update)
+		return
+	}
+
+	/***************************************************************************************************
 	* Handle client accept/decline callback.
 	***************************************************************************************************/
 	if strings.HasPrefix(data, "client_accept:") || strings.HasPrefix(data, "client_decline:") {
@@ -405,13 +460,22 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	cq := update.CallbackQuery
 	data := cq.Data
 
-	parts := strings.SplitN(data, ":", 3)
-	if len(parts) != 3 {
+	/***************************************************************************************************
+	* Expected callback data shapes:
+	*   lang:<ru|en>:<specialistID>
+	*   lang:<ru|en>:<specialistID>:<referralCode>   (optional, forwarded from /start ref_<code>)
+	***************************************************************************************************/
+	parts := strings.SplitN(data, ":", 4)
+	if len(parts) < 3 {
 		return
 	}
 
 	lang := parts[1]
 	specialistID := parts[2]
+	referralCode := ""
+	if len(parts) == 4 {
+		referralCode = parts[3]
+	}
 
 	/***************************************************************************************************
 	* Validate lang.
@@ -426,9 +490,18 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	}
 
 	/***************************************************************************************************
-	* Create or get client.
+	* Re-validate the referral code server-side. The callback data is tamper-able, so we re-check
+	* that the code belongs to this specialist and the caller is not the specialist themselves.
 	***************************************************************************************************/
-	client, err := db.GetOrCreateClient(cq.From.ID, specialistID, firstName)
+	if referralCode != "" {
+		specialist, _ := db.GetSpecialistByID(specialistID)
+		referralCode = validateReferralForIncomingUser(specialist, cq.From.ID, referralCode)
+	}
+
+	/***************************************************************************************************
+	* Create or get client (tagged with referral code on first creation).
+	***************************************************************************************************/
+	client, err := db.GetOrCreateClientWithReferral(cq.From.ID, specialistID, firstName, referralCode)
 	if err != nil {
 		log.Printf("Error creating client: %v", err)
 		return
@@ -1044,4 +1117,127 @@ func (h *Handler) notifySpecialistClientResponse(booking *models.Booking, accept
 	if err != nil {
 		log.Printf("Error notifying specialist: %v", err)
 	}
+}
+
+/***************************************************************************************************
+* validateReferralForIncomingUser returns the referral code to credit, or an empty string if the
+* referral should be ignored. Ignored when: specialist is nil, payload is empty, payload does not
+* match the specialist's code, or the incoming user is the specialist themselves. Existing
+* clients are filtered by the caller (GetOrCreateClientWithReferral only writes the code on
+* creation).
+***************************************************************************************************/
+func validateReferralForIncomingUser(specialist *models.Specialist, incomingTelegramID int64, payload string) string {
+	if specialist == nil {
+		return ""
+	}
+	code := parseReferralPayload(payload)
+	if code == "" {
+		return ""
+	}
+	if specialist.ReferralCode == "" || code != specialist.ReferralCode {
+		return ""
+	}
+	if incomingTelegramID == specialist.TelegramUserID {
+		return ""
+	}
+	return code
+}
+
+/***************************************************************************************************
+* handleProfileCallback implements the Profile submenu accessible from the specialist's /start
+* message. Only the specialist (owner of the bot) may use it. Menu entries:
+*   profile:home    → render the profile menu (currently only "Invite friend")
+*   profile:invite  → show the invite message + copyable link + native share button
+*   profile:back    → return to the home menu
+***************************************************************************************************/
+func (h *Handler) handleProfileCallback(update Update) {
+	cq := update.CallbackQuery
+	data := cq.Data
+
+	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
+	if err != nil || specialist == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+
+	if specialist.TelegramUserID != cq.From.ID {
+		loc := myI18n.Default()
+		if client, _ := db.GetClientByTelegramID(cq.From.ID, specialist.ID); client != nil {
+			loc = myI18n.NewLocalizer(client.Language)
+		}
+		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Handler.SpecialistOnly"))
+		return
+	}
+
+	lang := specialist.Language
+	if lang == "" {
+		lang = "ru"
+	}
+	loc := myI18n.NewLocalizer(lang)
+
+	action := strings.TrimPrefix(data, "profile:")
+
+	switch action {
+	case "invite":
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+
+		code, err := db.EnsureSpecialistReferralCode(specialist.ID)
+		if err != nil || code == "" {
+			log.Printf("Error ensuring referral code: %v", err)
+			_, _ = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Handler.ConfigError"), nil)
+			return
+		}
+		link := referralLink(h.Bot.Username, code)
+		shareText := myI18n.Tf(loc, "Referral.ShareText", map[string]interface{}{"Link": link})
+
+		inviteText := myI18n.Tf(loc, "Referral.InviteMessage", map[string]interface{}{"Link": link})
+		keyboard := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: BtnInviteShare(loc), URL: shareURL(shareText)}},
+				{{Text: BtnProfileBack(loc), CallbackData: "profile:home"}},
+			},
+		}
+		_, err = h.Bot.SendMessageHTML(cq.From.ID, inviteText, keyboard)
+		if err != nil {
+			log.Printf("Error sending invite message: %v", err)
+		}
+	case "home", "":
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		keyboard := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: BtnInviteFriend(loc), CallbackData: "profile:invite"}},
+			},
+		}
+		_, err = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Referral.ProfileMenu"), keyboard)
+		if err != nil {
+			log.Printf("Error sending profile menu: %v", err)
+		}
+	default:
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+	}
+}
+
+/***************************************************************************************************
+* referralLink builds the shareable t.me link that carries the specialist's referral code.
+***************************************************************************************************/
+func referralLink(botUsername, code string) string {
+	if botUsername == "" {
+		return "https://t.me/?start=ref_" + code
+	}
+	return "https://t.me/" + botUsername + "?start=ref_" + code
+}
+
+/***************************************************************************************************
+* shareURL wraps text for Telegram's native share picker (tg://msg_url). Telegram opens a chat
+* picker pre-filled with the provided text.
+***************************************************************************************************/
+func shareURL(text string) string {
+	return "https://t.me/share/url?url=" + urlEncode(text)
+}
+
+/***************************************************************************************************
+* urlEncode escapes a string for safe embedding in a query string.
+***************************************************************************************************/
+func urlEncode(s string) string {
+	return url.QueryEscape(s)
 }
