@@ -79,4 +79,7 @@ export const CACHE_KEYS = {
     return scopedKey('adminRecurringSchedules');
   },
   adminRecurringDetail: (id: string) => scopedKey(`adminRecurringDetail:${id}`),
+  get adminReferrals(): string {
+    return scopedKey('adminReferrals');
+  },
 };

@@ -269,6 +269,26 @@ func BtnAccept(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Accept") 
 func BtnDecline(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Decline") }
 
 /***************************************************************************************************
+* BtnProfile returns the localized profile entry button text.
+***************************************************************************************************/
+func BtnProfile(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Profile") }
+
+/***************************************************************************************************
+* BtnInviteFriend returns the localized "Invite friend" button text.
+***************************************************************************************************/
+func BtnInviteFriend(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.InviteFriend") }
+
+/***************************************************************************************************
+* BtnInviteShare returns the localized "Share in Telegram" button text.
+***************************************************************************************************/
+func BtnInviteShare(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.InviteShare") }
+
+/***************************************************************************************************
+* BtnProfileBack returns the localized back button text for the profile submenu.
+***************************************************************************************************/
+func BtnProfileBack(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Back") }
+
+/***************************************************************************************************
 * FormatWelcome creates a welcome message with version and changelog.
 *
 * Parameters:

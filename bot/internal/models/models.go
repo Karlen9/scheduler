@@ -27,6 +27,7 @@ type Specialist struct {
 	Language            string    `json:"language,omitempty"`
 	Wallpaper           string    `json:"wallpaper,omitempty"`
 	AvailableDurations  string    `json:"availableDurations,omitempty"`
+	ReferralCode        string    `json:"referralCode,omitempty"`
 	NotifyNewBookings   bool      `json:"notifyNewBookings"`
 	NotifyCancellations bool      `json:"notifyCancellations"`
 	IsActive            bool      `json:"-"`
@@ -46,6 +47,7 @@ type Client struct {
 	PhotoURL            string    `json:"photoUrl,omitempty"`
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
 	Language            string    `json:"language,omitempty"`
+	ReferredViaCode     string    `json:"referredViaCode,omitempty"`
 	IsGhost             bool      `json:"isGhost,omitempty"`
 	IsBlocked           bool      `json:"isBlocked,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`

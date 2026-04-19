@@ -44,6 +44,27 @@ export type TSpecialist = {
   isOwner?: boolean;
   language?: string;
   wallpaper?: string;
+  referralCode?: string;
+};
+
+/***************************************************************************************************
+ * Referral system types.
+ ***************************************************************************************************/
+export type TReferralClient = {
+  id: string;
+  name: string;
+  displayName?: string;
+  photoUrl?: string;
+  createdAt: string;
+  telegramUserId?: number;
+  isBlocked?: boolean;
+};
+
+export type TReferralsResponse = {
+  code: string;
+  link: string;
+  count: number;
+  referrals: TReferralClient[];
 };
 
 /***************************************************************************************************

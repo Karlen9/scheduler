@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, CalendarOff, Clock, DollarSign, HelpCircle, User, Users } from 'lucide-react';
+import { Bell, CalendarOff, Clock, DollarSign, Gift, HelpCircle, User, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
@@ -86,6 +86,12 @@ export default function SettingsPage(): ReactNode {
             label={t('clients')}
             href={'/admin/clients'}
             iconColor={'bg-[#a855f7]'}
+          />
+          <SettingsMenuItem
+            icon={Gift}
+            label={t('referrals')}
+            href={'/admin/settings/referrals'}
+            iconColor={'bg-[#ec4899]'}
           />
         </SettingsGroup>
 

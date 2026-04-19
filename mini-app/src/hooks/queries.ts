@@ -15,6 +15,7 @@ import type {
   TClientStats,
   TDayOff,
   TRecurringSchedule,
+  TReferralsResponse,
   TScheduleContext,
   TSessionType,
   TSpecialist,
@@ -636,6 +637,23 @@ export function useAdminProfile(): {
  * Side effects:
  * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
  ***************************************************************************************************/
+/***************************************************************************************************
+ * Loads referral stats + list of referred clients for the current specialist.
+ ***************************************************************************************************/
+export function useAdminReferrals(): {
+  data: TReferralsResponse | null;
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TReferralsResponse>;
+} {
+  const { data, isLoading, error, mutate } = useSWR<TReferralsResponse>(
+    CACHE_KEYS.adminReferrals,
+    async () => api.admin.getReferrals(),
+    userConfig,
+  );
+  return { data: data ?? null, isLoading, error, mutate };
+}
+
 export function useAdminNotifications(): {
   data: { notifyNewBookings: boolean; notifyCancellations: boolean } | null;
   isLoading: boolean;

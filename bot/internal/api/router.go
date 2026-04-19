@@ -235,6 +235,11 @@ func NewRouter() http.Handler {
 			***************************************************************************************************/
 			r.Get("/notifications", HandleAdminGetNotificationPrefs)
 			r.Put("/notifications", HandleAdminUpdateNotificationPrefs)
+
+			/***************************************************************************************************
+			* Referrals.
+			***************************************************************************************************/
+			r.Get("/referrals", HandleAdminGetReferrals)
 		})
 	})
 

@@ -279,6 +279,7 @@ func migrateSQLite() error {
 		`ALTER TABLE specialists ADD COLUMN notify_cancellations INTEGER DEFAULT 1`,
 		`ALTER TABLE specialists ADD COLUMN language TEXT DEFAULT 'ru'`,
 		`ALTER TABLE specialists ADD COLUMN wallpaper TEXT DEFAULT ''`,
+		`ALTER TABLE specialists ADD COLUMN referral_code TEXT`,
 		`ALTER TABLE clients ADD COLUMN phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN notify_booking_status INTEGER DEFAULT 1`,
@@ -290,6 +291,7 @@ func migrateSQLite() error {
 		`ALTER TABLE clients ADD COLUMN language TEXT DEFAULT 'ru'`,
 		`ALTER TABLE clients ADD COLUMN display_name TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN is_blocked INTEGER DEFAULT 0`,
+		`ALTER TABLE clients ADD COLUMN referred_via_code TEXT`,
 		`ALTER TABLE bookings ADD COLUMN reminder_sent BOOLEAN DEFAULT 0`,
 		`ALTER TABLE bookings ADD COLUMN duration_minutes INTEGER DEFAULT 60`,
 		`ALTER TABLE bookings ADD COLUMN created_by TEXT`,
@@ -316,8 +318,10 @@ func migrateSQLite() error {
 	}
 
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_bot_token_hash ON specialists(bot_token_hash)`)
+	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_referral_code ON specialists(referral_code) WHERE referral_code IS NOT NULL AND referral_code != ''`)
 
 	migrateTrainerEnumSQLite()
+	backfillSpecialistReferralCodes()
 
 	return nil
 }
@@ -497,6 +501,7 @@ func migratePostgres() error {
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS notify_cancellations INTEGER DEFAULT 1`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'ru'`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS wallpaper TEXT DEFAULT ''`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS referral_code TEXT`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS notify_booking_status INTEGER DEFAULT 1`,
@@ -508,6 +513,7 @@ func migratePostgres() error {
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'ru'`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS is_blocked INTEGER DEFAULT 0`,
+		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS referred_via_code TEXT`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminder_sent INTEGER DEFAULT 0`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 60`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_by TEXT`,
@@ -536,8 +542,10 @@ func migratePostgres() error {
 	}
 
 	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_bot_token_hash ON specialists(bot_token_hash)`)
+	DB.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_specialists_referral_code ON specialists(referral_code) WHERE referral_code IS NOT NULL AND referral_code != ''`)
 
 	migrateTrainerEnumPostgres()
+	backfillSpecialistReferralCodes()
 
 	return nil
 }
@@ -926,4 +934,36 @@ func migrateTrainerEnumPostgres() {
 		CHECK(cancelled_by IN ('client','specialist') OR cancelled_by IS NULL)`)
 	DB.Exec(`ALTER TABLE recurring_schedules ADD CONSTRAINT recurring_schedules_created_by_specialist_check
 		CHECK(created_by IN ('client','specialist'))`)
+}
+
+/***************************************************************************************************
+* backfillSpecialistReferralCodes assigns a random referral_code to any specialist that does not
+* already have one. Runs after migrations; retries once per specialist on collision.
+***************************************************************************************************/
+func backfillSpecialistReferralCodes() {
+	rows, err := DB.Query(Q(`SELECT id FROM specialists WHERE referral_code IS NULL OR referral_code = ''`))
+	if err != nil {
+		log.Printf("backfill referral codes: query failed: %v", err)
+		return
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			log.Printf("backfill referral codes: scan failed: %v", err)
+			return
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+
+	for _, id := range ids {
+		for attempt := 0; attempt < 3; attempt++ {
+			code := generateReferralCode()
+			if _, err := DB.Exec(Q(`UPDATE specialists SET referral_code = ? WHERE id = ? AND (referral_code IS NULL OR referral_code = '')`), code, id); err == nil {
+				break
+			}
+		}
+	}
 }

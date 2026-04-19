@@ -29,6 +29,27 @@
   "Btn.Decline": {
     "other": "❌ Отклонить"
   },
+  "Btn.Profile": {
+    "other": "👤 Профиль"
+  },
+  "Btn.InviteFriend": {
+    "other": "🎁 Пригласить друга"
+  },
+  "Btn.InviteShare": {
+    "other": "📤 Поделиться в Telegram"
+  },
+  "Btn.Back": {
+    "other": "← Назад"
+  },
+  "Referral.ProfileMenu": {
+    "other": "👤 Профиль\n\nВыберите действие:"
+  },
+  "Referral.InviteMessage": {
+    "other": "🎁 <b>Пригласите друзей в бот</b>\n\nПоделитесь этой ссылкой с друзьями — так вы помогаете нам развивать бота и получаете бонусы в будущем.\n\n🔗 Ваша ссылка:\n<code>{{.Link}}</code>\n\nСтатистика приглашений доступна в панели управления → Настройки → Приглашения."
+  },
+  "Referral.ShareText": {
+    "other": "Приглашаю тебя записаться ко мне через бот 👉 {{.Link}}"
+  },
   "Booking.New": {
     "other": "📅 Новая заявка на запись\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}"
   },

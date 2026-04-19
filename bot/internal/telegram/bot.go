@@ -41,6 +41,7 @@ type InlineKeyboardButton struct {
 	Text         string      `json:"text"`
 	WebApp       *WebAppInfo `json:"web_app,omitempty"`
 	CallbackData string      `json:"callback_data,omitempty"`
+	URL          string      `json:"url,omitempty"`
 }
 
 /***************************************************************************************************
