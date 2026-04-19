@@ -538,6 +538,38 @@ func main() {
 		return handler.NotifyMoveRequest(newBooking, oldBooking, requestedBy)
 	}
 
+	/***************************************************************************************************
+	* Specialist notification when the client reschedules in-place (distinct from new-booking).
+	***************************************************************************************************/
+	api.NotifyRescheduleRequestFunc = func(newBooking, oldBooking *models.Booking) error {
+		specialist, err := db.GetSpecialistByID(newBooking.SpecialistID)
+		if err != nil || specialist == nil {
+			return err
+		}
+		handler := botManager.GetHandler(specialist.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for specialist %s", specialist.Name)
+			return nil
+		}
+		return handler.NotifyClientRescheduleRequest(newBooking, oldBooking)
+	}
+
+	/***************************************************************************************************
+	* Specialist notification when the client approves/declines an admin reschedule proposal.
+	***************************************************************************************************/
+	api.NotifyRescheduleResponseFunc = func(newBooking, oldBooking *models.Booking, approved bool) error {
+		specialist, err := db.GetSpecialistByID(newBooking.SpecialistID)
+		if err != nil || specialist == nil {
+			return err
+		}
+		handler := botManager.GetHandler(specialist.WebhookSecret)
+		if handler == nil {
+			log.Printf("No handler found for specialist %s", specialist.Name)
+			return nil
+		}
+		return handler.NotifyMoveResponse(newBooking, oldBooking, approved)
+	}
+
 	api.SuperadminSecret = cfg.SuperadminSecret
 	api.WebAppURL = cfg.WebAppURL
 

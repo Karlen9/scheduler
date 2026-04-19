@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { invalidateRecurring } from '@/hooks/mutations';
 import { useRecurringDetail } from '@/hooks/queries';
+import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
 import { scheduleStatusColors } from '@/lib/colors';
 import { formatDuration, parseDayTimes } from '@/lib/helpers';
@@ -107,6 +108,7 @@ export default function RecurringScheduleDetailPage(): ReactNode {
 
   const { data: schedule, isLoading, mutate } = useRecurringDetail(id);
   const [cancelTarget, setCancelTarget] = useState<TBooking | null>(null);
+  const reschedule = useRescheduleActions();
   const [isCancelling, setIsCancelling] = useState(false);
 
   /***************************************************************************************************
@@ -345,6 +347,20 @@ export default function RecurringScheduleDetailPage(): ReactNode {
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   );
 
+  /***************************************************************************************************
+   * Build lookup from the raw list so each shadow card can reference its original's time.
+   ***************************************************************************************************/
+  const bookingLookup = new Map<string, TBooking>();
+  for (const b of schedule.bookings ?? []) {
+    bookingLookup.set(b.id, b);
+  }
+  const visibleBookings = sortedBookings.filter((b) => {
+    // Hide originals that a reschedule_pending shadow supersedes; the shadow card shows old→new.
+    return !sortedBookings.some(
+      (s) => s.status === 'reschedule_pending' && s.replacesBookingId === b.id,
+    );
+  });
+
   return (
     <>
       <div className={'space-y-4 p-4'}>
@@ -362,18 +378,30 @@ export default function RecurringScheduleDetailPage(): ReactNode {
         {/***************************************************************************************************
          * Bookings section.
          ***************************************************************************************************/}
-        {sortedBookings.length > 0 ? (
+        {visibleBookings.length > 0 ? (
           <div>
             <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>
-              {t('sessionsCount', { count: sortedBookings.length })}
+              {t('sessionsCount', { count: visibleBookings.length })}
             </h3>
             <div className={'space-y-3'}>
-              {sortedBookings.map((booking) => (
+              {visibleBookings.map((booking) => (
                 <BookingCardItem
                   key={booking.id}
                   booking={booking}
                   onRequestCancel={setCancelTarget}
                   formatBookingDate={formatBookingDate}
+                  onApproveReschedule={
+                    booking.status === 'reschedule_pending' ? reschedule.approve : undefined
+                  }
+                  onDeclineReschedule={
+                    booking.status === 'reschedule_pending' ? reschedule.decline : undefined
+                  }
+                  rescheduleBusy={reschedule.pending}
+                  replacedBooking={
+                    booking.status === 'reschedule_pending' && booking.replacesBookingId
+                      ? bookingLookup.get(booking.replacesBookingId)
+                      : undefined
+                  }
                 />
               ))}
             </div>

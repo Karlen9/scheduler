@@ -101,6 +101,8 @@ func TestMain(m *testing.M) {
 	api.NotifySpecialistBookingFunc = func(booking *models.Booking) error { return nil }
 	api.NotifyRecurringScheduleFunc = func(schedule *models.RecurringSchedule, previewCount int) error { return nil }
 	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error { return nil }
+	api.NotifyRescheduleRequestFunc = func(newBooking, oldBooking *models.Booking) error { return nil }
+	api.NotifyRescheduleResponseFunc = func(newBooking, oldBooking *models.Booking, approved bool) error { return nil }
 
 	/***************************************************************************************************
 	* Create the router.

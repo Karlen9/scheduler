@@ -49,6 +49,7 @@ function BookingCardComponent({
   onDecline,
   onApproveReschedule,
   onDeclineReschedule,
+  replacedBooking,
 }: TBookingCardProps): ReactNode {
   /***************************************************************************************************
    * Defines the tc value used by the component layer.
@@ -163,6 +164,17 @@ function BookingCardComponent({
               {formatTime(endsAt)}
             </span>
           </div>
+          {isReschedulePending && replacedBooking && (
+            <div className={'mb-2 flex items-center gap-2 pl-6'}>
+              <span className={'text-muted-foreground text-xs'}>
+                {tb('rescheduleOldLabel')}{' '}
+                <span className={'line-through'}>
+                  {formatDate(new Date(replacedBooking.startsAt))}{' '}
+                  {formatTime(new Date(replacedBooking.startsAt))}
+                </span>
+              </span>
+            </div>
+          )}
           <div className={'flex items-center gap-2'}>
             <CalendarCheck className={'text-muted-foreground h-4 w-4'} />
             <span className={'text-foreground text-sm'}>

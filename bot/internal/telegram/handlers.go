@@ -949,6 +949,50 @@ func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requ
 }
 
 /***************************************************************************************************
+* NotifyClientRescheduleRequest notifies the specialist that a client rescheduled their booking
+* in-place. Sends a dedicated "client rescheduled" message rather than the "new booking" one.
+***************************************************************************************************/
+func (h *Handler) NotifyClientRescheduleRequest(newBooking, oldBooking *models.Booking) error {
+	specialist, err := db.GetSpecialistByID(newBooking.SpecialistID)
+	if err != nil || specialist == nil {
+		return fmt.Errorf("specialist not found")
+	}
+	if !specialist.NotifyNewBookings {
+		return nil
+	}
+	loc := myI18n.NewLocalizer(specialist.Language)
+	text := FormatClientRescheduleRequest(loc, newBooking, oldBooking)
+	_, err = h.Bot.SendNotification(specialist.TelegramUserID, text)
+	return err
+}
+
+/***************************************************************************************************
+* NotifyMoveResponse notifies the specialist when the client approves or declines an
+* admin-initiated reschedule proposal. Uses FormatMoveApproved / FormatMoveDeclined.
+***************************************************************************************************/
+func (h *Handler) NotifyMoveResponse(newBooking, oldBooking *models.Booking, approved bool) error {
+	if oldBooking == nil {
+		oldBooking = newBooking
+	}
+	specialist, err := db.GetSpecialistByID(newBooking.SpecialistID)
+	if err != nil || specialist == nil {
+		return fmt.Errorf("specialist not found")
+	}
+	if !specialist.NotifyNewBookings {
+		return nil
+	}
+	loc := myI18n.NewLocalizer(specialist.Language)
+	var text string
+	if approved {
+		text = FormatMoveApproved(loc, newBooking, oldBooking)
+	} else {
+		text = FormatMoveDeclined(loc, oldBooking)
+	}
+	_, err = h.Bot.SendNotification(specialist.TelegramUserID, text)
+	return err
+}
+
+/***************************************************************************************************
 * NotifySpecialistClientBookingResponse is the public API for notifying the specialist when a
 * client confirms or declines a specialist-created booking via the REST API.
 *

@@ -1130,19 +1130,36 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	oldStatus := booking.Status
-	if (req.Status == "cancelled" || req.Status == "rejected") && req.Reason != "" {
+	/***************************************************************************************************
+	* Status dispatch:
+	* - rejected  → db.RejectBookingWithReason: single UPDATE, sets cancel_reason but leaves
+	*   cancelled_by NULL (rejections are not cancellations).
+	* - cancelled with reason → db.CancelBooking: records reason + cancelled_by='specialist'.
+	* - anything else → plain UpdateBookingStatus.
+	*
+	* The previous implementation called CancelBooking for BOTH rejected and cancelled then
+	* overwrote status to rejected, leaving rows tagged cancelled_by='specialist' while marked
+	* rejected. Keep the two transitions semantically distinct.
+	***************************************************************************************************/
+	switch {
+	case req.Status == "rejected":
+		if err := db.RejectBookingWithReason(bookingID, req.Reason); err != nil {
+			log.Printf("Error rejecting booking: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+	case req.Status == "cancelled" && req.Reason != "":
 		if err := db.CancelBooking(bookingID, req.Reason, models.CancelledBySpecialist); err != nil {
 			log.Printf("Error cancelling booking: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
 		}
-		if req.Status == "rejected" {
-			db.UpdateBookingStatus(bookingID, models.BookingStatusRejected)
+	default:
+		if err := db.UpdateBookingStatus(bookingID, models.BookingStatus(req.Status)); err != nil {
+			log.Printf("Error updating booking status: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
 		}
-	} else if err := db.UpdateBookingStatus(bookingID, models.BookingStatus(req.Status)); err != nil {
-		log.Printf("Error updating booking status: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
 	}
 
 	log.Printf("BOOKING STATUS [%s] %s -> %s | Client: %s | Specialist: %s (@%s)",

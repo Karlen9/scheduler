@@ -261,7 +261,8 @@
     "declineButton": "Decline",
     "rescheduleRequested": "The specialist is requesting a new time",
     "approveRescheduleButton": "Accept new time",
-    "declineRescheduleButton": "Decline"
+    "declineRescheduleButton": "Decline",
+    "rescheduleOldLabel": "was"
   },
   "RecurringPage": {
     "emptyTitle": "No recurring schedules",
@@ -282,7 +283,11 @@
     "cancelSessionDialog": "Cancel session?",
     "cancelSessionDescription": "The session will be cancelled. The specialist will be notified.",
     "awaitingRescheduleConfirmation": "Awaiting reschedule confirmation",
-    "rescheduleRequest": "Reschedule request"
+    "rescheduleRequest": "Reschedule request",
+    "rescheduleOldLabel": "was",
+    "specialistNote": "Note from specialist",
+    "approveRescheduleButton": "Accept new time",
+    "declineRescheduleButton": "Decline"
   },
   "ProfilePage": {
     "nameLabel": "Name",

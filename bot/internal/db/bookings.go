@@ -350,6 +350,24 @@ func CancelBooking(bookingID string, reason string, cancelledBy models.Cancelled
 }
 
 /***************************************************************************************************
+* RejectBookingWithReason marks a booking as rejected (not cancelled) and records the reason.
+* Leaves cancelled_by NULL — rejections are a distinct outcome from cancellations. Kept separate
+* from CancelBooking so downstream consumers (notifications, analytics) can tell them apart.
+***************************************************************************************************/
+func RejectBookingWithReason(bookingID, reason string) error {
+	var reasonVal interface{}
+	if reason != "" {
+		reasonVal = reason
+	}
+	_, err := DB.Exec(Q(`
+		UPDATE bookings
+		SET status = 'rejected', cancel_reason = ?, cancelled_by = NULL
+		WHERE id = ?
+	`), reasonVal, bookingID)
+	return err
+}
+
+/***************************************************************************************************
 * Updates booking date time.
 *
 * Parameters:

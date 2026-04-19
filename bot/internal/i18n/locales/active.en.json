@@ -95,6 +95,9 @@
   "Move.SpecialistNote": {
     "other": "💬 Note from specialist: {{.Message}}"
   },
+  "Move.ClientRequested": {
+    "other": "🔄 {{.ClientName}} rescheduled {{.Service}}\n\n🕐 From: {{.OldDateTime}}\n🕐 To: {{.NewDateTime}}"
+  },
   "Move.Approved": {
     "other": "✅ Reschedule confirmed\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Previous time: {{.OldDateTime}}\n🕐 New time: {{.NewDateTime}}"
   },

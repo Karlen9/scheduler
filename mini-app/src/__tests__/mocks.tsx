@@ -33,6 +33,10 @@ const messages = {
   BookingsPage: {
     specialistBookedYou: 'Специалист записал вас',
     declineButton: 'Отклонить',
+    rescheduleRequested: 'Специалист предлагает новое время',
+    approveRescheduleButton: 'Принять новое время',
+    declineRescheduleButton: 'Отклонить',
+    rescheduleOldLabel: 'было',
   },
   Dates: {
     daysShort: {

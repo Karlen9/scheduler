@@ -261,7 +261,8 @@
     "declineButton": "Отклонить",
     "rescheduleRequested": "Специалист предлагает новое время",
     "approveRescheduleButton": "Принять новое время",
-    "declineRescheduleButton": "Отклонить"
+    "declineRescheduleButton": "Отклонить",
+    "rescheduleOldLabel": "было"
   },
   "RecurringPage": {
     "emptyTitle": "Нет регулярных записей",
@@ -282,7 +283,11 @@
     "cancelSessionDialog": "Отменить сеанс?",
     "cancelSessionDescription": "Сеанс будет отменён. Специалист получит уведомление.",
     "awaitingRescheduleConfirmation": "Ожидает подтверждения переноса",
-    "rescheduleRequest": "Запрос на перенос"
+    "rescheduleRequest": "Запрос на перенос",
+    "rescheduleOldLabel": "было",
+    "specialistNote": "Сообщение от специалиста",
+    "approveRescheduleButton": "Принять новое время",
+    "declineRescheduleButton": "Отклонить"
   },
   "ProfilePage": {
     "nameLabel": "Имя",
