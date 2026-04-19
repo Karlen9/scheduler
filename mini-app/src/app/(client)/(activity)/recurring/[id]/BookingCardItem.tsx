@@ -23,6 +23,10 @@ export function BookingCardItem({
   booking,
   onRequestCancel,
   formatBookingDate,
+  onApproveReschedule,
+  onDeclineReschedule,
+  rescheduleBusy = false,
+  replacedBooking,
 }: TBookingCardItemProps): ReactNode {
   /***************************************************************************************************
    * Defines the tc value used by the page layer.
@@ -127,7 +131,46 @@ export function BookingCardItem({
         </div>
       )}
 
-      {isReschedulePending && (
+      {isReschedulePending && replacedBooking && (
+        <div className={'text-muted-foreground mb-2 text-xs'}>
+          <span>{t('rescheduleOldLabel')}</span>{' '}
+          <span className={'line-through'}>
+            {formatBookingDate(replacedBooking.startsAt)} {formatTime(replacedBooking.startsAt)}
+          </span>
+        </div>
+      )}
+
+      {isReschedulePending && booking.clientMessage && (
+        <div className={'bg-background mb-2 rounded-lg px-3 py-2'}>
+          <p className={'text-muted-foreground text-xs'}>{t('specialistNote')}</p>
+          <p className={'text-foreground mt-1 text-sm whitespace-pre-wrap'}>
+            {booking.clientMessage}
+          </p>
+        </div>
+      )}
+
+      {isReschedulePending && onApproveReschedule && onDeclineReschedule ? (
+        <div className={'border-border space-y-2 border-t pt-3'}>
+          <button
+            onClick={async () => onApproveReschedule(booking)}
+            disabled={rescheduleBusy}
+            className={
+              'bg-action-confirm-bg text-action-confirm-text w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-60'
+            }
+          >
+            {t('approveRescheduleButton')}
+          </button>
+          <button
+            onClick={async () => onDeclineReschedule(booking)}
+            disabled={rescheduleBusy}
+            className={
+              'bg-background text-destructive w-full rounded-lg px-4 py-2 text-sm font-medium transition-opacity active:opacity-70 disabled:opacity-60'
+            }
+          >
+            {t('declineRescheduleButton')}
+          </button>
+        </div>
+      ) : isReschedulePending ? (
         <div className={'border-border border-t pt-3'}>
           <div className={'flex items-center justify-center gap-2'}>
             <ArrowRight className={'text-status-purple-text h-4 w-4'} />
@@ -136,7 +179,7 @@ export function BookingCardItem({
             </span>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -95,6 +95,9 @@
   "Move.SpecialistNote": {
     "other": "💬 Сообщение от специалиста: {{.Message}}"
   },
+  "Move.ClientRequested": {
+    "other": "🔄 {{.ClientName}} перенёс(ла) сеанс {{.Service}}\n\n🕐 Было: {{.OldDateTime}}\n🕐 Стало: {{.NewDateTime}}"
+  },
   "Move.Approved": {
     "other": "✅ Перенос подтверждён\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Предыдущее время: {{.OldDateTime}}\n🕐 Новое время: {{.NewDateTime}}"
   },

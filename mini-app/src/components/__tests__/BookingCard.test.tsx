@@ -149,4 +149,48 @@ describe('BookingCard', () => {
     renderWithIntl(<BookingCard booking={makeBooking({ status: 'cancelled' })} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  it('shows approve/decline for reschedule_pending with replacedBooking old→new', async () => {
+    const onApprove = vi.fn();
+    const onDecline = vi.fn();
+    const original = makeBooking({
+      id: 'orig',
+      status: 'confirmed',
+      startsAt: '2026-06-15T10:00:00Z',
+      endsAt: '2026-06-15T11:00:00Z',
+    });
+    const shadow = makeBooking({
+      id: 'shadow',
+      status: 'reschedule_pending',
+      startsAt: '2026-06-17T14:00:00Z',
+      endsAt: '2026-06-17T15:00:00Z',
+      replacesBookingId: 'orig',
+      clientMessage: 'moved because of conflict',
+    });
+
+    renderWithIntl(
+      <BookingCard
+        booking={shadow}
+        replacedBooking={original}
+        onApproveReschedule={onApprove}
+        onDeclineReschedule={onDecline}
+      />,
+    );
+
+    // Proposed (new) time is the prominent date on the card.
+    expect(screen.getByText(/17 июня 2026/)).toBeInTheDocument();
+    // Old time is shown with the "was" label.
+    expect(screen.getByText(/было/i)).toBeInTheDocument();
+    expect(screen.getByText(/15 июня 2026/)).toBeInTheDocument();
+    // Admin's note surfaces on the card.
+    expect(screen.getByText(/moved because of conflict/)).toBeInTheDocument();
+
+    const accept = screen.getByRole('button', { name: 'Принять новое время' });
+    await userEvent.click(accept);
+    expect(onApprove).toHaveBeenCalledWith(shadow);
+
+    const reject = screen.getByRole('button', { name: 'Отклонить' });
+    await userEvent.click(reject);
+    expect(onDecline).toHaveBeenCalledWith(shadow);
+  });
 });

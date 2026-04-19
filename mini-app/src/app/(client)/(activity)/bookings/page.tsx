@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { BookingCardSkeleton } from '@/components/LoadingSkeleton';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useBookings } from '@/hooks/queries';
+import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
 
 import type { TBooking } from '@/lib/types';
@@ -80,13 +81,33 @@ export default function BookingsPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const activeBookings = useMemo(
-    () =>
-      bookings
-        .filter((b) => ACTIVE_STATUSES.has(b.status) && !isPastBooking(b, now))
-        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
-    [bookings, now],
-  );
+  /***************************************************************************************************
+   * Build the active list with shadow bookings superseding their originals. When an admin
+   * proposes a reschedule, a reschedule_pending shadow is created that points at the original
+   * via `replacesBookingId`. Showing both as siblings confuses the client — render only the
+   * shadow (with old→new time visible on the card).
+   ***************************************************************************************************/
+  const activeBookings = useMemo(() => {
+    const activeAll = bookings.filter(
+      (b) => ACTIVE_STATUSES.has(b.status) && !isPastBooking(b, now),
+    );
+    const replacedIds = new Set<string>(
+      activeAll
+        .filter((b) => b.status === 'reschedule_pending' && b.replacesBookingId)
+        .map((b) => b.replacesBookingId as string),
+    );
+    return activeAll
+      .filter((b) => !replacedIds.has(b.id))
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  }, [bookings, now]);
+
+  const replacedBookingLookup = useMemo(() => {
+    const map = new Map<string, TBooking>();
+    for (const b of bookings) {
+      map.set(b.id, b);
+    }
+    return map;
+  }, [bookings]);
   /***************************************************************************************************
    * Defines the past bookings value used by the page layer.
    *
@@ -186,30 +207,7 @@ export default function BookingsPage(): ReactNode {
     [te, ts],
   );
 
-  const handleApproveReschedule = useCallback(
-    async (booking: TBooking): Promise<void> => {
-      try {
-        await api.approveReschedule(booking.id);
-        toast.success(ts('bookingRescheduled'));
-        invalidateBookings();
-      } catch {
-        toast.error(te('bookingRescheduleFailed'));
-      }
-    },
-    [te, ts],
-  );
-
-  const handleDeclineReschedule = useCallback(
-    async (booking: TBooking): Promise<void> => {
-      try {
-        await api.declineReschedule(booking.id);
-        invalidateBookings();
-      } catch {
-        toast.error(te('bookingDeclineFailed'));
-      }
-    },
-    [te],
-  );
+  const reschedule = useRescheduleActions();
 
   if (isLoading) {
     return (
@@ -277,10 +275,15 @@ export default function BookingsPage(): ReactNode {
                       : undefined
                   }
                   onApproveReschedule={
-                    booking.status === 'reschedule_pending' ? handleApproveReschedule : undefined
+                    booking.status === 'reschedule_pending' ? reschedule.approve : undefined
                   }
                   onDeclineReschedule={
-                    booking.status === 'reschedule_pending' ? handleDeclineReschedule : undefined
+                    booking.status === 'reschedule_pending' ? reschedule.decline : undefined
+                  }
+                  replacedBooking={
+                    booking.status === 'reschedule_pending' && booking.replacesBookingId
+                      ? replacedBookingLookup.get(booking.replacesBookingId)
+                      : undefined
                   }
                 />
               ))}

@@ -168,6 +168,21 @@ var UpdateSpecialistMessageFunc func(booking *models.Booking) error
 var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
 
 /***************************************************************************************************
+* NotifyRescheduleRequestFunc is a callback to notify the specialist when the CLIENT
+* reschedules a booking directly (in-place update). Distinct from NotifyBookingFunc, which
+* fires for newly-created bookings — reusing that callback here gave the specialist a
+* misleading "new booking" message.
+***************************************************************************************************/
+var NotifyRescheduleRequestFunc func(booking *models.Booking, oldBooking *models.Booking) error
+
+/***************************************************************************************************
+* NotifyRescheduleResponseFunc is a callback to notify the specialist when the client approves
+* or declines an admin-initiated reschedule proposal. Fires for both the shadow-backed flow
+* (admin reschedules a confirmed booking → client must approve) and recurring moves.
+***************************************************************************************************/
+var NotifyRescheduleResponseFunc func(newBooking *models.Booking, oldBooking *models.Booking, approved bool) error
+
+/***************************************************************************************************
 * UpdateClientMessageFunc is a callback to edit the client's Telegram notification message.
 *
 * Usage context:
@@ -1041,6 +1056,11 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/***************************************************************************************************
+	* Snapshot the pre-update booking so the reschedule-request notification can show old→new times.
+	***************************************************************************************************/
+	oldBooking := *booking
+
 	if err := db.UpdateBookingDateTime(bookingID, startsAt, endsAt, duration); err != nil {
 		log.Printf("Error updating booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1060,9 +1080,9 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error updating specialist booking notification: %v", err)
 		}
 	}
-	if NotifyBookingFunc != nil && booking != nil {
-		if err := NotifyBookingFunc(booking); err != nil {
-			log.Printf("Error notifying specialist about reschedule: %v", err)
+	if NotifyRescheduleRequestFunc != nil && booking != nil {
+		if err := NotifyRescheduleRequestFunc(booking, &oldBooking); err != nil {
+			log.Printf("Error notifying specialist about client reschedule: %v", err)
 		}
 	}
 
@@ -1101,6 +1121,15 @@ func HandleClientApproveReschedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/***************************************************************************************************
+	* Snapshot the original confirmed booking (before ApproveRescheduleBooking flips it to cancelled)
+	* so the admin notification can display old→new datetimes.
+	***************************************************************************************************/
+	var oldBooking *models.Booking
+	if booking.ReplacesBookingID != "" {
+		oldBooking, _ = db.GetBookingByID(booking.ReplacesBookingID)
+	}
+
 	if err := db.ApproveRescheduleBooking(bookingID); err != nil {
 		log.Printf("Error approving reschedule: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1110,7 +1139,12 @@ func HandleClientApproveReschedule(w http.ResponseWriter, r *http.Request) {
 	log.Printf("RESCHEDULE APPROVED (CLIENT) booking %s", bookingID[:8])
 	updated, _ := db.GetBookingByID(bookingID)
 	if updated != nil {
-		changes.Publish(updated.SpecialistID, changes.GroupBookings)
+		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	}
+	if NotifyRescheduleResponseFunc != nil && updated != nil {
+		if err := NotifyRescheduleResponseFunc(updated, oldBooking, true); err != nil {
+			log.Printf("Error notifying specialist about approved reschedule: %v", err)
+		}
 	}
 	writeJSON(w, updated)
 }
@@ -1147,6 +1181,14 @@ func HandleClientDeclineReschedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/***************************************************************************************************
+	* Snapshot the original confirmed booking so the admin notification can show what was retained.
+	***************************************************************************************************/
+	var oldBooking *models.Booking
+	if booking.ReplacesBookingID != "" {
+		oldBooking, _ = db.GetBookingByID(booking.ReplacesBookingID)
+	}
+
 	if err := db.DeclineRescheduleBooking(bookingID); err != nil {
 		log.Printf("Error declining reschedule: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1154,7 +1196,12 @@ func HandleClientDeclineReschedule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("RESCHEDULE DECLINED (CLIENT) booking %s", bookingID[:8])
-	changes.Publish(booking.SpecialistID, changes.GroupBookings)
+	changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	if NotifyRescheduleResponseFunc != nil {
+		if err := NotifyRescheduleResponseFunc(booking, oldBooking, false); err != nil {
+			log.Printf("Error notifying specialist about declined reschedule: %v", err)
+		}
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

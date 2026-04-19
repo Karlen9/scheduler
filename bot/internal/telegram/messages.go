@@ -950,6 +950,25 @@ func FormatMoveDeclined(loc *i18n.Localizer, oldBooking *models.Booking) string 
 }
 
 /***************************************************************************************************
+* FormatClientRescheduleRequest creates a message for the specialist when the CLIENT reschedules
+* a booking in-place (status stays pending/confirmed, times change). Distinct from move requests
+* that go through the reschedule_pending shadow flow.
+***************************************************************************************************/
+func FormatClientRescheduleRequest(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
+	data := map[string]interface{}{
+		"ClientName":  newBooking.ClientName,
+		"Service":     bookingServiceDisplay(loc, newBooking),
+		"NewDateTime": formatDateTime(loc, newBooking.StartsAt),
+	}
+	if oldBooking != nil {
+		data["OldDateTime"] = formatDateTime(loc, oldBooking.StartsAt)
+	} else {
+		data["OldDateTime"] = ""
+	}
+	return myI18n.Tf(loc, "Move.ClientRequested", data) + myI18n.T(loc, "Hint.OpenApp")
+}
+
+/***************************************************************************************************
 * FormatSpecialistCreatedBookingClient creates a message for client when specialist books them.
 *
 * Parameters:

@@ -15,6 +15,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { WallpaperBackground } from '@/components/WallpaperPicker';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useBookings, useSessionTypes, useSpecialist, useWorkingHours } from '@/hooks/queries';
+import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 import { formatDateISO, formatDuration, nextDateForWeekday } from '@/lib/helpers';
@@ -150,6 +151,7 @@ export default function HomePage(): ReactNode {
   const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const reschedule = useRescheduleActions();
   const adminHref = useMemo(() => {
     const specialistId = getSpecialistId();
     const href = `/admin${specialistId ? `?specialist=${specialistId}` : ''}`;
@@ -219,25 +221,33 @@ export default function HomePage(): ReactNode {
     });
   }, [tdays, t, workingHours]);
 
-  const nextBooking = useMemo(() => {
+  /***************************************************************************************************
+   * Collapse reschedule_pending shadows over their originals so the home hero / badge count
+   * treat the admin's proposal as a replacement rather than a duplicate booking.
+   ***************************************************************************************************/
+  const activeBookings = useMemo(() => {
     const now = Date.now();
-    return bookings
-      .filter(
-        (booking) =>
-          ACTIVE_BOOKING_STATUSES.has(booking.status) && new Date(booking.startsAt).getTime() > now,
-      )
-      .sort(
-        (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
-      )[0];
-  }, [bookings]);
-
-  const activeBookingsCount = useMemo(() => {
-    const now = Date.now();
-    return bookings.filter(
+    const all = bookings.filter(
       (booking) =>
         ACTIVE_BOOKING_STATUSES.has(booking.status) && new Date(booking.startsAt).getTime() > now,
-    ).length;
+    );
+    const replacedIds = new Set<string>(
+      all
+        .filter((b) => b.status === 'reschedule_pending' && b.replacesBookingId)
+        .map((b) => b.replacesBookingId as string),
+    );
+    return all.filter((b) => !replacedIds.has(b.id));
   }, [bookings]);
+
+  const nextBooking = useMemo(
+    () =>
+      [...activeBookings].sort(
+        (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+      )[0],
+    [activeBookings],
+  );
+
+  const activeBookingsCount = activeBookings.length;
 
   const formatCountdown = useCallback(
     (diffMs: number): string => {
@@ -721,15 +731,54 @@ export default function HomePage(): ReactNode {
                   </span>
                 </div>
               )}
-              {selectedBooking.clientMessage && (
+              {selectedBooking.clientMessage && selectedBooking.status !== 'reschedule_pending' && (
                 <div className={'border-border border-b py-2'}>
                   <span className={'text-muted-foreground text-sm'}>{t('sessionComment')}</span>
                   <p className={'text-foreground mt-1 text-sm'}>{selectedBooking.clientMessage}</p>
                 </div>
               )}
+              {selectedBooking.status === 'reschedule_pending' && selectedBooking.clientMessage && (
+                <div className={'border-border border-b py-2'}>
+                  <span className={'text-muted-foreground text-sm'}>{tb('specialistNote')}</span>
+                  <p className={'text-foreground mt-1 text-sm whitespace-pre-wrap'}>
+                    {selectedBooking.clientMessage}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
+            {selectedBooking.status === 'reschedule_pending' ? (
+              <div className={'mt-5 flex gap-3'}>
+                <button
+                  type={'button'}
+                  disabled={reschedule.pending}
+                  onClick={async () => {
+                    const target = selectedBooking;
+                    setSelectedBooking(null);
+                    await reschedule.approve(target);
+                  }}
+                  className={
+                    'bg-action-confirm-bg text-action-confirm-text flex-1 rounded-lg px-4 py-3 text-sm font-medium transition-opacity active:opacity-80 disabled:opacity-60'
+                  }
+                >
+                  {tb('approveRescheduleButton')}
+                </button>
+                <button
+                  type={'button'}
+                  disabled={reschedule.pending}
+                  onClick={async () => {
+                    const target = selectedBooking;
+                    setSelectedBooking(null);
+                    await reschedule.decline(target);
+                  }}
+                  className={
+                    'bg-action-danger-bg text-action-danger-text flex-1 rounded-lg px-4 py-3 text-sm font-medium transition-opacity active:opacity-80 disabled:opacity-60'
+                  }
+                >
+                  {tb('declineRescheduleButton')}
+                </button>
+              </div>
+            ) : selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed' ? (
               <div className={'mt-5 flex gap-3'}>
                 <button
                   type={'button'}
@@ -756,7 +805,7 @@ export default function HomePage(): ReactNode {
                   {tb('cancelButton')}
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </BottomSheet>

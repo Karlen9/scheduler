@@ -488,6 +488,10 @@ export type TBookingCardItemProps = {
   booking: TBooking;
   onRequestCancel: (booking: TBooking) => void;
   formatBookingDate: (iso: string) => string;
+  onApproveReschedule?: (booking: TBooking) => void | Promise<void>;
+  onDeclineReschedule?: (booking: TBooking) => void | Promise<void>;
+  rescheduleBusy?: boolean;
+  replacedBooking?: TBooking;
 };
 
 /***************************************************************************************************
@@ -500,6 +504,8 @@ export type TBookingCardProps = {
   onDecline?: (booking: TBooking) => void;
   onApproveReschedule?: (booking: TBooking) => void;
   onDeclineReschedule?: (booking: TBooking) => void;
+  /** The original confirmed booking being replaced when `booking.status === 'reschedule_pending'`. */
+  replacedBooking?: TBooking;
 };
 
 /***************************************************************************************************
