@@ -229,12 +229,28 @@ func TestGetAdminStats(t *testing.T) {
 	}
 
 	now := time.Now().UTC()
-	currentWeekMonday := startOfWeek(now).AddDate(0, 0, 1).Add(9 * time.Hour)
+	/***************************************************************************************************
+	* recentPastMonday is always a Monday in the past (6 days before this week's Sunday start),
+	* so the ActiveClients query — which filters on status='completed' AND starts_at < now — counts
+	* this booking regardless of which weekday the test runs on. Previously this used
+	* startOfWeek(now).AddDate(0, 0, 1), which gave tomorrow when `now` was a Sunday.
+	***************************************************************************************************/
+	recentPastMonday := startOfWeek(now).AddDate(0, 0, -6).Add(9 * time.Hour)
 	twoWeeksAgoMonday := startOfWeek(now).AddDate(0, 0, -13).Add(9 * time.Hour)
 	currentMonthBooking := startOfMonth(now).AddDate(0, 0, 5).Add(10 * time.Hour)
 	lastMonthBooking := startOfMonth(now).AddDate(0, -1, 0).AddDate(0, 0, 3).Add(18 * time.Hour)
 
-	createStatsBooking(t, specialist.ID, clientOne, serviceOne.ID, currentWeekMonday, 60, models.BookingStatusCompleted, currentWeekMonday)
+	/***************************************************************************************************
+	* currentMonthBooking is the 6th of the current month at 10:00. If the test runs in the first
+	* five days of a month, that's in the future — fall back to a morning slot 2 days ago so
+	* ActiveClients still counts clientTwo. BusiestDay still resolves to Monday since Monday has
+	* at least the recentPastMonday + twoWeeksAgoMonday bookings.
+	***************************************************************************************************/
+	if !currentMonthBooking.Before(now) {
+		currentMonthBooking = now.AddDate(0, 0, -2).Truncate(24 * time.Hour).Add(10 * time.Hour)
+	}
+
+	createStatsBooking(t, specialist.ID, clientOne, serviceOne.ID, recentPastMonday, 60, models.BookingStatusCompleted, recentPastMonday)
 	createStatsBooking(t, specialist.ID, clientOne, serviceTwo.ID, lastMonthBooking, 90, models.BookingStatusCompleted, lastMonthBooking)
 	createStatsBooking(t, specialist.ID, clientTwo, serviceOne.ID, currentMonthBooking, 60, models.BookingStatusCompleted, currentMonthBooking)
 	createStatsBooking(t, specialist.ID, clientThree, serviceOne.ID, twoWeeksAgoMonday, 60, models.BookingStatusCancelled, twoWeeksAgoMonday)
