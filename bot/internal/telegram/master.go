@@ -66,7 +66,8 @@ type MasterHandler struct {
 	publicBaseURL  string
 	webAppURL      string
 	adminIDs       []int64
-	supportGroupID int64 // 0 = support relay disabled
+	supportGroupID int64             // 0 = support relay disabled
+	pendingRefs    map[int64]string  // telegramUserID -> pending referrer code captured from /start ref_<code>
 }
 
 /***************************************************************************************************
@@ -92,7 +93,42 @@ func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int6
 		webAppURL:      webAppURL,
 		adminIDs:       adminIDs,
 		supportGroupID: supportGroupID,
+		pendingRefs:    make(map[int64]string),
 	}
+}
+
+// extractRefPayload parses the referral code from a "/start ref_<code>" message.
+// Accepts the trailing ref_-prefixed form only — plain payloads are ignored so operators can
+// still use other deep-link payload spaces in the future without collision.
+func extractRefPayload(text string) string {
+	parts := strings.SplitN(strings.TrimSpace(text), " ", 2)
+	if len(parts) < 2 {
+		return ""
+	}
+	payload := strings.TrimSpace(parts[1])
+	if strings.HasPrefix(payload, "ref_") {
+		return strings.TrimPrefix(payload, "ref_")
+	}
+	return ""
+}
+
+// rememberPendingReferral stashes a referral code captured from /start until the user finishes
+// onboarding (token + name) and a specialists row exists to attribute it to. A returning
+// already-registered specialist simply never reaches CreateSpecialist, so the pending code is
+// harmless.
+func (h *MasterHandler) rememberPendingReferral(userID int64, code string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pendingRefs[userID] = code
+}
+
+// takePendingReferral returns and clears any pending referral code for the user.
+func (h *MasterHandler) takePendingReferral(userID int64) string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	code := h.pendingRefs[userID]
+	delete(h.pendingRefs, userID)
+	return code
 }
 
 /***************************************************************************************************
@@ -266,6 +302,12 @@ func (h *MasterHandler) handleCommand(chatID, userID int64, text string, loc *lo
 
 	switch cmd {
 	case "/start":
+		// /start may carry a payload: "/start ref_<code>" tags the new specialist with the
+		// referral code of the existing specialist who invited them. Recorded once on creation
+		// and never overwritten afterwards.
+		if payload := extractRefPayload(text); payload != "" {
+			h.rememberPendingReferral(userID, payload)
+		}
 		h.handleStart(chatID, userID, loc)
 	case "/menu":
 		h.renderMainMenu(chatID, userID, 0, loc)
@@ -608,6 +650,21 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	if username != "" {
 		if _, err := db.UpdateSpecialistProfile(specialist.ID, username, "", "", "", "", 0, 0, ""); err != nil {
 			log.Printf("Error saving telegram handle: %v", err)
+		}
+	}
+
+	/***************************************************************************************************
+	* Apply any pending referral attribution captured from /start ref_<code>. The code must resolve
+	* to a different active specialist (no self-referrals, no unknown codes). Invalid codes are
+	* silently dropped — better UX than erroring out mid-onboarding.
+	***************************************************************************************************/
+	if refCode := h.takePendingReferral(userID); refCode != "" {
+		if referrer, rerr := db.GetSpecialistByReferralCode(refCode); rerr == nil && referrer != nil && referrer.ID != specialist.ID {
+			if uerr := db.SetSpecialistReferredViaCode(specialist.ID, refCode); uerr != nil {
+				log.Printf("master: attribute referral %s -> %s failed: %v", refCode, specialist.ID, uerr)
+			} else {
+				log.Printf("master: specialist %s attributed to referrer %s (@%s)", specialist.ID, referrer.ID, referrer.BotUsername)
+			}
 		}
 	}
 

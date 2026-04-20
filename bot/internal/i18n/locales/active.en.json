@@ -57,10 +57,10 @@
     "other": "👤 Profile\n\nChoose an action:"
   },
   "Referral.InviteMessage": {
-    "other": "🎁 <b>Invite your friends to the bot</b>\n\nShare this link with friends — you help us keep the bot running and earn perks in the future.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nReferral stats live in the admin panel → Settings → Referrals."
+    "other": "🎁 <b>Invite fellow specialists to the platform</b>\n\nSend this link to a specialist who wants to accept bookings via Telegram. When they pay for their first subscription the referral becomes active and you earn perks.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nReferral stats live in the admin panel → Settings → Referrals."
   },
   "Referral.ShareText": {
-    "other": "Book with me through my Telegram bot 👉 {{.Link}}"
+    "other": "Try this Telegram booking platform — I'm already using it 👉 {{.Link}}"
   },
   "Booking.New": {
     "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
