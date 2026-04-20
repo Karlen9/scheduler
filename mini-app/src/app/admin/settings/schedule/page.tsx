@@ -26,7 +26,7 @@ const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const dayOrder = [1, 2, 3, 4, 5, 6, 0] as const;
 const MAX_INTERVALS = 4;
 const START_MINUTES = 6 * 60;
-const END_MINUTES = 24 * 60;
+const END_MINUTES = 23 * 60 + 30;
 const STEP_MINUTES = 30;
 const TIME_OPTIONS = Array.from(
   { length: (END_MINUTES - START_MINUTES) / STEP_MINUTES + 1 },
