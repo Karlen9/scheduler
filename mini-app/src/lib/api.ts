@@ -34,6 +34,20 @@ import type {
  ***************************************************************************************************/
 const API_BASE_URL = '';
 
+function normalizeIncomingHours(hours: TWorkingHours[]): TWorkingHours[] {
+  return hours.map((wh) => ({
+    ...wh,
+    endTime: wh.endTime === '24:00' ? '00:00' : wh.endTime,
+  }));
+}
+
+function normalizeOutgoingHours<T extends { endTime: string }>(hours: T[]): T[] {
+  return hours.map((wh) => ({
+    ...wh,
+    endTime: wh.endTime === '00:00' ? '24:00' : wh.endTime,
+  }));
+}
+
 /***************************************************************************************************
  * Implements the fetch api logic used by this module.
  *
@@ -239,7 +253,8 @@ export const api = {
    * - May read browser state, call shared helpers, or perform network requests.
    ***************************************************************************************************/
   async getWorkingHours(): Promise<TWorkingHours[]> {
-    return fetchAPI<TWorkingHours[]>('/api/working-hours');
+    const hours = await fetchAPI<TWorkingHours[]>('/api/working-hours');
+    return normalizeIncomingHours(hours);
   },
 
   /***************************************************************************************************
@@ -255,7 +270,8 @@ export const api = {
    * - May read browser state, call shared helpers, or perform network requests.
    ***************************************************************************************************/
   async getScheduleContext(): Promise<TScheduleContext> {
-    return fetchAPI<TScheduleContext>('/api/schedule-context');
+    const ctx = await fetchAPI<TScheduleContext>('/api/schedule-context');
+    return { ...ctx, workingHours: normalizeIncomingHours(ctx.workingHours ?? []) };
   },
 
   /***************************************************************************************************
@@ -839,7 +855,8 @@ export const api = {
      * - May read browser state, call shared helpers, or perform network requests.
      ***************************************************************************************************/
     async getWorkingHours(): Promise<TWorkingHours[]> {
-      return fetchAPI<TWorkingHours[]>('/api/admin/working-hours');
+      const hours = await fetchAPI<TWorkingHours[]>('/api/admin/working-hours');
+      return normalizeIncomingHours(hours);
     },
 
     /***************************************************************************************************
@@ -855,7 +872,8 @@ export const api = {
      * - May read browser state, call shared helpers, or perform network requests.
      ***************************************************************************************************/
     async getScheduleContext(): Promise<TAdminScheduleContext> {
-      return fetchAPI<TAdminScheduleContext>('/api/admin/schedule-context');
+      const ctx = await fetchAPI<TAdminScheduleContext>('/api/admin/schedule-context');
+      return { ...ctx, workingHours: normalizeIncomingHours(ctx.workingHours ?? []) };
     },
 
     /***************************************************************************************************
@@ -871,10 +889,11 @@ export const api = {
      * - May read browser state, call shared helpers, or perform network requests.
      ***************************************************************************************************/
     async updateWorkingHours(hours: TWorkingHours[]): Promise<TWorkingHours[]> {
-      return fetchAPI<TWorkingHours[]>('/api/admin/working-hours', {
+      const result = await fetchAPI<TWorkingHours[]>('/api/admin/working-hours', {
         method: 'PUT',
-        body: JSON.stringify({ hours }),
+        body: JSON.stringify({ hours: normalizeOutgoingHours(hours) }),
       });
+      return normalizeIncomingHours(result);
     },
 
     /***************************************************************************************************
@@ -895,10 +914,11 @@ export const api = {
       day: number,
       intervals: TWorkingInterval[],
     ): Promise<TWorkingHours[]> {
-      return fetchAPI<TWorkingHours[]>(`/api/admin/working-hours/${day}`, {
+      const result = await fetchAPI<TWorkingHours[]>(`/api/admin/working-hours/${day}`, {
         method: 'PUT',
-        body: JSON.stringify({ hours: intervals }),
+        body: JSON.stringify({ hours: normalizeOutgoingHours(intervals) }),
       });
+      return normalizeIncomingHours(result);
     },
 
     /***************************************************************************************************
