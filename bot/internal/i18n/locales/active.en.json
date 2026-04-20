@@ -41,6 +41,12 @@
   "Btn.Back": {
     "other": "← Back"
   },
+  "Btn.Language": {
+    "other": "🌐 Language"
+  },
+  "Lang.Saved": {
+    "other": "✅ Language updated"
+  },
   "Referral.ProfileMenu": {
     "other": "👤 Profile\n\nChoose an action:"
   },
