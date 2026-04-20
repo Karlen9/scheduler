@@ -18,6 +18,9 @@ import (
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
 func parseTime(value string) (int, int, error) {
+	if value == "24:00" {
+		return 24, 0, nil
+	}
 	parsed, err := time.Parse("15:04", value)
 	if err != nil {
 		return 0, 0, fmt.Errorf("invalid time %q", value)

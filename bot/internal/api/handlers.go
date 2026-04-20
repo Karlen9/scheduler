@@ -659,6 +659,7 @@ func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
 func formatTime(hour, min int) string {
+	hour = hour % 24
 	return strconv.Itoa(hour/10) + strconv.Itoa(hour%10) + ":" + strconv.Itoa(min/10) + strconv.Itoa(min%10)
 }
 
