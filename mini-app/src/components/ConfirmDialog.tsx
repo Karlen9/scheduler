@@ -2,12 +2,13 @@
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { useTranslations } from 'next-intl';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 import type { TConfirmDialogProps } from '@/lib/types';
-import type { ReactNode } from 'react';
+import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
 type TConfirmDialogContent = Pick<
   TConfirmDialogProps,
@@ -49,7 +50,31 @@ export function ConfirmDialog({
   onInputChange,
   confirmDisabled = false,
   children,
+  holdToConfirm = false,
+  holdDurationMs = 2000,
 }: TConfirmDialogProps): ReactNode {
+  const [holding, setHolding] = useState(false);
+  const holdTimerRef = useRef<number | null>(null);
+
+  const clearHoldTimer = useCallback((): void => {
+    if (holdTimerRef.current !== null) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  }, []);
+
+  const cancelHold = useCallback((): void => {
+    clearHoldTimer();
+    setHolding(false);
+  }, [clearHoldTimer]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      cancelHold();
+    }
+  }, [isOpen, cancelHold]);
+
+  useEffect(() => clearHoldTimer, [clearHoldTimer]);
   /***************************************************************************************************
    * Defines the tc value used by the component layer.
    *
@@ -140,6 +165,42 @@ export function ConfirmDialog({
     onClose();
   };
 
+  /***************************************************************************************************
+   * Hold-to-confirm handlers. Pointer events cover touch + mouse on modern browsers. The fill
+   * element animates from 0% → 100% width via CSS transition while holding; on release (or leave
+   * or cancel) we snap back instantly by zeroing out the transition duration.
+   ***************************************************************************************************/
+  const holdFillStyle = {
+    width: holding ? '100%' : '0%',
+    transitionDuration: holding ? `${holdDurationMs}ms` : '0ms',
+    transitionTimingFunction: 'linear' as const,
+    transitionProperty: 'width',
+  };
+
+  const handleHoldStart = (e: ReactPointerEvent<HTMLButtonElement>): void => {
+    if (content.confirmDisabled) {
+      return;
+    }
+    e.currentTarget.setPointerCapture(e.pointerId);
+    getTelegramWebApp()?.HapticFeedback?.impactOccurred?.('medium');
+    setHolding(true);
+    clearHoldTimer();
+    holdTimerRef.current = window.setTimeout(() => {
+      holdTimerRef.current = null;
+      setHolding(false);
+      getTelegramWebApp()?.HapticFeedback?.notificationOccurred?.('success');
+      onConfirm();
+      onClose();
+    }, holdDurationMs);
+  };
+
+  const handleHoldEnd = (e: ReactPointerEvent<HTMLButtonElement>): void => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    cancelHold();
+  };
+
   return (
     <Transition show={isOpen} appear as={Fragment}>
       <Dialog onClose={onClose} className={'relative z-[100]'}>
@@ -192,7 +253,27 @@ export function ConfirmDialog({
                 >
                   {resolvedCancelText}
                 </button>
-                {content.destructive ? (
+                {content.destructive && holdToConfirm ? (
+                  <button
+                    type={'button'}
+                    onPointerDown={handleHoldStart}
+                    onPointerUp={handleHoldEnd}
+                    onPointerLeave={handleHoldEnd}
+                    onPointerCancel={handleHoldEnd}
+                    disabled={content.confirmDisabled}
+                    className={
+                      'bg-destructive relative flex-1 touch-none overflow-hidden rounded-xl px-4 py-3 text-base font-medium text-white transition-opacity select-none disabled:cursor-not-allowed disabled:opacity-40'
+                    }
+                    aria-label={resolvedConfirmText}
+                  >
+                    <span
+                      aria-hidden={'true'}
+                      className={'pointer-events-none absolute inset-y-0 left-0 bg-white/25'}
+                      style={holdFillStyle}
+                    />
+                    <span className={'relative'}>{resolvedConfirmText}</span>
+                  </button>
+                ) : content.destructive ? (
                   <button
                     onClick={handleConfirm}
                     disabled={content.confirmDisabled}
