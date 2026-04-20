@@ -420,16 +420,23 @@ func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 	if existing != nil && existing.IsActive {
 		/***************************************************************************************************
 		* Already registered and active — re-register handler in case it was lost, then show the main menu.
+		* A re-registration failure (e.g. the specialist's own BotFather token was revoked externally) is
+		* surfaced as a warning message but must NOT suppress the main menu: the user still needs to be
+		* able to contact the operator or create a replacement bot.
 		***************************************************************************************************/
 		log.Printf("Specialist @%s already exists, re-registering handler", existing.BotUsername)
+		reregisterFailed := false
 		if OnSpecialistCreated != nil {
 			if err := OnSpecialistCreated(existing); err != nil {
 				log.Printf("Error re-registering bot for @%s: %v", existing.BotUsername, err)
-				h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), existing.BotUsername), nil)
-				return
+				reregisterFailed = true
 			}
 		}
-		h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername), nil)
+		if reregisterFailed {
+			h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), existing.BotUsername), nil)
+		} else {
+			h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername), nil)
+		}
 		h.renderMainMenu(chatID, userID, 0, loc)
 		return
 	}
