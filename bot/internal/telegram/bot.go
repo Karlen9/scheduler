@@ -549,10 +549,22 @@ func (b *Bot) SetChatMenuButton(chatID int64, text, url string) error {
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func (b *Bot) EditMessageText(chatID int64, messageID int, text string, replyMarkup *InlineKeyboardMarkup) error {
+	return b.editMessageText(chatID, messageID, text, "", replyMarkup)
+}
+
+// EditMessageTextHTML is the HTML-parse-mode counterpart of EditMessageText. Use it when the
+// edited text contains Telegram HTML tags (<b>, <i>, <a>, ...). Falling back to the plain
+// EditMessageText would make Telegram render those tags as literal text.
+func (b *Bot) EditMessageTextHTML(chatID int64, messageID int, text string, replyMarkup *InlineKeyboardMarkup) error {
+	return b.editMessageText(chatID, messageID, text, "HTML", replyMarkup)
+}
+
+func (b *Bot) editMessageText(chatID int64, messageID int, text, parseMode string, replyMarkup *InlineKeyboardMarkup) error {
 	req := EditMessageTextRequest{
 		ChatID:      chatID,
 		MessageID:   messageID,
 		Text:        text,
+		ParseMode:   parseMode,
 		ReplyMarkup: replyMarkup,
 	}
 

@@ -55,14 +55,14 @@ func (h *MasterHandler) renderMainMenu(chatID, userID int64, messageID int, loc 
 	kb := &InlineKeyboardMarkup{InlineKeyboard: rows}
 
 	if messageID > 0 {
-		if err := h.bot.EditMessageText(chatID, messageID, text, kb); err != nil {
+		if err := h.bot.EditMessageTextHTML(chatID, messageID, text, kb); err != nil {
 			// Fall back to a fresh message if edit fails (e.g. message too old).
 			log.Printf("master: edit main menu failed, re-sending: %v", err)
-			h.bot.SendMessage(chatID, text, kb)
+			h.bot.SendMessageHTML(chatID, text, kb)
 		}
 		return
 	}
-	h.bot.SendMessage(chatID, text, kb)
+	h.bot.SendMessageHTML(chatID, text, kb)
 }
 
 // renderFAQIndex shows the FAQ section list with a back button.
@@ -92,9 +92,10 @@ func (h *MasterHandler) renderFAQPage(chatID int64, messageID int, bodyKey strin
 }
 
 // editOrSend centralises the "try to edit, otherwise send" pattern used by all rendered screens.
+// Always uses HTML parse mode so <b>/<i>/<a> tags in the admin & FAQ copy render correctly.
 func (h *MasterHandler) editOrSend(chatID int64, messageID int, text string, kb *InlineKeyboardMarkup) {
 	if messageID > 0 {
-		if err := h.bot.EditMessageText(chatID, messageID, text, kb); err == nil {
+		if err := h.bot.EditMessageTextHTML(chatID, messageID, text, kb); err == nil {
 			return
 		}
 	}
