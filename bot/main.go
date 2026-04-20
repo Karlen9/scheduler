@@ -201,6 +201,129 @@ func (m *BotManager) GetBot(webhookSecret string) *telegram.Bot {
 }
 
 /***************************************************************************************************
+* expectedWebhookURL returns the webhook URL Telegram should have registered for the given
+* specialist. Extracted so the healer logic can compare without duplicating the format string.
+***************************************************************************************************/
+func (m *BotManager) expectedWebhookURL(webhookSecret string) string {
+	return strings.TrimRight(m.baseURL, "/") + "/tg/" + webhookSecret + "/webhook"
+}
+
+/***************************************************************************************************
+* RunWebhookHealer runs a bounded-concurrency background loop that audits every active
+* specialist's webhook registration and re-registers any that are missing, empty, or drifted.
+* Recovers bots whose initial SetWebhook failed (e.g. transient DNS flake during container boot)
+* and notices webhook drift over time. Exits when ctx is cancelled.
+*
+* interval is the period between audits; values <= 0 fall back to 10 minutes.
+* maxConcurrent caps the number of in-flight Telegram API calls; values <= 0 fall back to 5.
+***************************************************************************************************/
+func (m *BotManager) RunWebhookHealer(ctx context.Context, interval time.Duration, maxConcurrent int) {
+	if interval <= 0 {
+		interval = 10 * time.Minute
+	}
+	if maxConcurrent <= 0 {
+		maxConcurrent = 5
+	}
+
+	/***************************************************************************************************
+	* Startup grace period — let the initial RegisterBot sweep settle first so we don't race it.
+	***************************************************************************************************/
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(30 * time.Second):
+	}
+
+	for {
+		m.healWebhooksOnce(ctx, maxConcurrent)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(interval):
+		}
+	}
+}
+
+/***************************************************************************************************
+* healWebhooksOnce performs a single audit pass over all active specialists, fan-out bounded by a
+* semaphore. Each specialist is checked and healed independently so one slow call does not block
+* the others.
+***************************************************************************************************/
+func (m *BotManager) healWebhooksOnce(ctx context.Context, maxConcurrent int) {
+	specialists, err := db.GetAllActiveSpecialists()
+	if err != nil {
+		log.Printf("Webhook healer: list specialists failed: %v", err)
+		return
+	}
+	if len(specialists) == 0 {
+		return
+	}
+
+	sem := make(chan struct{}, maxConcurrent)
+	var wg sync.WaitGroup
+
+	for i := range specialists {
+		if ctx.Err() != nil {
+			break
+		}
+		s := specialists[i]
+
+		/***************************************************************************************************
+		* Acquire a slot (or exit cleanly on shutdown).
+		***************************************************************************************************/
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			wg.Wait()
+			return
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			m.healSpecialistWebhook(&s)
+		}()
+	}
+	wg.Wait()
+}
+
+/***************************************************************************************************
+* healSpecialistWebhook checks a single specialist's webhook state and repairs it if broken.
+* No-op when Telegram already has the expected URL.
+***************************************************************************************************/
+func (m *BotManager) healSpecialistWebhook(s *models.Specialist) {
+	expected := m.expectedWebhookURL(s.WebhookSecret)
+
+	m.mu.RLock()
+	bot := m.bots[s.WebhookSecret]
+	m.mu.RUnlock()
+
+	/***************************************************************************************************
+	* Not registered in-process — probably means RegisterBot failed at startup. Bring it up now.
+	***************************************************************************************************/
+	if bot == nil {
+		log.Printf("Webhook healer: @%s not in-memory, registering", s.BotUsername)
+		if err := m.RegisterBot(s); err != nil {
+			log.Printf("Webhook healer: register @%s failed: %v", s.BotUsername, err)
+		}
+		return
+	}
+
+	url, _, lastErr := bot.GetWebhookInfo()
+	if url == expected {
+		return
+	}
+
+	log.Printf("Webhook healer: @%s url=%q expected=%q lastError=%q — re-registering", s.BotUsername, url, expected, lastErr)
+	if err := bot.SetWebhook(expected, s.WebhookSecret); err != nil {
+		log.Printf("Webhook healer: SetWebhook for @%s failed: %v", s.BotUsername, err)
+		return
+	}
+	log.Printf("Webhook healer: re-set webhook for @%s", s.BotUsername)
+}
+
+/***************************************************************************************************
 * Defines the bot manager value used by the current module.
 *
 * Usage context:
@@ -745,6 +868,13 @@ func main() {
 	reminderCtx, reminderCancel := context.WithCancel(context.Background())
 	defer reminderCancel()
 	go startReminderWorker(reminderCtx)
+
+	/***************************************************************************************************
+	* Start background webhook healer — re-registers bots whose Telegram-side webhook is missing or
+	* drifted. Catches transient SetWebhook failures during startup (e.g. Telegram DNS blips) and
+	* heals them automatically without needing a container restart.
+	***************************************************************************************************/
+	go botManager.RunWebhookHealer(reminderCtx, 10*time.Minute, 5)
 
 	go func() {
 		log.Printf("Starting HTTP server on %s", server.Addr)
