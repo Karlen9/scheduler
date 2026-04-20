@@ -525,6 +525,87 @@
   "Master.SpecialistCount": {
     "other": "\n\n👥 Specialists: {{.Count}}"
   },
+  "MasterMenu.Home": {
+    "other": "👋 Hi! I'll help you start accepting bookings via Telegram.\n\nPick an option:"
+  },
+  "MasterMenu.BtnCreateBot": {
+    "other": "🤖 Create my bot"
+  },
+  "MasterMenu.BtnFAQ": {
+    "other": "ℹ️ FAQ"
+  },
+  "MasterMenu.BtnOperator": {
+    "other": "💬 Talk to operator"
+  },
+  "MasterMenu.BtnAdmin": {
+    "other": "📊 Admin panel"
+  },
+  "MasterMenu.BtnBack": {
+    "other": "⬅️ Back"
+  },
+  "MasterMenu.FAQIndex": {
+    "other": "<b>ℹ️ Frequently asked questions</b>\n\nPick a topic:"
+  },
+  "MasterMenu.BtnFAQBotHow": {
+    "other": "🤖 How to create a bot via BotFather"
+  },
+  "MasterMenu.BtnFAQUsage": {
+    "other": "📱 How to use the service"
+  },
+  "MasterMenu.BtnFAQPricing": {
+    "other": "💳 Pricing & terms"
+  },
+  "MasterFAQ.BotHow": {
+    "other": "<b>🤖 How to create a bot via BotFather</b>\n\nDon't worry — it takes 2 minutes and our operator can help at any step.\n\n1. Open @BotFather in Telegram\n2. Send /newbot\n3. Pick a <b>name</b> for the bot (e.g. \"Ivan — massage\")\n4. Pick a <b>username</b> ending in <i>bot</i> (e.g. ivan_massage_bot)\n5. Copy the long token BotFather sends you\n6. Come back here, tap \"🤖 Create my bot\" and paste the token\n\nStuck? Tap \"💬 Talk to operator\" and we'll walk you through it."
+  },
+  "MasterFAQ.Usage": {
+    "other": "<b>📱 How to use the service</b>\n\n• After registration you get your own bot — share its link with clients.\n• Clients book themselves inside Telegram: pick date, duration, time.\n• You get a notification and confirm/decline with a single button.\n• Calendar, services, prices, recurring bookings and analytics live inside the mini-app.\n• Everything configurable from inside Telegram."
+  },
+  "MasterFAQ.Pricing": {
+    "other": "<b>💳 Pricing & terms</b>\n\nThe service is free during the beta. If paid features appear later we'll announce them ahead of time and keep your current setup working.\n\nQuestions about terms? Tap \"💬 Talk to operator\"."
+  },
+  "MasterSupport.Welcome": {
+    "other": "💬 <b>You're connected to an operator</b>\n\nDescribe your question — we'll reply right here. Text, photos, voice messages and documents all work.\n\nTo end the chat, just stop replying — you can come back any time."
+  },
+  "MasterSupport.Closed": {
+    "other": "🔒 The conversation with the operator is closed. Write again any time if you need more help."
+  },
+  "MasterSupport.Disabled": {
+    "other": "⚠️ Operator chat is temporarily unavailable. Please try again later."
+  },
+  "MasterSupport.RelayFailed": {
+    "other": "⚠️ Couldn't deliver your message. Please try again in a minute."
+  },
+  "MasterSupport.TooLong": {
+    "other": "⚠️ That message is too long. Please trim it and send again."
+  },
+  "MasterAdmin.Home": {
+    "other": "<b>📊 Admin panel</b>\n\nPick a section:"
+  },
+  "MasterAdmin.BtnPlatform": {
+    "other": "🏢 Platform"
+  },
+  "MasterAdmin.BtnBookings": {
+    "other": "📅 Bookings"
+  },
+  "MasterAdmin.BtnClients": {
+    "other": "👥 Clients"
+  },
+  "MasterAdmin.BtnRecurring": {
+    "other": "🔄 Recurring"
+  },
+  "MasterAdmin.BtnReferrals": {
+    "other": "🎁 Referrals"
+  },
+  "MasterAdmin.BtnTop": {
+    "other": "🏆 Top specialists"
+  },
+  "MasterAdmin.BtnDurations": {
+    "other": "⏱ Durations"
+  },
+  "MasterAdmin.BtnList": {
+    "other": "📋 Specialist list"
+  },
   "Seed.Personal": {
     "other": "Personal session"
   },

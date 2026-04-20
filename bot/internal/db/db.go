@@ -253,6 +253,24 @@ func migrateSQLite() error {
 		`CREATE INDEX IF NOT EXISTS idx_recurring_status_day_of_week_time ON recurring_schedules(status, day_of_week, "time")`,
 		`CREATE INDEX IF NOT EXISTS idx_clients_specialist_name ON clients(specialist_id, name)`,
 		`CREATE INDEX IF NOT EXISTS idx_session_types_specialist_active_type ON session_types(specialist_id, is_active, type)`,
+		`CREATE TABLE IF NOT EXISTS support_threads (
+			id TEXT PRIMARY KEY,
+			telegram_user_id INTEGER UNIQUE NOT NULL,
+			telegram_username TEXT DEFAULT '',
+			display_name TEXT DEFAULT '',
+			language_code TEXT DEFAULT '',
+			topic_id INTEGER NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			last_message_at DATETIME,
+			closed_at DATETIME
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_support_threads_topic_id ON support_threads(topic_id)`,
+		`CREATE TABLE IF NOT EXISTS master_users (
+			telegram_user_id INTEGER PRIMARY KEY,
+			language TEXT NOT NULL DEFAULT 'ru',
+			first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, migration := range migrations {
@@ -476,6 +494,24 @@ func migratePostgres() error {
 		`CREATE INDEX IF NOT EXISTS idx_recurring_status_day_of_week_time ON recurring_schedules(status, day_of_week, "time")`,
 		`CREATE INDEX IF NOT EXISTS idx_clients_specialist_name ON clients(specialist_id, name)`,
 		`CREATE INDEX IF NOT EXISTS idx_session_types_specialist_active_type ON session_types(specialist_id, is_active, type)`,
+		`CREATE TABLE IF NOT EXISTS support_threads (
+			id TEXT PRIMARY KEY,
+			telegram_user_id BIGINT UNIQUE NOT NULL,
+			telegram_username TEXT DEFAULT '',
+			display_name TEXT DEFAULT '',
+			language_code TEXT DEFAULT '',
+			topic_id INTEGER NOT NULL,
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			last_message_at TIMESTAMPTZ,
+			closed_at TIMESTAMPTZ
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_support_threads_topic_id ON support_threads(topic_id)`,
+		`CREATE TABLE IF NOT EXISTS master_users (
+			telegram_user_id BIGINT PRIMARY KEY,
+			language TEXT NOT NULL DEFAULT 'ru',
+			first_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			last_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, migration := range migrations {

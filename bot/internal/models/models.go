@@ -325,3 +325,18 @@ func (d DayOff) MarshalJSON() ([]byte, error) {
 		CreatedAt: d.CreatedAt,
 	})
 }
+
+// SupportThread maps a prospective specialist (a Telegram user DMing the master bot) to a
+// forum topic inside the owner's support supergroup. Messages in either direction are relayed
+// via this mapping while ClosedAt is nil.
+type SupportThread struct {
+	ID               string     `json:"id"`
+	TelegramUserID   int64      `json:"telegramUserId"`
+	TelegramUsername string     `json:"telegramUsername"`
+	DisplayName      string     `json:"displayName"`
+	LanguageCode     string     `json:"languageCode"`
+	TopicID          int        `json:"topicId"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	LastMessageAt    *time.Time `json:"lastMessageAt,omitempty"`
+	ClosedAt         *time.Time `json:"closedAt,omitempty"`
+}

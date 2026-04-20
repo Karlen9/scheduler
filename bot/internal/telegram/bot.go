@@ -25,7 +25,12 @@ const telegramAPI = "https://api.telegram.org/bot"
 type Bot struct {
 	Token    string
 	Username string
+	ID       int64 // Numeric Telegram user ID of the bot itself, populated from getMe.
 }
+
+// TelegramID returns the bot's own Telegram user ID. Used when filtering messages we ourselves
+// posted (e.g. breadcrumbs inside a support topic) so we don't echo them back to the user.
+func (b *Bot) TelegramID() int64 { return b.ID }
 
 /***************************************************************************************************
 * WebAppInfo holds web app URL.
@@ -104,17 +109,21 @@ type Update struct {
 * Message represents a Telegram message.
 ***************************************************************************************************/
 type Message struct {
-	MessageID int    `json:"message_id"`
-	Chat      Chat   `json:"chat"`
-	From      *User  `json:"from,omitempty"`
-	Text      string `json:"text,omitempty"`
+	MessageID       int    `json:"message_id"`
+	Chat            Chat   `json:"chat"`
+	From            *User  `json:"from,omitempty"`
+	Text            string `json:"text,omitempty"`
+	Caption         string `json:"caption,omitempty"`
+	MessageThreadID int    `json:"message_thread_id,omitempty"`
+	IsTopicMessage  bool   `json:"is_topic_message,omitempty"`
 }
 
 /***************************************************************************************************
 * Chat represents a Telegram chat.
 ***************************************************************************************************/
 type Chat struct {
-	ID int64 `json:"id"`
+	ID   int64  `json:"id"`
+	Type string `json:"type,omitempty"`
 }
 
 /***************************************************************************************************
@@ -152,6 +161,7 @@ type GetUpdatesResponse struct {
 type GetMeResponse struct {
 	OK     bool `json:"ok"`
 	Result struct {
+		ID       int64  `json:"id"`
 		Username string `json:"username"`
 	} `json:"result"`
 }
@@ -212,6 +222,7 @@ func NewBot(token string) (*Bot, error) {
 	}
 
 	bot.Username = result.Result.Username
+	bot.ID = result.Result.ID
 	return bot, nil
 }
 
@@ -862,4 +873,143 @@ func (b *Bot) PollUpdates(handler func(Update)) {
 			handler(update)
 		}
 	}
+}
+
+// CreateForumTopic creates a new topic in a forum supergroup and returns its message_thread_id.
+// Requires the bot to be admin in the group with the "Manage Topics" right.
+func (b *Bot) CreateForumTopic(chatID int64, name string) (int, error) {
+	data := map[string]interface{}{
+		"chat_id": chatID,
+		"name":    truncateTopicName(name),
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/createForumTopic",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			MessageThreadID int `json:"message_thread_id"`
+		} `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return 0, err
+	}
+	if !result.OK {
+		return 0, fmt.Errorf("createForumTopic failed: %s", result.Description)
+	}
+	return result.Result.MessageThreadID, nil
+}
+
+// CloseForumTopic closes a topic so no new replies can be posted (history preserved).
+func (b *Bot) CloseForumTopic(chatID int64, threadID int) error {
+	data := map[string]interface{}{
+		"chat_id":           chatID,
+		"message_thread_id": threadID,
+	}
+	jsonData, _ := json.Marshal(data)
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/closeForumTopic",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+// SendMessageToTopic posts a plain (HTML-parsed) message into a specific topic inside a forum supergroup.
+func (b *Bot) SendMessageToTopic(chatID int64, threadID int, text string) (*Message, error) {
+	data := map[string]interface{}{
+		"chat_id":           chatID,
+		"message_thread_id": threadID,
+		"text":              text,
+		"parse_mode":        "HTML",
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/sendMessage",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result SendMessageResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	if !result.OK {
+		return nil, fmt.Errorf("sendMessage to topic failed")
+	}
+	return &result.Result, nil
+}
+
+// CopyMessage reposts a message from one chat to another (preserving media, captions, etc.)
+// without the "Forwarded from" header. threadID may be 0 for a plain chat destination.
+func (b *Bot) CopyMessage(toChatID int64, fromChatID int64, messageID int, threadID int) (int, error) {
+	data := map[string]interface{}{
+		"chat_id":      toChatID,
+		"from_chat_id": fromChatID,
+		"message_id":   messageID,
+	}
+	if threadID > 0 {
+		data["message_thread_id"] = threadID
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/copyMessage",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			MessageID int `json:"message_id"`
+		} `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return 0, err
+	}
+	if !result.OK {
+		return 0, fmt.Errorf("copyMessage failed: %s", result.Description)
+	}
+	return result.Result.MessageID, nil
+}
+
+// truncateTopicName keeps the topic name within Telegram's 128-char limit.
+func truncateTopicName(name string) string {
+	const max = 128
+	runes := []rune(name)
+	if len(runes) <= max {
+		return name
+	}
+	return string(runes[:max-1]) + "…"
 }

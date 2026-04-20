@@ -3,20 +3,24 @@
 ## Environment variables
 
 ### Required
+
 - `PUBLIC_BASE_URL` - public HTTPS base URL reachable by Telegram (e.g. `https://api.example.com`)
 - `WEB_APP_URL` - URL of the deployed mini-app
 - `MASTER_BOT_TOKEN` - Telegram bot token for the master onboarding bot
 - `MASTER_WEBHOOK_SECRET` - fixed webhook secret for the master bot
 
 ### Optional
+
 - `PORT` - HTTP server port (default `8080`)
 - `DATABASE_PATH` - SQLite file path (default `./data/scheduler.db`)
 - `DATABASE_URL` - PostgreSQL connection string; if set, overrides `DATABASE_PATH`
 - `ENCRYPTION_KEY` - hex-encoded 32-byte AES key for encrypting bot tokens at rest
-- `ADMIN_IDS` - comma-separated Telegram user IDs with admin access
+- `ADMIN_IDS` - comma-separated Telegram user IDs that unlock the master bot's admin analytics panel and can reply inside support topics
+- `SUPPORT_GROUP_ID` - numeric chat ID of a supergroup (with forum topics enabled) where the master bot relays operator conversations. Leave unset to disable the operator relay. See "Operator support relay" below.
 - `DB_PASSWORD` - Postgres password used in docker-compose (default `scheduler`)
 
 ### Legacy (single-bot setup)
+
 - `TELEGRAM_BOT_TOKEN`
 - `SPECIALIST_TELEGRAM_ID`
 - `SPECIALIST_NAME` (default `Specialist`)
@@ -25,12 +29,12 @@
 
 The bot supports two database backends:
 
-| | SQLite | PostgreSQL |
-|---|---|---|
-| **Default** | Yes | No (opt-in) |
-| **Config** | `DATABASE_PATH` | `DATABASE_URL` |
+|              | SQLite                     | PostgreSQL                  |
+| ------------ | -------------------------- | --------------------------- |
+| **Default**  | Yes                        | No (opt-in)                 |
+| **Config**   | `DATABASE_PATH`            | `DATABASE_URL`              |
 | **Use case** | Production (single server) | Dev/staging, future scaling |
-| **Driver** | `modernc.org/sqlite` | `jackc/pgx/v5` |
+| **Driver**   | `modernc.org/sqlite`       | `jackc/pgx/v5`              |
 
 Detection is automatic: if `DATABASE_URL` starts with `postgres`, PostgreSQL is used; otherwise SQLite.
 
@@ -162,6 +166,32 @@ You need a public HTTPS URL that forwards to your local bot port:
 curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo" | jq
 ```
 
+## Operator support relay
+
+The master bot doubles as a help-desk: specialists tap "💬 Talk to operator" in the `/start` menu and the bot relays their DMs into forum topics inside a supergroup you (the owner) control.
+
+### One-time setup
+
+1. Create a Telegram supergroup. In Settings → "Topics" → enable topics.
+2. Add the master bot to the group and promote it to admin with at least `Manage Topics` and `Send Messages` rights.
+3. Post anything in the group, forward it to [@userinfobot](https://t.me/userinfobot) and copy the chat ID it returns (a negative number, e.g. `-1001234567890`).
+4. Set `SUPPORT_GROUP_ID` to that chat ID and restart the bot.
+5. Add your personal Telegram ID to `ADMIN_IDS` so replies you type inside topics are relayed to users (only admins can use the analytics panel; all participants of the group can chat in topics, but the bot only relays messages from non-bots).
+
+### How it works
+
+- First time a user taps "Talk to operator", the bot creates a new topic named `First Last · @handle · id:123` and posts a breadcrumb inside it.
+- Every subsequent DM from that user is copied into the matching topic (`copyMessage` — no "forwarded from" header, keeps media and captions).
+- Any message typed inside the topic by operators is copied back to the user's DM.
+- Commands typed in the topic are **not** relayed, so `/ban` etc. stay internal.
+- `/close` inside a topic closes the thread. The user is notified, the topic is closed (history preserved), and the next DM from that user creates a fresh topic.
+- Messages outside mapped topics (or without `message_thread_id`) are ignored.
+- A conservative substring spam filter drops obvious junk (shortlinks, crypto-shill keywords) before relay. Messages over 4000 characters are bounced back to the user with a "trim and retry" notice.
+
+### Owner analytics panel
+
+Users listed in `ADMIN_IDS` see an extra `📊 Admin panel` button in the master bot `/start` menu (also reachable via `/admin`). Sections: Platform, Bookings, Clients, Recurring, Referrals, Top specialists, Durations, Specialist list. All queries are platform-wide and live in `bot/internal/db/owner_stats.go`.
+
 ## Architecture
 
 ```
@@ -180,8 +210,14 @@ bot/
       days_off.go          # Days off CRUD
       waitlist.go          # Waitlist CRUD
       recurring.go         # Recurring schedule CRUD
+      owner_stats.go       # Platform-wide stats for the master bot's owner panel
+      support.go           # support_threads CRUD (operator relay mapping)
     api/                   # REST API handlers + middleware
     telegram/              # Bot logic, webhook handling, notifications
+      master.go            # Master bot entrypoint + onboarding state machine
+      master_menu.go       # /start main menu + FAQ screens
+      master_support.go    # Operator support relay (DM ↔ forum topic)
+      master_admin.go      # Owner analytics panel
     crypto/                # Token encryption/hashing
     models/                # Shared data structures
 ```
