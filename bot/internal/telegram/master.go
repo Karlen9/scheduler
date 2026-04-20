@@ -42,6 +42,9 @@ const (
 	* - Reused by the telegram bot layer to keep shared values centralized.
 	***************************************************************************************************/
 	StateAwaitingName
+	// StateAwaitingReplacementToken is entered via /replacetoken or the profile menu when an
+	// already-registered specialist needs to swap their bot token (e.g. after BotFather /revoke).
+	StateAwaitingReplacementToken
 )
 
 /***************************************************************************************************
@@ -208,6 +211,8 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 			h.handleTokenInput(chatID, userID, text, session, loc)
 		case StateAwaitingName:
 			h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
+		case StateAwaitingReplacementToken:
+			h.handleReplacementTokenInput(chatID, userID, text, loc)
 		}
 		return
 	}
@@ -266,6 +271,8 @@ func (h *MasterHandler) handleCommand(chatID, userID int64, text string, loc *lo
 		h.renderMainMenu(chatID, userID, 0, loc)
 	case "/language":
 		h.renderLanguagePicker(chatID, 0, loc)
+	case "/replacetoken":
+		h.beginReplaceToken(chatID, userID, loc)
 	case "/cancel":
 		h.handleCancel(chatID, userID, loc)
 	case "/help":
@@ -701,3 +708,86 @@ var OnSpecialistCreated func(specialist *models.Specialist) error
 * localizerType is an alias for the go-i18n Localizer type used in master handler signatures.
 ***************************************************************************************************/
 type localizerType = i18n.Localizer
+
+// beginReplaceToken kicks off the token-rotation flow. Only meaningful for an already-registered
+// specialist (the one we're rotating credentials for). New users get nudged back to /start.
+func (h *MasterHandler) beginReplaceToken(chatID, userID int64, loc *localizerType) {
+	existing, err := db.GetSpecialistByTelegramID(userID)
+	if err != nil || existing == nil || !existing.IsActive {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
+		return
+	}
+	h.setSession(userID, &OnboardingSession{State: StateAwaitingReplacementToken, BotUsername: existing.BotUsername})
+	msg := fmt.Sprintf(myI18n.T(loc, "MasterReplace.Prompt"), existing.BotUsername)
+	h.bot.SendMessage(chatID, msg, nil)
+}
+
+// handleReplacementTokenInput validates the pasted token, ensures it belongs to the SAME bot
+// (username must match so we don't let someone swap credentials for a different account), then
+// updates the encrypted row and re-registers the webhook. All bookings / clients stay intact.
+func (h *MasterHandler) handleReplacementTokenInput(chatID, userID int64, text string, loc *localizerType) {
+	token := strings.TrimSpace(text)
+	session := h.getSession(userID)
+	if session == nil {
+		return
+	}
+
+	if !strings.Contains(token, ":") {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.InvalidToken"), nil)
+		return
+	}
+
+	// Validate the token with Telegram and capture the bot username it resolves to.
+	bot, err := NewBot(token)
+	if err != nil {
+		log.Printf("replace-token: invalid token from %d: %v", userID, err)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.InvalidToken"), nil)
+		return
+	}
+
+	// Credentials must point at the same underlying bot. This is the critical safety check:
+	// without it a user could paste a token for somebody else's bot and hijack their schedule.
+	if !strings.EqualFold(bot.Username, session.BotUsername) {
+		log.Printf("replace-token: username mismatch for user %d (got @%s, expected @%s)", userID, bot.Username, session.BotUsername)
+		h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "MasterReplace.UsernameMismatch"), session.BotUsername, bot.Username), nil)
+		return
+	}
+
+	existing, err := db.GetSpecialistByTelegramID(userID)
+	if err != nil || existing == nil {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+		h.setSession(userID, nil)
+		return
+	}
+
+	if err := db.UpdateSpecialistBotToken(existing.ID, token); err != nil {
+		log.Printf("replace-token: db update for %s failed: %v", existing.ID, err)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+		return
+	}
+
+	// Reload the specialist with the freshly-encrypted token so the manager re-registers against
+	// it (GetSpecialistByID returns the decrypted form via scanSpecialist).
+	refreshed, err := db.GetSpecialistByID(existing.ID)
+	if err != nil || refreshed == nil {
+		log.Printf("replace-token: reload after update failed: %v", err)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+		h.setSession(userID, nil)
+		return
+	}
+	if OnSpecialistCreated != nil {
+		if err := OnSpecialistCreated(refreshed); err != nil {
+			log.Printf("replace-token: re-register for %s failed: %v", refreshed.BotUsername, err)
+			// DB already swapped — the user can try /start to retry registration later. Surface the
+			// partial success honestly rather than pretending it failed.
+			h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), refreshed.BotUsername), nil)
+			h.setSession(userID, nil)
+			return
+		}
+	}
+
+	h.setSession(userID, nil)
+	h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "MasterReplace.Success"), refreshed.BotUsername), nil)
+	h.renderMainMenu(chatID, userID, 0, loc)
+	log.Printf("Specialist @%s token rotated by user %d", refreshed.BotUsername, userID)
+}

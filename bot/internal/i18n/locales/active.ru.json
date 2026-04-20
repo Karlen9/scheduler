@@ -608,6 +608,15 @@
   "MasterAdmin.BtnList": {
     "other": "📋 Список специалистов"
   },
+  "MasterReplace.Prompt": {
+    "other": "🔑 Замена токена для @%s\n\nОткройте @BotFather → /mybots → выберите бота → API Token → при необходимости /revoke — и пришлите мне новый длинный токен.\n\nОтправьте /cancel, чтобы отменить."
+  },
+  "MasterReplace.UsernameMismatch": {
+    "other": "❌ Этот токен принадлежит другому боту (@%s вместо @%s).\n\nПришлите токен именно от вашего бота, иначе замена невозможна."
+  },
+  "MasterReplace.Success": {
+    "other": "✅ Токен заменён. Бот @%s снова в работе — можно отправлять /start клиентам."
+  },
   "Seed.Personal": {
     "other": "Персональный сеанс"
   },
