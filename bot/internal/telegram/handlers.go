@@ -17,28 +17,22 @@ import (
 * Handler handles Telegram updates.
 ***************************************************************************************************/
 type Handler struct {
-	Bot       *Bot
-	WebAppURL string
-	Version   string
+	Bot                *Bot
+	WebAppURL          string
+	Version            string
+	MasterBotUsername  string // Username of the master onboarding bot. Shareable referral links
+	// point at t.me/<MasterBotUsername>?start=ref_<code> so invitees land on the recruitment
+	// flow rather than on the specialist's personal booking bot.
 }
 
 /***************************************************************************************************
 * NewHandler creates a new Handler.
-*
-* Parameters:
-* - bot: Bot used by the current operation.
-* - webAppURL: Web app url used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as *Handler.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
-func NewHandler(bot *Bot, webAppURL string) *Handler {
+func NewHandler(bot *Bot, webAppURL, masterBotUsername string) *Handler {
 	return &Handler{
-		Bot:       bot,
-		WebAppURL: webAppURL,
+		Bot:               bot,
+		WebAppURL:         webAppURL,
+		MasterBotUsername: masterBotUsername,
 	}
 }
 
@@ -1349,7 +1343,10 @@ func (h *Handler) handleProfileCallback(update Update) {
 			_, _ = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Handler.ConfigError"), nil)
 			return
 		}
-		link := referralLink(h.Bot.Username, code)
+		// Link points at the master (recruitment) bot, not the specialist's personal bot — the
+		// goal is to bring new specialists onto the platform, not to hand out yet another client
+		// link.
+		link := referralLink(h.MasterBotUsername, code)
 		shareText := myI18n.Tf(loc, "Referral.ShareText", map[string]interface{}{"Link": link})
 
 		inviteText := myI18n.Tf(loc, "Referral.InviteMessage", map[string]interface{}{"Link": link})

@@ -28,6 +28,8 @@ type Specialist struct {
 	Wallpaper           string     `json:"wallpaper,omitempty"`
 	AvailableDurations  string     `json:"availableDurations,omitempty"`
 	ReferralCode        string     `json:"referralCode,omitempty"`
+	ReferredViaCode     string     `json:"referredViaCode,omitempty"`
+	FirstPaymentAt      *time.Time `json:"firstPaymentAt,omitempty"`
 	NotifyNewBookings   bool       `json:"notifyNewBookings"`
 	NotifyCancellations bool       `json:"notifyCancellations"`
 	IsActive            bool       `json:"-"`

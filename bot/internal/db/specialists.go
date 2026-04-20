@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -54,9 +55,9 @@ func generateReferralCode() string {
 ***************************************************************************************************/
 func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, error) {
 	var t models.Specialist
-	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper, referralCode sql.NullString
+	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper, referralCode, referredViaCode sql.NullString
 	var notifyNewBookings, notifyCancellations sql.NullInt64
-	var deletedAt sql.NullTime
+	var deletedAt, firstPaymentAt sql.NullTime
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
@@ -68,6 +69,8 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&language,
 		&wallpaper,
 		&referralCode,
+		&referredViaCode,
+		&firstPaymentAt,
 		&deletedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -90,6 +93,11 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	}
 	t.Wallpaper = wallpaper.String
 	t.ReferralCode = referralCode.String
+	t.ReferredViaCode = referredViaCode.String
+	if firstPaymentAt.Valid {
+		paid := firstPaymentAt.Time
+		t.FirstPaymentAt = &paid
+	}
 	if deletedAt.Valid {
 		deleted := deletedAt.Time
 		t.DeletedAt = &deleted
@@ -112,7 +120,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, deleted_at`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -294,6 +302,77 @@ func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezon
 	}
 
 	return GetSpecialistByID(id)
+}
+
+// SetSpecialistReferredViaCode records which existing specialist's referral code brought this
+// user to the master bot. Only applied once per row (NULL → code) so a returning specialist
+// can't accidentally rewrite their referral attribution by reusing the link.
+func SetSpecialistReferredViaCode(specialistID, code string) error {
+	_, err := DB.Exec(Q(`
+		UPDATE specialists
+		SET referred_via_code = ?
+		WHERE id = ? AND (referred_via_code IS NULL OR referred_via_code = '')
+	`), code, specialistID)
+	return err
+}
+
+// SetSpecialistFirstPaymentAt marks the moment a specialist's first paid invoice cleared.
+// Idempotent: subsequent payments don't overwrite the original activation timestamp, so the
+// referral becomes "active" exactly once. Pass a zero time.Time to clear (refund support).
+func SetSpecialistFirstPaymentAt(specialistID string, ts time.Time) error {
+	if ts.IsZero() {
+		_, err := DB.Exec(Q(`UPDATE specialists SET first_payment_at = NULL WHERE id = ?`), specialistID)
+		return err
+	}
+	_, err := DB.Exec(Q(`
+		UPDATE specialists
+		SET first_payment_at = ?
+		WHERE id = ? AND first_payment_at IS NULL
+	`), ts, specialistID)
+	return err
+}
+
+// ReferredSpecialistStat is a row in the specialist-referral listing.
+type ReferredSpecialistStat struct {
+	ID             string
+	Name           string
+	BotUsername    string
+	CreatedAt      time.Time
+	FirstPaymentAt *time.Time
+}
+
+// ListReferredSpecialists returns every specialist whose referred_via_code matches the given
+// code, sorted by most recent signup first. Used by the admin referrals endpoint to power the
+// active vs passive breakdown.
+func ListReferredSpecialists(code string) ([]ReferredSpecialistStat, error) {
+	if code == "" {
+		return nil, nil
+	}
+	rows, err := DB.Query(Q(`
+		SELECT id, name, bot_username, created_at, first_payment_at
+		FROM specialists
+		WHERE referred_via_code = ?
+		ORDER BY created_at DESC
+	`), code)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []ReferredSpecialistStat
+	for rows.Next() {
+		var item ReferredSpecialistStat
+		var firstPayment sql.NullTime
+		if err := rows.Scan(&item.ID, &item.Name, &item.BotUsername, &item.CreatedAt, &firstPayment); err != nil {
+			return nil, err
+		}
+		if firstPayment.Valid {
+			v := firstPayment.Time
+			item.FirstPaymentAt = &v
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
 }
 
 // UpdateSpecialistBotToken swaps the encrypted bot_token + bot_token_hash for a specialist

@@ -27,11 +27,12 @@ import (
 * BotManager manages multiple bot instances.
 ***************************************************************************************************/
 type BotManager struct {
-	mu        sync.RWMutex
-	bots      map[string]*telegram.Bot     // webhookSecret -> bot
-	handlers  map[string]*telegram.Handler // webhookSecret -> handler
-	webAppURL string
-	baseURL   string
+	mu                sync.RWMutex
+	bots              map[string]*telegram.Bot     // webhookSecret -> bot
+	handlers          map[string]*telegram.Handler // webhookSecret -> handler
+	webAppURL         string
+	baseURL           string
+	masterBotUsername string // empty if master bot not configured; used to build referral links
 }
 
 /***************************************************************************************************
@@ -53,6 +54,18 @@ func NewBotManager(webAppURL, baseURL string) *BotManager {
 		handlers:  make(map[string]*telegram.Handler),
 		webAppURL: webAppURL,
 		baseURL:   baseURL,
+	}
+}
+
+// SetMasterBotUsername records the master bot's username on the manager and back-fills every
+// already-registered specialist handler. Called once from main.go after the master bot's
+// getMe resolves. Safe to call multiple times (idempotent).
+func (m *BotManager) SetMasterBotUsername(username string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.masterBotUsername = username
+	for _, h := range m.handlers {
+		h.MasterBotUsername = username
 	}
 }
 
@@ -84,7 +97,7 @@ func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 		return err
 	}
 
-	handler := telegram.NewHandler(bot, m.webAppURL)
+	handler := telegram.NewHandler(bot, m.webAppURL, m.masterBotUsername)
 	handler.Version = Version
 
 	/***************************************************************************************************
@@ -747,6 +760,11 @@ func main() {
 			log.Fatalf("Failed to create master bot: %v", err)
 		}
 		log.Printf("Master bot: @%s", masterBot.Username)
+
+		// Make the master bot's username available to every specialist bot handler so the
+		// "Invite friend" flow can build recruitment links that land on the master bot.
+		botManager.SetMasterBotUsername(masterBot.Username)
+		api.SetMasterBotUsername(masterBot.Username)
 
 		masterHandler = telegram.NewMasterHandler(masterBot, cfg.PublicBaseURL, cfg.WebAppURL, cfg.AdminIDs, cfg.SupportGroupID)
 
