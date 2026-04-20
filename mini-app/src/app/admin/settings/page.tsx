@@ -226,8 +226,10 @@ export default function SettingsPage(): ReactNode {
         onConfirm={handleDeleteBot}
         title={td('modalTitle')}
         description={td('modalBody', { phrase: requiredPhrase })}
-        confirmText={deleting ? td('deleting') : td('confirmButton')}
+        confirmText={deleting ? td('deleting') : td('holdToConfirm')}
         destructive
+        holdToConfirm
+        holdDurationMs={2000}
         showInput
         inputPlaceholder={requiredPhrase}
         inputValue={deletePhrase}

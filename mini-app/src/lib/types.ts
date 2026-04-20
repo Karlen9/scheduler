@@ -366,6 +366,11 @@ export type TTelegramWebApp = {
   onEvent: (event: string, callback: TVoidFunction) => void;
   offEvent: (event: string, callback: TVoidFunction) => void;
   openTelegramLink?: (url: string) => void;
+  HapticFeedback?: {
+    impactOccurred?: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+    notificationOccurred?: (type: 'error' | 'success' | 'warning') => void;
+    selectionChanged?: TVoidFunction;
+  };
 };
 
 /***************************************************************************************************
@@ -689,6 +694,10 @@ export type TConfirmDialogProps = {
   onInputChange?: (value: string) => void;
   confirmDisabled?: boolean;
   children?: ReactNode;
+  /** When true, the destructive confirm button must be held for holdDurationMs to fire. */
+  holdToConfirm?: boolean;
+  /** Hold duration in milliseconds. Defaults to 2000 when holdToConfirm is true. */
+  holdDurationMs?: number;
 };
 
 /***************************************************************************************************

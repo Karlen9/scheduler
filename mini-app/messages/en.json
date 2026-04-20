@@ -351,6 +351,7 @@
     "requiredPhrase": "delete my bot",
     "requiredPhraseAlt": "удалить бота",
     "confirmButton": "Delete",
+    "holdToConfirm": "Hold to delete",
     "deleting": "Deleting…",
     "successToast": "Bot deleted",
     "errorToast": "Could not delete the bot"
