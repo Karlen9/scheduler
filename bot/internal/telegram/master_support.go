@@ -47,6 +47,13 @@ func (h *MasterHandler) startOperatorSupport(chatID, userID int64, messageID int
 		return
 	}
 
+	// Tapping "Talk to operator" explicitly abandons any in-progress onboarding state — if the
+	// user was mid "Create my bot" flow (StateAwaitingToken/Name) or mid "Replace token", their
+	// next message should go to the operator, not be interpreted as a BotFather token. We also
+	// drop any pending referral since they're clearly not completing that onboarding right now.
+	h.setSession(userID, nil)
+	h.clearPendingReferral(userID)
+
 	thread, err := h.ensureSupportThread(userID, user)
 	if err != nil {
 		log.Printf("master-support: ensure thread for %d failed: %v", userID, err)
