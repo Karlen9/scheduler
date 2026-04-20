@@ -226,7 +226,7 @@ export default function SchedulePage(): ReactNode {
 
       newSchedule[wh.dayOfWeek].intervals.push({
         startTime: wh.startTime,
-        endTime: wh.endTime === '24:00' ? '00:00' : wh.endTime,
+        endTime: wh.endTime,
       });
     });
 
@@ -454,7 +454,7 @@ export default function SchedulePage(): ReactNode {
             hours.push({
               dayOfWeek: day,
               startTime: interval.startTime,
-              endTime: interval.endTime === '00:00' ? '24:00' : interval.endTime,
+              endTime: interval.endTime,
             });
           });
         }
