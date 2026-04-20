@@ -310,15 +310,22 @@ func (h *MasterHandler) dispatchSupportCallback(chatID, userID int64, messageID 
 	_ = loc
 }
 
-// topicNameFor produces a human-sortable topic title. Format: "First Last · @handle · id"
+// topicNameFor produces a human-sortable topic title. Format: "First Last · @handle"
 // (trimmed to fit Telegram's 128-char limit — CreateForumTopic does the truncation).
+// The numeric user id is intentionally omitted from the title for readability; it's still
+// available on the breadcrumb posted inside the topic and in support_threads.telegram_user_id.
 func topicNameFor(u User) string {
-	parts := []string{strings.TrimSpace(u.FirstName + " " + u.LastName)}
+	name := strings.TrimSpace(u.FirstName + " " + u.LastName)
 	if u.Username != "" {
-		parts = append(parts, "@"+u.Username)
+		if name == "" {
+			return "@" + u.Username
+		}
+		return name + " · @" + u.Username
 	}
-	parts = append(parts, fmt.Sprintf("id:%d", u.ID))
-	return strings.Join(parts, " · ")
+	if name == "" {
+		return fmt.Sprintf("user %d", u.ID)
+	}
+	return name
 }
 
 // formatUserLine is a short HTML-safe description for header/breadcrumb messages.
