@@ -240,6 +240,11 @@ func NewRouter() http.Handler {
 			* Referrals.
 			***************************************************************************************************/
 			r.Get("/referrals", HandleAdminGetReferrals)
+
+			/***************************************************************************************************
+			* Soft-delete the entire bot (requires an exact confirmation phrase in the body).
+			***************************************************************************************************/
+			r.Delete("/specialist", HandleAdminDeleteBot)
 		})
 	})
 

@@ -201,6 +201,27 @@ func (m *BotManager) GetBot(webhookSecret string) *telegram.Bot {
 }
 
 /***************************************************************************************************
+* UnregisterBot removes a bot and its handler from the in-memory manager and asks Telegram to
+* drop the webhook so we stop receiving updates. Safe to call on a secret that is not registered
+* — it returns nil in that case. Used when a specialist soft-deletes their bot.
+***************************************************************************************************/
+func (m *BotManager) UnregisterBot(webhookSecret string) error {
+	m.mu.Lock()
+	bot := m.bots[webhookSecret]
+	delete(m.bots, webhookSecret)
+	delete(m.handlers, webhookSecret)
+	m.mu.Unlock()
+
+	if bot == nil {
+		return nil
+	}
+	if err := bot.DeleteWebhook(true); err != nil {
+		return err
+	}
+	return nil
+}
+
+/***************************************************************************************************
 * expectedWebhookURL returns the webhook URL Telegram should have registered for the given
 * specialist. Extracted so the healer logic can compare without duplicating the format string.
 ***************************************************************************************************/
@@ -386,6 +407,12 @@ func main() {
 	* Create bot manager.
 	***************************************************************************************************/
 	botManager = NewBotManager(cfg.WebAppURL, cfg.PublicBaseURL)
+
+	/***************************************************************************************************
+	* Wire the bot-deletion callback so the admin API can unregister the bot in-memory and release
+	* the Telegram webhook when a specialist soft-deletes themselves.
+	***************************************************************************************************/
+	api.UnregisterBotFunc = botManager.UnregisterBot
 
 	/***************************************************************************************************
 	* Set up callback for when new specialists are created via master bot.
