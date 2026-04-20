@@ -17,10 +17,10 @@ import (
 * Handler handles Telegram updates.
 ***************************************************************************************************/
 type Handler struct {
-	Bot                *Bot
-	WebAppURL          string
-	Version            string
-	MasterBotUsername  string // Username of the master onboarding bot. Shareable referral links
+	Bot               *Bot
+	WebAppURL         string
+	Version           string
+	MasterBotUsername string // Username of the master onboarding bot. Shareable referral links
 	// point at t.me/<MasterBotUsername>?start=ref_<code> so invitees land on the recruitment
 	// flow rather than on the specialist's personal booking bot.
 }
