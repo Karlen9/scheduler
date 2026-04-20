@@ -169,7 +169,6 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 		keyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
 				{{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}}},
-				{{Text: BtnOpenApp(loc), WebApp: &WebAppInfo{URL: clientURL}}},
 				{{Text: BtnProfile(loc), CallbackData: "profile:home"}},
 			},
 		}
@@ -1203,17 +1202,62 @@ func (h *Handler) handleProfileCallback(update Update) {
 		}
 	case "home", "":
 		h.Bot.AnswerCallbackQuery(cq.ID, "")
-		keyboard := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{{Text: BtnInviteFriend(loc), CallbackData: "profile:invite"}},
-			},
-		}
-		_, err = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Referral.ProfileMenu"), keyboard)
+		_, err = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Referral.ProfileMenu"), profileHomeKeyboard(loc))
 		if err != nil {
 			log.Printf("Error sending profile menu: %v", err)
 		}
-	default:
+	case "language":
 		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		keyboard := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{
+					{Text: myI18n.T(loc, "Lang.Russian"), CallbackData: "profile:lang:ru"},
+					{Text: myI18n.T(loc, "Lang.English"), CallbackData: "profile:lang:en"},
+				},
+				{{Text: BtnProfileBack(loc), CallbackData: "profile:home"}},
+			},
+		}
+		_, err = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Lang.Choose"), keyboard)
+		if err != nil {
+			log.Printf("Error sending language picker: %v", err)
+		}
+	default:
+		/***************************************************************************************************
+		* profile:lang:<code> — specialist switched their bot language.
+		***************************************************************************************************/
+		if strings.HasPrefix(action, "lang:") {
+			newLang := strings.TrimPrefix(action, "lang:")
+			if newLang != "ru" && newLang != "en" {
+				h.Bot.AnswerCallbackQuery(cq.ID, "")
+				return
+			}
+			if err := db.UpdateSpecialistLanguage(specialist.ID, newLang); err != nil {
+				log.Printf("Error updating specialist language: %v", err)
+				h.Bot.AnswerCallbackQuery(cq.ID, "")
+				return
+			}
+			newLoc := myI18n.NewLocalizer(newLang)
+			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(newLoc, "Lang.Saved"))
+			_, err := h.Bot.SendMessage(cq.From.ID, myI18n.T(newLoc, "Referral.ProfileMenu"), profileHomeKeyboard(newLoc))
+			if err != nil {
+				log.Printf("Error sending profile menu after language switch: %v", err)
+			}
+			return
+		}
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+	}
+}
+
+/***************************************************************************************************
+* profileHomeKeyboard renders the main profile submenu. Extracted so the `home` and post-language-
+* switch paths don't drift apart.
+***************************************************************************************************/
+func profileHomeKeyboard(loc *i18n.Localizer) *InlineKeyboardMarkup {
+	return &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: BtnInviteFriend(loc), CallbackData: "profile:invite"}},
+			{{Text: BtnLanguage(loc), CallbackData: "profile:language"}},
+		},
 	}
 }
 

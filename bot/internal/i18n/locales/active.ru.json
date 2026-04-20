@@ -41,6 +41,12 @@
   "Btn.Back": {
     "other": "← Назад"
   },
+  "Btn.Language": {
+    "other": "🌐 Язык"
+  },
+  "Lang.Saved": {
+    "other": "✅ Язык обновлён"
+  },
   "Referral.ProfileMenu": {
     "other": "👤 Профиль\n\nВыберите действие:"
   },

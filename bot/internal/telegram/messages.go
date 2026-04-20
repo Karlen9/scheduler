@@ -289,6 +289,11 @@ func BtnInviteShare(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Invi
 func BtnProfileBack(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Back") }
 
 /***************************************************************************************************
+* BtnLanguage returns the localized language menu button text.
+***************************************************************************************************/
+func BtnLanguage(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Language") }
+
+/***************************************************************************************************
 * FormatWelcome creates a welcome message with version and changelog.
 *
 * Parameters:
