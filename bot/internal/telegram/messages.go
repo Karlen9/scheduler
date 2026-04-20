@@ -294,6 +294,11 @@ func BtnProfileBack(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Back
 func BtnLanguage(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Language") }
 
 /***************************************************************************************************
+* BtnInfo returns the localized info button text (persistent reply keyboard).
+***************************************************************************************************/
+func BtnInfo(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Info") }
+
+/***************************************************************************************************
 * FormatWelcome creates a welcome message with version and changelog.
 *
 * Parameters:

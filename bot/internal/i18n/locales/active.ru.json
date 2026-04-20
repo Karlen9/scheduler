@@ -30,7 +30,10 @@
     "other": "❌ Отклонить"
   },
   "Btn.Profile": {
-    "other": "👤 Профиль"
+    "other": "🏠 Профиль"
+  },
+  "Btn.Info": {
+    "other": "ℹ️ Информация"
   },
   "Btn.InviteFriend": {
     "other": "🎁 Пригласить друга"

@@ -52,13 +52,32 @@ type InlineKeyboardMarkup struct {
 }
 
 /***************************************************************************************************
-* SendMessageRequest is the request body for sendMessage.
+* KeyboardButton represents a single button on a persistent reply keyboard. Tapping a plain-text
+* button sends that text back as a message; WebApp buttons open the given web app inline.
+***************************************************************************************************/
+type KeyboardButton struct {
+	Text   string      `json:"text"`
+	WebApp *WebAppInfo `json:"web_app,omitempty"`
+}
+
+/***************************************************************************************************
+* ReplyKeyboardMarkup represents a persistent keyboard rendered below the chat input area.
+***************************************************************************************************/
+type ReplyKeyboardMarkup struct {
+	Keyboard       [][]KeyboardButton `json:"keyboard"`
+	ResizeKeyboard bool               `json:"resize_keyboard,omitempty"`
+	IsPersistent   bool               `json:"is_persistent,omitempty"`
+}
+
+/***************************************************************************************************
+* SendMessageRequest is the request body for sendMessage. ReplyMarkup is typed as any so callers
+* can pass either an *InlineKeyboardMarkup or a *ReplyKeyboardMarkup.
 ***************************************************************************************************/
 type SendMessageRequest struct {
-	ChatID      int64                 `json:"chat_id"`
-	Text        string                `json:"text"`
-	ParseMode   string                `json:"parse_mode,omitempty"`
-	ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
+	ChatID      int64  `json:"chat_id"`
+	Text        string `json:"text"`
+	ParseMode   string `json:"parse_mode,omitempty"`
+	ReplyMarkup any    `json:"reply_markup,omitempty"`
 }
 
 /***************************************************************************************************
@@ -373,10 +392,28 @@ func (b *Bot) GetWebhookInfo() (string, int, string) {
 ***************************************************************************************************/
 func (b *Bot) SendMessageHTML(chatID int64, text string, replyMarkup *InlineKeyboardMarkup) (*Message, error) {
 	req := SendMessageRequest{
-		ChatID:      chatID,
-		Text:        text,
-		ParseMode:   "HTML",
-		ReplyMarkup: replyMarkup,
+		ChatID:    chatID,
+		Text:      text,
+		ParseMode: "HTML",
+	}
+	if replyMarkup != nil {
+		req.ReplyMarkup = replyMarkup
+	}
+	return b.sendMessageRequest(req)
+}
+
+/***************************************************************************************************
+* SendMessageHTMLWithReplyKeyboard sends an HTML-parsed message and attaches a persistent reply
+* keyboard. Passing nil keeps the current keyboard untouched.
+***************************************************************************************************/
+func (b *Bot) SendMessageHTMLWithReplyKeyboard(chatID int64, text string, replyKeyboard *ReplyKeyboardMarkup) (*Message, error) {
+	req := SendMessageRequest{
+		ChatID:    chatID,
+		Text:      text,
+		ParseMode: "HTML",
+	}
+	if replyKeyboard != nil {
+		req.ReplyMarkup = replyKeyboard
 	}
 	return b.sendMessageRequest(req)
 }
@@ -397,9 +434,11 @@ func (b *Bot) SendMessageHTML(chatID int64, text string, replyMarkup *InlineKeyb
 ***************************************************************************************************/
 func (b *Bot) SendMessage(chatID int64, text string, replyMarkup *InlineKeyboardMarkup) (*Message, error) {
 	req := SendMessageRequest{
-		ChatID:      chatID,
-		Text:        text,
-		ReplyMarkup: replyMarkup,
+		ChatID: chatID,
+		Text:   text,
+	}
+	if replyMarkup != nil {
+		req.ReplyMarkup = replyMarkup
 	}
 	return b.sendMessageRequest(req)
 }
