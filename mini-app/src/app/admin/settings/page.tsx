@@ -1,16 +1,30 @@
 'use client';
 
-import { Bell, CalendarOff, Clock, DollarSign, Gift, HelpCircle, User, Users } from 'lucide-react';
+import {
+  Bell,
+  CalendarOff,
+  Clock,
+  DollarSign,
+  Gift,
+  HelpCircle,
+  Trash2,
+  User,
+  Users,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { setLocale } from '@/actions/locale';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { SettingsGroup, SettingsMenuItem } from '@/components/SettingsMenuItem';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { TopBar } from '@/components/TopBar';
 import { useAdminProfile } from '@/hooks/queries';
+import { api } from '@/lib/api';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
@@ -56,6 +70,34 @@ export default function SettingsPage(): ReactNode {
    ***************************************************************************************************/
   const router = useRouter();
   const { data: specialistProfile } = useAdminProfile();
+  const td = useTranslations('DeleteBot');
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePhrase, setDeletePhrase] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const requiredPhrase = td('requiredPhrase');
+  const alternatePhrase = td('requiredPhraseAlt');
+  const normalise = (s: string): string => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const phraseMatches =
+    normalise(deletePhrase) === normalise(requiredPhrase) ||
+    normalise(deletePhrase) === normalise(alternatePhrase);
+
+  const handleDeleteBot = async (): Promise<void> => {
+    if (!phraseMatches || deleting) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.admin.deleteBot(deletePhrase.trim());
+      toast.success(td('successToast'));
+      getTelegramWebApp()?.close?.();
+    } catch (err) {
+      console.error(err);
+      toast.error(td('errorToast'));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   /***************************************************************************************************
    * Cross-device language sync.
@@ -146,7 +188,52 @@ export default function SettingsPage(): ReactNode {
           <h3 className={'text-muted-foreground mb-3 text-sm'}>{tl('language')}</h3>
           <LanguageSelector isAdmin />
         </div>
+
+        <div className={'mt-6'}>
+          <h3 className={'text-destructive mb-2 px-1 text-sm font-medium'}>{td('zoneTitle')}</h3>
+          <div className={'bg-card divide-border divide-y overflow-hidden rounded-xl'}>
+            <button
+              type={'button'}
+              onClick={() => {
+                setDeletePhrase('');
+                setDeleteOpen(true);
+              }}
+              className={
+                'active:bg-surface-hover flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors'
+              }
+            >
+              <div
+                className={
+                  'bg-destructive flex h-8 w-8 shrink-0 items-center justify-center rounded-lg'
+                }
+              >
+                <Trash2 className={'h-[18px] w-[18px] text-white'} />
+              </div>
+              <div className={'flex-1'}>
+                <div className={'text-destructive text-[15px] font-medium'}>
+                  {td('deleteButton')}
+                </div>
+                <div className={'text-muted-foreground mt-0.5 text-xs'}>{td('deleteSubtitle')}</div>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDeleteBot}
+        title={td('modalTitle')}
+        description={td('modalBody', { phrase: requiredPhrase })}
+        confirmText={deleting ? td('deleting') : td('confirmButton')}
+        destructive
+        showInput
+        inputPlaceholder={requiredPhrase}
+        inputValue={deletePhrase}
+        onInputChange={setDeletePhrase}
+        confirmDisabled={!phraseMatches || deleting}
+      />
     </div>
   );
 }

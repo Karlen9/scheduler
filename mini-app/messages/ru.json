@@ -342,6 +342,19 @@
     "help": "Помощь",
     "theme": "Тема"
   },
+  "DeleteBot": {
+    "zoneTitle": "Опасная зона",
+    "deleteButton": "Удалить бота",
+    "deleteSubtitle": "Полностью удалить бота и все его данные",
+    "modalTitle": "Удалить бота?",
+    "modalBody": "Это действие необратимо. Будут удалены все записи, клиенты, услуги, расписание и выходные. Для подтверждения введите точную фразу: {phrase}",
+    "requiredPhrase": "удалить бота",
+    "requiredPhraseAlt": "delete my bot",
+    "confirmButton": "Удалить",
+    "deleting": "Удаление…",
+    "successToast": "Бот удалён",
+    "errorToast": "Не удалось удалить бота"
+  },
   "AdminReferrals": {
     "title": "Приглашения",
     "heroHeading": "Пригласите друзей",

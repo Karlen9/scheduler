@@ -342,6 +342,19 @@
     "help": "Help",
     "theme": "Theme"
   },
+  "DeleteBot": {
+    "zoneTitle": "Danger zone",
+    "deleteButton": "Delete bot",
+    "deleteSubtitle": "Permanently remove this bot and all of its data",
+    "modalTitle": "Delete this bot?",
+    "modalBody": "This cannot be undone. All bookings, clients, services, schedule and days off will be removed. To confirm, type the exact phrase: {phrase}",
+    "requiredPhrase": "delete my bot",
+    "requiredPhraseAlt": "удалить бота",
+    "confirmButton": "Delete",
+    "deleting": "Deleting…",
+    "successToast": "Bot deleted",
+    "errorToast": "Could not delete the bot"
+  },
   "AdminReferrals": {
     "title": "Referrals",
     "heroHeading": "Invite your friends",

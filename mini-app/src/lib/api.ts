@@ -1491,5 +1491,17 @@ export const api = {
     async getReferrals(): Promise<TReferralsResponse> {
       return fetchAPI<TReferralsResponse>('/api/admin/referrals');
     },
+
+    /***************************************************************************************************
+     * Soft-deletes the current specialist's bot — clears all bookings, recurring schedules, clients,
+     * working hours, days off and services; anonymises the specialist row. The backend validates
+     * the exact confirmation phrase ("delete my bot" or "удалить бота").
+     ***************************************************************************************************/
+    async deleteBot(confirm: string): Promise<void> {
+      await fetchAPI<void>('/api/admin/specialist', {
+        method: 'DELETE',
+        body: JSON.stringify({ confirm }),
+      });
+    },
   },
 };

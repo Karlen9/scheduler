@@ -56,6 +56,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	var t models.Specialist
 	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper, referralCode sql.NullString
 	var notifyNewBookings, notifyCancellations sql.NullInt64
+	var deletedAt sql.NullTime
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
@@ -67,6 +68,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&language,
 		&wallpaper,
 		&referralCode,
+		&deletedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -88,6 +90,10 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	}
 	t.Wallpaper = wallpaper.String
 	t.ReferralCode = referralCode.String
+	if deletedAt.Valid {
+		deleted := deletedAt.Time
+		t.DeletedAt = &deleted
+	}
 
 	/***************************************************************************************************
 	* Decrypt bot token (passthrough for plain text).
@@ -106,7 +112,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, deleted_at`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -539,4 +545,67 @@ func DeactivateSpecialist(id string) error {
 func ActivateSpecialist(id string) error {
 	_, err := DB.Exec(Q(`UPDATE specialists SET is_active = 1 WHERE id = ?`), id)
 	return err
+}
+
+/***************************************************************************************************
+* SoftDeleteSpecialistCascade removes all bot data associated with a specialist and marks the
+* specialist row itself as deleted while preserving id/name/telegram_user_id/created_at so future
+* reporting still has a record the bot existed. Wrapped in a single transaction — either every
+* referenced row disappears or nothing changes.
+*
+* What gets deleted: bookings, recurring_schedules, days_off, working_hours, session_types,
+* clients (bookings and recurring_schedules reference clients via FK so they go first).
+*
+* What gets cleared on the specialists row: bot_token, bot_token_hash, webhook_secret,
+* referral_code, photo_url, available_durations, phone, telegram_handle, specialization, bio,
+* location_latitude, location_longitude, wallpaper. is_active is set to 0 and deleted_at is set
+* to NOW() so ongoing active queries ignore the row without losing it.
+***************************************************************************************************/
+func SoftDeleteSpecialistCascade(specialistID string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	deletions := []string{
+		`DELETE FROM bookings WHERE specialist_id = ?`,
+		`DELETE FROM recurring_schedules WHERE specialist_id = ?`,
+		`DELETE FROM days_off WHERE specialist_id = ?`,
+		`DELETE FROM working_hours WHERE specialist_id = ?`,
+		`DELETE FROM session_types WHERE specialist_id = ?`,
+		`DELETE FROM clients WHERE specialist_id = ?`,
+	}
+	for _, stmt := range deletions {
+		if _, err := tx.Exec(Q(stmt), specialistID); err != nil {
+			return err
+		}
+	}
+
+	/***************************************************************************************************
+	* bot_token / bot_token_hash / webhook_secret carry UNIQUE constraints and are left intact so
+	* a second soft-delete does not collide on an empty-string row. Personal data is cleared; the
+	* row is flipped to is_active=0 so GetAllActiveSpecialists and friends ignore it naturally.
+	* referral_code is cleared to free the code for reuse by any surviving bot.
+	***************************************************************************************************/
+	if _, err := tx.Exec(Q(`
+		UPDATE specialists
+		SET is_active = 0,
+		    deleted_at = CURRENT_TIMESTAMP,
+		    referral_code = NULL,
+		    photo_url = '',
+		    available_durations = '',
+		    phone = '',
+		    telegram_handle = '',
+		    specialization = '',
+		    bio = '',
+		    location_latitude = 0,
+		    location_longitude = 0,
+		    wallpaper = ''
+		WHERE id = ?
+	`), specialistID); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
