@@ -940,6 +940,17 @@ func (b *Bot) CloseForumTopic(chatID int64, threadID int) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	var result struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+	if !result.OK {
+		return fmt.Errorf("closeForumTopic failed: %s", result.Description)
+	}
 	return nil
 }
 

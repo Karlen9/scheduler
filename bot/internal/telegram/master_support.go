@@ -96,7 +96,7 @@ func (h *MasterHandler) tryRelayDMToSupport(msg *Message) bool {
 		return false
 	}
 
-	loc := myI18n.NewLocalizer(msg.From.LanguageCode)
+	loc := h.localizerFor(msg.From.ID)
 
 	// Spam filter — drop silently so scripted spammers get no signal.
 	if isLikelySpam(msg) {
@@ -196,7 +196,9 @@ func (h *MasterHandler) closeSupportThread(threadID string, userID int64, topicI
 		log.Printf("master-support: close thread %s failed: %v", threadID, err)
 		return
 	}
-	loc := myI18n.NewLocalizer("")
+	// Resolve the user's preferred language via the same precedence rules used everywhere else
+	// (specialist row → master_users row → "ru") so closure notices aren't silently English.
+	loc := h.localizerFor(userID)
 	// User-side notice.
 	h.bot.SendMessage(userID, myI18n.T(loc, "MasterSupport.Closed"), nil)
 	// Topic-side acknowledgement.

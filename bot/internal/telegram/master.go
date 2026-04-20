@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"scheduler-bot/internal/db"
@@ -56,6 +57,18 @@ type OnboardingSession struct {
 	BotUsername string
 }
 
+// pendingRef is a referral code captured from "/start ref_<code>" that is waiting for the user
+// to finish onboarding (token + name) before it can be persisted on a specialists row.
+type pendingRef struct {
+	code string
+	at   time.Time
+}
+
+// pendingRefTTL bounds how long an orphaned pending referral lingers in memory. Users who start
+// onboarding via a share link but never complete the token+name flow would otherwise leak a map
+// entry for life. 24h is long enough to absorb realistic think-time pauses.
+const pendingRefTTL = 24 * time.Hour
+
 /***************************************************************************************************
 * MasterHandler handles the master bot for specialist onboarding.
 ***************************************************************************************************/
@@ -66,8 +79,8 @@ type MasterHandler struct {
 	publicBaseURL  string
 	webAppURL      string
 	adminIDs       []int64
-	supportGroupID int64             // 0 = support relay disabled
-	pendingRefs    map[int64]string  // telegramUserID -> pending referrer code captured from /start ref_<code>
+	supportGroupID int64                // 0 = support relay disabled
+	pendingRefs    map[int64]pendingRef // telegramUserID -> pending referrer code + capture time
 }
 
 /***************************************************************************************************
@@ -93,7 +106,7 @@ func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int6
 		webAppURL:      webAppURL,
 		adminIDs:       adminIDs,
 		supportGroupID: supportGroupID,
-		pendingRefs:    make(map[int64]string),
+		pendingRefs:    make(map[int64]pendingRef),
 	}
 }
 
@@ -115,20 +128,45 @@ func extractRefPayload(text string) string {
 // rememberPendingReferral stashes a referral code captured from /start until the user finishes
 // onboarding (token + name) and a specialists row exists to attribute it to. A returning
 // already-registered specialist simply never reaches CreateSpecialist, so the pending code is
-// harmless.
+// harmless. Every write opportunistically evicts stale entries so abandoned sessions don't
+// accumulate forever.
 func (h *MasterHandler) rememberPendingReferral(userID int64, code string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.pendingRefs[userID] = code
+	h.evictStalePendingRefsLocked(time.Now())
+	h.pendingRefs[userID] = pendingRef{code: code, at: time.Now()}
 }
 
-// takePendingReferral returns and clears any pending referral code for the user.
+// takePendingReferral returns and clears any pending referral code for the user, also evicting
+// any stale entries accumulated since the last write.
 func (h *MasterHandler) takePendingReferral(userID int64) string {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	code := h.pendingRefs[userID]
+	now := time.Now()
+	h.evictStalePendingRefsLocked(now)
+	entry, ok := h.pendingRefs[userID]
 	delete(h.pendingRefs, userID)
-	return code
+	if !ok || now.Sub(entry.at) > pendingRefTTL {
+		return ""
+	}
+	return entry.code
+}
+
+// clearPendingReferral drops the pending entry without returning it. Used from /cancel so a
+// user explicitly abandoning onboarding doesn't leave an orphan behind.
+func (h *MasterHandler) clearPendingReferral(userID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.pendingRefs, userID)
+}
+
+// evictStalePendingRefsLocked removes entries older than pendingRefTTL. Caller must hold h.mu.
+func (h *MasterHandler) evictStalePendingRefsLocked(now time.Time) {
+	for uid, entry := range h.pendingRefs {
+		if now.Sub(entry.at) > pendingRefTTL {
+			delete(h.pendingRefs, uid)
+		}
+	}
 }
 
 /***************************************************************************************************
@@ -521,6 +559,8 @@ func (h *MasterHandler) beginTokenEntry(chatID, userID int64, loc *localizerType
 ***************************************************************************************************/
 func (h *MasterHandler) handleCancel(chatID, userID int64, loc *localizerType) {
 	h.setSession(userID, nil)
+	// Drop any referral code captured from a /start ref_<code> that the user is now abandoning.
+	h.clearPendingReferral(userID)
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Cancelled"), nil)
 }
 
@@ -820,6 +860,9 @@ func (h *MasterHandler) handleReplacementTokenInput(chatID, userID int64, text s
 	if err := db.UpdateSpecialistBotToken(existing.ID, token); err != nil {
 		log.Printf("replace-token: db update for %s failed: %v", existing.ID, err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+		// Clear the state so a retry-attempt from the user doesn't get interpreted as another
+		// token paste against a half-broken DB state. The user can re-invoke /replacetoken cleanly.
+		h.setSession(userID, nil)
 		return
 	}
 
