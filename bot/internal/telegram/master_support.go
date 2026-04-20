@@ -211,12 +211,20 @@ func (h *MasterHandler) closeSupportThread(threadID string, userID int64, topicI
 }
 
 // recreateSupportThread is the recovery path when a stored topic no longer exists in the group
-// (the owner deleted it). It closes the stale DB row and forges a brand-new forum topic,
-// returning the refreshed thread. Callers should retry whatever relay operation triggered the
-// discovery with the new topic_id.
+// (the owner deleted it). It creates a brand-new forum topic and updates the existing DB row to
+// point at it — we cannot close+insert because telegram_user_id carries a UNIQUE constraint, and
+// the row's identity is fine to preserve. Returns the refreshed thread so callers can retry
+// whatever relay operation triggered the discovery.
 func (h *MasterHandler) recreateSupportThread(stale *models.SupportThread, user User) (*models.SupportThread, error) {
-	_ = db.CloseSupportThread(stale.ID)
-	return h.ensureSupportThread(stale.TelegramUserID, user)
+	topicID, err := h.bot.CreateForumTopic(h.supportGroupID, topicNameFor(user))
+	if err != nil {
+		return nil, fmt.Errorf("create forum topic: %w", err)
+	}
+	if err := db.ReassignSupportThreadTopic(stale.ID, topicID); err != nil {
+		return nil, fmt.Errorf("reassign support thread topic: %w", err)
+	}
+	stale.TopicID = topicID
+	return stale, nil
 }
 
 // isTopicMissingError reports whether a Telegram API error indicates that the message thread
@@ -244,10 +252,33 @@ func isTopicMissingError(err error) bool {
 }
 
 // ensureSupportThread returns the user's open thread, creating a fresh forum topic when none exists.
+// Three cases:
+//  1. The user has a live (non-closed) thread in the DB → return it directly.
+//  2. The user has a stranded closed thread (e.g. from an earlier broken recovery path) → create
+//     a fresh topic and reassign the existing row to it. Avoids the telegram_user_id UNIQUE
+//     constraint violation that blocks a plain INSERT.
+//  3. No row at all → create topic + insert.
 func (h *MasterHandler) ensureSupportThread(userID int64, user User) (*models.SupportThread, error) {
 	if thread, err := db.GetSupportThreadByUserID(userID); err == nil {
 		return thread, nil
 	} else if !errors.Is(err, db.ErrSupportThreadNotFound) {
+		return nil, err
+	}
+
+	// Look for a stranded closed row that still holds the UNIQUE telegram_user_id slot.
+	if stale, err := db.GetAnySupportThreadByUserID(userID); err == nil && stale != nil {
+		log.Printf("master-support: reopening stranded closed thread %s for user %d", stale.ID, userID)
+		topicID, cerr := h.bot.CreateForumTopic(h.supportGroupID, topicNameFor(user))
+		if cerr != nil {
+			return nil, fmt.Errorf("create forum topic: %w", cerr)
+		}
+		if rerr := db.ReassignSupportThreadTopic(stale.ID, topicID); rerr != nil {
+			return nil, fmt.Errorf("reassign stranded thread: %w", rerr)
+		}
+		stale.TopicID = topicID
+		stale.ClosedAt = nil
+		return stale, nil
+	} else if err != nil && !errors.Is(err, db.ErrSupportThreadNotFound) {
 		return nil, err
 	}
 
