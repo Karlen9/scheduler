@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 
@@ -1837,11 +1838,11 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if (req.Name != nil && len(*req.Name) > 50) ||
-		(req.Specialization != nil && len(*req.Specialization) > 100) ||
-		(req.Bio != nil && len(*req.Bio) > 1000) ||
-		(req.Phone != nil && len(*req.Phone) > 20) ||
-		(req.TelegramHandle != nil && len(*req.TelegramHandle) > 50) {
+	if (req.Name != nil && utf8.RuneCountInString(*req.Name) > 50) ||
+		(req.Specialization != nil && utf8.RuneCountInString(*req.Specialization) > 100) ||
+		(req.Bio != nil && utf8.RuneCountInString(*req.Bio) > 1000) ||
+		(req.Phone != nil && utf8.RuneCountInString(*req.Phone) > 20) ||
+		(req.TelegramHandle != nil && utf8.RuneCountInString(*req.TelegramHandle) > 50) {
 		httpError(w, r, "Error.FieldTooLong", http.StatusBadRequest)
 		return
 	}

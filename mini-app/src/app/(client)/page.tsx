@@ -467,7 +467,7 @@ export default function HomePage(): ReactNode {
         {specialist.bio && (
           <div className={'mt-7'}>
             <p
-              className={`text-muted-foreground text-base leading-relaxed ${
+              className={`text-muted-foreground text-base leading-relaxed whitespace-pre-wrap ${
                 !bioExpanded ? 'line-clamp-4' : ''
               }`}
             >
