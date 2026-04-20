@@ -201,20 +201,17 @@ export default function DaysOffPage(): ReactNode {
       setRangeStart(null);
       setRangeEnd(null);
     } else {
-      if (selectedDates.length >= 2) {
+      /***************************************************************************************************
+       * Switching to range. Always carry any single-mode picks into the range — otherwise they
+       * stay silently in selectedDates while the range picker renders empty, and the next click
+       * becomes rangeStart instead of rangeEnd. One pick → rangeStart only; many picks → min..max
+       * (even non-contiguous, since switching to range implies "cover these dates as a span").
+       ***************************************************************************************************/
+      if (selectedDates.length >= 1) {
         const sorted = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-        let contiguous = true;
-        for (let i = 1; i < sorted.length; i++) {
-          if (!isConsecutive(sorted[i - 1], sorted[i])) {
-            contiguous = false;
-            break;
-          }
-        }
-        if (contiguous) {
-          setRangeStart(sorted[0]);
-          setRangeEnd(sorted[sorted.length - 1]);
-          setSelectedDates([]);
-        }
+        setRangeStart(sorted[0]);
+        setRangeEnd(sorted.length > 1 ? sorted[sorted.length - 1] : null);
+        setSelectedDates([]);
       }
     }
     setMode(next);
