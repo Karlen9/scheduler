@@ -39,7 +39,7 @@
     "other": "⬇️ Menu"
   },
   "Btn.InviteFriend": {
-    "other": "🎁 Invite a friend"
+    "other": "🤝 Partner program"
   },
   "Btn.InviteShare": {
     "other": "📤 Share on Telegram"
@@ -57,7 +57,7 @@
     "other": "👤 Profile\n\nChoose an action:"
   },
   "Referral.InviteMessage": {
-    "other": "🎁 <b>Invite fellow specialists to the platform</b>\n\nSend this link to a specialist who wants to accept bookings via Telegram. When they pay for their first subscription the referral becomes active and you earn perks.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nReferral stats live in the admin panel → Settings → Referrals."
+    "other": "🤝 <b>Partner program</b>\n\nInvite fellow specialists to the platform and earn rewards when they subscribe.\n\n📌 <b>How it works</b>\n• Send the link below to a specialist who wants to accept bookings via Telegram.\n• They onboard, spin up their own bot, and get all the current features free.\n• Some of the current features will move to a paid tier, and we're adding PRO features (advanced analytics, automations, integrations).\n• When the invited specialist pays their first subscription, the referral becomes <b>active</b> and you earn a reward.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nStats live in the admin panel → Settings → Referrals (active / pending)."
   },
   "Referral.ShareText": {
     "other": "Try this Telegram booking platform — I'm already using it 👉 {{.Link}}"
