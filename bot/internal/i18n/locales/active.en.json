@@ -606,6 +606,15 @@
   "MasterAdmin.BtnList": {
     "other": "📋 Specialist list"
   },
+  "MasterReplace.Prompt": {
+    "other": "🔑 Replace token for @%s\n\nOpen @BotFather → /mybots → pick your bot → API Token → /revoke if needed, then send me the new long token.\n\nSend /cancel to abort."
+  },
+  "MasterReplace.UsernameMismatch": {
+    "other": "❌ That token belongs to a different bot (@%s instead of @%s).\n\nPlease send a token for *your* bot — I won't let you swap credentials between bots."
+  },
+  "MasterReplace.Success": {
+    "other": "✅ Token replaced. @%s is live again — you can share /start with clients."
+  },
   "Seed.Personal": {
     "other": "Personal session"
   },

@@ -296,6 +296,26 @@ func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezon
 	return GetSpecialistByID(id)
 }
 
+// UpdateSpecialistBotToken swaps the encrypted bot_token + bot_token_hash for a specialist
+// whose BotFather token was regenerated (typically after an accidental /revoke). The
+// bot_username, webhook_secret and all downstream data (bookings, clients, etc.) are left
+// untouched — this is a pure auth-credential rotation.
+func UpdateSpecialistBotToken(specialistID, newBotToken string) error {
+	encrypted, err := crypto.Encrypt(newBotToken)
+	if err != nil {
+		return fmt.Errorf("encrypt new bot token: %w", err)
+	}
+	hash := crypto.HashToken(newBotToken)
+	if _, err := DB.Exec(Q(`
+		UPDATE specialists
+		SET bot_token = ?, bot_token_hash = ?
+		WHERE id = ?
+	`), encrypted, hash, specialistID); err != nil {
+		return err
+	}
+	return nil
+}
+
 /***************************************************************************************************
 * GetSpecialistByReferralCode looks up a specialist by their referral code. Returns nil if no
 * match or the code is empty.
