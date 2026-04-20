@@ -251,13 +251,17 @@ func isTopicMissingError(err error) bool {
 	return false
 }
 
-// ensureSupportThread returns the user's open thread, creating a fresh forum topic when none exists.
-// Three cases:
-//  1. The user has a live (non-closed) thread in the DB → return it directly.
-//  2. The user has a stranded closed thread (e.g. from an earlier broken recovery path) → create
-//     a fresh topic and reassign the existing row to it. Avoids the telegram_user_id UNIQUE
-//     constraint violation that blocks a plain INSERT.
-//  3. No row at all → create topic + insert.
+// ensureSupportThread returns a usable support thread for the given user. Preserves conversation
+// history whenever possible by re-using the same forum topic across reopens.
+//
+// Resolution order:
+//  1. Live (non-closed) DB row → return as-is.
+//  2. Closed DB row + the original forum topic still exists in Telegram → reopen the topic and
+//     clear closed_at. All prior messages stay visible in the same thread.
+//  3. Closed DB row + topic has been deleted in Telegram → create a new topic and reassign the
+//     row's topic_id. The DB row persists (it holds the UNIQUE telegram_user_id slot) so the
+//     same user keeps a stable identity.
+//  4. No row at all → create topic + insert a fresh support_threads row.
 func (h *MasterHandler) ensureSupportThread(userID int64, user User) (*models.SupportThread, error) {
 	if thread, err := db.GetSupportThreadByUserID(userID); err == nil {
 		return thread, nil
@@ -265,9 +269,26 @@ func (h *MasterHandler) ensureSupportThread(userID int64, user User) (*models.Su
 		return nil, err
 	}
 
-	// Look for a stranded closed row that still holds the UNIQUE telegram_user_id slot.
-	if stale, err := db.GetAnySupportThreadByUserID(userID); err == nil && stale != nil {
-		log.Printf("master-support: reopening stranded closed thread %s for user %d", stale.ID, userID)
+	stale, err := db.GetAnySupportThreadByUserID(userID)
+	if err != nil && !errors.Is(err, db.ErrSupportThreadNotFound) {
+		return nil, err
+	}
+
+	if stale != nil {
+		// Try to reopen the original topic so the conversation history stays in one place.
+		if rerr := h.bot.ReopenForumTopic(h.supportGroupID, stale.TopicID); rerr == nil {
+			log.Printf("master-support: reopened topic %d for returning user %d", stale.TopicID, userID)
+			if uerr := db.ReopenSupportThread(stale.ID); uerr != nil {
+				return nil, fmt.Errorf("reopen db thread: %w", uerr)
+			}
+			stale.ClosedAt = nil
+			return stale, nil
+		} else if !isTopicMissingError(rerr) {
+			return nil, fmt.Errorf("reopen forum topic: %w", rerr)
+		}
+
+		// Topic was deleted in the group — spin up a new one and reassign the row.
+		log.Printf("master-support: old topic %d for user %d is gone, creating replacement", stale.TopicID, userID)
 		topicID, cerr := h.bot.CreateForumTopic(h.supportGroupID, topicNameFor(user))
 		if cerr != nil {
 			return nil, fmt.Errorf("create forum topic: %w", cerr)
@@ -278,8 +299,6 @@ func (h *MasterHandler) ensureSupportThread(userID int64, user User) (*models.Su
 		stale.TopicID = topicID
 		stale.ClosedAt = nil
 		return stale, nil
-	} else if err != nil && !errors.Is(err, db.ErrSupportThreadNotFound) {
-		return nil, err
 	}
 
 	topicID, err := h.bot.CreateForumTopic(h.supportGroupID, topicNameFor(user))

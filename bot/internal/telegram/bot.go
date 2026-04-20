@@ -943,6 +943,38 @@ func (b *Bot) CloseForumTopic(chatID int64, threadID int) error {
 	return nil
 }
 
+// ReopenForumTopic un-archives a previously closed topic so new messages can be posted into it.
+// Returns a structured error when Telegram says the topic is gone (isTopicMissingError picks
+// this up so the caller can fall back to creating a brand-new topic).
+func (b *Bot) ReopenForumTopic(chatID int64, threadID int) error {
+	data := map[string]interface{}{
+		"chat_id":           chatID,
+		"message_thread_id": threadID,
+	}
+	jsonData, _ := json.Marshal(data)
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/reopenForumTopic",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+	if !result.OK {
+		return fmt.Errorf("reopenForumTopic failed: %s", result.Description)
+	}
+	return nil
+}
+
 // SendMessageToTopic posts a plain (HTML-parsed) message into a specific topic inside a forum supergroup.
 func (b *Bot) SendMessageToTopic(chatID int64, threadID int, text string) (*Message, error) {
 	data := map[string]interface{}{
