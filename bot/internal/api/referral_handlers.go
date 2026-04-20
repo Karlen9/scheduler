@@ -64,15 +64,15 @@ type ReferredSpecialist struct {
 * Count / Referrals describe legacy client referrals (kept for backwards compat).
 ***************************************************************************************************/
 type ReferralsResponse struct {
-	Code      string               `json:"code"`
-	Link      string               `json:"link"`
-	Count     int                  `json:"count"`
-	Referrals []ReferralClient     `json:"referrals"`
+	Code      string           `json:"code"`
+	Link      string           `json:"link"`
+	Count     int              `json:"count"`
+	Referrals []ReferralClient `json:"referrals"`
 	// Specialist-referral program (new surface).
-	SpecialistCount    int                  `json:"specialistCount"`
-	ActiveCount        int                  `json:"activeCount"`
-	PassiveCount       int                  `json:"passiveCount"`
-	Specialists        []ReferredSpecialist `json:"specialists"`
+	SpecialistCount int                  `json:"specialistCount"`
+	ActiveCount     int                  `json:"activeCount"`
+	PassiveCount    int                  `json:"passiveCount"`
+	Specialists     []ReferredSpecialist `json:"specialists"`
 }
 
 /***************************************************************************************************
