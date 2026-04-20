@@ -214,17 +214,34 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 			log.Printf("Error setting specialist menu button: %v", err)
 		}
 
+		/***************************************************************************************************
+		* Welcome message keeps "Управление" as an inline web-app button. Inline web-app buttons always
+		* deliver initData; reply-keyboard web-app buttons only do so when the URL is registered as the
+		* bot's Web App in @BotFather, which is not guaranteed across the fleet.
+		***************************************************************************************************/
+		inlineKeyboard := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}}},
+			},
+		}
+		if _, err := h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), inlineKeyboard); err != nil {
+			log.Printf("Error sending specialist welcome message: %v", err)
+		}
+
+		/***************************************************************************************************
+		* Second message installs the persistent reply keyboard with text-only buttons. Taps on these
+		* are dispatched via handleSpecialistKeyboardTap — no web_app involvement so initData never comes
+		* into play here.
+		***************************************************************************************************/
 		replyKeyboard := &ReplyKeyboardMarkup{
 			Keyboard: [][]KeyboardButton{
-				{{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}}},
 				{{Text: BtnProfile(loc)}, {Text: BtnInfo(loc)}},
 			},
 			ResizeKeyboard: true,
 			IsPersistent:   true,
 		}
-		_, err = h.Bot.SendMessageHTMLWithReplyKeyboard(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), replyKeyboard)
-		if err != nil {
-			log.Printf("Error sending specialist start message: %v", err)
+		if _, err := h.Bot.SendMessageHTMLWithReplyKeyboard(msg.Chat.ID, myI18n.T(loc, "Menu.Ready"), replyKeyboard); err != nil {
+			log.Printf("Error sending specialist menu keyboard: %v", err)
 		}
 		return
 	}
