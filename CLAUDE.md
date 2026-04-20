@@ -52,21 +52,25 @@ docker push rainingman/scheduler-bot:latest
 
 ### Mini App Structure (mini-app/src/)
 
-- **app/(client)/** - Client-facing pages (home, book, bookings, recurring, profile, services)
-- **app/admin/** - Admin pages (dashboard, bookings, clients, recurring, settings/\*)
-- **components/** - Reusable UI (Calendar, TimeSlots, BookingCard, StatusBadge, DurationSelector, etc.)
-- **hooks/** - SWR cache keys, query hooks, mutation/invalidation helpers
+- **app/(client)/** - Client-facing pages: home, book, profile, services, analytics, `(activity)` group (bookings, recurring)
+- **app/admin/** - Admin pages: dashboard (`page.tsx`), bookings, clients, recurring, analytics, settings/
+  - **settings/** - profile, schedule, services, days-off, notifications, referrals, help
+- **components/** - Reusable UI. Notable: Calendar, MonthCalendar, CalendarView, TimeSlotGrid, BookingCard, BookingDetailModal, BookingForm/, PendingBookingCard, RecurringScheduleCard, ClientDetailModal, ClientAvatar, StatusBadge, Switch, ConfirmDialog, BottomSheet, BottomTabBar, TopBar, ServiceCard, ServiceSelector, WallpaperPicker, PhotoEditor, TimePickerModal, RescheduleSheet, ThemeSelector, LanguageSelector, SettingsMenuItem, StatCard/StatBar/BarChart, TelegramBackButtonProvider, AppBootstrap, ToastProvider
+- **hooks/** - `swr.tsx` provider, `cache-keys.ts`, `queries.ts`, `mutations.ts`, `cache-sync.tsx`, `useDebounce`, `useRescheduleActions`
 - **lib/** - Core utilities
   - `telegram.ts` - Telegram WebApp SDK (theme, user data, navigation)
-  - `api.ts` - API client connecting to Go backend
+  - `api.ts` - API client connecting to Go backend; `mock-api.ts` for mock test routes
   - `types.ts` - TypeScript interfaces (Specialist, SessionType, Booking, RecurringSchedule, etc.)
+  - `helpers.ts` - `parseDateParam`, `nextDateForWeekday`, date/format helpers
+  - `routes.ts`, `colors.ts`, `constants.ts`, `mappings.ts`, `mutation-events.ts`, `request-cache.ts`
 
 ### Bot Structure (bot/)
 
-- `main.go` - HTTP server, bot manager, background workers (reminders, notifications)
-- `internal/telegram/` - Bot handlers, master bot onboarding, message templates
-- `internal/api/` - REST API handlers, middleware, router
-- `internal/db/` - Database layer (SQLite + PostgreSQL dual driver)
+- `main.go` - HTTP server, bot manager, background workers (reminders, notifications, webhook self-healer)
+- `internal/telegram/` - Bot handlers, master bot onboarding, message templates, persistent reply keyboard
+- `internal/api/` - REST API handlers, middleware, router. Notable: `admin_handlers`, `recurring_handlers`, `photo_handlers`, `referral_handlers`, `change_handlers`, `delete_bot_handler`, `stats`, `ratelimit`, `cache`, `metrics`, `security`
+- `internal/db/` - Database layer (SQLite + PostgreSQL dual driver): specialists, clients, bookings, recurring, working_hours, days_off, session_types, stats, compat, query_helpers
+- `internal/changes/` - Change events helper
 - `internal/config/` - Environment configuration
 - `internal/i18n/` - Backend i18n (embedded locale files)
 - `internal/crypto/` - Token encryption/hashing
@@ -75,10 +79,11 @@ docker push rainingman/scheduler-bot:latest
 ### Data Flow
 
 1. Specialist registers via master bot → gets their own Telegram bot
-2. Client opens specialist's bot → /start → "Open Scheduler" button
-3. Mini-app loads → client picks date/time/duration → booking created (status: pending)
+2. Client opens specialist's bot → /start → "Open Scheduler" web*app button (deep links supported, e.g. `ref*<code>`, preselected service/date via query params)
+3. Mini-app loads → client picks date/duration/time → booking created (status: pending)
 4. Specialist receives Telegram notification with Accept/Reject buttons
 5. Specialist clicks button → webhook → booking status updated → client notified
+6. Admin reschedule of a confirmed booking requires client re-approval; all cancellations are immediate with a notification to the counterpart
 
 ### Webhook Setup
 
@@ -98,10 +103,18 @@ Bot uses Telegram webhooks (not long polling):
 - SWR caching with centralized cache keys and invalidation helpers
 - All timestamps in ISO format, working hours use "HH:MM" strings
 - UUIDs for all database primary keys
-- Auth via `X-Specialist-ID` header and `X-Telegram-Init-Data`
-- Ghost clients get negative `telegram_user_id` (preserves UNIQUE constraint)
-- Recurring schedules use `day_times` JSON for per-day time selection
-- Clients can be blocked (`is_blocked` flag); blocked clients cannot create bookings, specialist may auto-cancel their active bookings/recurring via `PUT /api/admin/clients/{id}/block`
+- Auth via `X-Specialist-ID` header (falls back to `X-Trainer-ID`) and `X-Telegram-Init-Data`; query params also accept `?specialist=` (falls back to `?trainer=`)
+- Ghost clients get negative `telegram_user_id` (preserves UNIQUE constraint); admin bookings for ghosts auto-confirm; all notification callbacks skip ghosts
+- Duration-based booking: clients pick duration (1h, 1.5h, etc.); `available_durations` on specialists, `preferred_duration` on clients, `duration_minutes` on bookings
+- Recurring schedules use `day_times` JSON for per-day time selection; two-sided approval between creator and counterpart
+- Admin reschedule of a confirmed booking pushes it back to pending and requires client approval; all cancellations are immediate
+- Clients can be blocked (`is_blocked`); blocked clients cannot create bookings, specialist may auto-cancel their active bookings/recurring via `PUT /api/admin/clients/{id}/block` (ghosts excluded). Deleting a client supports cascade-delete of their data.
 - Specialist profiles support `wallpaper` customization (shown in client home header)
 - Specialist photo falls back to Telegram user photo when no custom photo is set
+- Per-specialist referral system: `specialists.referral_code`, `clients.referred_via_code`; share link `https://t.me/<bot>?start=ref_<code>`; admin UI at `/admin/settings/referrals`
+- Specialist bot has a persistent reply keyboard (Профиль, Информация); web_app launches happen via inline keyboard to preserve init data (reply-keyboard web_app would break admin auth)
+- Delete-bot flow: confirmation phrase + 2s hold-to-delete button; cascades through all specialist data and removes the Telegram bot webhook
+- Webhook self-healer: background loop detects and re-registers broken Telegram webhooks
+- Theme: light/dark via Telegram `colorScheme` — `theme.css` has `:root` light defaults and `:root.dark` overrides; status colors exposed via `@theme inline` for Tailwind
+- Light frontend data sync + SWR cache retention across route switches; infinite scroll for admin bookings; URL-backed filters on bookings list
 - Pre-commit hooks: gofmt, prettier, eslint, go test, vitest (via Lefthook)
