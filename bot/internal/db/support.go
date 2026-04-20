@@ -87,6 +87,18 @@ func ReassignSupportThreadTopic(threadID string, newTopicID int) error {
 	return err
 }
 
+// ReopenSupportThread clears closed_at on a previously-closed thread, keeping the same topic_id.
+// Used when the owner /close-d a thread but the forum topic still exists in Telegram — we reopen
+// the same topic so prior conversation history stays in one place.
+func ReopenSupportThread(threadID string) error {
+	_, err := DB.Exec(Q(`
+		UPDATE support_threads
+		SET closed_at = NULL, last_message_at = ?
+		WHERE id = ?
+	`), time.Now().UTC(), threadID)
+	return err
+}
+
 // CloseSupportThread marks the thread closed. Subsequent messages from the user will create a fresh thread.
 func CloseSupportThread(threadID string) error {
 	_, err := DB.Exec(Q(`UPDATE support_threads SET closed_at = ? WHERE id = ? AND closed_at IS NULL`), time.Now().UTC(), threadID)
