@@ -54,6 +54,19 @@ func (h *MasterHandler) startOperatorSupport(chatID, userID int64, messageID int
 		return
 	}
 
+	// Defensive: a zero topic_id would make the breadcrumb post into the group's general chat.
+	// ensureSupportThread is supposed to prevent this but guard at the point of use anyway.
+	if thread.TopicID <= 0 {
+		log.Printf("master-support: ensure returned invalid topic_id=%d for user %d — forcing rebuild", thread.TopicID, userID)
+		fresh, rerr := h.recreateSupportThread(thread, user)
+		if rerr != nil {
+			log.Printf("master-support: rebuild for invalid topic_id failed: %v", rerr)
+			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+			return
+		}
+		thread = fresh
+	}
+
 	// Confirm to the user that the channel is open and subsequent DMs will be relayed.
 	kb := &InlineKeyboardMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
@@ -108,6 +121,21 @@ func (h *MasterHandler) tryRelayDMToSupport(msg *Message) bool {
 	if lengthOfInbound(msg) > maxSupportMessageChars {
 		h.bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "MasterSupport.TooLong"), nil)
 		return true
+	}
+
+	// Guard: a zero or negative topic_id would cause CopyMessage to drop the message_thread_id
+	// argument entirely, which makes Telegram post into the group's general chat rather than a
+	// user-specific topic. That can happen if an old/broken DB row ever slipped through. Treat
+	// this as "topic missing" and force a rebuild.
+	if thread.TopicID <= 0 {
+		log.Printf("master-support: thread %s for user %d has invalid topic_id=%d — rebuilding before relay", thread.ID, msg.From.ID, thread.TopicID)
+		fresh, rerr := h.recreateSupportThread(thread, *msg.From)
+		if rerr != nil {
+			log.Printf("master-support: rebuild for invalid topic_id failed: %v", rerr)
+			h.bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "MasterSupport.RelayFailed"), nil)
+			return true
+		}
+		thread = fresh
 	}
 
 	if _, err := h.bot.CopyMessage(h.supportGroupID, msg.Chat.ID, msg.MessageID, thread.TopicID); err != nil {

@@ -921,6 +921,13 @@ func (b *Bot) CreateForumTopic(chatID int64, name string) (int, error) {
 	if !result.OK {
 		return 0, fmt.Errorf("createForumTopic failed: %s", result.Description)
 	}
+	// Defence-in-depth: Telegram always returns a positive message_thread_id on success. If we
+	// ever see 0 it means a malformed response or a silent failure — treat as an error so
+	// callers don't persist a zero topic_id that would later cause messages to leak into the
+	// group's general chat.
+	if result.Result.MessageThreadID <= 0 {
+		return 0, fmt.Errorf("createForumTopic returned invalid message_thread_id: %d", result.Result.MessageThreadID)
+	}
 	return result.Result.MessageThreadID, nil
 }
 
@@ -988,6 +995,12 @@ func (b *Bot) ReopenForumTopic(chatID int64, threadID int) error {
 
 // SendMessageToTopic posts a plain (HTML-parsed) message into a specific topic inside a forum supergroup.
 func (b *Bot) SendMessageToTopic(chatID int64, threadID int, text string) (*Message, error) {
+	// Refuse to send without a real topic id — a zero value would silently post into the
+	// group's general chat, which for a support-relay deployment is a privacy bug
+	// (conversations with one user become visible to anyone in the group).
+	if threadID <= 0 {
+		return nil, fmt.Errorf("SendMessageToTopic requires a positive message_thread_id, got %d", threadID)
+	}
 	data := map[string]interface{}{
 		"chat_id":           chatID,
 		"message_thread_id": threadID,
