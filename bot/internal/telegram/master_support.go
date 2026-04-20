@@ -63,10 +63,20 @@ func (h *MasterHandler) startOperatorSupport(chatID, userID int64, messageID int
 	h.bot.SendMessageHTML(chatID, myI18n.T(loc, "MasterSupport.Welcome"), kb)
 
 	// Breadcrumb into the topic so operators see the thread opening even if the user hasn't
-	// typed anything yet.
+	// typed anything yet. If the stored topic was deleted by an admin, recreate it transparently.
 	if _, err := h.bot.SendMessageToTopic(h.supportGroupID, thread.TopicID,
 		fmt.Sprintf("🆕 <b>Conversation opened</b>\n%s", formatUserLine(user))); err != nil {
-		log.Printf("master-support: post open-marker to topic %d failed: %v", thread.TopicID, err)
+		if isTopicMissingError(err) {
+			log.Printf("master-support: topic %d for user %d deleted — recreating", thread.TopicID, userID)
+			if fresh, rerr := h.recreateSupportThread(thread, user); rerr == nil {
+				_, _ = h.bot.SendMessageToTopic(h.supportGroupID, fresh.TopicID,
+					fmt.Sprintf("🆕 <b>Conversation opened</b> (previous topic was deleted)\n%s", formatUserLine(user)))
+			} else {
+				log.Printf("master-support: recreate topic for %d failed: %v", userID, rerr)
+			}
+		} else {
+			log.Printf("master-support: post open-marker to topic %d failed: %v", thread.TopicID, err)
+		}
 	}
 }
 
@@ -101,10 +111,27 @@ func (h *MasterHandler) tryRelayDMToSupport(msg *Message) bool {
 	}
 
 	if _, err := h.bot.CopyMessage(h.supportGroupID, msg.Chat.ID, msg.MessageID, thread.TopicID); err != nil {
-		log.Printf("master-support: copyMessage to topic %d failed: %v", thread.TopicID, err)
-		// Don't leak relay errors to the user; let them retry.
-		h.bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "MasterSupport.RelayFailed"), nil)
-		return true
+		if isTopicMissingError(err) {
+			// Admin deleted the topic in the group. Close the stale row, spin up a fresh topic,
+			// and retry the copy transparently — the user shouldn't have to resend their message.
+			log.Printf("master-support: topic %d for user %d deleted — recreating and retrying", thread.TopicID, msg.From.ID)
+			fresh, rerr := h.recreateSupportThread(thread, *msg.From)
+			if rerr != nil {
+				log.Printf("master-support: recreate thread for %d failed: %v", msg.From.ID, rerr)
+				h.bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "MasterSupport.RelayFailed"), nil)
+				return true
+			}
+			if _, rerr := h.bot.CopyMessage(h.supportGroupID, msg.Chat.ID, msg.MessageID, fresh.TopicID); rerr != nil {
+				log.Printf("master-support: retry copy to new topic %d failed: %v", fresh.TopicID, rerr)
+				h.bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "MasterSupport.RelayFailed"), nil)
+				return true
+			}
+			thread = fresh
+		} else {
+			log.Printf("master-support: copyMessage to topic %d failed: %v", thread.TopicID, err)
+			h.bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "MasterSupport.RelayFailed"), nil)
+			return true
+		}
 	}
 
 	if err := db.TouchSupportThread(thread.ID); err != nil {
@@ -181,6 +208,39 @@ func (h *MasterHandler) closeSupportThread(threadID string, userID int64, topicI
 		fmt.Sprintf("🔒 <b>Thread closed</b> by %s", closer))
 	// Best-effort: archive the topic so it visually collapses.
 	_ = h.bot.CloseForumTopic(h.supportGroupID, topicID)
+}
+
+// recreateSupportThread is the recovery path when a stored topic no longer exists in the group
+// (the owner deleted it). It closes the stale DB row and forges a brand-new forum topic,
+// returning the refreshed thread. Callers should retry whatever relay operation triggered the
+// discovery with the new topic_id.
+func (h *MasterHandler) recreateSupportThread(stale *models.SupportThread, user User) (*models.SupportThread, error) {
+	_ = db.CloseSupportThread(stale.ID)
+	return h.ensureSupportThread(stale.TelegramUserID, user)
+}
+
+// isTopicMissingError reports whether a Telegram API error indicates that the message thread
+// (forum topic) referenced by the request no longer exists. Telegram's exact wording has shifted
+// across API versions, so we match a handful of known phrasings case-insensitively rather than
+// relying on any single substring.
+func isTopicMissingError(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(s, "message thread not found"):
+		return true
+	case strings.Contains(s, "topic_deleted"):
+		return true
+	case strings.Contains(s, "thread_not_found"):
+		return true
+	case strings.Contains(s, "topic not found"):
+		return true
+	case strings.Contains(s, "thread was deleted"):
+		return true
+	}
+	return false
 }
 
 // ensureSupportThread returns the user's open thread, creating a fresh forum topic when none exists.
