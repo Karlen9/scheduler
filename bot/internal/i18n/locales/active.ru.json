@@ -35,6 +35,9 @@
   "Btn.Info": {
     "other": "ℹ️ Информация"
   },
+  "Menu.Ready": {
+    "other": "⬇️ Меню"
+  },
   "Btn.InviteFriend": {
     "other": "🎁 Пригласить друга"
   },
