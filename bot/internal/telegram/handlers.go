@@ -88,12 +88,60 @@ func (h *Handler) handleMessage(msg *Message) {
 		h.handleStartWithPayload(msg, payload)
 		return
 	}
+
+	/***************************************************************************************************
+	* Reply-keyboard taps arrive as plain text messages whose content matches the button label.
+	* Intercept them before the /admin and /help switch so specialists can use the persistent menu.
+	***************************************************************************************************/
+	if h.handleSpecialistKeyboardTap(msg) {
+		return
+	}
+
 	switch msg.Text {
 	case "/admin":
 		h.handleAdmin(msg)
 	case "/help":
 		h.handleHelp(msg)
 	}
+}
+
+/***************************************************************************************************
+* handleSpecialistKeyboardTap matches the incoming message against the persistent reply-keyboard
+* labels for the specialist's current language. Returns true if the tap was handled (so the caller
+* should stop dispatching).
+***************************************************************************************************/
+func (h *Handler) handleSpecialistKeyboardTap(msg *Message) bool {
+	if msg.From == nil || msg.Text == "" {
+		return false
+	}
+	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
+	if err != nil || specialist == nil {
+		return false
+	}
+	if specialist.TelegramUserID != msg.From.ID {
+		return false
+	}
+
+	lang := specialist.Language
+	if lang == "" {
+		lang = "ru"
+	}
+	loc := myI18n.NewLocalizer(lang)
+
+	switch msg.Text {
+	case BtnProfile(loc):
+		if _, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Referral.ProfileMenu"), profileHomeKeyboard(loc)); err != nil {
+			log.Printf("Error sending profile menu: %v", err)
+		}
+		return true
+	case BtnInfo(loc):
+		clientURL := "https://t.me/" + h.Bot.Username
+		if _, err := h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL), nil); err != nil {
+			log.Printf("Error sending info message: %v", err)
+		}
+		return true
+	}
+	return false
 }
 
 /***************************************************************************************************
@@ -166,13 +214,15 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 			log.Printf("Error setting specialist menu button: %v", err)
 		}
 
-		keyboard := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
+		replyKeyboard := &ReplyKeyboardMarkup{
+			Keyboard: [][]KeyboardButton{
 				{{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}}},
-				{{Text: BtnProfile(loc), CallbackData: "profile:home"}},
+				{{Text: BtnProfile(loc)}, {Text: BtnInfo(loc)}},
 			},
+			ResizeKeyboard: true,
+			IsPersistent:   true,
 		}
-		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), keyboard)
+		_, err = h.Bot.SendMessageHTMLWithReplyKeyboard(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), replyKeyboard)
 		if err != nil {
 			log.Printf("Error sending specialist start message: %v", err)
 		}

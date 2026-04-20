@@ -30,7 +30,10 @@
     "other": "❌ Decline"
   },
   "Btn.Profile": {
-    "other": "👤 Profile"
+    "other": "🏠 Profile"
+  },
+  "Btn.Info": {
+    "other": "ℹ️ Info"
   },
   "Btn.InviteFriend": {
     "other": "🎁 Invite a friend"
