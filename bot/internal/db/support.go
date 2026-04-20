@@ -23,6 +23,19 @@ func GetSupportThreadByUserID(telegramUserID int64) (*models.SupportThread, erro
 	`), telegramUserID))
 }
 
+// GetAnySupportThreadByUserID returns the support_threads row for a user regardless of whether
+// it is currently closed. Used by the recovery path when an earlier bug or a manual admin action
+// left a stranded "closed" row that blocks new inserts due to the telegram_user_id UNIQUE
+// constraint — callers can then reassign the topic and reopen it.
+func GetAnySupportThreadByUserID(telegramUserID int64) (*models.SupportThread, error) {
+	return scanSupportThreadRow(DB.QueryRow(Q(`
+		SELECT id, telegram_user_id, telegram_username, display_name, language_code,
+		       topic_id, created_at, last_message_at, closed_at
+		FROM support_threads
+		WHERE telegram_user_id = ?
+	`), telegramUserID))
+}
+
 // GetSupportThreadByTopicID returns the active thread attached to the given forum topic.
 func GetSupportThreadByTopicID(topicID int) (*models.SupportThread, error) {
 	return scanSupportThreadRow(DB.QueryRow(Q(`
@@ -58,6 +71,19 @@ func CreateSupportThread(telegramUserID int64, username, displayName, languageCo
 // TouchSupportThread refreshes last_message_at for the given thread.
 func TouchSupportThread(threadID string) error {
 	_, err := DB.Exec(Q(`UPDATE support_threads SET last_message_at = ? WHERE id = ?`), time.Now().UTC(), threadID)
+	return err
+}
+
+// ReassignSupportThreadTopic points an existing support_threads row at a freshly created forum
+// topic. Used when an admin deletes the old topic in the group — we keep the same DB row (and
+// therefore the same user identity, same created_at) but swap topic_id to the new one. Done this
+// way because telegram_user_id carries a UNIQUE constraint, so close-and-recreate cannot work.
+func ReassignSupportThreadTopic(threadID string, newTopicID int) error {
+	_, err := DB.Exec(Q(`
+		UPDATE support_threads
+		SET topic_id = ?, last_message_at = ?, closed_at = NULL
+		WHERE id = ?
+	`), newTopicID, time.Now().UTC(), threadID)
 	return err
 }
 
