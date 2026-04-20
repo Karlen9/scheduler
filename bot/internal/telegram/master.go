@@ -57,12 +57,13 @@ type OnboardingSession struct {
 * MasterHandler handles the master bot for specialist onboarding.
 ***************************************************************************************************/
 type MasterHandler struct {
-	bot           *Bot
-	sessions      map[int64]*OnboardingSession // telegramUserID -> session
-	mu            sync.RWMutex
-	publicBaseURL string
-	webAppURL     string
-	adminIDs      []int64
+	bot            *Bot
+	sessions       map[int64]*OnboardingSession // telegramUserID -> session
+	mu             sync.RWMutex
+	publicBaseURL  string
+	webAppURL      string
+	adminIDs       []int64
+	supportGroupID int64 // 0 = support relay disabled
 }
 
 /***************************************************************************************************
@@ -80,13 +81,14 @@ type MasterHandler struct {
 * Side effects:
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
-func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int64) *MasterHandler {
+func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int64, supportGroupID int64) *MasterHandler {
 	return &MasterHandler{
-		bot:           bot,
-		sessions:      make(map[int64]*OnboardingSession),
-		publicBaseURL: publicBaseURL,
-		webAppURL:     webAppURL,
-		adminIDs:      adminIDs,
+		bot:            bot,
+		sessions:       make(map[int64]*OnboardingSession),
+		publicBaseURL:  publicBaseURL,
+		webAppURL:      webAppURL,
+		adminIDs:       adminIDs,
+		supportGroupID: supportGroupID,
 	}
 }
 
@@ -144,44 +146,99 @@ func (h *MasterHandler) setSession(userID int64, session *OnboardingSession) {
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func (h *MasterHandler) HandleUpdate(update Update) {
+	/***************************************************************************************************
+	* Callback queries (inline-keyboard clicks) are routed first — they carry their own auth context.
+	***************************************************************************************************/
+	if update.CallbackQuery != nil {
+		if h.dispatchCallback(update.CallbackQuery) {
+			return
+		}
+		// Unhandled callback — ack so the spinner doesn't linger.
+		h.bot.AnswerCallbackQuery(update.CallbackQuery.ID, "")
+		return
+	}
+
 	if update.Message == nil {
 		return
 	}
 
 	msg := update.Message
+
+	/***************************************************************************************************
+	* Log any non-DM chat the bot is added to, so operators can discover the SUPPORT_GROUP_ID of a
+	* newly created supergroup without leaving Telegram / installing helper bots.
+	* Examples: "groups/channels the master bot sees" — chat.id=-1001234 type=supergroup title=…
+	***************************************************************************************************/
+	if msg.Chat.Type != "" && msg.Chat.Type != "private" {
+		log.Printf("master-bot sees chat: id=%d type=%s (set SUPPORT_GROUP_ID to this value if this is your operator supergroup)", msg.Chat.ID, msg.Chat.Type)
+	}
+
+	/***************************************************************************************************
+	* Messages arriving inside the support supergroup get relayed back to the original user.
+	***************************************************************************************************/
+	if h.supportGroupID != 0 && msg.Chat.ID == h.supportGroupID {
+		h.handleSupportGroupMessage(msg)
+		return
+	}
+
+	if msg.From == nil {
+		return
+	}
+
 	userID := msg.From.ID
 	chatID := msg.Chat.ID
 	text := strings.TrimSpace(msg.Text)
+	loc := h.localizerFor(userID)
 
 	/***************************************************************************************************
 	* Handle commands.
 	***************************************************************************************************/
 	if strings.HasPrefix(text, "/") {
-		h.handleCommand(chatID, userID, text, msg.From.LanguageCode)
+		h.handleCommand(chatID, userID, text, loc)
 		return
 	}
 
 	/***************************************************************************************************
-	* Handle conversation flow.
+	* An active onboarding session wins over everything else: users in the middle of pasting a token
+	* or entering a name should have their input consumed by the state machine.
 	***************************************************************************************************/
-	session := h.getSession(userID)
-	if session == nil {
-		/***************************************************************************************************
-		* No active session, prompt to start.
-		***************************************************************************************************/
-		loc := myI18n.NewLocalizer(msg.From.LanguageCode)
-		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
+	if session := h.getSession(userID); session != nil {
+		switch session.State {
+		case StateAwaitingToken:
+			h.handleTokenInput(chatID, userID, text, session, loc)
+		case StateAwaitingName:
+			h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
+		}
 		return
 	}
 
-	loc := myI18n.NewLocalizer(msg.From.LanguageCode)
-
-	switch session.State {
-	case StateAwaitingToken:
-		h.handleTokenInput(chatID, userID, text, session, loc)
-	case StateAwaitingName:
-		h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
+	/***************************************************************************************************
+	* Otherwise, if the user has an open support thread, relay this DM into the operator topic.
+	***************************************************************************************************/
+	if h.supportGroupID != 0 && h.tryRelayDMToSupport(msg) {
+		return
 	}
+
+	/***************************************************************************************************
+	* Fallback: nudge the user back to /start.
+	***************************************************************************************************/
+	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
+}
+
+// localizerFor resolves the UI language for a master-bot user. Precedence:
+//  1. Registered specialist → specialist.Language (that's the language they already picked in their bot)
+//  2. master_users.language (set via the master-bot's own language menu)
+//  3. product default "ru"
+//
+// Telegram's client language code is intentionally ignored — the product is Russian-first and we
+// only switch when the user explicitly picks another language.
+func (h *MasterHandler) localizerFor(userID int64) *localizerType {
+	if userID != 0 {
+		if sp, err := db.GetSpecialistByTelegramID(userID); err == nil && sp != nil && sp.Language != "" {
+			return myI18n.NewLocalizer(sp.Language)
+		}
+	}
+	return myI18n.NewLocalizer(db.GetMasterUserLanguage(userID))
 }
 
 /***************************************************************************************************
@@ -199,13 +256,16 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 * Side effects:
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
-func (h *MasterHandler) handleCommand(chatID, userID int64, text string, langCode string) {
+func (h *MasterHandler) handleCommand(chatID, userID int64, text string, loc *localizerType) {
 	cmd := strings.Split(text, " ")[0]
-	loc := myI18n.NewLocalizer(langCode)
 
 	switch cmd {
 	case "/start":
 		h.handleStart(chatID, userID, loc)
+	case "/menu":
+		h.renderMainMenu(chatID, userID, 0, loc)
+	case "/language":
+		h.renderLanguagePicker(chatID, 0, loc)
 	case "/cancel":
 		h.handleCancel(chatID, userID, loc)
 	case "/help":
@@ -218,6 +278,15 @@ func (h *MasterHandler) handleCommand(chatID, userID int64, text string, langCod
 		h.handleAdminSpecialists(chatID, userID, loc)
 	case "/stats":
 		h.handleAdminStats(chatID, userID, loc)
+	case "/admin":
+		if h.isAdmin(userID) {
+			h.renderAdminMenu(chatID, userID, 0, loc)
+		} else {
+			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
+		}
+	case "/close":
+		// Only meaningful inside the support group — ignored elsewhere.
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 	default:
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Unknown"), nil)
 	}
@@ -350,7 +419,7 @@ func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 
 	if existing != nil && existing.IsActive {
 		/***************************************************************************************************
-		* Already registered and active — re-register handler in case it was lost.
+		* Already registered and active — re-register handler in case it was lost, then show the main menu.
 		***************************************************************************************************/
 		log.Printf("Specialist @%s already exists, re-registering handler", existing.BotUsername)
 		if OnSpecialistCreated != nil {
@@ -360,14 +429,22 @@ func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 				return
 			}
 		}
-		msg := fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername)
-		h.bot.SendMessage(chatID, msg, nil)
+		h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername), nil)
+		h.renderMainMenu(chatID, userID, 0, loc)
 		return
 	}
 
 	/***************************************************************************************************
-	* Start onboarding.
+	* New user — show the main menu so they can pick between creating a bot, reading FAQs, or
+	* contacting the operator. Starting the token state machine immediately (the old behavior)
+	* surprised users who just wanted info.
 	***************************************************************************************************/
+	h.renderMainMenu(chatID, userID, 0, loc)
+}
+
+// beginTokenEntry is invoked from the menu's "Create my bot" button; it puts the user into the
+// legacy onboarding state machine and prompts for a BotFather token.
+func (h *MasterHandler) beginTokenEntry(chatID, userID int64, loc *localizerType) {
 	h.setSession(userID, &OnboardingSession{State: StateAwaitingToken})
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Welcome"), nil)
 }

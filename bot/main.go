@@ -748,7 +748,7 @@ func main() {
 		}
 		log.Printf("Master bot: @%s", masterBot.Username)
 
-		masterHandler = telegram.NewMasterHandler(masterBot, cfg.PublicBaseURL, cfg.WebAppURL, cfg.AdminIDs)
+		masterHandler = telegram.NewMasterHandler(masterBot, cfg.PublicBaseURL, cfg.WebAppURL, cfg.AdminIDs, cfg.SupportGroupID)
 
 		/***************************************************************************************************
 		* Use fixed webhook secret from env, or generate a random one.

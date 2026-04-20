@@ -102,6 +102,44 @@ func (h *Handler) handleMessage(msg *Message) {
 		h.handleAdmin(msg)
 	case "/help":
 		h.handleHelp(msg)
+	case "/language", "/lang":
+		h.handleClientLanguageCommand(msg)
+	}
+}
+
+// handleClientLanguageCommand shows the ru/en picker to a client or specialist from /language.
+// For specialists, the existing profile submenu also exposes this, but the command works from
+// anywhere and is easy to remember.
+func (h *Handler) handleClientLanguageCommand(msg *Message) {
+	if msg.From == nil {
+		return
+	}
+	specialist, _ := db.GetSpecialistByBotToken(h.Bot.Token)
+	if specialist == nil {
+		return
+	}
+	lang := "ru"
+	if specialist.TelegramUserID == msg.From.ID {
+		if specialist.Language != "" {
+			lang = specialist.Language
+		}
+	} else if client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID); client != nil && client.Language != "" {
+		lang = client.Language
+	}
+	loc := myI18n.NewLocalizer(lang)
+
+	// Clients use "clientlang:<code>" to distinguish from the specialist's profile:lang path.
+	// Specialist taps still flow through the existing profile menu.
+	keyboard := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: myI18n.T(loc, "Lang.Russian"), CallbackData: "clientlang:ru"},
+				{Text: myI18n.T(loc, "Lang.English"), CallbackData: "clientlang:en"},
+			},
+		},
+	}
+	if _, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Lang.Choose"), keyboard); err != nil {
+		log.Printf("Error sending client language picker: %v", err)
 	}
 }
 
@@ -252,32 +290,32 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 	client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
 	if client == nil {
 		/***************************************************************************************************
-		* New user — show language selection (using Default() since language is not yet chosen; Lang.*
-		* keys are bilingual and identical in both locales). The referral code is forwarded through the
-		* callback data so it can be recorded on client creation.
+		* New user — default to Russian silently and create the client row. Language can be flipped
+		* later via /language or from the mini-app. Skipping the initial picker removes friction; the
+		* common case (Russian-speaking client) gets straight to booking.
 		***************************************************************************************************/
 		refCode := validateReferralForIncomingUser(specialist, msg.From.ID, payload)
-		defLoc := myI18n.Default()
-		ruData := "lang:ru:" + specialist.ID
-		enData := "lang:en:" + specialist.ID
-		if refCode != "" {
-			ruData += ":" + refCode
-			enData += ":" + refCode
+		firstName := msg.From.FirstName
+		if firstName == "" {
+			firstName = "User"
 		}
-		keyboard := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{
-					{Text: myI18n.T(defLoc, "Lang.Russian"), CallbackData: ruData},
-					{Text: myI18n.T(defLoc, "Lang.English"), CallbackData: enData},
-				},
-			},
+		newClient, err := db.GetOrCreateClientWithReferral(msg.From.ID, specialist.ID, firstName, refCode)
+		if err != nil {
+			log.Printf("Error creating client: %v", err)
+			return
 		}
-		_, _ = h.Bot.SendMessage(msg.Chat.ID, myI18n.T(defLoc, "Lang.Choose"), keyboard)
-		return
+		if newClient.Language == "" {
+			if lerr := db.UpdateClientLanguage(newClient.ID, "ru"); lerr != nil {
+				log.Printf("Error setting default client language: %v", lerr)
+			}
+			newClient.Language = "ru"
+		}
+		changes.Publish(specialist.ID, changes.GroupClientProfile, changes.GroupClients)
+		client = newClient
 	}
 
 	/***************************************************************************************************
-	* Existing client.
+	* Existing client (or freshly defaulted above).
 	***************************************************************************************************/
 	lang := client.Language
 	if lang == "" {
@@ -413,6 +451,14 @@ func (h *Handler) handleCallbackQuery(update Update) {
 	***************************************************************************************************/
 	if strings.HasPrefix(data, "lang:") {
 		h.handleLanguageCallback(update)
+		return
+	}
+
+	/***************************************************************************************************
+	* Handle client /language command callback.
+	***************************************************************************************************/
+	if strings.HasPrefix(data, "clientlang:") {
+		h.handleClientLanguageSwitch(update)
 		return
 	}
 
@@ -600,6 +646,56 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	}
 
 	_, _ = h.Bot.SendWebAppButton(cq.From.ID, FormatWelcome(loc, h.Version), webAppURL, BtnOpenApp(loc))
+}
+
+// handleClientLanguageSwitch processes "clientlang:<code>" from the /language command.
+// For clients, it updates clients.language; for specialists it updates specialists.language so
+// the switch works uniformly regardless of who invoked /language.
+func (h *Handler) handleClientLanguageSwitch(update Update) {
+	cq := update.CallbackQuery
+	lang := strings.TrimPrefix(cq.Data, "clientlang:")
+	if lang != "ru" && lang != "en" {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+
+	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
+	if err != nil || specialist == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+
+	if specialist.TelegramUserID == cq.From.ID {
+		if err := db.UpdateSpecialistLanguage(specialist.ID, lang); err != nil {
+			log.Printf("Error updating specialist language via /language: %v", err)
+		}
+	} else {
+		client, _ := db.GetClientByTelegramID(cq.From.ID, specialist.ID)
+		if client == nil {
+			// First-time user hitting /language without a /start — create the row, defaulting name.
+			firstName := cq.From.FirstName
+			if firstName == "" {
+				firstName = "User"
+			}
+			client, err = db.GetOrCreateClientWithReferral(cq.From.ID, specialist.ID, firstName, "")
+			if err != nil {
+				log.Printf("Error creating client from /language: %v", err)
+				h.Bot.AnswerCallbackQuery(cq.ID, "")
+				return
+			}
+		}
+		if err := db.UpdateClientLanguage(client.ID, lang); err != nil {
+			log.Printf("Error updating client language: %v", err)
+		}
+		changes.Publish(specialist.ID, changes.GroupClientProfile, changes.GroupClients)
+	}
+
+	newLoc := myI18n.NewLocalizer(lang)
+	h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(newLoc, "Lang.Saved"))
+	if cq.Message != nil {
+		// Edit the picker message to a confirmation so the UI doesn't feel stuck.
+		_ = h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, myI18n.T(newLoc, "Lang.Saved"), nil)
+	}
 }
 
 /***************************************************************************************************

@@ -34,7 +34,7 @@ go test ./...     # Run tests
 ```
 
 Required env vars (master bot): `MASTER_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`
-Optional: `ADMIN_IDS`, `MASTER_WEBHOOK_SECRET`, `ENCRYPTION_KEY`
+Optional: `ADMIN_IDS`, `MASTER_WEBHOOK_SECRET`, `ENCRYPTION_KEY`, `SUPPORT_GROUP_ID` (forum-topic supergroup chat id; enables the master bot's operator relay)
 Legacy (single-bot): `TELEGRAM_BOT_TOKEN`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST_NAME`
 
 ### Deployment
@@ -67,9 +67,9 @@ docker push rainingman/scheduler-bot:latest
 ### Bot Structure (bot/)
 
 - `main.go` - HTTP server, bot manager, background workers (reminders, notifications, webhook self-healer)
-- `internal/telegram/` - Bot handlers, master bot onboarding, message templates, persistent reply keyboard
+- `internal/telegram/` - Bot handlers and message templates. Master bot is split into: `master.go` (entrypoint + onboarding state machine), `master_menu.go` (`/start` inline menu + FAQ screens), `master_support.go` (operator support relay via forum topics), `master_admin.go` (owner analytics panel). Also: per-specialist bot handlers, persistent reply keyboard.
 - `internal/api/` - REST API handlers, middleware, router. Notable: `admin_handlers`, `recurring_handlers`, `photo_handlers`, `referral_handlers`, `change_handlers`, `delete_bot_handler`, `stats`, `ratelimit`, `cache`, `metrics`, `security`
-- `internal/db/` - Database layer (SQLite + PostgreSQL dual driver): specialists, clients, bookings, recurring, working_hours, days_off, session_types, stats, compat, query_helpers
+- `internal/db/` - Database layer (SQLite + PostgreSQL dual driver): specialists, clients, bookings, recurring, working_hours, days_off, session_types, stats, `owner_stats` (platform-wide metrics for master bot admin panel), `support` (support_threads mapping), compat, query_helpers
 - `internal/changes/` - Change events helper
 - `internal/config/` - Environment configuration
 - `internal/i18n/` - Backend i18n (embedded locale files)
@@ -115,6 +115,7 @@ Bot uses Telegram webhooks (not long polling):
 - Specialist bot has a persistent reply keyboard (Профиль, Информация); web_app launches happen via inline keyboard to preserve init data (reply-keyboard web_app would break admin auth)
 - Delete-bot flow: confirmation phrase + 2s hold-to-delete button; cascades through all specialist data and removes the Telegram bot webhook
 - Webhook self-healer: background loop detects and re-registers broken Telegram webhooks
+- Master bot doubles as help-desk + owner analytics. `/start` shows an inline menu (Create my bot / FAQ / Talk to operator / Admin panel). Operator relay copies DMs into a forum topic inside `SUPPORT_GROUP_ID` (one topic per user, mapping in `support_threads`); admin replies in the topic are copied back. `/close` in a topic closes the thread; a conservative substring spam filter drops obvious junk before relay. Admin panel (users in `ADMIN_IDS` only) drills into platform/bookings/clients/recurring/referrals/top-specialists/durations/specialist-list.
 - Theme: light/dark via Telegram `colorScheme` — `theme.css` has `:root` light defaults and `:root.dark` overrides; status colors exposed via `@theme inline` for Tailwind
 - Light frontend data sync + SWR cache retention across route switches; infinite scroll for admin bookings; URL-backed filters on bookings list
 - Pre-commit hooks: gofmt, prettier, eslint, go test, vitest (via Lefthook)
