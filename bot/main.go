@@ -48,24 +48,13 @@ type BotManager struct {
 * Side effects:
 * - Keeps work scoped to the current module unless downstream helpers perform I/O.
 ***************************************************************************************************/
-func NewBotManager(webAppURL, baseURL string) *BotManager {
+func NewBotManager(webAppURL, baseURL, masterBotUsername string) *BotManager {
 	return &BotManager{
-		bots:      make(map[string]*telegram.Bot),
-		handlers:  make(map[string]*telegram.Handler),
-		webAppURL: webAppURL,
-		baseURL:   baseURL,
-	}
-}
-
-// SetMasterBotUsername records the master bot's username on the manager and back-fills every
-// already-registered specialist handler. Called once from main.go after the master bot's
-// getMe resolves. Safe to call multiple times (idempotent).
-func (m *BotManager) SetMasterBotUsername(username string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.masterBotUsername = username
-	for _, h := range m.handlers {
-		h.MasterBotUsername = username
+		bots:              make(map[string]*telegram.Bot),
+		handlers:          make(map[string]*telegram.Handler),
+		webAppURL:         webAppURL,
+		baseURL:           baseURL,
+		masterBotUsername: masterBotUsername,
 	}
 }
 
@@ -417,9 +406,28 @@ func main() {
 	}
 
 	/***************************************************************************************************
+	* Resolve the master bot's username up front so every specialist handler created during the
+	* initial RegisterBot sweep already carries the correct value. Without this ordering the
+	* "Invite friend" referral link would be blank until the next bot restart (for handlers that
+	* were created before the later master-bot setup block ran).
+	***************************************************************************************************/
+	var masterBot *telegram.Bot
+	var masterBotUsername string
+	if cfg.MasterBotToken != "" {
+		b, err := telegram.NewBot(cfg.MasterBotToken)
+		if err != nil {
+			log.Fatalf("Failed to create master bot: %v", err)
+		}
+		masterBot = b
+		masterBotUsername = b.Username
+		log.Printf("Master bot: @%s", b.Username)
+	}
+	api.SetMasterBotUsername(masterBotUsername)
+
+	/***************************************************************************************************
 	* Create bot manager.
 	***************************************************************************************************/
-	botManager = NewBotManager(cfg.WebAppURL, cfg.PublicBaseURL)
+	botManager = NewBotManager(cfg.WebAppURL, cfg.PublicBaseURL, masterBotUsername)
 
 	/***************************************************************************************************
 	* Wire the bot-deletion callback so the admin API can unregister the bot in-memory and release
@@ -754,18 +762,9 @@ func main() {
 	***************************************************************************************************/
 	var masterHandler *telegram.MasterHandler
 	var masterWebhookSecret string
-	if cfg.MasterBotToken != "" {
-		masterBot, err := telegram.NewBot(cfg.MasterBotToken)
-		if err != nil {
-			log.Fatalf("Failed to create master bot: %v", err)
-		}
-		log.Printf("Master bot: @%s", masterBot.Username)
-
-		// Make the master bot's username available to every specialist bot handler so the
-		// "Invite friend" flow can build recruitment links that land on the master bot.
-		botManager.SetMasterBotUsername(masterBot.Username)
-		api.SetMasterBotUsername(masterBot.Username)
-
+	if masterBot != nil {
+		// masterBot was created earlier (pre-specialist-sweep) so its username was already
+		// baked into every handler. This block only wires the webhook + request handler.
 		masterHandler = telegram.NewMasterHandler(masterBot, cfg.PublicBaseURL, cfg.WebAppURL, cfg.AdminIDs, cfg.SupportGroupID)
 
 		/***************************************************************************************************

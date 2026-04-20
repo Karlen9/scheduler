@@ -182,7 +182,7 @@ func (h *MasterHandler) renderAdminReferrals(chatID int64, messageID int, loc *l
 		for i, r := range s.TopReferrers {
 			fmt.Fprintf(&sb, "%d. %s — <b>%d</b>", i+1, htmlEscape(r.SpecialistName), r.ReferredCount)
 			if r.BotUsername != "" {
-				fmt.Fprintf(&sb, " (@%s)", r.BotUsername)
+				fmt.Fprintf(&sb, " (@%s)", htmlEscape(r.BotUsername))
 			}
 			sb.WriteString("\n")
 		}
@@ -252,7 +252,7 @@ func (h *MasterHandler) renderAdminSpecialistList(chatID int64, messageID int, l
 			fmt.Fprintf(&sb, "\n<i>…and %d more</i>", len(specialists)-limit)
 			break
 		}
-		fmt.Fprintf(&sb, "%d. %s — @%s\n", i+1, htmlEscape(s.Name), s.BotUsername)
+		fmt.Fprintf(&sb, "%d. %s — @%s\n", i+1, htmlEscape(s.Name), htmlEscape(s.BotUsername))
 	}
 	h.editOrSend(chatID, messageID, sb.String(), backToAdmin(loc))
 }

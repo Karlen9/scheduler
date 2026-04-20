@@ -104,8 +104,17 @@ func (h *MasterHandler) editOrSend(chatID int64, messageID int, text string, kb 
 
 // dispatchCallback routes m:* callback queries. Returns true if handled.
 func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
+	if q == nil {
+		return false
+	}
 	data := q.Data
 	if !strings.HasPrefix(data, "m:") && !strings.HasPrefix(data, "adm:") && !strings.HasPrefix(data, "sup:") {
+		return false
+	}
+
+	// Telegram's spec marks CallbackQuery.From as required, but guard defensively — without a
+	// user ID the language lookup and admin check below would panic / misattribute.
+	if q.From.ID == 0 {
 		return false
 	}
 

@@ -35,7 +35,7 @@ func TestExpectedWebhookURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := NewBotManager("", tt.baseURL)
+			m := NewBotManager("", tt.baseURL, "")
 			if got := m.expectedWebhookURL(tt.secret); got != tt.want {
 				t.Fatalf("expectedWebhookURL(%q) = %q, want %q", tt.secret, got, tt.want)
 			}
@@ -47,7 +47,7 @@ func TestExpectedWebhookURL(t *testing.T) {
 // cancellation during its initial 30s grace period. The healer must never
 // outlive the parent context.
 func TestRunWebhookHealer_ExitsOnContextCancel(t *testing.T) {
-	m := NewBotManager("", "https://example.com")
+	m := NewBotManager("", "https://example.com", "")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
