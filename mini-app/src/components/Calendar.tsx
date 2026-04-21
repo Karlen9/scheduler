@@ -164,6 +164,7 @@ export function MonthGrid({
   nonWorkingDays,
   daysOff,
   disablePast,
+  disabledDates,
   dotDates,
   bookedDates,
   fillOuterDays = false,
@@ -320,6 +321,13 @@ export function MonthGrid({
   }
 
   /***************************************************************************************************
+   * Checks whether date is disabled by caller-provided availability state.
+   ***************************************************************************************************/
+  function isDisabledDate(d: Date): boolean {
+    return disabledDates?.has(toISODate(d)) ?? false;
+  }
+
+  /***************************************************************************************************
    * Checks whether beyond max.
    *
    * Parameters:
@@ -349,6 +357,9 @@ export function MonthGrid({
    ***************************************************************************************************/
   function isDisabled(d: Date): boolean {
     if (disablePast && isPast(d)) {
+      return true;
+    }
+    if (isDisabledDate(d)) {
       return true;
     }
     if (isBeyondMax(d)) {
@@ -441,6 +452,7 @@ export function MonthGrid({
            * - Reused by the component layer to keep shared values centralized.
            ***************************************************************************************************/
           const disabled = isDisabled(date);
+          const disabledByAvailability = isDisabledDate(date);
           /***************************************************************************************************
            * Defines the day off value used by the component layer.
            *
@@ -509,7 +521,8 @@ export function MonthGrid({
                         ? 'bg-action-success-bg text-action-success-text'
                         : dayOff && isCurrentMonth
                           ? 'bg-dayoff-bg text-dayoff-text'
-                          : disabled && (isPast(date) || isBeyondMax(date))
+                          : disabled &&
+                              (isPast(date) || isBeyondMax(date) || disabledByAvailability)
                             ? 'text-muted-foreground opacity-40'
                             : nonWorking
                               ? isCurrentMonth

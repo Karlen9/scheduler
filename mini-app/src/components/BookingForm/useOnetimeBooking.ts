@@ -91,6 +91,7 @@ export function useOnetimeBooking({
   const [activeDateISO, setActiveDateISO] = useState<string | null>(null);
   const [timeAssignments, setTimeAssignments] = useState<Record<string, string>>({});
   const [timeSlots, setTimeSlots] = useState<TTimeSlot[]>([]);
+  const [disabledDates, setDisabledDates] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [, setNoSlotsAvailable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,7 +103,9 @@ export function useOnetimeBooking({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const slotsRequestIdRef = useRef(0);
+  const todayAvailabilityRequestIdRef = useRef(0);
   const bookedDatesSet = useMemo(() => new Set(bookedDates ?? []), [bookedDates]);
+  const todayISO = useMemo(() => formatDateISO(new Date()), []);
 
   /***************************************************************************************************
    * Auto-select first service when only one exists.
@@ -192,6 +195,34 @@ export function useOnetimeBooking({
       }
     }
   }, []);
+
+  useEffect(() => {
+    const duration = selectedService?.durationMinutes;
+    if (!duration) {
+      todayAvailabilityRequestIdRef.current += 1;
+      setDisabledDates([]);
+      return;
+    }
+
+    const requestId = todayAvailabilityRequestIdRef.current + 1;
+    todayAvailabilityRequestIdRef.current = requestId;
+
+    api
+      .getAvailableSlots(todayISO, duration)
+      .then((slots) => {
+        if (requestId !== todayAvailabilityRequestIdRef.current) {
+          return;
+        }
+        setDisabledDates(slots.some((slot) => slot.available) ? [] : [todayISO]);
+      })
+      .catch((err) => {
+        if (requestId !== todayAvailabilityRequestIdRef.current) {
+          return;
+        }
+        console.error('Failed to load today availability:', err);
+        setDisabledDates([]);
+      });
+  }, [selectedService?.durationMinutes, todayISO]);
 
   /***************************************************************************************************
    * Apply initialService on mount (or when it changes). Ref-gated by service id so that if the
@@ -327,6 +358,48 @@ export function useOnetimeBooking({
   const syncSingleUrlRef = useRef(syncSingleUrl);
   syncSingleUrlRef.current = syncSingleUrl;
 
+  useEffect(() => {
+    if (!disabledDates.includes(todayISO)) {
+      return;
+    }
+
+    if (selectedDate && formatDateISO(selectedDate) === todayISO) {
+      slotsRequestIdRef.current += 1;
+      setSelectedDate(null);
+      setSelectedTime(null);
+      setTimeSlots([]);
+      setNoSlotsAvailable(false);
+      syncSingleUrlRef.current({
+        service: selectedService,
+        date: null,
+        time: null,
+        comment: message,
+      });
+    }
+
+    if (selectedDates.some((date) => formatDateISO(date) === todayISO)) {
+      setSelectedDates((prev) => prev.filter((date) => formatDateISO(date) !== todayISO));
+      setTimeAssignments((prev) => {
+        const next = { ...prev };
+        delete next[todayISO];
+        return next;
+      });
+      if (activeDateISO === todayISO) {
+        setActiveDateISO(null);
+        setTimeSlots([]);
+        setNoSlotsAvailable(false);
+      }
+    }
+  }, [
+    activeDateISO,
+    disabledDates,
+    message,
+    selectedDate,
+    selectedDates,
+    selectedService,
+    todayISO,
+  ]);
+
   /***************************************************************************************************
    * Debounced comment-to-URL sync. Comment edits fire on every keystroke, so batching avoids an
    * explosion of router.replace calls while still restoring on reload.
@@ -418,6 +491,7 @@ export function useOnetimeBooking({
     setTimeAssignments({});
     setTimeSlots([]);
     setNoSlotsAvailable(false);
+    setDisabledDates([]);
     setMessage('');
     if (commentSyncTimerRef.current) {
       clearTimeout(commentSyncTimerRef.current);
@@ -873,6 +947,7 @@ export function useOnetimeBooking({
     activeDateISO,
     timeAssignments,
     timeSlots,
+    disabledDates,
     isLoadingSlots,
     message,
     setMessage: handleMessageChange,

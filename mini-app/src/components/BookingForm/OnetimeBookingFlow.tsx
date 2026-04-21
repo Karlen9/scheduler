@@ -83,6 +83,7 @@ export function OnetimeBookingFlow({
     activeDateISO,
     timeAssignments,
     timeSlots,
+    disabledDates,
     isLoadingSlots,
     message,
     setMessage,
@@ -211,6 +212,7 @@ export function OnetimeBookingFlow({
                 nonWorkingDays={nonWorkingDays}
                 daysOff={daysOff}
                 bookedDates={bookedDates}
+                disabledDates={disabledDates}
               />
             ) : (
               <CalendarView
@@ -220,6 +222,7 @@ export function OnetimeBookingFlow({
                 nonWorkingDays={nonWorkingDays}
                 daysOff={daysOff}
                 bookedDates={bookedDates}
+                disabledDates={disabledDates}
               />
             )}
 

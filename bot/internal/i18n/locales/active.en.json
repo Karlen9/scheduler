@@ -636,6 +636,9 @@
   "Error.DateInPast": {
     "other": "Cannot book a date in the past"
   },
+  "Error.TimeInPast": {
+    "other": "Cannot book a time in the past"
+  },
   "Error.DateTooFar": {
     "other": "Cannot book more than 3 months ahead"
   }
