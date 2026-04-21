@@ -57,8 +57,8 @@ export default function ReferralsPage(): ReactNode {
     if (!link) {
       return;
     }
-    const message = t('shareText').trim();
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`;
+    const message = t('shareText', { link }).trim();
+    const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(message)}`;
     const webApp = getTelegramWebApp();
     if (webApp?.openTelegramLink) {
       webApp.openTelegramLink(shareUrl);

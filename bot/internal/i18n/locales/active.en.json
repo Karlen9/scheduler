@@ -63,7 +63,7 @@
     "other": "🤝 <b>Partner program</b>\n\nInvite fellow specialists to the platform and earn rewards when they subscribe.\n\n📌 <b>How it works</b>\n• Send the link below to a specialist who wants to accept bookings via Telegram.\n• They onboard and get the core features free.\n• Some of the current features will move to a paid tier, and we're rolling out advanced tools for power users.\n• When the invited specialist pays their first subscription, the referral becomes <b>active</b> and you earn a reward.\n\n🧪 The platform is free during alpha. Rewards start accruing once the paid version launches — invites made now will be kept.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nStats live in the admin panel → Settings → Referrals (active / pending)."
   },
   "Referral.ShareText": {
-    "other": "Hey! I'm taking client bookings through Telegram — a handy mini-app for specialists.\n\n• 📅 Clients book 24/7, one-tap confirm\n• 🔔 Reminders for clients, notifications for me\n• 🔁 Recurring sessions\n• 👥 Client base with history\n• 📊 Revenue and workload analytics\n\nFree right now — alpha version. Setting up your own bot takes a couple of minutes:"
+    "other": "Hey! I'm taking client bookings through Telegram — a handy mini-app for specialists.\n\n• 📅 Clients book 24/7, one-tap confirm\n• 🔔 Reminders for clients, notifications for me\n• 🔁 Recurring sessions\n• 👥 Client base with history\n• 📊 Revenue and workload analytics\n\nFree right now — alpha version. Setting up your own bot takes a couple of minutes:\n{{.Link}}"
   },
   "Booking.New": {
     "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
