@@ -337,17 +337,8 @@ func FormatWelcome(loc *i18n.Localizer, version string) string {
 * Side effects:
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
-func FormatWelcomeSpecialist(loc *i18n.Localizer, version, miniAppURL string) string {
-	msg := myI18n.T(loc, "Welcome.Specialist")
-	msg += "\n\n" + myI18n.Tf(loc, "BotFatherLink", map[string]interface{}{"URL": miniAppURL})
-	if version != "" {
-		msg += "\n\n" + myI18n.Tf(loc, "Version", map[string]interface{}{"Version": version})
-		changelog := myI18n.T(loc, "ChangelogContent")
-		if changelog != "" && changelog != "ChangelogContent" {
-			msg += "\n" + myI18n.Tf(loc, "Changelog", map[string]interface{}{"Changelog": changelog})
-		}
-	}
-	return msg
+func FormatWelcomeSpecialist(loc *i18n.Localizer, _, _ string) string {
+	return myI18n.T(loc, "Welcome.Specialist")
 }
 
 /***************************************************************************************************
@@ -363,8 +354,12 @@ func FormatWelcomeSpecialist(loc *i18n.Localizer, version, miniAppURL string) st
 * Side effects:
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
-func FormatHelpSpecialist(loc *i18n.Localizer, clientURL string) string {
-	return fmt.Sprintf(myI18n.T(loc, "Help.Specialist"), clientURL)
+func FormatHelpSpecialist(loc *i18n.Localizer, clientURL, masterBotUsername string) string {
+	msg := fmt.Sprintf(myI18n.T(loc, "Help.Specialist"), clientURL)
+	if masterBotUsername != "" {
+		msg += "\n\n" + fmt.Sprintf(myI18n.T(loc, "Help.SpecialistSupport"), masterBotUsername)
+	}
+	return msg
 }
 
 /***************************************************************************************************

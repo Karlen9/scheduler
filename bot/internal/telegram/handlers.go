@@ -188,7 +188,7 @@ func (h *Handler) handleSpecialistKeyboardTap(msg *Message) bool {
 		return true
 	case BtnInfo(loc):
 		clientURL := "https://t.me/" + h.Bot.Username
-		if _, err := h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL), nil); err != nil {
+		if _, err := h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL, h.MasterBotUsername), nil); err != nil {
 			log.Printf("Error sending info message: %v", err)
 		}
 		return true
@@ -432,7 +432,7 @@ func (h *Handler) handleHelp(msg *Message) {
 	if specialist.TelegramUserID == msg.From.ID {
 		loc := myI18n.NewLocalizer(specialist.Language)
 		clientURL := "https://t.me/" + h.Bot.Username
-		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL), nil)
+		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL, h.MasterBotUsername), nil)
 	} else {
 		loc := myI18n.Default()
 		client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
