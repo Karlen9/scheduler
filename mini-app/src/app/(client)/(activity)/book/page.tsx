@@ -5,7 +5,12 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 
 import { BookingForm } from '@/components/BookingForm';
-import { useBookings, useScheduleContext, useSessionTypes } from '@/hooks/queries';
+import {
+  useBookings,
+  useClientBatches,
+  useScheduleContext,
+  useSessionTypes,
+} from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { parseDateParam } from '@/lib/helpers';
 import { getUserName } from '@/lib/telegram';
@@ -48,6 +53,7 @@ function ClientBookContent(): ReactNode {
    ***************************************************************************************************/
   const daysOffData = scheduleData?.daysOff ?? [];
   const { data: services, isLoading: svcLoading } = useSessionTypes();
+  const { data: clientBatches, isLoading: batchesLoading } = useClientBatches();
   const { data: bookings } = useBookings();
 
   const searchParams = useSearchParams();
@@ -86,7 +92,8 @@ function ClientBookContent(): ReactNode {
       workingHours={workingHours}
       daysOff={daysOff}
       bookedDates={bookedDates}
-      isLoading={scheduleLoading || svcLoading}
+      clientBatches={clientBatches}
+      isLoading={scheduleLoading || svcLoading || batchesLoading}
       showRecurring={false}
       successRedirect={'/bookings'}
       title={t('title')}

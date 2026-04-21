@@ -32,6 +32,7 @@ export function OnetimeBookingFlow({
   services,
   daysOff,
   bookedDates,
+  clientBatches,
   showRecurring,
   selectedClient,
   hasClientSelector,
@@ -101,6 +102,7 @@ export function OnetimeBookingFlow({
   } = useOnetimeBooking({
     services,
     bookedDates,
+    clientBatches,
     selectedClient,
     hasClientSelector,
     onCreateBooking,
