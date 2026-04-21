@@ -142,6 +142,10 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 						http.Error(w, "specialist not found", http.StatusNotFound)
 						return
 					}
+					if !specialist.IsActive || specialist.DeletedAt != nil {
+						http.Error(w, "bot deleted", http.StatusGone)
+						return
+					}
 
 					client, err := db.GetOrCreateClient(testUserID, specialist.ID, "LoadTest User")
 					if err != nil {
@@ -173,6 +177,18 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 			if specialist == nil {
 				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.SpecialistNotFound"), http.StatusNotFound)
+				return
+			}
+
+			/***************************************************************************************************
+			* Soft-deleted bots: the specialist row lingers for stats but must not serve API traffic. The
+			* Telegram "Open" button on old chats / inline keyboards would otherwise still launch the Mini
+			* App because bot_token is preserved for UNIQUE-constraint reasons and initData signatures
+			* continue to verify. 410 Gone is the precise semantic — the resource existed but is intentionally
+			* retired.
+			***************************************************************************************************/
+			if !specialist.IsActive || specialist.DeletedAt != nil {
+				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.BotDeleted"), http.StatusGone)
 				return
 			}
 
