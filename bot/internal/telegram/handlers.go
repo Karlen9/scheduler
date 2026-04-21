@@ -1375,7 +1375,7 @@ func (h *Handler) handleProfileCallback(update Update) {
 		inviteText := myI18n.Tf(loc, "Referral.InviteMessage", map[string]interface{}{"Link": link})
 		keyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
-				{{Text: BtnInviteShare(loc), URL: shareURL(shareText)}},
+				{{Text: BtnInviteShare(loc), URL: shareURL(link, shareText)}},
 				{{Text: BtnProfileBack(loc), CallbackData: "profile:home"}},
 			},
 		}
@@ -1455,13 +1455,13 @@ func referralLink(botUsername, code string) string {
 }
 
 /***************************************************************************************************
-* shareURL wraps a caption for Telegram's native share picker. The caption must already contain
-* the referral link inline — Telegram auto-detects URLs inside `text` and makes them tappable.
-* `url=` is left empty on purpose: populating it either renders the whole caption as a URL (+ for
-* spaces) on some clients, or duplicates the link as a preview card on others.
+* shareURL builds a Telegram share-picker URL: `url` is the referral link (rendered as a preview
+* card on the recipient side), `text` is the caption body. The caption is expected to also
+* contain the link inline — with an inline-button flow, an empty `url=` makes Telegram drop the
+* link preview, and in that case the inline URL inside the text is the only signal to the reader.
 ***************************************************************************************************/
-func shareURL(text string) string {
-	return "https://t.me/share/url?url=&text=" + urlEncode(text)
+func shareURL(link, text string) string {
+	return "https://t.me/share/url?url=" + urlEncode(link) + "&text=" + urlEncode(text)
 }
 
 /***************************************************************************************************
