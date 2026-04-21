@@ -66,10 +66,11 @@ export default function ServicesPage(): ReactNode {
   const [deleteTarget, setDeleteTarget] = useState<TSessionType | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState<TServiceFormData>({
-    type: 'personal',
+    type: 'common',
     name: '',
     price: '',
     duration: '60',
+    sessionsCount: '10',
   });
 
   /***************************************************************************************************
@@ -80,7 +81,7 @@ export default function ServicesPage(): ReactNode {
    ***************************************************************************************************/
   const handleAddClick = (): void => {
     setEditingService(null);
-    setFormData({ type: 'personal', name: '', price: '', duration: '60' });
+    setFormData({ type: 'common', name: '', price: '', duration: '60', sessionsCount: '10' });
     setShowForm(true);
   };
 
@@ -97,6 +98,7 @@ export default function ServicesPage(): ReactNode {
       name: service.name,
       price: service.price.toString(),
       duration: service.durationMinutes.toString(),
+      sessionsCount: (service.sessionsCount ?? 10).toString(),
     });
     setShowForm(true);
   };
@@ -108,7 +110,13 @@ export default function ServicesPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const handleSave = async (): Promise<void> => {
-    if (!formData.name || !formData.price || !formData.duration) {
+    const sessionsCount = parseInt(formData.sessionsCount, 10);
+    if (
+      !formData.name ||
+      !formData.price ||
+      !formData.duration ||
+      (formData.type === 'batch' && (!Number.isFinite(sessionsCount) || sessionsCount <= 1))
+    ) {
       return;
     }
 
@@ -121,6 +129,7 @@ export default function ServicesPage(): ReactNode {
           name: formData.name,
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
+          sessionsCount: formData.type === 'batch' ? sessionsCount : undefined,
         });
       } else {
         await api.admin.createService({
@@ -129,6 +138,7 @@ export default function ServicesPage(): ReactNode {
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
           currency: 'RUB',
+          sessionsCount: formData.type === 'batch' ? sessionsCount : undefined,
         });
       }
 
@@ -187,16 +197,39 @@ export default function ServicesPage(): ReactNode {
             <label className={'text-muted-foreground mb-1 block text-sm'}>{t('serviceType')}</label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  type: e.target.value,
+                  sessionsCount: e.target.value === 'batch' ? formData.sessionsCount || '10' : '10',
+                })
+              }
               className={
                 'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
               }
             >
-              <option value={'personal'}>{t('typePersonal')}</option>
-              <option value={'pair'}>{t('typePair')}</option>
-              <option value={'consultation'}>{t('typeConsultation')}</option>
+              <option value={'common'}>{t('typeCommon')}</option>
+              <option value={'batch'}>{t('typeBatch')}</option>
             </select>
           </div>
+
+          {formData.type === 'batch' && (
+            <div>
+              <label className={'text-muted-foreground mb-1 block text-sm'}>
+                {t('sessionsCountLabel')}
+              </label>
+              <input
+                type={'number'}
+                min={2}
+                value={formData.sessionsCount}
+                onChange={(e) => setFormData({ ...formData, sessionsCount: e.target.value })}
+                placeholder={t('sessionsCountPlaceholder')}
+                className={
+                  'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
+                }
+              />
+            </div>
+          )}
 
           <div>
             <label className={'text-muted-foreground mb-1 block text-sm'}>{t('nameLabel')}</label>
