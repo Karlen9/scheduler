@@ -345,6 +345,9 @@
   "Error.SpecialistNotFound": {
     "other": "Specialist not found"
   },
+  "Error.BotDeleted": {
+    "other": "This bot has been deleted"
+  },
   "Error.SpecialistNotConfigured": {
     "other": "Specialist is not configured"
   },

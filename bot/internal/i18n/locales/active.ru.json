@@ -347,6 +347,9 @@
   "Error.SpecialistNotFound": {
     "other": "Специалист не найден"
   },
+  "Error.BotDeleted": {
+    "other": "Этот бот удалён"
+  },
   "Error.SpecialistNotConfigured": {
     "other": "Специалист не настроен"
   },

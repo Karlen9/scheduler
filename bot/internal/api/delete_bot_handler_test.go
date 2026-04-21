@@ -115,3 +115,36 @@ func TestAdminDeleteBot_RussianPhraseAccepted(t *testing.T) {
 		t.Fatalf("expected 204 for Russian phrase, got %d (body: %s)", w.Code, w.Body.String())
 	}
 }
+
+/***************************************************************************************************
+* After a successful delete, any subsequent authenticated API request (same specialist, same bot
+* token, same valid initData) must be refused with 410 Gone. The Telegram "Open" button in the
+* chat will keep launching the Mini App otherwise and the specialist/clients would retain full
+* access.
+***************************************************************************************************/
+func TestAdminDeleteBot_SubsequentRequestsReturn410(t *testing.T) {
+	spec, err := db.CreateSpecialist(999004, "delete-me-token-410", "deletebot410", "Delete Me 410", "UTC", 24)
+	if err != nil {
+		t.Fatalf("create specialist: %v", err)
+	}
+
+	body := `{"confirm":"delete my bot"}`
+	w := deleteAsSpecialist(t, "/api/admin/specialist", body, spec)
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 on delete, got %d (body: %s)", w.Code, w.Body.String())
+	}
+
+	/***************************************************************************************************
+	* Any authenticated endpoint will do — /api/specialist is the cheapest.
+	***************************************************************************************************/
+	req := httptest.NewRequest("GET", "/api/specialist", nil)
+	req.Header.Set("X-Specialist-ID", spec.ID)
+	req.Header.Set("X-Telegram-Init-Data", buildInitData(spec.TelegramUserID, "Test", spec.BotToken))
+	req.RemoteAddr = fmt.Sprintf("203.0.113.%d:55555", spec.TelegramUserID%200+10)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusGone {
+		t.Fatalf("expected 410 after delete, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+}
