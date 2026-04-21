@@ -378,20 +378,20 @@ export default function HomePage(): ReactNode {
         <div className={'bg-card relative rounded-t-2xl px-4 pt-20 pb-6'}>
           <div
             className={
-              'bg-border absolute top-0 left-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full'
+              'bg-skeleton absolute top-0 left-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full'
             }
           />
-          <div className={'bg-border mx-auto h-7 w-2/3 rounded'} />
-          <div className={'bg-border mx-auto mt-3 h-4 w-1/2 rounded'} />
-          <div className={'bg-border mt-8 h-20 rounded-lg'} />
+          <div className={'bg-skeleton mx-auto h-7 w-2/3 rounded'} />
+          <div className={'bg-skeleton mx-auto mt-3 h-4 w-1/2 rounded'} />
+          <div className={'bg-skeleton mt-8 h-20 rounded-lg'} />
           <div className={'mt-6 grid grid-cols-3 gap-2'}>
-            <div className={'bg-border h-12 rounded-lg'} />
-            <div className={'bg-border h-12 rounded-lg'} />
-            <div className={'bg-border h-12 rounded-lg'} />
+            <div className={'bg-skeleton h-12 rounded-lg'} />
+            <div className={'bg-skeleton h-12 rounded-lg'} />
+            <div className={'bg-skeleton h-12 rounded-lg'} />
           </div>
         </div>
         <div className={'bg-background px-4 pt-5 pb-10'}>
-          <div className={'bg-border h-6 w-32 rounded'} />
+          <div className={'bg-skeleton h-6 w-32 rounded'} />
           <div className={'bg-card mt-4 h-36 rounded-lg'} />
         </div>
       </div>
@@ -415,12 +415,17 @@ export default function HomePage(): ReactNode {
     <div className={'bg-bookings-bg -mb-[calc(7rem+env(safe-area-inset-bottom))] min-h-screen'}>
       <div className={'bg-background relative h-[192px] overflow-hidden'}>
         <WallpaperBackground wallpaper={specialist.wallpaper} />
+        <div
+          className={
+            'from-brand/15 pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t to-transparent'
+          }
+        />
         <div className={'relative h-[160px] px-4 pt-5'}>
           <button
             type={'button'}
             onClick={handleShare}
             className={
-              'border-surface-border bg-card text-muted-foreground absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border shadow-sm transition-opacity active:opacity-80'
+              'border-brand/20 bg-brand/10 text-brand absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition-opacity active:opacity-80'
             }
             aria-label={t('share')}
           >
@@ -431,7 +436,7 @@ export default function HomePage(): ReactNode {
 
       <section className={'bg-card relative -mt-8 rounded-[16px] px-4 pt-20 pb-14'}>
         <div className={'absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2'}>
-          <div className={'bg-card rounded-full p-2'}>
+          <div className={'bg-card ring-brand/20 rounded-full p-2 ring-2'}>
             {hasPhoto ? (
               <Image
                 width={112}
@@ -490,7 +495,7 @@ export default function HomePage(): ReactNode {
             type={'button'}
             onClick={() => setActiveModal('services')}
             className={
-              'bg-brand flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-2 text-sm font-medium text-white transition-opacity active:opacity-80'
+              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#6b7280] px-2 text-sm font-medium text-white transition-opacity active:opacity-80'
             }
           >
             <span className={'truncate'}>{t('servicesButton')}</span>
@@ -499,7 +504,7 @@ export default function HomePage(): ReactNode {
             type={'button'}
             onClick={() => setActiveModal('schedule')}
             className={
-              'bg-brand flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-2 text-sm font-medium text-white transition-opacity active:opacity-80'
+              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#6b7280] px-2 text-sm font-medium text-white transition-opacity active:opacity-80'
             }
           >
             <span className={'truncate'}>{t('scheduleButton')}</span>
@@ -559,7 +564,7 @@ export default function HomePage(): ReactNode {
             }
           >
             {countdownLabel && (
-              <div className={'text-muted-foreground mb-2 flex items-center gap-1.5 text-sm'}>
+              <div className={'text-brand mb-2 flex items-center gap-1.5 text-sm font-medium'}>
                 <Clock className={'h-3.5 w-3.5 shrink-0'} />
                 <span>{countdownLabel}</span>
               </div>
@@ -569,7 +574,7 @@ export default function HomePage(): ReactNode {
             </p>
             <div className={'bg-bookings-bg grid grid-cols-2 rounded-lg text-sm text-white'}>
               <span
-                className={'truncate border-r-2 border-white px-3 py-2.5 text-center font-medium'}
+                className={'border-surface truncate border-r-2 px-3 py-2.5 text-center font-medium'}
               >
                 {formatBookingDateWithDay(nextBooking, locale)}
               </span>
@@ -614,7 +619,7 @@ export default function HomePage(): ReactNode {
               >
                 <div
                   className={
-                    'bg-border flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg'
+                    'bg-brand/10 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg'
                   }
                 >
                   {service.imageUrl ? (
@@ -626,13 +631,13 @@ export default function HomePage(): ReactNode {
                       className={'h-full w-full object-cover'}
                     />
                   ) : (
-                    <CalendarCheck className={'text-muted-foreground h-5 w-5'} />
+                    <CalendarCheck className={'text-brand h-5 w-5'} />
                   )}
                 </div>
                 <div className={'min-w-0 flex-1'}>
                   <p className={'text-foreground truncate text-sm font-medium'}>{service.name}</p>
                   <div className={'mt-1 flex items-center gap-1'}>
-                    <Clock className={'text-muted-foreground h-3.5 w-3.5'} />
+                    <Clock className={'text-brand/70 h-3.5 w-3.5'} />
                     <p className={'text-muted-foreground text-xs'}>
                       {formatDuration(service.durationMinutes, td('hour'), td('minutes'))}
                     </p>
