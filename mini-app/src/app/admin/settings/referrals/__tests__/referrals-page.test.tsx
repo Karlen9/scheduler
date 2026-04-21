@@ -43,10 +43,6 @@ const messages = {
     listEmpty: 'Никого нет',
     joinedOn: 'Присоединился {date}',
     activatedOn: 'Оплатил {date}',
-    statsCount: 'Приглашено',
-    referralsTitle: 'Специалисты',
-    referralsEmpty: 'Никого нет',
-    blocked: 'Заблокирован',
   },
 };
 
