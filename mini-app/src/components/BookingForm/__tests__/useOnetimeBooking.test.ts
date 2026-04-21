@@ -1,14 +1,25 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useOnetimeBooking } from '../useOnetimeBooking';
 
 import type { TSessionType } from '@/lib/types';
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => '/book',
+const { mockReplace, mockPush } = vi.hoisted(() => ({
+  mockReplace: vi.fn(),
+  mockPush: vi.fn(),
 }));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  usePathname: () => '/book',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+beforeEach(() => {
+  mockReplace.mockClear();
+  mockPush.mockClear();
+});
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -102,5 +113,78 @@ describe('useOnetimeBooking initialService', () => {
 
     rerender({ initialService: services[0] });
     expect(result.current.selectedService?.id).toBe('a');
+  });
+});
+
+describe('useOnetimeBooking URL sync', () => {
+  it('writes the picked service to the URL via router.replace', () => {
+    const services = [makeService('a'), makeService('b')];
+    const { result } = renderHook(() =>
+      useOnetimeBooking({
+        services,
+        bookedDates: [],
+        selectedClient: null,
+        hasClientSelector: false,
+        onCreateBooking: vi.fn(),
+        successRedirect: '/bookings',
+      }),
+    );
+
+    act(() => {
+      result.current.handleServiceSelect(services[1]);
+    });
+
+    expect(mockReplace).toHaveBeenCalled();
+    const [url] = mockReplace.mock.calls.at(-1)!;
+    expect(url).toContain('service=b');
+  });
+
+  it('writes service+date on date pick, preserving service', () => {
+    const services = [makeService('a')];
+    const { result } = renderHook(() =>
+      useOnetimeBooking({
+        services,
+        bookedDates: [],
+        selectedClient: null,
+        hasClientSelector: false,
+        onCreateBooking: vi.fn(),
+        successRedirect: '/bookings',
+        initialService: services[0],
+      }),
+    );
+
+    act(() => {
+      result.current.handleSingleDateSelect(new Date(2026, 3, 22));
+    });
+
+    const [url] = mockReplace.mock.calls.at(-1)!;
+    expect(url).toContain('service=a');
+    expect(url).toContain('date=2026-04-22');
+  });
+
+  it('clears date/time from URL when service is changed to a different service', () => {
+    const services = [makeService('a'), makeService('b')];
+    const { result } = renderHook(() =>
+      useOnetimeBooking({
+        services,
+        bookedDates: [],
+        selectedClient: null,
+        hasClientSelector: false,
+        onCreateBooking: vi.fn(),
+        successRedirect: '/bookings',
+      }),
+    );
+
+    act(() => {
+      result.current.handleServiceSelect(services[0]);
+    });
+    act(() => {
+      result.current.handleServiceSelect(services[1]);
+    });
+
+    const [url] = mockReplace.mock.calls.at(-1)!;
+    expect(url).toContain('service=b');
+    expect(url).not.toContain('date=');
+    expect(url).not.toContain('time=');
   });
 });
