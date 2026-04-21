@@ -163,6 +163,7 @@
   --app-divider: rgba(255, 255, 255, 0.08);
   --skeleton: rgba(0, 0, 0, 0.35);
   --switch-background: #4a4a4a;
+  --bookings-bg: #0f0f0f;
 
   /* App surface variants */
   --surface: #2a2a2a;

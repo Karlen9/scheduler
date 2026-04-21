@@ -417,7 +417,7 @@ export default function HomePage(): ReactNode {
         <WallpaperBackground wallpaper={specialist.wallpaper} />
         <div
           className={
-            'from-brand/15 pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t to-transparent'
+            'from-brand/10 pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t to-transparent'
           }
         />
         <div className={'relative h-[160px] px-4 pt-5'}>
@@ -495,7 +495,7 @@ export default function HomePage(): ReactNode {
             type={'button'}
             onClick={() => setActiveModal('services')}
             className={
-              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#6b7280] px-2 text-sm font-medium text-white transition-opacity active:opacity-80'
+              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#455f93] px-2 text-sm font-medium text-white transition-opacity active:opacity-80 dark:bg-[#4a4a4a]'
             }
           >
             <span className={'truncate'}>{t('servicesButton')}</span>
@@ -504,7 +504,7 @@ export default function HomePage(): ReactNode {
             type={'button'}
             onClick={() => setActiveModal('schedule')}
             className={
-              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#6b7280] px-2 text-sm font-medium text-white transition-opacity active:opacity-80'
+              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#455f93] px-2 text-sm font-medium text-white transition-opacity active:opacity-80 dark:bg-[#4a4a4a]'
             }
           >
             <span className={'truncate'}>{t('scheduleButton')}</span>
