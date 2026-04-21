@@ -12,6 +12,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -40,6 +41,7 @@ var (
 	* - Reused by the api layer to keep shared values centralized.
 	***************************************************************************************************/
 	testSpecialist *models.Specialist
+	testRequestSeq uint64
 )
 
 /***************************************************************************************************
@@ -204,6 +206,11 @@ func buildInitDataAtWithPhoto(userID int64, firstName string, botToken string, a
 	return v.Encode()
 }
 
+func nextTestRemoteAddr() string {
+	n := atomic.AddUint64(&testRequestSeq, 1)
+	return fmt.Sprintf("[2001:db8::%x]:1234", n)
+}
+
 /***************************************************************************************************
 * Implements the do request logic used by this module.
 *
@@ -231,6 +238,7 @@ func doRequest(t *testing.T, method, path string, body *string, telegramUserID i
 	}
 
 	req := httptest.NewRequest(method, path, reqBody)
+	req.RemoteAddr = nextTestRemoteAddr()
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
 
@@ -292,6 +300,7 @@ func doAdminRequestWithPhoto(t *testing.T, method, path string, body *string, ph
 	}
 
 	req := httptest.NewRequest(method, path, reqBody)
+	req.RemoteAddr = nextTestRemoteAddr()
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
 
