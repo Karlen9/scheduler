@@ -34,6 +34,7 @@ export function BookingForm({
   clients,
   showRecurring = true,
   bookedDates,
+  clientBatches,
   onCreateBooking,
   onCreateRecurring,
   onPreviewRecurring,
@@ -198,6 +199,7 @@ export function BookingForm({
                 services={services}
                 daysOff={daysOff}
                 bookedDates={bookedDates}
+                clientBatches={clientBatches}
                 showRecurring={showRecurring}
                 selectedClient={selectedClient}
                 hasClientSelector={hasClientSelector}
