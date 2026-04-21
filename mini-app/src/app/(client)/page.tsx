@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarCheck, Clock, MessageCircle, Share2 } from 'lucide-react';
+import { Clock, MessageCircle, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -11,18 +11,25 @@ import { toast } from 'sonner';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
+import { ServiceCard } from '@/components/ServiceCard';
 import { StatusBadge } from '@/components/StatusBadge';
 import { WallpaperBackground } from '@/components/WallpaperPicker';
 import { invalidateBookings } from '@/hooks/mutations';
-import { useBookings, useSessionTypes, useSpecialist, useWorkingHours } from '@/hooks/queries';
+import {
+  useBookings,
+  useClientBatches,
+  useSessionTypes,
+  useSpecialist,
+  useWorkingHours,
+} from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
-import { formatDateISO, formatDuration, nextDateForWeekday } from '@/lib/helpers';
+import { formatDateISO, nextDateForWeekday } from '@/lib/helpers';
 import { isTestRoute, resolveTestAwareHref } from '@/lib/routes';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
-import type { TBooking, TWorkingHours } from '@/lib/types';
+import type { TBooking, TClientBatch, TSessionType, TWorkingHours } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 const OWNER_CACHE_KEY_PREFIX = 'specialist-owner:';
@@ -66,9 +73,17 @@ function getDayHoursLabel(dayHours: TWorkingHours[]): string {
     .join(', ');
 }
 
-function formatPrice(price: number, currency: string, locale: string): string {
-  const amount = price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU');
-  return `${amount} ${currency === 'RUB' ? '\u20BD' : currency}`;
+function pickDisplayBatch(service: TSessionType, batches: TClientBatch[]): TClientBatch | null {
+  if (service.type !== 'batch') {
+    return null;
+  }
+
+  const serviceBatches = batches.filter((batch) => batch.serviceId === service.id);
+  return (
+    serviceBatches.find((batch) => batch.status === 'active' && batch.remainingSessions > 0) ??
+    serviceBatches.find((batch) => batch.status === 'exhausted' || batch.remainingSessions <= 0) ??
+    null
+  );
 }
 
 function formatBookingDateWithDay(booking: TBooking, locale: string): string {
@@ -134,13 +149,13 @@ export default function HomePage(): ReactNode {
   const t = useTranslations('HomePage');
   const tb = useTranslations('BookingDetailModal');
   const tc = useTranslations('Common');
-  const td = useTranslations('Duration');
   const tdays = useTranslations('Dates.daysShort');
   const te = useTranslations('Errors');
   const ts = useTranslations('Success');
   const locale = useLocale();
   const { data: specialist, isLoading: specialistLoading } = useSpecialist();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
+  const { data: clientBatches, isLoading: batchesLoading } = useClientBatches();
   const { data: workingHours, isLoading: workingHoursLoading } = useWorkingHours();
   const { data: bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useBookings();
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -160,6 +175,13 @@ export default function HomePage(): ReactNode {
   const bookHref = useMemo(() => resolveTestAwareHref(pathname, '/book'), [pathname]);
   const bookingsHref = useMemo(() => resolveTestAwareHref(pathname, '/bookings'), [pathname]);
   const isTestInstance = isTestRoute(pathname);
+  const batchByService = useMemo(() => {
+    const result = new Map<string, TClientBatch | null>();
+    for (const service of services) {
+      result.set(service.id, pickDisplayBatch(service, clientBatches));
+    }
+    return result;
+  }, [clientBatches, services]);
 
   useEffect(() => {
     router.prefetch(adminHref);
@@ -495,7 +517,7 @@ export default function HomePage(): ReactNode {
             type={'button'}
             onClick={() => setActiveModal('services')}
             className={
-              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#455f93] px-2 text-sm font-medium text-white transition-opacity active:opacity-80 dark:bg-[#4a4a4a]'
+              'bg-brand text-primary-foreground flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-2 text-sm font-medium transition-opacity active:opacity-80'
             }
           >
             <span className={'truncate'}>{t('servicesButton')}</span>
@@ -504,7 +526,7 @@ export default function HomePage(): ReactNode {
             type={'button'}
             onClick={() => setActiveModal('schedule')}
             className={
-              'flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#455f93] px-2 text-sm font-medium text-white transition-opacity active:opacity-80 dark:bg-[#4a4a4a]'
+              'bg-brand text-primary-foreground flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-2 text-sm font-medium transition-opacity active:opacity-80'
             }
           >
             <span className={'truncate'}>{t('scheduleButton')}</span>
@@ -607,50 +629,31 @@ export default function HomePage(): ReactNode {
         className={'pb-6'}
       >
         {services.length > 0 ? (
-          <div className={'space-y-2'}>
-            {services.map((service) => (
-              <Link
-                key={service.id}
-                href={resolveTestAwareHref(pathname, `/book?service=${service.id}`)}
-                onClick={() => setActiveModal(null)}
-                className={
-                  'bg-background flex items-center gap-3 rounded-lg p-3 transition-opacity active:opacity-80'
-                }
-              >
-                <div
-                  className={
-                    'bg-brand/10 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg'
-                  }
-                >
-                  {service.imageUrl ? (
-                    <Image
-                      width={48}
-                      height={48}
-                      src={getPhotoUrl(service.imageUrl)}
-                      alt={service.name}
-                      className={'h-full w-full object-cover'}
-                    />
-                  ) : (
-                    <CalendarCheck className={'text-brand h-5 w-5'} />
-                  )}
+          batchesLoading ? (
+            <div className={'animate-pulse space-y-3'}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className={'bg-card rounded-xl p-4'}>
+                  <div className={'bg-skeleton mb-3 h-4 w-2/3 rounded'} />
+                  <div className={'bg-skeleton h-3 w-1/2 rounded'} />
                 </div>
-                <div className={'min-w-0 flex-1'}>
-                  <p className={'text-foreground truncate text-sm font-medium'}>{service.name}</p>
-                  <div className={'mt-1 flex items-center gap-1'}>
-                    <Clock className={'text-brand/70 h-3.5 w-3.5'} />
-                    <p className={'text-muted-foreground text-xs'}>
-                      {formatDuration(service.durationMinutes, td('hour'), td('minutes'))}
-                    </p>
-                  </div>
-                </div>
-                {service.price > 0 && (
-                  <p className={'text-foreground ml-2 shrink-0 text-sm font-semibold'}>
-                    {formatPrice(service.price, service.currency, locale)}
-                  </p>
-                )}
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className={'space-y-3'}>
+              {services.map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  clientBatch={batchByService.get(service.id)}
+                  clickLabel={t('bookService')}
+                  onClick={() => {
+                    setActiveModal(null);
+                    router.push(resolveTestAwareHref(pathname, `/book?service=${service.id}`));
+                  }}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <div className={'bg-background text-muted-foreground rounded-lg p-4 text-center text-sm'}>
             {t('servicesEmpty')}
