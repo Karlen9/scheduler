@@ -252,7 +252,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
               <p className={'text-muted-foreground/60 mt-0.5 text-sm'}>{t('noUpcomingSessions')}</p>
             </div>
             <button
-              onClick={() => router.push(resolveTestAwareHref(pathname, '/admin/book'))}
+              onClick={() => router.push(resolveTestAwareHref(pathname, '/admin/choose-client'))}
               className={
                 'bg-brand flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-80'
               }

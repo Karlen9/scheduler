@@ -315,7 +315,7 @@ export default function AdminHomePage(): ReactNode {
   const handleEmptySlotClick = useCallback(
     (date: Date, _time: string): void => {
       const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const href = resolveTestAwareHref(pathname, '/admin/book');
+      const href = resolveTestAwareHref(pathname, '/admin/choose-client');
       const separator = href.includes('?') ? '&' : '?';
       router.push(`${href}${separator}date=${iso}`);
     },

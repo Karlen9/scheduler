@@ -3,7 +3,7 @@
 import { CalendarDays, ChartColumn, ClipboardList, Settings } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { resolveTestAwareHref } from '@/lib/routes';
 
@@ -48,7 +48,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
    ***************************************************************************************************/
   const tn = useTranslations('Navigation');
   const adminHref = resolveTestAwareHref(pathname, '/admin');
-  const adminBookHref = resolveTestAwareHref(pathname, '/admin/book');
+  const adminBookHref = resolveTestAwareHref(pathname, '/admin/choose-client');
   const adminAnalyticsHref = resolveTestAwareHref(pathname, '/admin/analytics');
   const adminBookingsHref = resolveTestAwareHref(pathname, '/admin/bookings');
   const adminRecurringHref = resolveTestAwareHref(pathname, '/admin/recurring');
@@ -66,7 +66,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const isBookPage = pathname === adminBookHref;
+  const isBookPage = pathname === adminBookHref || pathname.startsWith(`${adminBookHref}/`);
   /***************************************************************************************************
    * Settings sub-pages (e.g. /admin/settings/schedule) hide the bottom navbar so full-page
    * controls like a save-changes bar can render inline without fighting for z-space.
@@ -122,8 +122,24 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
     ],
   );
 
+  /***************************************************************************************************
+   * Track whether the user has navigated since mount so the Telegram back button falls back to the
+   * admin home instead of leaving the mini-app on a cold deep-link.
+   ***************************************************************************************************/
+  const hasNavigatedRef = useRef(false);
+  const mountPathnameRef = useRef(pathname);
+  useEffect(() => {
+    if (pathname !== mountPathnameRef.current) {
+      hasNavigatedRef.current = true;
+    }
+  }, [pathname]);
+
   const handleBack = useCallback((): void => {
-    router.push(adminHref);
+    if (hasNavigatedRef.current) {
+      router.back();
+      return;
+    }
+    router.replace(adminHref);
   }, [adminHref, router]);
 
   return (
