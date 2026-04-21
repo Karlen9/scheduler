@@ -618,12 +618,6 @@
   "Seed.Personal": {
     "other": "Personal session"
   },
-  "Seed.Pair": {
-    "other": "Pair session"
-  },
-  "Seed.Consultation": {
-    "other": "Consultation"
-  },
   "ChangelogContent": {
     "other": "— Schedule: day, week, month — convenient overview of bookings\n— Upcoming booking: card for next session\n— Individual time for each day in recurring schedules\n— Auto-confirm bookings created by specialist\n— Client photo automatically from Telegram avatar\n— Photo editor with crop and rotate"
   },
