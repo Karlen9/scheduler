@@ -80,7 +80,18 @@ export function ServiceCard({
       }`}
     >
       <div className={'flex-1'}>
-        <h4 className={'text-foreground font-medium'}>{service.name}</h4>
+        <div className={'mb-1 flex flex-wrap items-center gap-2'}>
+          <h4 className={'text-foreground min-w-0 font-medium'}>{service.name}</h4>
+          {isBatch && (
+            <span
+              className={
+                'bg-brand/10 text-brand inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium'
+              }
+            >
+              {t('batchLabel')}
+            </span>
+          )}
+        </div>
         <p className={'text-muted-foreground text-sm'}>
           {isBatch
             ? t('batchPriceLine', {

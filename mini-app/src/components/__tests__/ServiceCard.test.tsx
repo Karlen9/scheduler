@@ -58,7 +58,7 @@ describe('ServiceCard batch states', () => {
   it('renders an active batch remaining badge', () => {
     renderWithIntl(<ServiceCard service={makeBatchService()} clientBatch={makeBatch()} />);
 
-    expect(screen.getByText('Осталось: 7 из 10')).toBeInTheDocument();
+    expect(screen.getByText('Осталось: 7/10')).toBeInTheDocument();
   });
 
   it('renders an exhausted batch state', () => {
@@ -89,7 +89,7 @@ describe('ServicesPage no-batch modal', () => {
     });
 
     renderWithIntl(<ServicesPage />);
-    await userEvent.click(screen.getByText('Абонемент'));
+    await userEvent.click(screen.getByRole('button', { name: 'Записаться на услугу' }));
 
     expect(screen.getByText('Абонемент не оформлен')).toBeInTheDocument();
     expect(
