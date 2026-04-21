@@ -529,7 +529,7 @@
     "other": "\n\n👥 Specialists: {{.Count}}"
   },
   "MasterMenu.Home": {
-    "other": "👋 Hi! I'll help you start accepting bookings via Telegram.\n\nPick an option:"
+    "other": "👋 Hi! I'll help you launch your own Telegram bot for client bookings.\n\nWhat your bot does:\n• 📅 Accepts online bookings 24/7 via a Mini App\n• 🔔 Sends automatic reminders to clients and notifications to you\n• 🔁 Handles recurring sessions and repeating schedules\n• 👥 Keeps a client base with visit history and notes\n• 📊 Shows revenue and workload analytics\n• 🎁 Provides a referral link to grow your client base\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\n💬 If you run into questions or issues during setup — reach out to an operator, they'll help you with everything.\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
