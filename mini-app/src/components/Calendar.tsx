@@ -506,7 +506,7 @@ export function MonthGrid({
                     : inRange
                       ? 'text-brand font-medium'
                       : booked && isCurrentMonth
-                        ? 'text-success'
+                        ? 'bg-action-success-bg text-action-success-text'
                         : dayOff && isCurrentMonth
                           ? 'bg-dayoff-bg text-dayoff-text'
                           : disabled && (isPast(date) || isBeyondMax(date))
@@ -515,20 +515,17 @@ export function MonthGrid({
                               ? isCurrentMonth
                                 ? 'text-muted-foreground/30'
                                 : 'text-muted-foreground/20'
-                              : isDayToday
-                                ? 'ring-brand text-brand font-medium ring-1'
-                                : isCurrentMonth
-                                  ? 'text-foreground'
-                                  : 'text-muted-foreground/40'
+                              : hasDot && isCurrentMonth
+                                ? 'bg-brand/10 text-brand'
+                                : isDayToday
+                                  ? 'ring-brand text-brand font-medium ring-1'
+                                  : isCurrentMonth
+                                    ? 'text-foreground'
+                                    : 'text-muted-foreground/40'
                 }`}
               >
                 {date.getDate()}
               </span>
-              {booked && isCurrentMonth && !selected && !rangeEndpoint && !inRange ? (
-                <div className={'bg-success mt-0.5 h-1.5 w-1.5 rounded-full'} />
-              ) : hasDot ? (
-                <div className={'bg-brand mt-0.5 h-1 w-1 rounded-full'} />
-              ) : null}
             </button>
           );
         })}
@@ -547,7 +544,7 @@ export function MonthGrid({
           )}
           {bookedDates && bookedDates.size > 0 && (
             <div className={'flex items-center gap-1.5'}>
-              <span className={'bg-success h-3 w-3 rounded-full'} />
+              <span className={'bg-action-success-bg h-3 w-3 rounded'} />
               <span className={'text-muted-foreground text-xs'}>{td('myBooking')}</span>
             </div>
           )}
@@ -792,16 +789,17 @@ export function WeekStrip({
                     ? 'bg-brand font-medium text-white'
                     : dayOff
                       ? 'bg-dayoff-bg text-dayoff-text'
-                      : nonWorking
-                        ? 'text-muted-foreground/30'
-                        : isDayToday
-                          ? 'ring-brand text-brand font-medium ring-1'
-                          : 'text-foreground'
+                      : hasDot
+                        ? 'bg-brand/10 text-brand'
+                        : nonWorking
+                          ? 'text-muted-foreground/30'
+                          : isDayToday
+                            ? 'ring-brand text-brand font-medium ring-1'
+                            : 'text-foreground'
                 }`}
               >
                 {day.getDate()}
               </span>
-              {hasDot && <div className={'bg-brand mt-1 h-1 w-1 rounded-full'} />}
             </button>
           );
         })}
