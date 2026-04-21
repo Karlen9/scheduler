@@ -446,7 +446,6 @@ export type TServiceFormData = {
   name: string;
   price: string;
   duration: string;
-  imageUrl: string;
 };
 
 /***************************************************************************************************
@@ -951,6 +950,7 @@ export type TScheduleViewProps = {
 export type TServiceCardProps = {
   service: TSessionType;
   onEdit?: TVoidFunction;
+  onDelete?: TVoidFunction;
 };
 
 /***************************************************************************************************

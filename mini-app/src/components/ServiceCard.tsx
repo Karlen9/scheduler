@@ -1,10 +1,10 @@
 'use client';
 
-import { Pencil } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import type { TServiceCardProps } from '@/lib/types';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 /***************************************************************************************************
  * Renders the service card UI and related interactions.
@@ -18,7 +18,7 @@ import type { ReactNode } from 'react';
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function ServiceCard({ service, onEdit }: TServiceCardProps): ReactNode {
+export function ServiceCard({ service, onEdit, onDelete }: TServiceCardProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
    *
@@ -34,8 +34,27 @@ export function ServiceCard({ service, onEdit }: TServiceCardProps): ReactNode {
    ***************************************************************************************************/
   const locale = useLocale();
 
+  const handleDeleteClick = (e: MouseEvent<HTMLButtonElement>): void => {
+    e.stopPropagation();
+    onDelete?.();
+  };
+
   return (
-    <div className={'bg-card flex items-center gap-4 rounded-xl p-4'}>
+    <div
+      role={onEdit ? 'button' : undefined}
+      tabIndex={onEdit ? 0 : undefined}
+      onClick={onEdit}
+      onKeyDown={(e) => {
+        if (onEdit && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onEdit();
+        }
+      }}
+      aria-label={onEdit ? t('editAction') : undefined}
+      className={`bg-card flex items-center gap-4 rounded-xl p-4 ${
+        onEdit ? 'cursor-pointer transition-opacity active:opacity-80' : ''
+      }`}
+    >
       <div className={'flex-1'}>
         <h4 className={'text-foreground font-medium'}>{service.name}</h4>
         <p className={'text-muted-foreground text-sm'}>
@@ -46,14 +65,18 @@ export function ServiceCard({ service, onEdit }: TServiceCardProps): ReactNode {
           {t('durationLabel')} {service.durationMinutes} {t('minutes')}
         </p>
       </div>
-      <button
-        onClick={onEdit}
-        className={
-          'bg-brand flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-80'
-        }
-      >
-        <Pencil className={'h-4 w-4 text-white'} />
-      </button>
+      {onDelete && (
+        <button
+          type={'button'}
+          onClick={handleDeleteClick}
+          className={
+            'bg-card border-border text-destructive flex h-10 w-10 items-center justify-center rounded-full border transition-opacity active:opacity-80'
+          }
+          aria-label={t('deleteAction')}
+        >
+          <Trash2 className={'h-4 w-4'} />
+        </button>
+      )}
     </div>
   );
 }

@@ -424,7 +424,10 @@
     "durationLabel": "Duration",
     "addButton": "Add Service",
     "pricePrefix": "Price:",
-    "durationPrefix": "Duration:"
+    "durationPrefix": "Duration:",
+    "deleteDialog": "Delete service?",
+    "deleteDialogDescription": "Service \"{name}\" will be removed. Existing bookings will be preserved.",
+    "deleteConfirm": "Delete"
   },
   "AdminDaysOff": {
     "title": "Days Off",
@@ -626,7 +629,9 @@
   "ServiceCard": {
     "priceLabel": "Price:",
     "durationLabel": "Duration:",
-    "minutes": "minutes"
+    "minutes": "minutes",
+    "editAction": "Edit",
+    "deleteAction": "Delete"
   },
   "Analytics": {
     "title": "Analytics",

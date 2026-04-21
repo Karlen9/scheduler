@@ -424,7 +424,10 @@
     "durationLabel": "Длительность",
     "addButton": "Добавить услугу",
     "pricePrefix": "Цена:",
-    "durationPrefix": "Длительность:"
+    "durationPrefix": "Длительность:",
+    "deleteDialog": "Удалить услугу?",
+    "deleteDialogDescription": "Услуга «{name}» будет удалена. Существующие записи останутся без изменений.",
+    "deleteConfirm": "Удалить"
   },
   "AdminDaysOff": {
     "title": "Выходные дни",
@@ -626,7 +629,9 @@
   "ServiceCard": {
     "priceLabel": "Цена:",
     "durationLabel": "Длительность:",
-    "minutes": "минут"
+    "minutes": "минут",
+    "editAction": "Редактировать",
+    "deleteAction": "Удалить"
   },
   "Analytics": {
     "title": "Аналитика",
