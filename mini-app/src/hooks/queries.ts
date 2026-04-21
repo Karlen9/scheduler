@@ -10,6 +10,7 @@ import type {
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
+  TClientBatch,
   TClientInfo,
   TClientProfile,
   TClientStats,
@@ -309,6 +310,20 @@ export function useBookings(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+export function useClientBatches(): {
+  data: TClientBatch[];
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TClientBatch[]>;
+} {
+  const { data, isLoading, error, mutate } = useSWR<TClientBatch[]>(
+    CACHE_KEYS.clientBatches,
+    async () => api.getClientBatches(),
+    dynamicConfig,
+  );
+  return { data: data ?? [], isLoading, error, mutate };
+}
+
 /***************************************************************************************************
  * Loads and exposes admin bookings data for consuming components.
  *
@@ -595,6 +610,20 @@ export function useAdminServices(): {
     CACHE_KEYS.adminServices,
     async () => api.admin.getServices(),
     staticConfig,
+  );
+  return { data: data ?? [], isLoading, error, mutate };
+}
+
+export function useAdminClientBatches(clientId?: string): {
+  data: TClientBatch[];
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TClientBatch[]>;
+} {
+  const { data, isLoading, error, mutate } = useSWR<TClientBatch[]>(
+    clientId ? CACHE_KEYS.adminClientBatches(clientId) : null,
+    async () => api.admin.getClientBatches(clientId!),
+    dynamicConfig,
   );
   return { data: data ?? [], isLoading, error, mutate };
 }

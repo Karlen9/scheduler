@@ -12,6 +12,7 @@ import type {
   TAdminStats,
   TBooking,
   TChangeVersions,
+  TClientBatch,
   TClientInfo,
   TClientProfile,
   TClientStats,
@@ -330,6 +331,10 @@ export const api = {
    ***************************************************************************************************/
   async getBookings(): Promise<TBooking[]> {
     return fetchAPI<TBooking[]>('/api/bookings');
+  },
+
+  async getClientBatches(): Promise<TClientBatch[]> {
+    return fetchAPI<TClientBatch[]>('/api/batches');
   },
 
   /***************************************************************************************************
@@ -806,6 +811,7 @@ export const api = {
       price: number;
       currency?: string;
       imageUrl?: string;
+      sessionsCount?: number;
     }): Promise<TSessionType> {
       return fetchAPI<TSessionType>('/api/admin/services', {
         method: 'POST',
@@ -848,6 +854,17 @@ export const api = {
     async deleteService(id: string): Promise<void> {
       await fetchAPI<void>(`/api/admin/services/${id}`, {
         method: 'DELETE',
+      });
+    },
+
+    async getClientBatches(clientId: string): Promise<TClientBatch[]> {
+      return fetchAPI<TClientBatch[]>(`/api/admin/clients/${clientId}/batches`);
+    },
+
+    async assignClientBatch(clientId: string, serviceId: string): Promise<TClientBatch> {
+      return fetchAPI<TClientBatch>(`/api/admin/clients/${clientId}/batches`, {
+        method: 'POST',
+        body: JSON.stringify({ service_id: serviceId }),
       });
     },
 
@@ -1095,6 +1112,12 @@ export const api = {
       return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status, reason }),
+      });
+    },
+
+    async completeBooking(bookingId: string): Promise<TBooking> {
+      return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/complete`, {
+        method: 'PATCH',
       });
     },
 

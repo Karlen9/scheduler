@@ -12,6 +12,7 @@ export type TChangeGroup =
   | 'recurring'
   | 'clients'
   | 'services'
+  | 'clientBatches'
   | 'workingHours'
   | 'daysOff'
   | 'specialist'
@@ -85,12 +86,24 @@ export type TReferralsResponse = {
  ***************************************************************************************************/
 export type TSessionType = {
   id: string;
-  type: string;
+  type: 'common' | 'batch' | string;
   name: string;
   durationMinutes: number;
   price: number;
   currency: string;
   imageUrl?: string;
+  sessionsCount?: number;
+};
+
+export type TClientBatch = {
+  id: string;
+  clientId: string;
+  serviceId: string;
+  totalSessions: number;
+  remainingSessions: number;
+  createdAt: string;
+  status: 'active' | 'exhausted' | string;
+  service?: TSessionType;
 };
 
 /***************************************************************************************************
@@ -116,6 +129,7 @@ export type TWorkingHours = {
 export type TBooking = {
   id: string;
   clientId?: string;
+  clientBatchId?: string;
   sessionType?: TSessionType;
   startsAt: string;
   endsAt: string;
@@ -461,6 +475,7 @@ export type TServiceFormData = {
   name: string;
   price: string;
   duration: string;
+  sessionsCount: string;
 };
 
 /***************************************************************************************************
@@ -587,6 +602,7 @@ export type TBookingFormProps = {
   clients?: TClientInfo[];
   showRecurring?: boolean;
   bookedDates?: string[];
+  clientBatches?: TClientBatch[];
   onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
   onCreateRecurring: (params: TCreateRecurringParams) => Promise<void>;
   onPreviewRecurring: (params: TPreviewRecurringParams) => Promise<{ dates: string[] }>;
@@ -828,6 +844,7 @@ export type TOnetimeBookingFlowProps = {
   services: TSessionType[];
   daysOff: string[];
   bookedDates?: string[];
+  clientBatches?: TClientBatch[];
   showRecurring: boolean;
   selectedClient: TClientInfo | null;
   hasClientSelector: boolean;
@@ -973,6 +990,9 @@ export type TServiceCardProps = {
   service: TSessionType;
   onEdit?: TVoidFunction;
   onDelete?: TVoidFunction;
+  onClick?: TVoidFunction;
+  clickLabel?: string;
+  clientBatch?: TClientBatch | null;
 };
 
 /***************************************************************************************************
@@ -1127,6 +1147,7 @@ export type TTopBarProps = {
 export type TUseOnetimeBookingParams = {
   services: TSessionType[];
   bookedDates?: string[];
+  clientBatches?: TClientBatch[];
   selectedClient: TClientInfo | null;
   hasClientSelector: boolean;
   onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
