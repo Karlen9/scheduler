@@ -646,6 +646,7 @@ export type TCalendarViewProps = {
   nonWorkingDays?: number[];
   daysOff?: string[];
   bookedDates?: string[];
+  disabledDates?: string[];
 };
 
 /***************************************************************************************************
@@ -787,6 +788,7 @@ export type TMonthGridProps = {
   nonWorkingDays?: number[];
   daysOff?: string[];
   disablePast?: boolean;
+  disabledDates?: Set<string>;
   dotDates?: Set<string>;
   bookedDates?: Set<string>;
   fillOuterDays?: boolean;
@@ -1148,6 +1150,7 @@ export type TUseOnetimeBookingReturn = {
   activeDateISO: string | null;
   timeAssignments: Record<string, string>;
   timeSlots: TTimeSlot[];
+  disabledDates: string[];
   isLoadingSlots: boolean;
   message: string;
   setMessage: (message: string) => void;

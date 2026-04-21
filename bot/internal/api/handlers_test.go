@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -109,6 +110,39 @@ func nextWeekday(wd time.Weekday) string {
 		d = d.AddDate(0, 0, 1)
 	}
 	return d.Format("2006-01-02")
+}
+
+func formatTestClock(minutes int) string {
+	if minutes >= 24*60 {
+		return "24:00"
+	}
+	return fmt.Sprintf("%02d:%02d", minutes/60, minutes%60)
+}
+
+func withSpecialistTimezone(t *testing.T, timezone string) *time.Location {
+	t.Helper()
+
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		t.Fatalf("time.LoadLocation(%q): %v", timezone, err)
+	}
+
+	specialist, err := db.GetSpecialistByID(testSpecialist.ID)
+	if err != nil {
+		t.Fatalf("db.GetSpecialistByID: %v", err)
+	}
+	if specialist == nil {
+		t.Fatal("test specialist not found")
+	}
+
+	if _, err := db.UpdateSpecialist(specialist.ID, specialist.Name, timezone, specialist.CancelCutoffHrs); err != nil {
+		t.Fatalf("db.UpdateSpecialist timezone: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs)
+	})
+
+	return location
 }
 
 /***************************************************************************************************
@@ -979,5 +1013,70 @@ func TestGetAvailabilityWithMultipleIntervalsPerDay(t *testing.T) {
 		if actual != expected {
 			t.Fatalf("expected slot %d to be %q, got %q", i, expected, actual)
 		}
+	}
+}
+
+func TestGetAvailabilityForTodaySkipsPastSlotsInSpecialistTimezone(t *testing.T) {
+	location := withSpecialistTimezone(t, "Europe/Moscow")
+	now := time.Now().In(location)
+	startMinutes := now.Hour()*60 + now.Minute()
+	endMinutes := startMinutes + 1
+
+	body := jsonBody(map[string]interface{}{
+		"hours": []map[string]interface{}{
+			{
+				"dayOfWeek": int(now.Weekday()),
+				"startTime": formatTestClock(startMinutes),
+				"endTime":   formatTestClock(endMinutes),
+			},
+		},
+	})
+
+	w := doRequestFromIP(t, http.MethodPut, "/api/admin/working-hours", body, 0, true, "203.0.113.220")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for working hours update, got %d: %s", w.Code, w.Body.String())
+	}
+
+	path := "/api/availability?date=" + now.Format("2006-01-02") + "&duration=1"
+	w = doRequestFromIP(t, http.MethodGet, path, nil, 565656, false, "203.0.113.221")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for availability lookup, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var slots []map[string]interface{}
+	parseJSON(t, w, &slots)
+	if len(slots) != 0 {
+		t.Fatalf("expected current/past slot to be hidden, got %#v", slots)
+	}
+}
+
+func TestCreateBookingRejectsPastTimeTodayInSpecialistTimezone(t *testing.T) {
+	location := withSpecialistTimezone(t, "Europe/Moscow")
+	now := time.Now().In(location)
+
+	service, err := db.CreateSessionType(
+		testSpecialist.ID,
+		fmt.Sprintf("past-time-%d", time.Now().UnixNano()),
+		"Past Time Test",
+		1,
+		0,
+		"USD",
+		"",
+	)
+	if err != nil {
+		t.Fatalf("db.CreateSessionType: %v", err)
+	}
+
+	body := jsonBody(map[string]interface{}{
+		"sessionTypeId": service.ID,
+		"date":          now.Format("2006-01-02"),
+		"time":          formatTestClock(now.Hour()*60 + now.Minute()),
+		"duration":      service.DurationMinutes,
+		"name":          "Past Time Client",
+	})
+
+	w := doRequestFromIP(t, http.MethodPost, "/api/bookings", body, 575757, false, "203.0.113.222")
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for past same-day time, got %d: %s", w.Code, w.Body.String())
 	}
 }

@@ -132,6 +132,17 @@ function timeToMinutes(time: string): number {
   return hours * 60 + mins;
 }
 
+function isPastTodayTime(date: string, time: string): boolean {
+  const now = new Date();
+  if (date !== formatDateISO(now)) {
+    return false;
+  }
+
+  const slotMinutes = timeToMinutes(time);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return slotMinutes <= nowMinutes;
+}
+
 function buildBooking({
   client,
   createdBy,
@@ -686,6 +697,9 @@ function createBookingFromBody(
         };
   const date = getString(body.date, dateString(1));
   const time = getString(body.time, '10:00');
+  if (createdBy === 'client' && isPastTodayTime(date, time)) {
+    throw new Error('Cannot book a time in the past');
+  }
   const startsAt = `${date}T${time}:00Z`;
   const booking: TBooking = {
     id: `mock-booking-${Date.now()}`,
@@ -756,6 +770,10 @@ function getAvailableSlots(state: TMockState, endpoint: string): TTimeSlot[] {
     for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += duration) {
       const time = addMinutesToTime('00:00', minutes);
       if (seen.has(time)) {
+        continue;
+      }
+      if (isPastTodayTime(date, time)) {
+        seen.add(time);
         continue;
       }
 

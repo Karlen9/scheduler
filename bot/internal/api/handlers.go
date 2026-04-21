@@ -109,6 +109,14 @@ func maxBookingDate() time.Time {
 }
 
 /***************************************************************************************************
+* maxBookingDateForTimezone returns the latest allowed booking date using the specialist's local
+* calendar day.
+***************************************************************************************************/
+func maxBookingDateForTimezone(timezone string) time.Time {
+	return scheduleClockNow(timezone).AddDate(0, 3, 0)
+}
+
+/***************************************************************************************************
 * validateBookingDate checks that a date is not in the past and not more than 3 months ahead.
 * Returns an error message ID or "" if valid.
 *
@@ -130,6 +138,29 @@ func validateBookingDate(date time.Time) string {
 		return "Error.DateTooFar"
 	}
 	return ""
+}
+
+/***************************************************************************************************
+* validateBookingDateForTimezone checks the date against the specialist's local calendar instead of
+* the server timezone.
+***************************************************************************************************/
+func validateBookingDateForTimezone(date time.Time, timezone string) string {
+	now := scheduleClockNow(timezone)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	if date.Before(today) {
+		return "Error.DateInPast"
+	}
+	if date.After(maxBookingDateForTimezone(timezone)) {
+		return "Error.DateTooFar"
+	}
+	return ""
+}
+
+/***************************************************************************************************
+* Checks whether a booking start is in the past or current instant for the specialist's local clock.
+***************************************************************************************************/
+func isPastBookingStart(startsAt time.Time, timezone string) bool {
+	return !startsAt.After(scheduleClockNow(timezone))
 }
 
 /***************************************************************************************************
@@ -498,7 +529,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Reject past dates and dates more than 3 months ahead.
 	***************************************************************************************************/
-	if errMsg := validateBookingDate(date); errMsg != "" {
+	if errMsg := validateBookingDateForTimezone(date, specialist.Timezone); errMsg != "" {
 		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -561,7 +592,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 	if client := GetClientFromContext(r); client != nil {
 		clientID = client.ID
 	}
-	slots := generateTimeSlots(date, dayWorkingHours, duration, bookings, clientID)
+	slots := generateTimeSlots(date, dayWorkingHours, duration, bookings, clientID, specialist.Timezone)
 
 	setPrivateCache(w, 15, 30)
 	writeJSON(w, slots)
@@ -582,10 +613,10 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 * Side effects:
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
-func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration int, bookings []models.Booking, clientID string) []models.TimeSlot {
+func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration int, bookings []models.Booking, clientID string, timezone string) []models.TimeSlot {
 	var slots []models.TimeSlot
 	seen := make(map[string]bool)
-	now := time.Now().UTC()
+	now := scheduleClockNow(timezone)
 	isToday := date.Year() == now.Year() && date.Month() == now.Month() && date.Day() == now.Day()
 
 	for _, interval := range intervals {
@@ -610,7 +641,7 @@ func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration
 			endTimeStr := formatTime(endMin/60, endMin%60)
 
 			slotStart := time.Date(date.Year(), date.Month(), date.Day(), hour, min, 0, 0, time.UTC)
-			if isToday && slotStart.Before(now) {
+			if isToday && !slotStart.After(now) {
 				seen[timeStr] = true
 				continue
 			}
@@ -870,7 +901,7 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Reject past dates and dates more than 3 months ahead.
 	***************************************************************************************************/
-	if errMsg := validateBookingDate(date); errMsg != "" {
+	if errMsg := validateBookingDateForTimezone(date, specialist.Timezone); errMsg != "" {
 		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -909,6 +940,10 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 	duration := sessionType.DurationMinutes
 	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
+	if isPastBookingStart(startsAt, specialist.Timezone) {
+		httpError(w, r, "Error.TimeInPast", http.StatusBadRequest)
+		return
+	}
 
 	/***************************************************************************************************
 	* Check for conflicts.
@@ -1024,7 +1059,7 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
 		return
 	}
-	if errMsg := validateBookingDate(date); errMsg != "" {
+	if errMsg := validateBookingDateForTimezone(date, specialist.Timezone); errMsg != "" {
 		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -1045,6 +1080,10 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 
 	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
+	if isPastBookingStart(startsAt, specialist.Timezone) {
+		httpError(w, r, "Error.TimeInPast", http.StatusBadRequest)
+		return
+	}
 
 	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, bookingID)
 	if err != nil {

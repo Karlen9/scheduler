@@ -6,6 +6,38 @@ import (
 )
 
 /***************************************************************************************************
+* Loads a schedule location, falling back to UTC when a specialist timezone is missing or invalid.
+***************************************************************************************************/
+func scheduleLocation(timezone string) *time.Location {
+	if timezone == "" {
+		return time.UTC
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.UTC
+	}
+	return location
+}
+
+/***************************************************************************************************
+* Returns the current specialist wall-clock time in the same UTC-based storage convention used by
+* bookings and working hours.
+***************************************************************************************************/
+func scheduleClockNow(timezone string) time.Time {
+	now := time.Now().In(scheduleLocation(timezone))
+	return time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		now.Hour(),
+		now.Minute(),
+		now.Second(),
+		now.Nanosecond(),
+		time.UTC,
+	)
+}
+
+/***************************************************************************************************
 * Parses time.
 *
 * Parameters:

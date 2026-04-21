@@ -26,6 +26,7 @@ export function CalendarView({
   nonWorkingDays,
   daysOff,
   bookedDates,
+  disabledDates,
 }: TCalendarViewProps): ReactNode {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -115,6 +116,10 @@ export function CalendarView({
     () => (bookedDates ? new Set(bookedDates) : undefined),
     [bookedDates],
   );
+  const disabledDatesSet = useMemo(
+    () => (disabledDates ? new Set(disabledDates) : undefined),
+    [disabledDates],
+  );
 
   return (
     <MonthGrid
@@ -127,6 +132,7 @@ export function CalendarView({
       nonWorkingDays={nonWorkingDays}
       daysOff={daysOff}
       bookedDates={bookedDatesSet}
+      disabledDates={disabledDatesSet}
       disablePast
       maxDate={maxDate}
       card

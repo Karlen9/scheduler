@@ -1,5 +1,8 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { api } from '@/lib/api';
+import { formatDateISO } from '@/lib/helpers';
 
 import { useOnetimeBooking } from '../useOnetimeBooking';
 
@@ -19,6 +22,8 @@ vi.mock('next/navigation', () => ({
 beforeEach(() => {
   mockReplace.mockClear();
   mockPush.mockClear();
+  vi.mocked(api.getAvailableSlots).mockReset();
+  vi.mocked(api.getAvailableSlots).mockResolvedValue([]);
 });
 
 vi.mock('next-intl', () => ({
@@ -113,6 +118,27 @@ describe('useOnetimeBooking initialService', () => {
 
     rerender({ initialService: services[0] });
     expect(result.current.selectedService?.id).toBe('a');
+  });
+
+  it('disables today when the selected service has no available slots left today', async () => {
+    const services = [makeService('a')];
+    const todayISO = formatDateISO(new Date());
+    const { result } = renderHook(() =>
+      useOnetimeBooking({
+        services,
+        bookedDates: [],
+        selectedClient: null,
+        hasClientSelector: false,
+        onCreateBooking: vi.fn(),
+        successRedirect: '/bookings',
+        initialService: services[0],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.disabledDates).toEqual([todayISO]);
+    });
+    expect(api.getAvailableSlots).toHaveBeenCalledWith(todayISO, services[0].durationMinutes);
   });
 });
 
