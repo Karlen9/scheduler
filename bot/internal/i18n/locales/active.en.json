@@ -420,6 +420,12 @@
   "Error.InvalidServiceType": {
     "other": "Invalid service type"
   },
+  "Error.InvalidSessionsCount": {
+    "other": "Batch sessions count must be greater than 1"
+  },
+  "Error.NoActiveBatch": {
+    "other": "The client has no active batch for this service"
+  },
   "Error.NameTooLong": {
     "other": "Name exceeds maximum length"
   },

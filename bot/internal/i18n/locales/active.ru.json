@@ -422,6 +422,12 @@
   "Error.InvalidServiceType": {
     "other": "Неверный тип услуги"
   },
+  "Error.InvalidSessionsCount": {
+    "other": "Количество занятий в абонементе должно быть больше 1"
+  },
+  "Error.NoActiveBatch": {
+    "other": "У клиента нет активного абонемента для этой услуги"
+  },
   "Error.NameTooLong": {
     "other": "Превышена максимальная длина названия"
   },
