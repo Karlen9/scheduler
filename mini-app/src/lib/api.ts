@@ -1,3 +1,4 @@
+import { markBotDeleted } from './bot-deleted';
 import { fetchMockAPI } from './mock-api';
 import { emitMutation } from './mutation-events';
 import { dedupeRequest } from './request-cache';
@@ -128,6 +129,14 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     });
 
     if (!response.ok) {
+      /***************************************************************************************************
+       * 410 Gone is returned after the specialist soft-deletes their bot. Surface a global signal so the
+       * app can render a terminal screen and refuse to serve further requests (the Telegram "Open"
+       * button still launches old Mini App sessions even after the webhook is removed).
+       ***************************************************************************************************/
+      if (response.status === 410) {
+        markBotDeleted();
+      }
       /***************************************************************************************************
        * Defines the error text value used by the shared utility layer.
        *
