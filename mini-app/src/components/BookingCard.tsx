@@ -178,7 +178,7 @@ function BookingCardComponent({
           <div className={'flex items-center gap-2'}>
             <CalendarCheck className={'text-muted-foreground h-4 w-4'} />
             <span className={'text-foreground text-sm'}>
-              {tc('workout')}
+              {booking.sessionType?.name || tc('workout')}
               {(booking.durationMinutes || booking.sessionType?.durationMinutes) && (
                 <span className={'text-muted-foreground'}>
                   {' '}
