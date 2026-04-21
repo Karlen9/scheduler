@@ -354,7 +354,10 @@
     "holdToConfirm": "Hold to delete",
     "deleting": "Deleting…",
     "successToast": "Bot deleted",
-    "errorToast": "Could not delete the bot"
+    "errorToast": "Could not delete the bot",
+    "goneTitle": "This bot has been deleted",
+    "goneBody": "The specialist has removed this bot. Please close this chat.",
+    "goneClose": "Close"
   },
   "AdminReferrals": {
     "title": "Referrals",

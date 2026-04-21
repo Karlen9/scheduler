@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
 import { AppBootstrap } from '@/components/AppBootstrap';
+import { BotDeletedOverlay } from '@/components/BotDeletedOverlay';
 import { ToastProvider } from '@/components/ToastProvider';
 import { SWRProvider } from '@/hooks/swr';
 
@@ -61,6 +62,7 @@ export default async function RootLayout({
         <AppBootstrap />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <SWRProvider>{children}</SWRProvider>
+          <BotDeletedOverlay />
         </NextIntlClientProvider>
         <ToastProvider />
       </body>
