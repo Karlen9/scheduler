@@ -312,16 +312,16 @@ export default function AdminRecurringDetailPage(): ReactNode {
     return (
       <div className={'space-y-4 p-4'}>
         <div className={'bg-card animate-pulse rounded-xl p-4'}>
-          <div className={'bg-border mb-4 h-5 w-2/5 rounded'} />
-          <div className={'bg-border mb-3 h-4 w-1/2 rounded'} />
-          <div className={'bg-border mb-3 h-4 w-1/3 rounded'} />
-          <div className={'bg-border h-4 w-2/5 rounded'} />
+          <div className={'bg-skeleton mb-4 h-5 w-2/5 rounded'} />
+          <div className={'bg-skeleton mb-3 h-4 w-1/2 rounded'} />
+          <div className={'bg-skeleton mb-3 h-4 w-1/3 rounded'} />
+          <div className={'bg-skeleton h-4 w-2/5 rounded'} />
         </div>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className={'bg-card animate-pulse rounded-xl p-4'}>
-            <div className={'bg-border mb-3 h-4 w-1/3 rounded'} />
-            <div className={'bg-border mb-2 h-4 w-1/2 rounded'} />
-            <div className={'bg-border h-4 w-2/5 rounded'} />
+            <div className={'bg-skeleton mb-3 h-4 w-1/3 rounded'} />
+            <div className={'bg-skeleton mb-2 h-4 w-1/2 rounded'} />
+            <div className={'bg-skeleton h-4 w-2/5 rounded'} />
           </div>
         ))}
       </div>

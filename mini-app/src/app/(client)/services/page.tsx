@@ -55,10 +55,10 @@ export default function ServicesPage(): ReactNode {
         <div className={'animate-pulse space-y-3 p-4'}>
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
-              <div className={'bg-border h-10 w-10 shrink-0 rounded-full'} />
+              <div className={'bg-skeleton h-10 w-10 shrink-0 rounded-full'} />
               <div className={'flex-1'}>
-                <div className={'bg-border mb-2 h-5 w-2/3 rounded'} />
-                <div className={'bg-border h-4 w-1/3 rounded'} />
+                <div className={'bg-skeleton mb-2 h-5 w-2/3 rounded'} />
+                <div className={'bg-skeleton h-4 w-1/3 rounded'} />
               </div>
             </div>
           ))}
