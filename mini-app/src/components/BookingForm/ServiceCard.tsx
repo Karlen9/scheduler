@@ -1,5 +1,5 @@
 import { Clock, Pencil } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import type { TSessionType, TVoidFunction } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -36,30 +36,35 @@ export function ServiceCard({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const locale = useLocale();
+  const t = useTranslations('ServiceCard');
+  const sessionsCount = service.sessionsCount ?? 0;
+  const isBatch = service.type === 'batch' && sessionsCount > 0;
 
   /***************************************************************************************************
-   * Formats price.
+   * Formats price amount.
    *
    * Parameters:
    * - price: Price used by the current operation.
-   * - currency: Currency used by the current operation.
-   *
    * Returns:
    * - The computed value for the current operation as string.
    *
    * Side effects:
    * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
    ***************************************************************************************************/
-  function formatPrice(price: number, currency: string): string {
+  function formatAmount(price: number): string {
     /***************************************************************************************************
      * Defines the formatted value used by the component layer.
      *
      * Usage context:
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
-    const formatted = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU').format(price);
-    return `${formatted} ${currency}`;
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU').format(price);
   }
+
+  const currencyLabel = service.currency === 'RUB' ? '\u20BD' : service.currency;
+  const formattedPrice = formatAmount(service.price);
+  const perSessionPrice = isBatch ? Math.round(service.price / sessionsCount) : 0;
+  const formattedPerSession = formatAmount(perSessionPrice);
 
   return (
     <button
@@ -69,7 +74,22 @@ export function ServiceCard({
       }`}
     >
       <div className={'flex items-start justify-between gap-2'}>
-        <p className={'text-foreground text-sm leading-snug font-medium'}>{service.name}</p>
+        <div className={'min-w-0'}>
+          <div className={'flex flex-wrap items-center gap-2'}>
+            <p className={'text-foreground min-w-0 text-sm leading-snug font-medium'}>
+              {service.name}
+            </p>
+            {isBatch && (
+              <span
+                className={
+                  'bg-brand/10 text-brand inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium'
+                }
+              >
+                {t('batchLabel')}
+              </span>
+            )}
+          </div>
+        </div>
         {selected && (
           <div
             className={
@@ -86,7 +106,14 @@ export function ServiceCard({
           {service.durationMinutes} {minLabel}
         </span>
         <span className={'text-muted-foreground text-xs'}>
-          {formatPrice(service.price, service.currency)}
+          {isBatch
+            ? t('batchPriceLine', {
+                count: sessionsCount,
+                price: formattedPrice,
+                currency: currencyLabel,
+                perSession: formattedPerSession,
+              })
+            : `${formattedPrice} ${currencyLabel}`}
         </span>
       </div>
     </button>
