@@ -1,17 +1,17 @@
 'use client';
 
-import { Camera, Plus, X } from 'lucide-react';
-import Image from 'next/image';
+import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ServiceCard } from '@/components/ServiceCard';
 import { TopBar } from '@/components/TopBar';
 import { invalidateServices } from '@/hooks/mutations';
 import { useAdminServices } from '@/hooks/queries';
-import { api, getPhotoUrl } from '@/lib/api';
+import { api } from '@/lib/api';
 
 import type { TServiceFormData, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -63,20 +63,13 @@ export default function ServicesPage(): ReactNode {
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<TSessionType | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  /***************************************************************************************************
-   * Defines the file input ref value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TSessionType | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState<TServiceFormData>({
     type: 'personal',
     name: '',
     price: '',
     duration: '60',
-    imageUrl: '',
   });
 
   /***************************************************************************************************
@@ -87,7 +80,7 @@ export default function ServicesPage(): ReactNode {
    ***************************************************************************************************/
   const handleAddClick = (): void => {
     setEditingService(null);
-    setFormData({ type: 'personal', name: '', price: '', duration: '60', imageUrl: '' });
+    setFormData({ type: 'personal', name: '', price: '', duration: '60' });
     setShowForm(true);
   };
 
@@ -104,45 +97,8 @@ export default function ServicesPage(): ReactNode {
       name: service.name,
       price: service.price.toString(),
       duration: service.durationMinutes.toString(),
-      imageUrl: service.imageUrl || '',
     });
     setShowForm(true);
-  };
-
-  /***************************************************************************************************
-   * Handles image upload.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    /***************************************************************************************************
-     * Defines the file value used by the page layer.
-     *
-     * Usage context:
-     * - Reused by the page layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const file = e.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    setUploading(true);
-    try {
-      /***************************************************************************************************
-       * Defines the result value used by the page layer.
-       *
-       * Usage context:
-       * - Reused by the page layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const result = await api.admin.uploadPhoto(file);
-      setFormData((prev) => ({ ...prev, imageUrl: result.fileId }));
-    } catch (err) {
-      console.error('Failed to upload image:', err);
-      toast.error(te('photoUploadFailed'));
-    } finally {
-      setUploading(false);
-    }
   };
 
   /***************************************************************************************************
@@ -165,7 +121,6 @@ export default function ServicesPage(): ReactNode {
           name: formData.name,
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
-          imageUrl: formData.imageUrl,
         });
       } else {
         await api.admin.createService({
@@ -174,7 +129,6 @@ export default function ServicesPage(): ReactNode {
           price: parseInt(formData.price),
           durationMinutes: parseInt(formData.duration),
           currency: 'RUB',
-          imageUrl: formData.imageUrl,
         });
       }
 
@@ -187,6 +141,24 @@ export default function ServicesPage(): ReactNode {
       toast.error(err instanceof Error ? err.message : te('saveFailed'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async (): Promise<void> => {
+    if (!deleteTarget) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.admin.deleteService(deleteTarget.id);
+      await mutate();
+      invalidateServices();
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error('Failed to delete service:', err);
+      toast.error(err instanceof Error ? err.message : te('saveFailed'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -211,54 +183,6 @@ export default function ServicesPage(): ReactNode {
         />
 
         <div className={'space-y-4 p-4'}>
-          {/***************************************************************************************************
-           * Image Upload.
-           ***************************************************************************************************/}
-          <div>
-            <label className={'text-muted-foreground mb-1 block text-sm'}>
-              {t('servicePhoto')}
-            </label>
-            <div className={'flex items-center gap-3'}>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={
-                  'bg-card border-border flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-opacity active:opacity-80'
-                }
-              >
-                {formData.imageUrl ? (
-                  <Image
-                    width={64}
-                    height={64}
-                    src={getPhotoUrl(formData.imageUrl)}
-                    alt={t('servicePhoto')}
-                    className={'h-full w-full object-cover'}
-                  />
-                ) : (
-                  <Camera className={'text-muted-foreground h-6 w-6'} />
-                )}
-              </div>
-              {formData.imageUrl && (
-                <button
-                  type={'button'}
-                  onClick={() => setFormData((prev) => ({ ...prev, imageUrl: '' }))}
-                  className={'bg-card flex h-8 w-8 items-center justify-center rounded-full'}
-                >
-                  <X className={'text-muted-foreground h-4 w-4'} />
-                </button>
-              )}
-              {uploading && (
-                <span className={'text-muted-foreground text-xs'}>{tc('uploading')}</span>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type={'file'}
-              accept={'image/*'}
-              onChange={handleImageUpload}
-              className={'hidden'}
-            />
-          </div>
-
           <div>
             <label className={'text-muted-foreground mb-1 block text-sm'}>{t('serviceType')}</label>
             <select
@@ -362,10 +286,22 @@ export default function ServicesPage(): ReactNode {
               key={service.id}
               service={service}
               onEdit={() => handleEditClick(service)}
+              onDelete={() => setDeleteTarget(service)}
             />
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => (deleting ? undefined : setDeleteTarget(null))}
+        onConfirm={handleConfirmDelete}
+        title={t('deleteDialog')}
+        description={t('deleteDialogDescription', { name: deleteTarget?.name || '' })}
+        confirmText={deleting ? tc('saving') : t('deleteConfirm')}
+        confirmDisabled={deleting}
+        destructive
+      />
     </div>
   );
 }
