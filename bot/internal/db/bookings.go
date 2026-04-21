@@ -54,7 +54,7 @@ func CreateBooking(specialistID, clientID, sessionTypeID string, startsAt, endsA
 var bookingColumns = `b.id, b.specialist_id, b.client_id, b.session_type_id, b.starts_at, b.ends_at,
 	b.client_name, b.client_message, b.status, b.cancel_reason, b.cancelled_by, b.created_at,
 	b.duration_minutes, b.created_by, b.recurring_schedule_id, b.replaces_booking_id, ` +
-	clientMetadataSelectColumns("c") + `, COALESCE(c.is_ghost, 0), COALESCE(c.telegram_user_id, 0), ` + sessionTypeSelectColumns("st")
+	clientMetadataSelectColumns("c") + `, COALESCE(c.is_ghost, 0), COALESCE(c.telegram_user_id, 0), COALESCE(c.telegram_username, ''), ` + sessionTypeSelectColumns("st")
 
 /***************************************************************************************************
 * Stores the shared SQL FROM clause reused by related queries.
@@ -115,13 +115,14 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	var replacesBookingID sql.NullString
 	var clientIsGhost sql.NullInt64
 	var clientTelegramID sql.NullInt64
+	var clientTelegramUsername sql.NullString
 	sessionType := nullableSessionType{}
 
 	dest := append([]interface{}{
 		&b.ID, &b.SpecialistID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
 		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL, &b.ClientDisplayName,
-		&clientIsGhost, &clientTelegramID,
+		&clientIsGhost, &clientTelegramID, &clientTelegramUsername,
 	}, sessionType.scanDest()...)
 
 	err := row.Scan(dest...)
@@ -153,6 +154,9 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	b.ClientIsGhost = clientIsGhost.Valid && clientIsGhost.Int64 == 1
 	if clientTelegramID.Valid {
 		b.ClientTelegramID = clientTelegramID.Int64
+	}
+	if clientTelegramUsername.Valid {
+		b.ClientTelegramUsername = clientTelegramUsername.String
 	}
 	b.SessionType = sessionType.model()
 

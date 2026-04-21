@@ -29,10 +29,10 @@ func scanClient(row interface {
 	var preferredDuration sql.NullInt64
 	var isGhost sql.NullInt64
 	var isBlocked sql.NullInt64
-	var language, displayName sql.NullString
+	var language, displayName, telegramUsername sql.NullString
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
 	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &preferredDuration,
-		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName)
+		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName, &telegramUsername)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +56,7 @@ func scanClient(row interface {
 		c.Language = "ru"
 	}
 	c.DisplayName = displayName.String
+	c.TelegramUsername = telegramUsername.String
 	return &c, nil
 }
 
@@ -71,10 +72,10 @@ func scanClientWithRef(row interface {
 	var preferredDuration sql.NullInt64
 	var isGhost sql.NullInt64
 	var isBlocked sql.NullInt64
-	var language, displayName, referredViaCode sql.NullString
+	var language, displayName, referredViaCode, telegramUsername sql.NullString
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
 	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &preferredDuration,
-		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName, &referredViaCode)
+		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName, &referredViaCode, &telegramUsername)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +100,7 @@ func scanClientWithRef(row interface {
 	}
 	c.DisplayName = displayName.String
 	c.ReferredViaCode = referredViaCode.String
+	c.TelegramUsername = telegramUsername.String
 	return &c, nil
 }
 
@@ -117,7 +119,7 @@ func scanClientWithRef(row interface {
 ***************************************************************************************************/
 func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE telegram_user_id = ? AND specialist_id = ?
 	`), telegramUserID, specialistID)
@@ -146,7 +148,7 @@ func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.C
 ***************************************************************************************************/
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE id = ?
 	`), id)
@@ -256,6 +258,16 @@ func GetOrCreateClientWithReferral(telegramUserID int64, specialistID string, na
 ***************************************************************************************************/
 func UpdateClientName(clientID string, name string) error {
 	_, err := DB.Exec(Q(`UPDATE clients SET name = ? WHERE id = ?`), name, clientID)
+	return err
+}
+
+/***************************************************************************************************
+* UpdateClientTelegramUsername refreshes the cached Telegram @username when the bot observes a new
+* value from an incoming update. Stored stripped of any leading `@` so the mini app can compose
+* `https://t.me/<username>` links without extra parsing.
+***************************************************************************************************/
+func UpdateClientTelegramUsername(clientID string, username string) error {
+	_, err := DB.Exec(Q(`UPDATE clients SET telegram_username = ? WHERE id = ?`), username, clientID)
 	return err
 }
 
@@ -370,7 +382,7 @@ func UpdateSpecialistPhoto(specialistID, fileID string) error {
 ***************************************************************************************************/
 func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE specialist_id = ?
 		ORDER BY name ASC
