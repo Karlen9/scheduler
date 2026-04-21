@@ -18,7 +18,14 @@ import type { MouseEvent, ReactNode } from 'react';
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function ServiceCard({ service, onEdit, onDelete }: TServiceCardProps): ReactNode {
+export function ServiceCard({
+  service,
+  onEdit,
+  onDelete,
+  onClick,
+  clickLabel,
+  clientBatch,
+}: TServiceCardProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
    *
@@ -39,31 +46,65 @@ export function ServiceCard({ service, onEdit, onDelete }: TServiceCardProps): R
     onDelete?.();
   };
 
+  const cardAction = onEdit ?? onClick;
+  const isBatch = service.type === 'batch' && !!service.sessionsCount;
+  const currencyLabel = service.currency === 'RUB' ? '\u20BD' : service.currency;
+  const formattedPrice = service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU');
+  const perSessionPrice =
+    isBatch && service.sessionsCount ? Math.round(service.price / service.sessionsCount) : 0;
+  const formattedPerSession = perSessionPrice.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU');
+  const batchStatus =
+    clientBatch && clientBatch.remainingSessions > 0
+      ? t('remaining', {
+          remaining: clientBatch.remainingSessions,
+          total: clientBatch.totalSessions,
+        })
+      : clientBatch
+        ? t('exhausted')
+        : '';
+
   return (
     <div
-      role={onEdit ? 'button' : undefined}
-      tabIndex={onEdit ? 0 : undefined}
-      onClick={onEdit}
+      role={cardAction ? 'button' : undefined}
+      tabIndex={cardAction ? 0 : undefined}
+      onClick={cardAction}
       onKeyDown={(e) => {
-        if (onEdit && (e.key === 'Enter' || e.key === ' ')) {
+        if (cardAction && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
-          onEdit();
+          cardAction();
         }
       }}
-      aria-label={onEdit ? t('editAction') : undefined}
+      aria-label={onEdit ? t('editAction') : clickLabel}
       className={`bg-card flex items-center gap-4 rounded-xl p-4 ${
-        onEdit ? 'cursor-pointer transition-opacity active:opacity-80' : ''
+        cardAction ? 'cursor-pointer transition-opacity active:opacity-80' : ''
       }`}
     >
       <div className={'flex-1'}>
         <h4 className={'text-foreground font-medium'}>{service.name}</h4>
         <p className={'text-muted-foreground text-sm'}>
-          {t('priceLabel')} {service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')}{' '}
-          {service.currency === 'RUB' ? '\u20BD' : service.currency}
+          {isBatch
+            ? t('batchPriceLine', {
+                count: service.sessionsCount,
+                price: formattedPrice,
+                currency: currencyLabel,
+                perSession: formattedPerSession,
+              })
+            : `${t('priceLabel')} ${formattedPrice} ${currencyLabel}`}
         </p>
         <p className={'text-muted-foreground text-sm'}>
           {t('durationLabel')} {service.durationMinutes} {t('minutes')}
         </p>
+        {batchStatus && (
+          <span
+            className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+              clientBatch?.remainingSessions
+                ? 'bg-status-confirmed-bg text-status-confirmed-text'
+                : 'bg-status-cancelled-bg text-status-cancelled-text'
+            }`}
+          >
+            {batchStatus}
+          </span>
+        )}
       </div>
       {onDelete && (
         <button

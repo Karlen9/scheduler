@@ -1,16 +1,30 @@
 'use client';
 
-import { CalendarCheck, Clock } from 'lucide-react';
-import Image from 'next/image';
-import { useLocale, useTranslations } from 'next-intl';
+import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
 
+import { BottomSheet } from '@/components/BottomSheet';
+import { ServiceCard } from '@/components/ServiceCard';
 import { TopBar } from '@/components/TopBar';
-import { useSessionTypes } from '@/hooks/queries';
-import { getPhotoUrl } from '@/lib/api';
-import { formatDuration } from '@/lib/helpers';
+import { useClientBatches, useSessionTypes } from '@/hooks/queries';
+import { resolveTestAwareHref } from '@/lib/routes';
 
-import type { TSessionType } from '@/lib/types';
+import type { TClientBatch, TSessionType } from '@/lib/types';
 import type { ReactNode } from 'react';
+
+function pickDisplayBatch(service: TSessionType, batches: TClientBatch[]): TClientBatch | null {
+  if (service.type !== 'batch') {
+    return null;
+  }
+
+  const serviceBatches = batches.filter((batch) => batch.serviceId === service.id);
+  return (
+    serviceBatches.find((batch) => batch.status === 'active' && batch.remainingSessions > 0) ??
+    serviceBatches.find((batch) => batch.status === 'exhausted' || batch.remainingSessions <= 0) ??
+    null
+  );
+}
 
 /***************************************************************************************************
  * Renders the services page UI and related interactions.
@@ -32,23 +46,34 @@ export default function ServicesPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const t = useTranslations('ServicesPage');
-  /***************************************************************************************************
-   * Defines the td value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const td = useTranslations('Duration');
-  /***************************************************************************************************
-   * Defines the locale value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const { data: services, isLoading: loading } = useSessionTypes();
+  const { data: clientBatches, isLoading: batchesLoading } = useClientBatches();
+  const [noBatchService, setNoBatchService] = useState<TSessionType | null>(null);
 
-  if (loading) {
+  const batchByService = useMemo(() => {
+    const result = new Map<string, TClientBatch | null>();
+    for (const service of services) {
+      result.set(service.id, pickDisplayBatch(service, clientBatches));
+    }
+    return result;
+  }, [clientBatches, services]);
+
+  const handleServiceClick = (service: TSessionType): void => {
+    const batch = batchByService.get(service.id) ?? null;
+    const hasActiveBatch =
+      batch?.status === 'active' && batch.remainingSessions > 0 && service.type === 'batch';
+
+    if (service.type === 'batch' && !hasActiveBatch) {
+      setNoBatchService(service);
+      return;
+    }
+
+    router.push(resolveTestAwareHref(pathname, `/book?service=${service.id}`));
+  };
+
+  if (loading || batchesLoading) {
     return (
       <div>
         <TopBar title={t('title')} showBack />
@@ -76,47 +101,34 @@ export default function ServicesPage(): ReactNode {
           <div className={'text-muted-foreground py-8 text-center'}>{t('empty')}</div>
         ) : (
           services.map((service: TSessionType) => (
-            <div key={service.id} className={'bg-card flex items-center gap-3 rounded-xl p-4'}>
-              {/***************************************************************************************************
-               * Service thumbnail.
-               ***************************************************************************************************/}
-              <div
-                className={
-                  'bg-border flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full'
-                }
-              >
-                {service.imageUrl ? (
-                  <Image
-                    width={40}
-                    height={40}
-                    src={getPhotoUrl(service.imageUrl)}
-                    alt={service.name}
-                    className={'h-full w-full object-cover'}
-                  />
-                ) : (
-                  <CalendarCheck className={'text-muted-foreground h-4 w-4'} />
-                )}
-              </div>
-              {/***************************************************************************************************
-               * Service info.
-               ***************************************************************************************************/}
-              <div className={'min-w-0 flex-1'}>
-                <h3 className={'text-foreground mb-1 text-base font-medium'}>{service.name}</h3>
-                <div className={'flex items-center gap-1'}>
-                  <Clock className={'text-muted-foreground h-3 w-3'} />
-                  <span className={'text-muted-foreground text-sm'}>
-                    {formatDuration(service.durationMinutes, td('hour'), td('minutes'))}
-                  </span>
-                </div>
-              </div>
-              <span className={'text-foreground flex-shrink-0 text-base font-semibold'}>
-                {service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')}{' '}
-                {service.currency === 'RUB' ? '\u20BD' : service.currency}
-              </span>
-            </div>
+            <ServiceCard
+              key={service.id}
+              service={service}
+              clientBatch={batchByService.get(service.id)}
+              onClick={() => handleServiceClick(service)}
+              clickLabel={t('bookService')}
+            />
           ))
         )}
       </div>
+
+      <BottomSheet
+        isOpen={!!noBatchService}
+        onClose={() => setNoBatchService(null)}
+        title={t('noBatchTitle')}
+        showClose
+      >
+        <p className={'text-muted-foreground text-sm'}>{t('noBatchMessage')}</p>
+        <button
+          type={'button'}
+          onClick={() => setNoBatchService(null)}
+          className={
+            'bg-brand mt-5 w-full rounded-[28px] px-4 py-3 text-sm font-medium text-white transition-opacity active:opacity-80'
+          }
+        >
+          {t('noBatchClose')}
+        </button>
+      </BottomSheet>
     </div>
   );
 }

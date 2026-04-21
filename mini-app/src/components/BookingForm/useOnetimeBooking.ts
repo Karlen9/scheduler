@@ -33,6 +33,7 @@ import type {
 export function useOnetimeBooking({
   services,
   bookedDates,
+  clientBatches,
   selectedClient,
   hasClientSelector,
   onCreateBooking,
@@ -105,6 +106,19 @@ export function useOnetimeBooking({
   const slotsRequestIdRef = useRef(0);
   const todayAvailabilityRequestIdRef = useRef(0);
   const bookedDatesSet = useMemo(() => new Set(bookedDates ?? []), [bookedDates]);
+  const selectedServiceActiveBatch = useMemo(() => {
+    if (selectedService?.type !== 'batch') {
+      return null;
+    }
+    return (
+      clientBatches?.find(
+        (batch) =>
+          batch.serviceId === selectedService.id &&
+          batch.status === 'active' &&
+          batch.remainingSessions > 0,
+      ) ?? null
+    );
+  }, [clientBatches, selectedService]);
   const todayISO = useMemo(() => formatDateISO(new Date()), []);
 
   /***************************************************************************************************
@@ -903,6 +917,9 @@ export function useOnetimeBooking({
     if (!selectedService) {
       return { text: t('btnSelectService'), disabled: true };
     }
+    if (selectedService.type === 'batch' && !selectedServiceActiveBatch && !hasClientSelector) {
+      return { text: t('btnNoBatch'), disabled: true };
+    }
     if (mode === 'single') {
       if (!selectedDate) {
         return { text: t('btnSelectDate'), disabled: true };
@@ -917,6 +934,14 @@ export function useOnetimeBooking({
     }
     if (selectedDates.length === 0) {
       return { text: t('btnSelectDays'), disabled: true };
+    }
+    if (
+      selectedService.type === 'batch' &&
+      selectedServiceActiveBatch &&
+      selectedDates.length > selectedServiceActiveBatch.remainingSessions &&
+      !hasClientSelector
+    ) {
+      return { text: t('btnNoBatch'), disabled: true };
     }
     if (selectedDates.some((d) => bookedDatesSet.has(formatDateISO(d)))) {
       return { text: t('btnSubmit'), disabled: true };
