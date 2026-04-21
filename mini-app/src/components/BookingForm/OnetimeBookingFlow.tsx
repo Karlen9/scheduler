@@ -40,6 +40,8 @@ export function OnetimeBookingFlow({
   successRedirect,
   initialDate,
   initialService,
+  initialTime,
+  initialComment,
 }: TOnetimeBookingFlowProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -104,6 +106,8 @@ export function OnetimeBookingFlow({
     successRedirect,
     initialDate,
     initialService,
+    initialTime,
+    initialComment,
   });
 
   const handleServiceSelectAndScroll = (service: (typeof services)[number]): void => {
@@ -200,14 +204,6 @@ export function OnetimeBookingFlow({
               </button>
             </div>
 
-            {((mode === 'single' &&
-              selectedDate &&
-              bookedDatesSet.has(formatDateISO(selectedDate))) ||
-              (mode === 'multi' &&
-                selectedDates.some((d) => bookedDatesSet.has(formatDateISO(d))))) && (
-              <p className={'text-warning mb-2 text-xs'}>{t('bookedDateWarning')}</p>
-            )}
-
             {mode === 'single' ? (
               <CalendarView
                 selectedDate={selectedDate}
@@ -225,6 +221,14 @@ export function OnetimeBookingFlow({
                 daysOff={daysOff}
                 bookedDates={bookedDates}
               />
+            )}
+
+            {((mode === 'single' &&
+              selectedDate &&
+              bookedDatesSet.has(formatDateISO(selectedDate))) ||
+              (mode === 'multi' &&
+                selectedDates.some((d) => bookedDatesSet.has(formatDateISO(d))))) && (
+              <p className={'text-warning mt-2 text-xs'}>{t('bookedDateWarning')}</p>
             )}
           </div>
 

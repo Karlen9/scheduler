@@ -42,6 +42,9 @@ export function BookingForm({
   title,
   initialDate,
   initialService,
+  initialTime,
+  initialComment,
+  initialSelectedClient,
 }: TBookingFormProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -76,7 +79,9 @@ export function BookingForm({
   /***************************************************************************************************
    * Client selection (admin only).
    ***************************************************************************************************/
-  const [selectedClient, setSelectedClient] = useState<TClientInfo | null>(null);
+  const [selectedClient, setSelectedClient] = useState<TClientInfo | null>(
+    initialSelectedClient ?? null,
+  );
 
   /***************************************************************************************************
    * Top-level mode.
@@ -201,6 +206,8 @@ export function BookingForm({
                 successRedirect={successRedirect}
                 initialDate={initialDate}
                 initialService={initialService}
+                initialTime={initialTime}
+                initialComment={initialComment}
               />
             ) : (
               <RecurringBookingFlow

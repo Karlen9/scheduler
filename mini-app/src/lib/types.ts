@@ -580,6 +580,9 @@ export type TBookingFormProps = {
   title?: string;
   initialDate?: Date;
   initialService?: TSessionType;
+  initialTime?: string;
+  initialComment?: string;
+  initialSelectedClient?: TClientInfo;
 };
 
 /***************************************************************************************************
@@ -816,6 +819,8 @@ export type TOnetimeBookingFlowProps = {
   successRedirect: string;
   initialDate?: Date;
   initialService?: TSessionType;
+  initialTime?: string;
+  initialComment?: string;
 };
 
 /***************************************************************************************************
@@ -1111,6 +1116,8 @@ export type TUseOnetimeBookingParams = {
   successRedirect: string;
   initialDate?: Date;
   initialService?: TSessionType;
+  initialTime?: string;
+  initialComment?: string;
 };
 
 /***************************************************************************************************
