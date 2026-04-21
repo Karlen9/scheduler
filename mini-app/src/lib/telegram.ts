@@ -516,12 +516,22 @@ export function getSpecialistId(): string | null {
 }
 
 /***************************************************************************************************
- * Opens a Telegram chat with a user by numeric id via `window.open` so the OS/Telegram scheme
- * handler intercepts the `tg://` URL — mirrors the client-side handleMessage pattern.
+ * Opens a Telegram chat with a user. Prefers `https://t.me/<username>` (mirrors the client-side
+ * handleMessage pattern and avoids the `tg://` scheme confirmation prompt that most browsers
+ * show). Returns true when the chat could be opened, false when no username is available and the
+ * caller should surface a fallback (e.g. toast).
  ***************************************************************************************************/
-export function openTelegramUserChat(userId: number): void {
+export function openTelegramUserChat(username: string | undefined | null): boolean {
   if (typeof window === 'undefined') {
-    return;
+    return false;
   }
-  window.open(`tg://user?id=${userId}`, '_blank');
+  if (!username) {
+    return false;
+  }
+  const handle = username.replace(/^@/, '');
+  if (!handle) {
+    return false;
+  }
+  window.open(`https://t.me/${handle}`, '_blank');
+  return true;
 }

@@ -93,7 +93,7 @@ export function BookingDetailModal({
    ***************************************************************************************************/
   const endsAt = new Date(displayBooking.endsAt);
   const canMessageClient =
-    !!onMessageClient && !displayBooking.clientIsGhost && !!displayBooking.clientTelegramUserId;
+    !!onMessageClient && !displayBooking.clientIsGhost && !!displayBooking.clientTelegramUsername;
 
   /***************************************************************************************************
    * Formats date.

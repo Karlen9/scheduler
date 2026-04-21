@@ -127,6 +127,7 @@ export type TBooking = {
   replacesBookingId?: string;
   clientIsGhost?: boolean;
   clientTelegramUserId?: number;
+  clientTelegramUsername?: string;
 };
 
 /***************************************************************************************************
@@ -161,6 +162,7 @@ export type TClientProfile = {
 export type TClientInfo = {
   id: string;
   telegramUserId: number;
+  telegramUsername?: string;
   specialistId: string;
   name: string;
   displayName?: string;

@@ -421,11 +421,9 @@ export default function AdminAllBookingsPage(): ReactNode {
   };
 
   const handleMessageClient = (booking: TBooking): void => {
-    if (booking.clientIsGhost || !booking.clientTelegramUserId) {
+    if (booking.clientIsGhost || !openTelegramUserChat(booking.clientTelegramUsername)) {
       toast.error(t('dmUnavailable'));
-      return;
     }
-    openTelegramUserChat(booking.clientTelegramUserId);
   };
 
   return (

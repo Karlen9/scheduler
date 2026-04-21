@@ -73,11 +73,9 @@ export default function AdminClientsPage(): ReactNode {
   }, [selectedClient]);
 
   const handleMessageClient = (client: TClientInfo): void => {
-    if (client.isGhost || client.telegramUserId <= 0) {
+    if (client.isGhost || !openTelegramUserChat(client.telegramUsername)) {
       toast.error(t('dmUnavailable'));
-      return;
     }
-    openTelegramUserChat(client.telegramUserId);
   };
 
   const handleViewBookings = (client: TClientInfo): void => {

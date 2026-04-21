@@ -183,7 +183,7 @@ function PendingBookingCardComponent({
         </div>
       </div>
 
-      {onMessageClient && !booking.clientIsGhost && booking.clientTelegramUserId && (
+      {onMessageClient && !booking.clientIsGhost && booking.clientTelegramUsername && (
         <button
           type={'button'}
           onClick={() => onMessageClient(booking)}
