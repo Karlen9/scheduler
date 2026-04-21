@@ -756,20 +756,7 @@ func (h *MasterHandler) seedDefaults(specialistID string, loc *localizerType) {
 	/***************************************************************************************************
 	* Session types.
 	***************************************************************************************************/
-	sessionTypes := []struct {
-		typeCode string
-		name     string
-		duration int
-		price    int
-	}{
-		{"personal", myI18n.T(loc, "Seed.Personal"), 60, 3000},
-		{"pair", myI18n.T(loc, "Seed.Pair"), 60, 4500},
-		{"consultation", myI18n.T(loc, "Seed.Consultation"), 30, 1500},
-	}
-
-	for _, st := range sessionTypes {
-		db.CreateSessionType(specialistID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
-	}
+	db.CreateSessionType(specialistID, "personal", myI18n.T(loc, "Seed.Personal"), 60, 3000, "RUB", "")
 
 	/***************************************************************************************************
 	* Working hours (Mon-Fri 9-18, Sat 10-15).

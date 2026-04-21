@@ -1081,20 +1081,7 @@ func seedLegacyData(cfg *config.Config) error {
 	log.Printf("Created specialist: %s (@%s)", specialist.Name, specialist.BotUsername)
 
 	loc := myI18n.Default()
-	sessionTypes := []struct {
-		typeCode string
-		name     string
-		duration int
-		price    int
-	}{
-		{"personal", myI18n.T(loc, "Seed.Personal"), 60, 3000},
-		{"pair", myI18n.T(loc, "Seed.Pair"), 60, 4500},
-		{"consultation", myI18n.T(loc, "Seed.Consultation"), 30, 1500},
-	}
-
-	for _, st := range sessionTypes {
-		db.CreateSessionType(specialist.ID, st.typeCode, st.name, st.duration, st.price, "RUB", "")
-	}
+	db.CreateSessionType(specialist.ID, "personal", myI18n.T(loc, "Seed.Personal"), 60, 3000, "RUB", "")
 
 	workingHours := []struct {
 		day   int
