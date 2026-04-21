@@ -47,11 +47,11 @@ export function ServiceCard({
   };
 
   const cardAction = onEdit ?? onClick;
-  const isBatch = service.type === 'batch' && !!service.sessionsCount;
+  const sessionsCount = service.sessionsCount ?? 0;
+  const isBatch = service.type === 'batch' && sessionsCount > 0;
   const currencyLabel = service.currency === 'RUB' ? '\u20BD' : service.currency;
   const formattedPrice = service.price.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU');
-  const perSessionPrice =
-    isBatch && service.sessionsCount ? Math.round(service.price / service.sessionsCount) : 0;
+  const perSessionPrice = isBatch ? Math.round(service.price / sessionsCount) : 0;
   const formattedPerSession = perSessionPrice.toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU');
   const batchStatus =
     clientBatch && clientBatch.remainingSessions > 0
@@ -84,7 +84,7 @@ export function ServiceCard({
         <p className={'text-muted-foreground text-sm'}>
           {isBatch
             ? t('batchPriceLine', {
-                count: service.sessionsCount,
+                count: sessionsCount,
                 price: formattedPrice,
                 currency: currencyLabel,
                 perSession: formattedPerSession,
