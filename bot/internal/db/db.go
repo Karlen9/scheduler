@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -173,12 +174,15 @@ func migrateSQLite() error {
 		`CREATE TABLE IF NOT EXISTS session_types (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
-			type TEXT NOT NULL,
+			type TEXT NOT NULL DEFAULT 'common' CHECK(type IN ('common','batch')),
 			name TEXT NOT NULL,
 			duration_minutes INTEGER NOT NULL,
 			price INTEGER NOT NULL,
 			currency TEXT DEFAULT 'RUB',
-			is_active BOOLEAN DEFAULT 1
+			sessions_count INTEGER,
+			is_active BOOLEAN DEFAULT 1,
+			CHECK(sessions_count IS NULL OR sessions_count > 1),
+			CHECK(type != 'batch' OR sessions_count > 1)
 		)`,
 		`CREATE TABLE IF NOT EXISTS working_hours (
 			id TEXT PRIMARY KEY,
@@ -188,11 +192,24 @@ func migrateSQLite() error {
 			end_time TEXT NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`,
+		`CREATE TABLE IF NOT EXISTS client_batches (
+			id TEXT PRIMARY KEY,
+			client_id TEXT NOT NULL REFERENCES clients(id),
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			service_id TEXT NOT NULL REFERENCES session_types(id),
+			total_sessions INTEGER NOT NULL CHECK(total_sessions > 1),
+			remaining_sessions INTEGER NOT NULL CHECK(remaining_sessions >= 0),
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','exhausted'))
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_client_batches_client_service_status ON client_batches(client_id, service_id, status, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_client_batches_specialist_client ON client_batches(specialist_id, client_id)`,
 		`CREATE TABLE IF NOT EXISTS bookings (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
 			client_id TEXT NOT NULL REFERENCES clients(id),
 			session_type_id TEXT NOT NULL REFERENCES session_types(id),
+			client_batch_id TEXT REFERENCES client_batches(id),
 			starts_at DATETIME NOT NULL,
 			ends_at DATETIME NOT NULL,
 			client_name TEXT NOT NULL,
@@ -323,12 +340,14 @@ func migrateSQLite() error {
 		`ALTER TABLE bookings ADD COLUMN telegram_notification_msg_id INTEGER`,
 		`ALTER TABLE bookings ADD COLUMN client_notification_chat_id INTEGER`,
 		`ALTER TABLE bookings ADD COLUMN client_notification_msg_id INTEGER`,
+		`ALTER TABLE bookings ADD COLUMN client_batch_id TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN session_type_id TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN days_of_week TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN start_date TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN end_date TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN day_times TEXT`,
 		`ALTER TABLE session_types ADD COLUMN image_url TEXT DEFAULT ''`,
+		`ALTER TABLE session_types ADD COLUMN sessions_count INTEGER`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -336,6 +355,9 @@ func migrateSQLite() error {
 	}
 
 	if err := migrateWorkingHoursMultiIntervalSQLite(); err != nil {
+		return err
+	}
+	if err := migrateServiceTypesSQLite(); err != nil {
 		return err
 	}
 
@@ -421,12 +443,15 @@ func migratePostgres() error {
 		`CREATE TABLE IF NOT EXISTS session_types (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
-			type TEXT NOT NULL,
+			type TEXT NOT NULL DEFAULT 'common' CHECK(type IN ('common','batch')),
 			name TEXT NOT NULL,
 			duration_minutes INTEGER NOT NULL,
 			price INTEGER NOT NULL,
 			currency TEXT DEFAULT 'RUB',
-			is_active INTEGER DEFAULT 1
+			sessions_count INTEGER,
+			is_active INTEGER DEFAULT 1,
+			CHECK(sessions_count IS NULL OR sessions_count > 1),
+			CHECK(type != 'batch' OR sessions_count > 1)
 		)`,
 		`CREATE TABLE IF NOT EXISTS working_hours (
 			id TEXT PRIMARY KEY,
@@ -436,11 +461,24 @@ func migratePostgres() error {
 			end_time TEXT NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`,
+		`CREATE TABLE IF NOT EXISTS client_batches (
+			id TEXT PRIMARY KEY,
+			client_id TEXT NOT NULL REFERENCES clients(id),
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			service_id TEXT NOT NULL REFERENCES session_types(id),
+			total_sessions INTEGER NOT NULL CHECK(total_sessions > 1),
+			remaining_sessions INTEGER NOT NULL CHECK(remaining_sessions >= 0),
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','exhausted'))
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_client_batches_client_service_status ON client_batches(client_id, service_id, status, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_client_batches_specialist_client ON client_batches(specialist_id, client_id)`,
 		`CREATE TABLE IF NOT EXISTS bookings (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
 			client_id TEXT NOT NULL REFERENCES clients(id),
 			session_type_id TEXT NOT NULL REFERENCES session_types(id),
+			client_batch_id TEXT REFERENCES client_batches(id),
 			starts_at TIMESTAMPTZ NOT NULL,
 			ends_at TIMESTAMPTZ NOT NULL,
 			client_name TEXT NOT NULL,
@@ -567,12 +605,14 @@ func migratePostgres() error {
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS telegram_notification_msg_id INTEGER`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_notification_chat_id BIGINT`,
 		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_notification_msg_id INTEGER`,
+		`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_batch_id TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS session_type_id TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS days_of_week TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS start_date TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS end_date TEXT`,
 		`ALTER TABLE recurring_schedules ADD COLUMN IF NOT EXISTS day_times TEXT`,
 		`ALTER TABLE session_types ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''`,
+		`ALTER TABLE session_types ADD COLUMN IF NOT EXISTS sessions_count INTEGER`,
 	}
 
 	for _, migration := range alterMigrations {
@@ -582,6 +622,9 @@ func migratePostgres() error {
 	}
 
 	if err := migrateWorkingHoursMultiIntervalPostgres(); err != nil {
+		return err
+	}
+	if err := migrateServiceTypesPostgres(); err != nil {
 		return err
 	}
 
@@ -703,6 +746,158 @@ func migrateWorkingHoursMultiIntervalPostgres() error {
 
 	_, err := DB.Exec(`CREATE INDEX IF NOT EXISTS idx_working_hours_specialist_day_start ON working_hours(specialist_id, day_of_week, start_time)`)
 	return err
+}
+
+func sqliteColumnExists(tableName, columnName string) bool {
+	rows, err := DB.Query(`PRAGMA table_info(` + tableName + `)`)
+	if err != nil {
+		return false
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cid int
+		var name, columnType string
+		var notNull int
+		var defaultValue interface{}
+		var pk int
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &pk); err != nil {
+			return false
+		}
+		if name == columnName {
+			return true
+		}
+	}
+	return false
+}
+
+/***************************************************************************************************
+* migrateServiceTypesSQLite rebuilds session_types when needed so the type column is constrained to
+* common/batch and batch services can store sessions_count.
+***************************************************************************************************/
+func migrateServiceTypesSQLite() error {
+	var createSQL sql.NullString
+	err := DB.QueryRow(`
+		SELECT sql
+		FROM sqlite_master
+		WHERE type = 'table' AND name = 'session_types'
+	`).Scan(&createSQL)
+	if err == sql.ErrNoRows || !createSQL.Valid {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(createSQL.String, "'common'") &&
+		strings.Contains(createSQL.String, "'batch'") &&
+		strings.Contains(createSQL.String, "sessions_count") &&
+		strings.Contains(createSQL.String, "type != 'batch'") {
+		return nil
+	}
+
+	sessionsExpr := "NULL"
+	if sqliteColumnExists("session_types", "sessions_count") {
+		sessionsExpr = "CASE WHEN type = 'batch' AND sessions_count > 1 THEN sessions_count ELSE NULL END"
+	}
+
+	if _, err := DB.Exec(`PRAGMA foreign_keys=off`); err != nil {
+		return err
+	}
+
+	tx, err := DB.Begin()
+	if err != nil {
+		DB.Exec(`PRAGMA foreign_keys=on`)
+		return err
+	}
+
+	stmts := []string{
+		`CREATE TABLE session_types_new (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			type TEXT NOT NULL DEFAULT 'common' CHECK(type IN ('common','batch')),
+			name TEXT NOT NULL,
+			duration_minutes INTEGER NOT NULL,
+			price INTEGER NOT NULL,
+			currency TEXT DEFAULT 'RUB',
+			image_url TEXT DEFAULT '',
+			sessions_count INTEGER,
+			is_active BOOLEAN DEFAULT 1,
+			CHECK(sessions_count IS NULL OR sessions_count > 1),
+			CHECK(type != 'batch' OR sessions_count > 1)
+		)`,
+		fmt.Sprintf(`INSERT INTO session_types_new (id, specialist_id, type, name, duration_minutes, price, currency, image_url, sessions_count, is_active)
+		SELECT id, specialist_id,
+			CASE WHEN type = 'batch' THEN 'batch' ELSE 'common' END,
+			name, duration_minutes, price, currency, COALESCE(image_url, ''), %s, is_active
+		FROM session_types`, sessionsExpr),
+		`DROP TABLE session_types`,
+		`ALTER TABLE session_types_new RENAME TO session_types`,
+		`CREATE INDEX IF NOT EXISTS idx_session_types_specialist_active_type ON session_types(specialist_id, is_active, type)`,
+	}
+
+	for _, stmt := range stmts {
+		if _, err := tx.Exec(stmt); err != nil {
+			tx.Rollback()
+			DB.Exec(`PRAGMA foreign_keys=on`)
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		DB.Exec(`PRAGMA foreign_keys=on`)
+		return err
+	}
+
+	_, err = DB.Exec(`PRAGMA foreign_keys=on`)
+	return err
+}
+
+/***************************************************************************************************
+* migrateServiceTypesPostgres normalizes existing service type values and adds CHECK constraints for
+* common/batch services plus optional sessions_count.
+***************************************************************************************************/
+func migrateServiceTypesPostgres() error {
+	stmts := []string{
+		`UPDATE session_types SET type = 'common' WHERE type IS NULL OR type NOT IN ('common','batch')`,
+		`UPDATE session_types SET sessions_count = NULL WHERE type = 'common'`,
+		`UPDATE session_types SET sessions_count = 2 WHERE type = 'batch' AND (sessions_count IS NULL OR sessions_count <= 1)`,
+		`ALTER TABLE session_types ALTER COLUMN type SET DEFAULT 'common'`,
+		`ALTER TABLE session_types ALTER COLUMN type SET NOT NULL`,
+		`DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_constraint
+				WHERE conrelid = 'session_types'::regclass
+				  AND conname = 'session_types_type_common_batch_check'
+			) THEN
+				ALTER TABLE session_types ADD CONSTRAINT session_types_type_common_batch_check
+					CHECK(type IN ('common','batch'));
+			END IF;
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_constraint
+				WHERE conrelid = 'session_types'::regclass
+				  AND conname = 'session_types_sessions_count_min_check'
+			) THEN
+				ALTER TABLE session_types ADD CONSTRAINT session_types_sessions_count_min_check
+					CHECK(sessions_count IS NULL OR sessions_count > 1);
+			END IF;
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_constraint
+				WHERE conrelid = 'session_types'::regclass
+				  AND conname = 'session_types_batch_sessions_count_check'
+			) THEN
+				ALTER TABLE session_types ADD CONSTRAINT session_types_batch_sessions_count_check
+					CHECK(type != 'batch' OR sessions_count > 1);
+			END IF;
+		END $$`,
+	}
+	for _, stmt := range stmts {
+		if _, err := DB.Exec(stmt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 /***************************************************************************************************
@@ -853,18 +1048,23 @@ func migrateTrainerEnumSQLite() {
 			created_by TEXT,
 			recurring_schedule_id TEXT,
 			telegram_notification_chat_id INTEGER,
-			telegram_notification_msg_id INTEGER
+			telegram_notification_msg_id INTEGER,
+			client_notification_chat_id INTEGER,
+			client_notification_msg_id INTEGER,
+			client_batch_id TEXT
 		)`,
 		`INSERT INTO bookings_new (id, specialist_id, client_id, session_type_id, starts_at, ends_at,
 			client_name, client_message, status, cancel_reason, cancelled_by, created_at,
 			replaces_booking_id, reminder_sent, duration_minutes, created_by, recurring_schedule_id,
-			telegram_notification_chat_id, telegram_notification_msg_id)
+			telegram_notification_chat_id, telegram_notification_msg_id, client_notification_chat_id,
+			client_notification_msg_id, client_batch_id)
 		SELECT id, specialist_id, client_id, session_type_id, starts_at, ends_at,
 			client_name, client_message, status, cancel_reason,
 			CASE cancelled_by WHEN 'trainer' THEN 'specialist' ELSE cancelled_by END,
 			created_at, replaces_booking_id, reminder_sent, duration_minutes,
 			CASE created_by WHEN 'trainer' THEN 'specialist' ELSE created_by END,
-			recurring_schedule_id, telegram_notification_chat_id, telegram_notification_msg_id
+			recurring_schedule_id, telegram_notification_chat_id, telegram_notification_msg_id,
+			client_notification_chat_id, client_notification_msg_id, client_batch_id
 		FROM bookings`,
 		`DROP TABLE bookings`,
 		`ALTER TABLE bookings_new RENAME TO bookings`,

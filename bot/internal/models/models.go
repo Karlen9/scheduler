@@ -67,13 +67,29 @@ type Client struct {
 type SessionType struct {
 	ID              string `json:"id"`
 	SpecialistID    string `json:"-"`
-	Type            string `json:"type"` // personal, pair, consultation
+	Type            string `json:"type"` // common, batch
 	Name            string `json:"name"`
 	DurationMinutes int    `json:"durationMinutes"`
 	Price           int    `json:"price"`
 	Currency        string `json:"currency"`
 	ImageURL        string `json:"imageUrl,omitempty"`
+	SessionsCount   int    `json:"sessionsCount,omitempty"`
 	IsActive        bool   `json:"-"`
+}
+
+/***************************************************************************************************
+* Defines the client batch type used by the shared model layer.
+***************************************************************************************************/
+type ClientBatch struct {
+	ID                string       `json:"id"`
+	ClientID          string       `json:"clientId"`
+	SpecialistID      string       `json:"-"`
+	ServiceID         string       `json:"serviceId"`
+	TotalSessions     int          `json:"totalSessions"`
+	RemainingSessions int          `json:"remainingSessions"`
+	CreatedAt         time.Time    `json:"createdAt"`
+	Status            string       `json:"status"`
+	Service           *SessionType `json:"service,omitempty"`
 }
 
 /***************************************************************************************************
@@ -180,6 +196,7 @@ type Booking struct {
 	SpecialistID        string        `json:"-"`
 	ClientID            string        `json:"-"`
 	SessionTypeID       string        `json:"-"`
+	ClientBatchID       string        `json:"clientBatchId,omitempty"`
 	StartsAt            time.Time     `json:"startsAt"`
 	EndsAt              time.Time     `json:"endsAt"`
 	ClientName          string        `json:"clientName"`
