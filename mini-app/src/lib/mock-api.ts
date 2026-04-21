@@ -166,6 +166,7 @@ function buildBooking({
     clientPhotoUrl: client.photoUrl,
     clientIsGhost: client.isGhost,
     clientTelegramUserId: client.telegramUserId,
+    clientTelegramUsername: client.telegramUsername,
     clientMessage: message,
     status,
     durationMinutes: service.durationMinutes,
@@ -214,6 +215,7 @@ function createMockState(): TMockState {
     {
       id: 'mock-client-anna',
       telegramUserId: 101,
+      telegramUsername: 'anna_morozova',
       specialistId: 'mock-specialist',
       name: 'Anna Morozova',
       displayName: 'Anna',
@@ -223,6 +225,7 @@ function createMockState(): TMockState {
     {
       id: 'mock-client-ivan',
       telegramUserId: 102,
+      telegramUsername: 'ivan_petrov',
       specialistId: 'mock-specialist',
       name: 'Ivan Petrov',
       displayName: 'Ivan P.',
@@ -232,6 +235,7 @@ function createMockState(): TMockState {
     {
       id: 'mock-client-maria',
       telegramUserId: 103,
+      telegramUsername: 'maria_volkova',
       specialistId: 'mock-specialist',
       name: 'Maria Volkova',
       displayName: 'Maria',
@@ -694,6 +698,7 @@ function createBookingFromBody(
     clientPhotoUrl: client.photoUrl,
     clientIsGhost: client.isGhost,
     clientTelegramUserId: client.telegramUserId,
+    clientTelegramUsername: client.telegramUsername,
     clientMessage: getOptionalString(body.message),
     status: createdBy === 'specialist' || client.isGhost ? 'confirmed' : 'pending',
     durationMinutes: service.durationMinutes,

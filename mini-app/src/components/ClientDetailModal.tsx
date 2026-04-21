@@ -38,7 +38,7 @@ export function ClientDetailModal({
   }
 
   const displayName = displayClient.displayName || displayClient.name;
-  const canMessage = !displayClient.isGhost && displayClient.telegramUserId > 0;
+  const canMessage = !displayClient.isGhost && !!displayClient.telegramUsername;
 
   const createdDate = new Date(displayClient.createdAt);
   const dateFormatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'ru-RU', {
