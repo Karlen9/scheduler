@@ -439,6 +439,9 @@ func DeleteClientCascade(clientID string) error {
 	if _, err := tx.Exec(Q(`DELETE FROM recurring_schedules WHERE client_id = ?`), clientID); err != nil {
 		return err
 	}
+	if _, err := tx.Exec(Q(`DELETE FROM client_batches WHERE client_id = ?`), clientID); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(Q(`DELETE FROM clients WHERE id = ?`), clientID); err != nil {
 		return err
 	}

@@ -16,8 +16,8 @@ import "fmt"
 ***************************************************************************************************/
 func sessionTypeSelectColumns(alias string) string {
 	return fmt.Sprintf(
-		`%s.id, %s.specialist_id, %s.type, %s.name, %s.duration_minutes, %s.price, %s.currency, %s.image_url, %s.is_active`,
-		alias, alias, alias, alias, alias, alias, alias, alias, alias,
+		`%s.id, %s.specialist_id, %s.type, %s.name, %s.duration_minutes, %s.price, %s.currency, %s.image_url, %s.sessions_count, %s.is_active`,
+		alias, alias, alias, alias, alias, alias, alias, alias, alias, alias,
 	)
 }
 

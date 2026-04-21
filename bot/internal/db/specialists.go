@@ -670,6 +670,7 @@ func SoftDeleteSpecialistCascade(specialistID string) error {
 	deletions := []string{
 		`DELETE FROM bookings WHERE specialist_id = ?`,
 		`DELETE FROM recurring_schedules WHERE specialist_id = ?`,
+		`DELETE FROM client_batches WHERE specialist_id = ?`,
 		`DELETE FROM days_off WHERE specialist_id = ?`,
 		`DELETE FROM working_hours WHERE specialist_id = ?`,
 		`DELETE FROM session_types WHERE specialist_id = ?`,
