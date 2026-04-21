@@ -182,7 +182,7 @@ func setupWorkingHoursAndService(t *testing.T) {
 	* Create a session type (needed for booking creation).
 	***************************************************************************************************/
 	serviceBody := jsonBody(map[string]interface{}{
-		"type":            "personal",
+		"type":            "common",
 		"name":            "Personal Training",
 		"durationMinutes": 60,
 		"price":           1000,
@@ -261,6 +261,84 @@ func TestCreateAndGetBooking(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("booking %s not found in client's booking list", bookingID)
+	}
+}
+
+func TestAdminAssignClientBatch(t *testing.T) {
+	serviceBody := jsonBody(map[string]interface{}{
+		"type":            "batch",
+		"name":            "10 занятий",
+		"durationMinutes": 60,
+		"price":           10000,
+		"sessionsCount":   10,
+	})
+	w := doAdminRequest(t, http.MethodPost, "/api/admin/services", serviceBody)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("failed to create batch service: %d %s", w.Code, w.Body.String())
+	}
+	var service map[string]interface{}
+	parseJSON(t, w, &service)
+	serviceID, _ := service["id"].(string)
+	if serviceID == "" {
+		t.Fatal("expected service id")
+	}
+
+	clientBody := jsonBody(map[string]interface{}{"name": "Batch Client"})
+	w = doAdminRequest(t, http.MethodPost, "/api/admin/clients", clientBody)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("failed to create client: %d %s", w.Code, w.Body.String())
+	}
+	var client map[string]interface{}
+	parseJSON(t, w, &client)
+	clientID, _ := client["id"].(string)
+	if clientID == "" {
+		t.Fatal("expected client id")
+	}
+
+	assignBody := jsonBody(map[string]interface{}{"service_id": serviceID})
+	w = doAdminRequest(t, http.MethodPost, "/api/admin/clients/"+clientID+"/batches", assignBody)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 assigning batch, got %d: %s", w.Code, w.Body.String())
+	}
+	var batch map[string]interface{}
+	parseJSON(t, w, &batch)
+	if remaining, _ := batch["remainingSessions"].(float64); remaining != 10 {
+		t.Fatalf("expected 10 remaining sessions, got %v", batch["remainingSessions"])
+	}
+}
+
+func TestCreateBatchBookingRequiresActiveBatch(t *testing.T) {
+	setupWorkingHoursAndService(t)
+
+	serviceBody := jsonBody(map[string]interface{}{
+		"type":            "batch",
+		"name":            "Batch Guard",
+		"durationMinutes": 60,
+		"price":           10000,
+		"sessionsCount":   10,
+	})
+	w := doAdminRequest(t, http.MethodPost, "/api/admin/services", serviceBody)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("failed to create batch service: %d %s", w.Code, w.Body.String())
+	}
+	var service map[string]interface{}
+	parseJSON(t, w, &service)
+	serviceID, _ := service["id"].(string)
+
+	body := jsonBody(map[string]interface{}{
+		"date":          nextWeekday(time.Friday),
+		"time":          "16:00",
+		"duration":      60,
+		"name":          "No Batch Client",
+		"sessionTypeId": serviceID,
+	})
+	w = doClientRequest(t, http.MethodPost, "/api/bookings", body, 777777)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(strings.ToLower(w.Body.String()), "абонемент") {
+		t.Fatalf("expected clear batch error, got %q", w.Body.String())
 	}
 }
 

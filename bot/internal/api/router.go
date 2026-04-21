@@ -104,6 +104,7 @@ func NewRouter() http.Handler {
 		r.Get("/durations", HandleGetDurations)
 		r.Get("/bookings", HandleGetBookings)
 		r.Get("/stats", HandleGetClientStats)
+		r.Get("/batches", HandleGetClientBatches)
 		r.Get("/changes", HandleGetChangeVersions)
 		r.Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
@@ -181,6 +182,7 @@ func NewRouter() http.Handler {
 			r.Get("/stats", HandleGetAdminStats)
 			r.Post("/bookings", HandleAdminCreateBooking)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
+			r.Patch("/bookings/{id}/complete", HandleAdminCompleteBooking)
 			r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
 
 			/***************************************************************************************************
@@ -199,6 +201,8 @@ func NewRouter() http.Handler {
 			r.Put("/clients/{id}", HandleAdminUpdateClient)
 			r.Delete("/clients/{id}", HandleAdminDeleteClient)
 			r.Put("/clients/{id}/block", HandleAdminBlockClient)
+			r.Get("/clients/{id}/batches", HandleAdminGetClientBatches)
+			r.Post("/clients/{id}/batches", HandleAdminAssignClientBatch)
 
 			/***************************************************************************************************
 			* Profile management.

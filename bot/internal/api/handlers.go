@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"sort"
@@ -83,6 +84,11 @@ func resolveSessionTypeForBooking(specialistID, sessionTypeID string, duration i
 	}
 	if len(services) == 0 {
 		return nil, "Error.NoServices", nil
+	}
+	for i := range services {
+		if services[i].Type == "common" && services[i].DurationMinutes == duration {
+			return &services[i], "", nil
+		}
 	}
 	for i := range services {
 		if services[i].DurationMinutes == duration {
@@ -722,7 +728,7 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if completedCount > 0 {
-		changes.Publish(client.SpecialistID, changes.GroupBookings)
+		changes.Publish(client.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
 	}
 
 	bookings, err := db.GetBookingsByClientID(client.ID)
@@ -738,6 +744,27 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 
 	setNoStore(w)
 	writeJSON(w, bookings)
+}
+
+func HandleGetClientBatches(w http.ResponseWriter, r *http.Request) {
+	client := GetClientFromContext(r)
+	if client == nil {
+		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	batches, err := db.GetClientBatchesByClientID(client.ID, client.SpecialistID)
+	if err != nil {
+		log.Printf("Error getting client batches: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if batches == nil {
+		batches = []models.ClientBatch{}
+	}
+
+	setNoStore(w)
+	writeJSON(w, batches)
 }
 
 /***************************************************************************************************
@@ -969,6 +996,10 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 
 	booking, err := db.CreateBooking(specialist.ID, client.ID, sessionType.ID, startsAt, endsAt, clientName, req.Message, duration)
 	if err != nil {
+		if errors.Is(err, db.ErrNoActiveClientBatch) {
+			httpError(w, r, "Error.NoActiveBatch", http.StatusBadRequest)
+			return
+		}
 		log.Printf("Error creating booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
