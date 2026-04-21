@@ -368,7 +368,7 @@
     "linkCopied": "Link copied",
     "copyFailed": "Couldn't copy link",
     "shareTelegram": "Share on Telegram",
-    "shareText": "Try this Telegram booking platform — I'm already using it 👉 {link}",
+    "shareText": "Hey! I'm taking client bookings through Telegram — a handy mini-app for specialists.\n\n• 📅 Clients book 24/7, one-tap confirm\n• 🔔 Reminders for clients, notifications for me\n• 🔁 Recurring sessions\n• 👥 Client base with history\n• 📊 Revenue and workload analytics\n\nFree right now — alpha version. Setting up your own bot takes a couple of minutes:\n{link}",
     "statsActive": "Active",
     "statsPending": "Pending",
     "sectionActive": "Active",
