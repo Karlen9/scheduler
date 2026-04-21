@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -80,9 +81,9 @@ func AssignClientBatch(clientID, specialistID, serviceID string) (*models.Client
 
 	id := uuid.New().String()
 	_, err = DB.Exec(Q(`
-		INSERT INTO client_batches (id, client_id, specialist_id, service_id, total_sessions, remaining_sessions, status)
-		VALUES (?, ?, ?, ?, ?, ?, 'active')
-	`), id, clientID, specialistID, serviceID, service.SessionsCount, service.SessionsCount)
+		INSERT INTO client_batches (id, client_id, specialist_id, service_id, total_sessions, remaining_sessions, created_at, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+	`), id, clientID, specialistID, serviceID, service.SessionsCount, service.SessionsCount, time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}
