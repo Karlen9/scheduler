@@ -514,3 +514,22 @@ export function getSpecialistId(): string | null {
   }
   return sessionStorage.getItem('specialistId');
 }
+
+/***************************************************************************************************
+ * Opens a Telegram chat with a user by numeric id. Current Telegram clients accept `tg://user?id=X`
+ * via `openTelegramLink` even though the docs only mention `https://t.me/*` — this is the only path
+ * that keeps the mini app alive inside the Telegram webview. Outside Telegram (browser preview),
+ * fall back to `window.open` so the OS scheme handler can launch the native app.
+ ***************************************************************************************************/
+export function openTelegramUserChat(userId: number): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const url = `tg://user?id=${userId}`;
+  const webApp = getTelegramWebApp();
+  if (webApp?.openTelegramLink) {
+    webApp.openTelegramLink(url);
+    return;
+  }
+  window.open(url, '_blank');
+}

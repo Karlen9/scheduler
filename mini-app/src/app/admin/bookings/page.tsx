@@ -18,7 +18,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import { useAdminBookingsPage, useAdminServices, useClients } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { resolveTestAwareHref } from '@/lib/routes';
-import { getTelegramWebApp } from '@/lib/telegram';
+import { openTelegramUserChat } from '@/lib/telegram';
 
 import { CancelDialog } from '../CancelDialog';
 import { RejectDialog } from '../RejectDialog';
@@ -425,18 +425,7 @@ export default function AdminAllBookingsPage(): ReactNode {
       toast.error(t('dmUnavailable'));
       return;
     }
-
-    const url = `tg://user?id=${booking.clientTelegramUserId}`;
-    try {
-      const webApp = getTelegramWebApp();
-      if (webApp?.openTelegramLink) {
-        webApp.openTelegramLink(url);
-      } else {
-        window.location.href = url;
-      }
-    } catch {
-      window.location.href = url;
-    }
+    openTelegramUserChat(booking.clientTelegramUserId);
   };
 
   return (

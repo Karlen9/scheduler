@@ -15,7 +15,7 @@ import { invalidateBookings, invalidateClients, invalidateRecurring } from '@/ho
 import { useClients } from '@/hooks/queries';
 import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
-import { getTelegramWebApp } from '@/lib/telegram';
+import { openTelegramUserChat } from '@/lib/telegram';
 
 import type { TClientInfo } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -77,17 +77,7 @@ export default function AdminClientsPage(): ReactNode {
       toast.error(t('dmUnavailable'));
       return;
     }
-    const url = `tg://user?id=${client.telegramUserId}`;
-    try {
-      const webApp = getTelegramWebApp();
-      if (webApp?.openTelegramLink) {
-        webApp.openTelegramLink(url);
-      } else {
-        window.location.href = url;
-      }
-    } catch {
-      window.location.href = url;
-    }
+    openTelegramUserChat(client.telegramUserId);
   };
 
   const handleViewBookings = (client: TClientInfo): void => {

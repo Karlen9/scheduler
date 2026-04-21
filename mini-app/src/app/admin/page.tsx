@@ -16,7 +16,7 @@ import { useAdminBookings, useAdminScheduleContext, useAdminServices } from '@/h
 import { api } from '@/lib/api';
 import { getNonWorkingDays } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
-import { getTelegramWebApp } from '@/lib/telegram';
+import { openTelegramUserChat } from '@/lib/telegram';
 
 import { CancelDialog } from './CancelDialog';
 import { RejectDialog } from './RejectDialog';
@@ -265,18 +265,7 @@ export default function AdminHomePage(): ReactNode {
         toast.error(t('dmUnavailable'));
         return;
       }
-
-      const url = `tg://user?id=${booking.clientTelegramUserId}`;
-      try {
-        const webApp = getTelegramWebApp();
-        if (webApp?.openTelegramLink) {
-          webApp.openTelegramLink(url);
-        } else {
-          window.location.href = url;
-        }
-      } catch {
-        window.location.href = url;
-      }
+      openTelegramUserChat(booking.clientTelegramUserId);
     },
     [t],
   );
