@@ -60,11 +60,24 @@ export type TReferralClient = {
   isBlocked?: boolean;
 };
 
+export type TReferredSpecialist = {
+  id: string;
+  name: string;
+  botUsername: string;
+  createdAt: string;
+  firstPaymentAt?: string;
+  isActive: boolean;
+};
+
 export type TReferralsResponse = {
   code: string;
   link: string;
   count: number;
   referrals: TReferralClient[];
+  specialistCount: number;
+  activeCount: number;
+  passiveCount: number;
+  specialists: TReferredSpecialist[];
 };
 
 /***************************************************************************************************
