@@ -144,95 +144,156 @@
 /* ═══════════════════════════════════════════════ */
 :root.dark {
   /* Telegram fallbacks for dark dev mode */
-  --tg-theme-bg-color: #1e1e1e;
+  --tg-theme-bg-color: #17212b;
   --tg-theme-text-color: #ffffff;
-  --tg-theme-hint-color: #999999;
-  --tg-theme-link-color: #6ab2f2;
+  --tg-theme-hint-color: #708499;
+  --tg-theme-link-color: #6ab3f3;
   --tg-theme-button-color: #5288c1;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #2a2a2a;
-  --tg-theme-header-bg-color: #1e1e1e;
-  --tg-theme-section-bg-color: #1e1e1e;
-  --tg-theme-subtitle-text-color: #999999;
-  --tg-theme-destructive-text-color: #e53935;
+  --tg-theme-secondary-bg-color: #232e3c;
+  --tg-theme-header-bg-color: #17212b;
+  --tg-theme-section-bg-color: #232e3c;
+  --tg-theme-subtitle-text-color: #708499;
+  --tg-theme-destructive-text-color: #ec3942;
 
   /* Dark: page bg = primary (dark), cards = secondary (slightly lighter) */
   --background: var(--tg-theme-bg-color);
-  --card: var(--tg-theme-secondary-bg-color);
+  --card: color-mix(in srgb, var(--tg-theme-section-bg-color) 90%, var(--tg-theme-button-color));
 
-  --app-divider: rgba(255, 255, 255, 0.08);
-  --skeleton: rgba(0, 0, 0, 0.35);
-  --switch-background: #4a4a4a;
-  --bookings-bg: #0f0f0f;
+  --app-divider: color-mix(in srgb, var(--tg-theme-hint-color) 24%, transparent);
+  --skeleton: color-mix(in srgb, var(--tg-theme-button-color) 16%, transparent);
+  --switch-background: color-mix(
+    in srgb,
+    var(--tg-theme-hint-color) 32%,
+    var(--tg-theme-secondary-bg-color)
+  );
+  --bookings-bg: color-mix(in srgb, var(--tg-theme-button-color) 10%, var(--tg-theme-bg-color));
 
   /* App surface variants */
-  --surface: #2a2a2a;
-  --surface-hover: #3a3a3a;
-  --surface-border: #4a4a4a;
+  --surface: color-mix(
+    in srgb,
+    var(--tg-theme-secondary-bg-color) 86%,
+    var(--tg-theme-button-color)
+  );
+  --surface-hover: color-mix(
+    in srgb,
+    var(--tg-theme-secondary-bg-color) 76%,
+    var(--tg-theme-button-color)
+  );
+  --surface-border: color-mix(
+    in srgb,
+    var(--tg-theme-button-color) 34%,
+    var(--tg-theme-secondary-bg-color)
+  );
+  --brand: color-mix(in srgb, var(--tg-theme-button-color) 86%, var(--tg-theme-link-color));
+  --brand-hover: color-mix(in srgb, var(--tg-theme-button-color) 72%, var(--tg-theme-link-color));
 
   /* Status badge colors */
-  --status-pending-bg: rgba(113, 63, 18, 0.3);
-  --status-pending-text: #facc15;
-  --status-confirmed-bg: rgba(20, 83, 45, 0.3);
-  --status-confirmed-text: #4ade80;
-  --status-rejected-bg: rgba(127, 29, 29, 0.3);
-  --status-rejected-text: #f87171;
-  --status-cancelled-bg: rgba(55, 65, 81, 0.3);
-  --status-cancelled-text: #9ca3af;
-  --status-completed-bg: rgba(30, 58, 138, 0.3);
-  --status-completed-text: #60a5fa;
-  --status-warning-bg: rgba(124, 45, 18, 0.3);
-  --status-warning-text: #fb923c;
-  --status-purple-bg: rgba(88, 28, 135, 0.3);
-  --status-purple-text: #c084fc;
+  --status-pending-bg: color-mix(in srgb, var(--tg-theme-button-color) 18%, transparent);
+  --status-pending-text: color-mix(
+    in srgb,
+    var(--tg-theme-button-color) 72%,
+    var(--tg-theme-text-color)
+  );
+  --status-confirmed-bg: color-mix(in srgb, var(--tg-theme-link-color) 18%, transparent);
+  --status-confirmed-text: color-mix(
+    in srgb,
+    var(--tg-theme-link-color) 76%,
+    var(--tg-theme-text-color)
+  );
+  --status-rejected-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 20%, transparent);
+  --status-rejected-text: color-mix(
+    in srgb,
+    var(--tg-theme-destructive-text-color) 82%,
+    var(--tg-theme-text-color)
+  );
+  --status-cancelled-bg: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
+  --status-cancelled-text: var(--tg-theme-subtitle-text-color);
+  --status-completed-bg: color-mix(in srgb, var(--tg-theme-link-color) 22%, transparent);
+  --status-completed-text: var(--tg-theme-link-color);
+  --status-warning-bg: color-mix(in srgb, var(--tg-theme-button-color) 22%, transparent);
+  --status-warning-text: color-mix(
+    in srgb,
+    var(--tg-theme-button-color) 66%,
+    var(--tg-theme-text-color)
+  );
+  --status-purple-bg: color-mix(in srgb, var(--tg-theme-button-color) 16%, transparent);
+  --status-purple-text: color-mix(
+    in srgb,
+    var(--tg-theme-button-color) 52%,
+    var(--tg-theme-link-color)
+  );
 
   /* Status borders */
-  --status-pending-border: #eab308;
-  --status-confirmed-border: #22c55e;
-  --status-rejected-border: #ef4444;
-  --status-cancelled-border: #6b7280;
+  --status-pending-border: var(--tg-theme-button-color);
+  --status-confirmed-border: var(--tg-theme-link-color);
+  --status-rejected-border: var(--tg-theme-destructive-text-color);
+  --status-cancelled-border: var(--tg-theme-hint-color);
 
   /* Action buttons */
-  --action-success-bg: rgba(34, 197, 94, 0.2);
-  --action-success-text: #4ade80;
-  --action-danger-bg: rgba(239, 68, 68, 0.2);
-  --action-danger-text: #f87171;
-  --action-confirm-bg: rgba(22, 163, 74, 0.25);
-  --action-confirm-text: #4ade80;
+  --action-success-bg: color-mix(in srgb, var(--tg-theme-link-color) 22%, transparent);
+  --action-success-text: var(--tg-theme-link-color);
+  --action-danger-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 22%, transparent);
+  --action-danger-text: var(--tg-theme-destructive-text-color);
+  --action-confirm-bg: color-mix(
+    in srgb,
+    var(--tg-theme-button-color) 34%,
+    var(--tg-theme-bg-color)
+  );
+  --action-confirm-text: var(--tg-theme-button-text-color);
 
   /* Calendar day-off */
-  --dayoff-bg: rgba(127, 29, 29, 0.3);
-  --dayoff-text: #f87171;
+  --dayoff-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 20%, transparent);
+  --dayoff-text: var(--tg-theme-destructive-text-color);
 
   /* Tab bar */
-  --tab-bar-bg: #1c1c1e;
-  --tab-bar-border: #3a3a3a;
-  --tab-bar-indicator: #2c2c2e;
+  --tab-bar-bg: color-mix(
+    in srgb,
+    var(--tg-theme-secondary-bg-color) 90%,
+    var(--tg-theme-bg-color)
+  );
+  --tab-bar-border: color-mix(in srgb, var(--tg-theme-hint-color) 28%, transparent);
+  --tab-bar-indicator: color-mix(
+    in srgb,
+    var(--tg-theme-button-color) 20%,
+    var(--tg-theme-secondary-bg-color)
+  );
 
   /* Timeline booking blocks */
-  --timeline-1-bg: rgba(245, 166, 35, 0.15);
-  --timeline-1-border: #f5a623;
-  --timeline-2-bg: rgba(89, 132, 216, 0.15);
-  --timeline-2-border: #5984d8;
-  --timeline-3-bg: rgba(76, 175, 80, 0.15);
-  --timeline-3-border: #4caf50;
-  --timeline-4-bg: rgba(156, 39, 176, 0.15);
-  --timeline-4-border: #9c27b0;
+  --timeline-1-bg: color-mix(in srgb, var(--tg-theme-button-color) 18%, transparent);
+  --timeline-1-border: var(--tg-theme-button-color);
+  --timeline-2-bg: color-mix(in srgb, var(--tg-theme-link-color) 18%, transparent);
+  --timeline-2-border: var(--tg-theme-link-color);
+  --timeline-3-bg: color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent);
+  --timeline-3-border: var(--tg-theme-hint-color);
+  --timeline-4-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 16%, transparent);
+  --timeline-4-border: var(--tg-theme-destructive-text-color);
 
   /* Card outline */
-  --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --card-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tg-theme-button-color) 15%, transparent),
+    0 12px 36px color-mix(in srgb, var(--tg-theme-bg-color) 68%, transparent);
 
   /* Accent colors */
-  --warning: #f5a623;
-  --success: #4ade80;
-  --error: #ef4444;
+  --warning: var(--tg-theme-button-color);
+  --success: var(--tg-theme-link-color);
+  --error: var(--tg-theme-destructive-text-color);
+  --destructive-foreground: var(--tg-theme-button-text-color);
+  --chart-1: var(--tg-theme-button-color);
+  --chart-2: var(--tg-theme-link-color);
+  --chart-3: color-mix(in srgb, var(--tg-theme-button-color) 55%, var(--tg-theme-link-color));
+  --chart-4: color-mix(in srgb, var(--tg-theme-hint-color) 72%, var(--tg-theme-link-color));
+  --chart-5: var(--tg-theme-destructive-text-color);
 
   /* Sidebar */
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
+  --sidebar: var(--tg-theme-bg-color);
+  --sidebar-foreground: var(--tg-theme-text-color);
+  --sidebar-primary: var(--tg-theme-button-color);
+  --sidebar-primary-foreground: var(--tg-theme-button-text-color);
+  --sidebar-accent: var(--tg-theme-secondary-bg-color);
+  --sidebar-accent-foreground: var(--tg-theme-text-color);
+  --sidebar-border: var(--app-divider);
+  --sidebar-ring: var(--tg-theme-button-color);
 }
 
 @theme inline {
@@ -347,6 +408,15 @@
       BlinkMacSystemFont,
       'Segoe UI',
       sans-serif;
+  }
+
+  :root.dark body {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tg-theme-button-color) 12%, var(--background)) 0%,
+      var(--background) 42%,
+      color-mix(in srgb, var(--tg-theme-secondary-bg-color) 78%, var(--background)) 100%
+    );
   }
 
   /**

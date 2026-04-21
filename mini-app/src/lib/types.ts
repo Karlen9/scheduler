@@ -381,6 +381,10 @@ export type TTelegramWebApp = {
     button_color?: string;
     button_text_color?: string;
     secondary_bg_color?: string;
+    header_bg_color?: string;
+    section_bg_color?: string;
+    subtitle_text_color?: string;
+    destructive_text_color?: string;
   };
   initData: string;
   initDataUnsafe: {
