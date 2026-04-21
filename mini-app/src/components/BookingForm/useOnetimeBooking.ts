@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -39,6 +39,8 @@ export function useOnetimeBooking({
   successRedirect,
   initialDate,
   initialService,
+  initialTime,
+  initialComment,
 }: TUseOnetimeBookingParams): TUseOnetimeBookingReturn {
   /***************************************************************************************************
    * Defines the router value used by the component layer.
@@ -48,6 +50,7 @@ export function useOnetimeBooking({
    ***************************************************************************************************/
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   /***************************************************************************************************
    * Defines the t value used by the component layer.
    *
@@ -127,6 +130,8 @@ export function useOnetimeBooking({
 
   const appliedInitialServiceKeyRef = useRef<string | null>(null);
   const appliedInitialDateKeyRef = useRef<string | null>(null);
+  const appliedInitialTimeRef = useRef<string | null>(null);
+  const appliedInitialCommentRef = useRef<string | null>(null);
 
   /***************************************************************************************************
    * Helpers.
@@ -199,8 +204,12 @@ export function useOnetimeBooking({
     if (appliedInitialServiceKeyRef.current === initialService.id) {
       return;
     }
+    if (selectedService?.id === initialService.id) {
+      appliedInitialServiceKeyRef.current = initialService.id;
+      return;
+    }
     appliedInitialServiceKeyRef.current = initialService.id;
-    handleServiceSelect(initialService);
+    applyServiceSelection(initialService);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialService]);
 
@@ -220,19 +229,148 @@ export function useOnetimeBooking({
     if (appliedInitialDateKeyRef.current === key) {
       return;
     }
+    if (selectedDate && formatDateISO(selectedDate) === key) {
+      appliedInitialDateKeyRef.current = key;
+      return;
+    }
     appliedInitialDateKeyRef.current = key;
     setMode('single');
     setSelectedDate(initialDate);
     fetchSlots(initialDate, selectedService.durationMinutes);
-  }, [initialDate, selectedService, fetchSlots]);
+  }, [initialDate, selectedService, selectedDate, fetchSlots]);
+
+  /***************************************************************************************************
+   * Apply initialTime once both service and date are in place. Gated by ref + state-match so
+   * URL rewrites from user picks don't cause redundant re-applies.
+   ***************************************************************************************************/
+  useEffect(() => {
+    if (!initialTime || !selectedService || !selectedDate) {
+      return;
+    }
+    if (appliedInitialTimeRef.current === initialTime) {
+      return;
+    }
+    if (selectedTime === initialTime) {
+      appliedInitialTimeRef.current = initialTime;
+      return;
+    }
+    appliedInitialTimeRef.current = initialTime;
+    setSelectedTime(initialTime);
+  }, [initialTime, selectedService, selectedDate, selectedTime]);
+
+  /***************************************************************************************************
+   * Apply initialComment once on mount (ref-gated). Runs independently of other selections so a
+   * deep-link with just ?comment= still seeds the textarea.
+   ***************************************************************************************************/
+  useEffect(() => {
+    if (!initialComment) {
+      return;
+    }
+    if (appliedInitialCommentRef.current === initialComment) {
+      return;
+    }
+    if (message === initialComment) {
+      appliedInitialCommentRef.current = initialComment;
+      return;
+    }
+    appliedInitialCommentRef.current = initialComment;
+    setMessage(initialComment);
+  }, [initialComment, message]);
+
+  /***************************************************************************************************
+   * Sync search params for the single-mode flow so selections are reflected in the URL.
+   * Uses router.replace to avoid bloating history; preserves unrelated params (e.g. clientId).
+   ***************************************************************************************************/
+  /***************************************************************************************************
+   * A single object-shape payload avoids positional-arg ordering mistakes when callers add a new
+   * field. Every field is required (falsy = unset) so the URL always reflects the full flow state.
+   ***************************************************************************************************/
+  type TSingleUrlState = {
+    service: TSessionType | null;
+    date: Date | null;
+    time: string | null;
+    comment: string;
+  };
+
+  const syncSingleUrl = useCallback(
+    ({ service, date, time, comment }: TSingleUrlState): void => {
+      const next = new URLSearchParams();
+      for (const [key, value] of searchParams.entries()) {
+        if (key !== 'service' && key !== 'date' && key !== 'time' && key !== 'comment') {
+          next.append(key, value);
+        }
+      }
+      if (service) {
+        next.set('service', service.id);
+      }
+      if (date) {
+        next.set('date', formatDateISO(date));
+      }
+      if (time) {
+        next.set('time', time);
+      }
+      if (comment) {
+        next.set('comment', comment);
+      }
+      const desired = next.toString();
+      if (searchParams.toString() === desired) {
+        return;
+      }
+      router.replace(`${pathname}${desired ? `?${desired}` : ''}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+  /***************************************************************************************************
+   * Ref mirror so effects can call the latest syncSingleUrl without re-running on every URL change
+   * (syncSingleUrl's identity changes whenever searchParams does).
+   ***************************************************************************************************/
+  const syncSingleUrlRef = useRef(syncSingleUrl);
+  syncSingleUrlRef.current = syncSingleUrl;
+
+  /***************************************************************************************************
+   * Debounced comment-to-URL sync. Comment edits fire on every keystroke, so batching avoids an
+   * explosion of router.replace calls while still restoring on reload.
+   ***************************************************************************************************/
+  const commentSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (commentSyncTimerRef.current) {
+        clearTimeout(commentSyncTimerRef.current);
+      }
+    };
+  }, []);
+
+  /***************************************************************************************************
+   * If the selected time isn't available in the currently loaded slots (e.g. user changed the day
+   * and the same clock time isn't offered or is booked), clear it so the UI and URL stay honest.
+   ***************************************************************************************************/
+  useEffect(() => {
+    if (!selectedTime || isLoadingSlots || timeSlots.length === 0) {
+      return;
+    }
+    const isValid = timeSlots.some((s) => s.time === selectedTime && s.available);
+    if (isValid) {
+      return;
+    }
+    setSelectedTime(null);
+    syncSingleUrlRef.current({
+      service: selectedService,
+      date: selectedDate,
+      time: null,
+      comment: message,
+    });
+  }, [timeSlots, selectedTime, isLoadingSlots, selectedService, selectedDate, message]);
 
   /***************************************************************************************************
    * Service handlers.
    *
+   * Internal worker sets state without touching the URL — used by the initial-apply effect so
+   * that seeding state from incoming search params doesn't clobber the other params.
+   *
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const handleServiceSelect = (service: TSessionType): void => {
+  const applyServiceSelection = (service: TSessionType): boolean => {
     /***************************************************************************************************
      * Defines the changed value used by the component layer.
      *
@@ -251,6 +389,17 @@ export function useOnetimeBooking({
       setTimeSlots([]);
       setNoSlotsAvailable(false);
     }
+    return changed;
+  };
+
+  const handleServiceSelect = (service: TSessionType): void => {
+    const changed = applyServiceSelection(service);
+    syncSingleUrl({
+      service,
+      date: changed ? null : selectedDate,
+      time: changed ? null : selectedTime,
+      comment: message,
+    });
   };
 
   /***************************************************************************************************
@@ -269,6 +418,12 @@ export function useOnetimeBooking({
     setTimeAssignments({});
     setTimeSlots([]);
     setNoSlotsAvailable(false);
+    setMessage('');
+    if (commentSyncTimerRef.current) {
+      clearTimeout(commentSyncTimerRef.current);
+      commentSyncTimerRef.current = null;
+    }
+    syncSingleUrl({ service: null, date: null, time: null, comment: '' });
   };
 
   /***************************************************************************************************
@@ -279,10 +434,10 @@ export function useOnetimeBooking({
    ***************************************************************************************************/
   const handleSingleDateSelect = (date: Date): void => {
     setSelectedDate(date);
-    setSelectedTime(null);
     if (selectedService) {
       fetchSlots(date, selectedService.durationMinutes);
     }
+    syncSingleUrl({ service: selectedService, date, time: selectedTime, comment: message });
   };
 
   /***************************************************************************************************
@@ -293,6 +448,27 @@ export function useOnetimeBooking({
    ***************************************************************************************************/
   const handleSingleTimeSelect = (time: string): void => {
     setSelectedTime(time);
+    syncSingleUrl({ service: selectedService, date: selectedDate, time, comment: message });
+  };
+
+  /***************************************************************************************************
+   * Wraps setMessage so keystrokes also reflect into the URL (?comment=), debounced so a long
+   * comment doesn't trigger a router.replace per character.
+   ***************************************************************************************************/
+  const handleMessageChange = (value: string): void => {
+    setMessage(value);
+    if (commentSyncTimerRef.current) {
+      clearTimeout(commentSyncTimerRef.current);
+    }
+    commentSyncTimerRef.current = setTimeout(() => {
+      syncSingleUrlRef.current({
+        service: selectedService,
+        date: selectedDate,
+        time: selectedTime,
+        comment: value,
+      });
+      commentSyncTimerRef.current = null;
+    }, 200);
   };
 
   /***************************************************************************************************
@@ -699,7 +875,7 @@ export function useOnetimeBooking({
     timeSlots,
     isLoadingSlots,
     message,
-    setMessage,
+    setMessage: handleMessageChange,
     multiActiveTime,
     onetimeButtonText,
     onetimeButtonDisabled,

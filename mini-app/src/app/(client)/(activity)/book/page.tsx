@@ -57,6 +57,8 @@ function ClientBookContent(): ReactNode {
     () => services.find((s) => s.id === initialServiceId),
     [services, initialServiceId],
   );
+  const initialTime = searchParams.get('time') ?? undefined;
+  const initialComment = searchParams.get('comment') ?? undefined;
 
   /***************************************************************************************************
    * Defines the days off value used by the page layer.
@@ -90,6 +92,8 @@ function ClientBookContent(): ReactNode {
       title={t('title')}
       initialDate={initialDate}
       initialService={initialService}
+      initialTime={initialTime}
+      initialComment={initialComment}
       onCreateBooking={async (params) => {
         /***************************************************************************************************
          * Defines the name value used by the page layer.
