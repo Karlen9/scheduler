@@ -1,16 +1,15 @@
 'use client';
 
-import { Copy, Gift, Send, Users } from 'lucide-react';
+import { Clock, Copy, Gift, Send, UserCircle2, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 
-import { ClientAvatar } from '@/components/ClientAvatar';
 import { TopBar } from '@/components/TopBar';
 import { useAdminReferrals } from '@/hooks/queries';
 import { getTelegramWebApp } from '@/lib/telegram';
 
-import type { TReferralClient } from '@/lib/types';
+import type { TReferredSpecialist } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 export default function ReferralsPage(): ReactNode {
@@ -19,8 +18,16 @@ export default function ReferralsPage(): ReactNode {
   const { data, isLoading } = useAdminReferrals();
 
   const link = data?.link ?? '';
-  const referrals = data?.referrals ?? [];
-  const count = data?.count ?? 0;
+  const specialists = data?.specialists ?? [];
+  const activeCount = data?.activeCount ?? 0;
+  const pendingCount = data?.passiveCount ?? 0;
+
+  const active = specialists
+    .filter((s) => s.isActive)
+    .sort((a, b) => (b.firstPaymentAt ?? '').localeCompare(a.firstPaymentAt ?? ''));
+  const pending = specialists
+    .filter((s) => !s.isActive)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const handleCopy = useCallback(async (): Promise<void> => {
     if (!link) {
@@ -68,6 +75,8 @@ export default function ReferralsPage(): ReactNode {
       year: 'numeric',
     });
   };
+
+  const bothEmpty = active.length === 0 && pending.length === 0;
 
   return (
     <div>
@@ -128,68 +137,121 @@ export default function ReferralsPage(): ReactNode {
           </div>
         </div>
 
-        <div className={'bg-card flex items-center justify-between rounded-xl p-4'}>
-          <div className={'flex items-center gap-3'}>
-            <div
-              className={
-                'bg-success/15 text-success flex h-10 w-10 items-center justify-center rounded-lg'
-              }
-            >
-              <Users className={'h-5 w-5'} />
-            </div>
-            <span className={'text-foreground text-sm'}>{t('statsCount')}</span>
-          </div>
-          <span className={'text-foreground text-2xl font-semibold tabular-nums'}>{count}</span>
+        <div className={'grid grid-cols-2 gap-3'}>
+          <StatTile
+            icon={<Users className={'h-5 w-5'} />}
+            accent={'success'}
+            label={t('statsActive')}
+            value={activeCount}
+          />
+          <StatTile
+            icon={<Clock className={'h-5 w-5'} />}
+            accent={'muted'}
+            label={t('statsPending')}
+            value={pendingCount}
+          />
         </div>
 
-        <div>
-          <h3 className={'text-muted-foreground mb-2 px-1 text-xs tracking-wide uppercase'}>
-            {t('referralsTitle')}
-          </h3>
-          {referrals.length === 0 ? (
-            <div
-              className={'bg-card text-muted-foreground rounded-xl px-4 py-8 text-center text-sm'}
-            >
-              {t('referralsEmpty')}
-            </div>
-          ) : (
-            <div className={'bg-card divide-border divide-y overflow-hidden rounded-xl'}>
-              {referrals.map((r) => (
-                <ReferralRow
-                  key={r.id}
-                  item={r}
-                  formatDate={formatDate}
-                  blockedLabel={t('blocked')}
-                />
-              ))}
-            </div>
-          )}
+        {bothEmpty ? (
+          <div className={'bg-card text-muted-foreground rounded-xl px-4 py-8 text-center text-sm'}>
+            {t('listEmpty')}
+          </div>
+        ) : (
+          <>
+            {active.length > 0 && (
+              <SpecialistSection
+                title={t('sectionActive')}
+                items={active}
+                dateLabel={(s) =>
+                  t('activatedOn', { date: formatDate(s.firstPaymentAt ?? s.createdAt) })
+                }
+              />
+            )}
+            {pending.length > 0 && (
+              <SpecialistSection
+                title={t('sectionPending')}
+                items={pending}
+                dateLabel={(s) => t('joinedOn', { date: formatDate(s.createdAt) })}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatTile({
+  icon,
+  accent,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  accent: 'success' | 'muted';
+  label: string;
+  value: number;
+}): ReactNode {
+  const accentClasses =
+    accent === 'success' ? 'bg-success/15 text-success' : 'bg-surface-hover text-muted-foreground';
+  return (
+    <div className={'bg-card rounded-xl p-4'}>
+      <div className={'flex items-center gap-3'}>
+        <div className={`${accentClasses} flex h-10 w-10 items-center justify-center rounded-lg`}>
+          {icon}
+        </div>
+        <div className={'min-w-0'}>
+          <div className={'text-muted-foreground text-xs tracking-wide uppercase'}>{label}</div>
+          <div className={'text-foreground text-2xl font-semibold tabular-nums'}>{value}</div>
         </div>
       </div>
     </div>
   );
 }
 
-function ReferralRow({
-  item,
-  formatDate,
-  blockedLabel,
+function SpecialistSection({
+  title,
+  items,
+  dateLabel,
 }: {
-  item: TReferralClient;
-  formatDate: (iso: string) => string;
-  blockedLabel: string;
+  title: string;
+  items: TReferredSpecialist[];
+  dateLabel: (s: TReferredSpecialist) => string;
 }): ReactNode {
-  const displayName = item.displayName || item.name;
+  return (
+    <div>
+      <h3 className={'text-muted-foreground mb-2 px-1 text-xs tracking-wide uppercase'}>{title}</h3>
+      <div className={'bg-card divide-border divide-y overflow-hidden rounded-xl'}>
+        {items.map((s) => (
+          <SpecialistRow key={s.id} item={s} subtitle={dateLabel(s)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SpecialistRow({
+  item,
+  subtitle,
+}: {
+  item: TReferredSpecialist;
+  subtitle: string;
+}): ReactNode {
   return (
     <div className={'flex items-center gap-3 px-4 py-3'}>
-      <ClientAvatar name={displayName} photoUrl={item.photoUrl} size={'md'} />
-      <div className={'min-w-0 flex-1'}>
-        <div className={'text-foreground truncate text-sm font-medium'}>{displayName}</div>
-        <div className={'text-muted-foreground truncate text-xs'}>{formatDate(item.createdAt)}</div>
+      <div
+        className={
+          'bg-surface-hover text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full'
+        }
+      >
+        <UserCircle2 className={'h-5 w-5'} />
       </div>
-      {item.isBlocked && (
-        <span className={'bg-error/15 text-error rounded px-2 py-0.5 text-xs'}>{blockedLabel}</span>
-      )}
+      <div className={'min-w-0 flex-1'}>
+        <div className={'text-foreground truncate text-sm font-medium'}>{item.name}</div>
+        <div className={'text-muted-foreground truncate text-xs'}>
+          {item.botUsername ? `@${item.botUsername} · ${subtitle}` : subtitle}
+        </div>
+      </div>
     </div>
   );
 }
