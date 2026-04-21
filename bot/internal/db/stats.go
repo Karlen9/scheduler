@@ -345,7 +345,10 @@ func GetAdminStats(specialistID, timezone string) (*models.AdminStats, error) {
 	}
 
 	revenueServiceRows, err := DB.Query(Q(`
-		SELECT st.name, COALESCE(SUM(st.price), 0) AS revenue
+		SELECT st.name, COALESCE(SUM(CASE
+			WHEN st.type = 'batch' AND st.sessions_count > 1 THEN st.price / st.sessions_count
+			ELSE st.price
+		END), 0) AS revenue
 		FROM bookings b
 		JOIN session_types st ON st.id = b.session_type_id
 		WHERE b.specialist_id = ? AND b.status = 'completed' AND st.price > 0
@@ -391,7 +394,7 @@ func buildMonthlySeriesQuery(aggregation, timeColumn, whereClause string, monthC
 	aggregateFn := "SUM"
 	fromClause := "FROM bookings"
 	if aggregation == "REVENUE" {
-		valueExpr = "COALESCE(st.price, 0)"
+		valueExpr = "COALESCE(CASE WHEN st.type = 'batch' AND st.sessions_count > 1 THEN st.price / st.sessions_count ELSE st.price END, 0)"
 		fromClause = "FROM bookings b JOIN session_types st ON st.id = b.session_type_id"
 	}
 

@@ -12,6 +12,7 @@ const (
 	GroupRecurring          Group = "recurring"
 	GroupClients            Group = "clients"
 	GroupServices           Group = "services"
+	GroupClientBatches      Group = "clientBatches"
 	GroupWorkingHours       Group = "workingHours"
 	GroupDaysOff            Group = "daysOff"
 	GroupSpecialist         Group = "specialist"
@@ -24,6 +25,7 @@ var allGroups = []Group{
 	GroupRecurring,
 	GroupClients,
 	GroupServices,
+	GroupClientBatches,
 	GroupWorkingHours,
 	GroupDaysOff,
 	GroupSpecialist,
