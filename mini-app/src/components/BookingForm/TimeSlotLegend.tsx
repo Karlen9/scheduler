@@ -24,16 +24,16 @@ export function TimeSlotLegend({
   return (
     <div className={'mb-3 flex items-center gap-4'}>
       <div className={'flex items-center gap-1.5'}>
-        <span className={'bg-brand h-2.5 w-2.5 rounded-full'} />
+        <span className={'bg-card border-border h-3 w-3 rounded border'} />
         <span className={'text-muted-foreground text-xs'}>{availableLabel}</span>
       </div>
       <div className={'flex items-center gap-1.5'}>
-        <span className={'bg-error h-2.5 w-2.5 rounded-full'} />
+        <span className={'bg-error/15 h-3 w-3 rounded'} />
         <span className={'text-muted-foreground text-xs'}>{occupiedLabel}</span>
       </div>
       {mineLabel && (
         <div className={'flex items-center gap-1.5'}>
-          <span className={'bg-success h-2.5 w-2.5 rounded-full'} />
+          <span className={'bg-success/15 h-3 w-3 rounded'} />
           <span className={'text-muted-foreground text-xs'}>{mineLabel}</span>
         </div>
       )}
