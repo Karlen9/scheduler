@@ -122,17 +122,17 @@ export function setThemePreference(pref: TThemePreference): void {
 }
 
 const darkThemeVars: Record<string, string> = {
-  '--tg-theme-bg-color': '#1e1e1e',
+  '--tg-theme-bg-color': '#17212b',
   '--tg-theme-text-color': '#ffffff',
-  '--tg-theme-hint-color': '#999999',
-  '--tg-theme-link-color': '#6ab2f2',
+  '--tg-theme-hint-color': '#708499',
+  '--tg-theme-link-color': '#6ab3f3',
   '--tg-theme-button-color': '#5288c1',
   '--tg-theme-button-text-color': '#ffffff',
-  '--tg-theme-secondary-bg-color': '#2a2a2a',
-  '--tg-theme-header-bg-color': '#1e1e1e',
-  '--tg-theme-section-bg-color': '#1e1e1e',
-  '--tg-theme-subtitle-text-color': '#999999',
-  '--tg-theme-destructive-text-color': '#e53935',
+  '--tg-theme-secondary-bg-color': '#232e3c',
+  '--tg-theme-header-bg-color': '#17212b',
+  '--tg-theme-section-bg-color': '#232e3c',
+  '--tg-theme-subtitle-text-color': '#708499',
+  '--tg-theme-destructive-text-color': '#ec3942',
 };
 
 const lightThemeVars: Record<string, string> = {
@@ -204,10 +204,14 @@ function getTelegramThemeVars(webApp: TTelegramWebApp | null): Record<string, st
       themeParams.button_text_color ?? fallbackVars['--tg-theme-button-text-color'],
     '--tg-theme-secondary-bg-color':
       themeParams.secondary_bg_color ?? fallbackVars['--tg-theme-secondary-bg-color'],
-    '--tg-theme-header-bg-color': fallbackVars['--tg-theme-header-bg-color'],
-    '--tg-theme-section-bg-color': fallbackVars['--tg-theme-section-bg-color'],
-    '--tg-theme-subtitle-text-color': fallbackVars['--tg-theme-subtitle-text-color'],
-    '--tg-theme-destructive-text-color': fallbackVars['--tg-theme-destructive-text-color'],
+    '--tg-theme-header-bg-color':
+      themeParams.header_bg_color ?? fallbackVars['--tg-theme-header-bg-color'],
+    '--tg-theme-section-bg-color':
+      themeParams.section_bg_color ?? fallbackVars['--tg-theme-section-bg-color'],
+    '--tg-theme-subtitle-text-color':
+      themeParams.subtitle_text_color ?? fallbackVars['--tg-theme-subtitle-text-color'],
+    '--tg-theme-destructive-text-color':
+      themeParams.destructive_text_color ?? fallbackVars['--tg-theme-destructive-text-color'],
   };
 }
 
