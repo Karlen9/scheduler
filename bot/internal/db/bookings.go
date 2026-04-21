@@ -33,15 +33,56 @@ import (
 func CreateBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(Q(`
-		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-	`), id, specialistID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
-	if err != nil {
+	if err := insertBooking(id, specialistID, clientID, sessionTypeID, "", startsAt, endsAt, clientName, clientMessage, models.BookingStatusPending, durationMinutes, "", "", ""); err != nil {
 		return nil, err
 	}
 
 	return GetBookingByID(id)
+}
+
+func insertBooking(id, specialistID, clientID, sessionTypeID, clientBatchID string, startsAt, endsAt time.Time, clientName, clientMessage string, status models.BookingStatus, durationMinutes int, createdBy, recurringScheduleID, replacesBookingID string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	batchID := sql.NullString{}
+	if clientBatchID != "" {
+		batchID = sql.NullString{String: clientBatchID, Valid: true}
+	} else {
+		batchID, err = attachClientBatchForServiceTx(tx, clientID, specialistID, sessionTypeID)
+		if err != nil {
+			return err
+		}
+	}
+
+	var createdByValue interface{}
+	if createdBy != "" {
+		createdByValue = createdBy
+	}
+	var recurringScheduleValue interface{}
+	if recurringScheduleID != "" {
+		recurringScheduleValue = recurringScheduleID
+	}
+	var replacesBookingValue interface{}
+	if replacesBookingID != "" {
+		replacesBookingValue = replacesBookingID
+	}
+	var clientBatchValue interface{}
+	if batchID.Valid {
+		clientBatchValue = batchID.String
+	}
+
+	_, err = tx.Exec(Q(`
+		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, client_batch_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, created_by, recurring_schedule_id, replaces_booking_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`), id, specialistID, clientID, sessionTypeID, clientBatchValue, startsAt, endsAt, clientName, clientMessage, status, durationMinutes, createdByValue, recurringScheduleValue, replacesBookingValue)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 /***************************************************************************************************
@@ -53,7 +94,7 @@ func CreateBooking(specialistID, clientID, sessionTypeID string, startsAt, endsA
 ***************************************************************************************************/
 var bookingColumns = `b.id, b.specialist_id, b.client_id, b.session_type_id, b.starts_at, b.ends_at,
 	b.client_name, b.client_message, b.status, b.cancel_reason, b.cancelled_by, b.created_at,
-	b.duration_minutes, b.created_by, b.recurring_schedule_id, b.replaces_booking_id, ` +
+	b.duration_minutes, b.created_by, b.recurring_schedule_id, b.replaces_booking_id, b.client_batch_id, ` +
 	clientMetadataSelectColumns("c") + `, COALESCE(c.is_ghost, 0), COALESCE(c.telegram_user_id, 0), COALESCE(c.telegram_username, ''), ` + sessionTypeSelectColumns("st")
 
 /***************************************************************************************************
@@ -113,6 +154,7 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	var createdBy sql.NullString
 	var recurringScheduleID sql.NullString
 	var replacesBookingID sql.NullString
+	var clientBatchID sql.NullString
 	var clientIsGhost sql.NullInt64
 	var clientTelegramID sql.NullInt64
 	var clientTelegramUsername sql.NullString
@@ -121,7 +163,7 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	dest := append([]interface{}{
 		&b.ID, &b.SpecialistID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
-		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &b.ClientPhotoURL, &b.ClientDisplayName,
+		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &clientBatchID, &b.ClientPhotoURL, &b.ClientDisplayName,
 		&clientIsGhost, &clientTelegramID, &clientTelegramUsername,
 	}, sessionType.scanDest()...)
 
@@ -150,6 +192,9 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	}
 	if replacesBookingID.Valid {
 		b.ReplacesBookingID = replacesBookingID.String
+	}
+	if clientBatchID.Valid {
+		b.ClientBatchID = clientBatchID.String
 	}
 	b.ClientIsGhost = clientIsGhost.Valid && clientIsGhost.Int64 == 1
 	if clientTelegramID.Valid {
@@ -297,8 +342,66 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func UpdateBookingStatus(bookingID string, status models.BookingStatus) error {
-	_, err := DB.Exec(Q(`UPDATE bookings SET status = ? WHERE id = ?`), status, bookingID)
-	return err
+	return updateBookingStatus(bookingID, status, nil, nil)
+}
+
+func updateBookingStatus(bookingID string, status models.BookingStatus, reason *string, cancelledBy *models.CancelledBy) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var oldStatus models.BookingStatus
+	var clientBatchID sql.NullString
+	var clientID, specialistID, sessionTypeID string
+	var serviceType sql.NullString
+	err = tx.QueryRow(Q(`
+		SELECT b.status, b.client_batch_id, b.client_id, b.specialist_id, b.session_type_id, st.type
+		FROM bookings b
+		LEFT JOIN session_types st ON st.id = b.session_type_id
+		WHERE b.id = ?
+	`), bookingID).Scan(&oldStatus, &clientBatchID, &clientID, &specialistID, &sessionTypeID, &serviceType)
+	if err != nil {
+		return err
+	}
+
+	var reasonValue interface{}
+	if reason != nil && *reason != "" {
+		reasonValue = *reason
+	}
+	var cancelledByValue interface{}
+	if cancelledBy != nil && *cancelledBy != "" {
+		cancelledByValue = *cancelledBy
+	}
+
+	switch status {
+	case models.BookingStatusRejected:
+		_, err = tx.Exec(Q(`UPDATE bookings SET status = ?, cancel_reason = ?, cancelled_by = NULL WHERE id = ?`), status, reasonValue, bookingID)
+	case models.BookingStatusCancelled:
+		_, err = tx.Exec(Q(`UPDATE bookings SET status = ?, cancel_reason = ?, cancelled_by = ? WHERE id = ?`), status, reasonValue, cancelledByValue, bookingID)
+	default:
+		_, err = tx.Exec(Q(`UPDATE bookings SET status = ? WHERE id = ?`), status, bookingID)
+	}
+	if err != nil {
+		return err
+	}
+
+	if oldStatus != models.BookingStatusCompleted && status == models.BookingStatusCompleted && serviceType.String == "batch" {
+		if err := consumeClientBatchForBookingTx(tx, bookingID, clientID, specialistID, sessionTypeID); err != nil {
+			return err
+		}
+	}
+
+	if oldStatus == models.BookingStatusCompleted &&
+		(status == models.BookingStatusCancelled || status == models.BookingStatusRejected) &&
+		clientBatchID.Valid {
+		if err := refundClientBatchTx(tx, clientBatchID.String); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 /***************************************************************************************************
@@ -315,9 +418,9 @@ func UpdateBookingStatus(bookingID string, status models.BookingStatus) error {
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Time) (int, error) {
-	result, err := DB.Exec(Q(`
-		UPDATE bookings
-		SET status = 'completed'
+	rows, err := DB.Query(Q(`
+		SELECT id
+		FROM bookings
 		WHERE specialist_id = ?
 		  AND status = 'confirmed'
 		  AND starts_at <= ?
@@ -325,9 +428,26 @@ func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Ti
 	if err != nil {
 		return 0, err
 	}
+	defer rows.Close()
 
-	rowsAffected, err := result.RowsAffected()
-	return int(rowsAffected), err
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return 0, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+
+	for _, id := range ids {
+		if err := UpdateBookingStatus(id, models.BookingStatusCompleted); err != nil {
+			return 0, err
+		}
+	}
+	return len(ids), nil
 }
 
 /***************************************************************************************************
@@ -345,12 +465,7 @@ func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Ti
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func CancelBooking(bookingID string, reason string, cancelledBy models.CancelledBy) error {
-	_, err := DB.Exec(Q(`
-		UPDATE bookings
-		SET status = 'cancelled', cancel_reason = ?, cancelled_by = ?
-		WHERE id = ?
-	`), reason, cancelledBy, bookingID)
-	return err
+	return updateBookingStatus(bookingID, models.BookingStatusCancelled, &reason, &cancelledBy)
 }
 
 /***************************************************************************************************
@@ -359,16 +474,7 @@ func CancelBooking(bookingID string, reason string, cancelledBy models.Cancelled
 * from CancelBooking so downstream consumers (notifications, analytics) can tell them apart.
 ***************************************************************************************************/
 func RejectBookingWithReason(bookingID, reason string) error {
-	var reasonVal interface{}
-	if reason != "" {
-		reasonVal = reason
-	}
-	_, err := DB.Exec(Q(`
-		UPDATE bookings
-		SET status = 'rejected', cancel_reason = ?, cancelled_by = NULL
-		WHERE id = ?
-	`), reasonVal, bookingID)
-	return err
+	return updateBookingStatus(bookingID, models.BookingStatusRejected, &reason, nil)
 }
 
 /***************************************************************************************************
@@ -664,11 +770,7 @@ func ClientHasBookingOnDate(clientID string, date time.Time) (bool, error) {
 func CreateBookingBySpecialist(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, clientMessage string, durationMinutes int) (*models.Booking, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(Q(`
-		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'specialist')
-	`), id, specialistID, clientID, sessionTypeID, startsAt, endsAt, clientName, clientMessage, durationMinutes)
-	if err != nil {
+	if err := insertBooking(id, specialistID, clientID, sessionTypeID, "", startsAt, endsAt, clientName, clientMessage, models.BookingStatusPending, durationMinutes, "specialist", "", ""); err != nil {
 		return nil, err
 	}
 
@@ -697,11 +799,7 @@ func CreateBookingBySpecialist(specialistID, clientID, sessionTypeID string, sta
 func CreateRecurringBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID string) (*models.Booking, error) {
 	id := uuid.New().String()
 
-	_, err := DB.Exec(Q(`
-		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, '', 'confirmed', ?, ?)
-	`), id, specialistID, clientID, sessionTypeID, startsAt, endsAt, clientName, durationMinutes, recurringScheduleID)
-	if err != nil {
+	if err := insertBooking(id, specialistID, clientID, sessionTypeID, "", startsAt, endsAt, clientName, "", models.BookingStatusConfirmed, durationMinutes, "", recurringScheduleID, ""); err != nil {
 		return nil, err
 	}
 
@@ -773,12 +871,15 @@ func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
 ***************************************************************************************************/
 func CreateRescheduleBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName, message, createdBy string, durationMinutes int, recurringScheduleID, replacesBookingID string) (*models.Booking, error) {
 	id := uuid.New().String()
+	var clientBatchID string
+	if replacesBookingID != "" {
+		var batchID sql.NullString
+		if err := DB.QueryRow(Q(`SELECT client_batch_id FROM bookings WHERE id = ?`), replacesBookingID).Scan(&batchID); err == nil && batchID.Valid {
+			clientBatchID = batchID.String
+		}
+	}
 
-	_, err := DB.Exec(Q(`
-		INSERT INTO bookings (id, specialist_id, client_id, session_type_id, starts_at, ends_at, client_name, client_message, status, duration_minutes, recurring_schedule_id, replaces_booking_id, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reschedule_pending', ?, ?, ?, ?)
-	`), id, specialistID, clientID, sessionTypeID, startsAt, endsAt, clientName, message, durationMinutes, recurringScheduleID, replacesBookingID, createdBy)
-	if err != nil {
+	if err := insertBooking(id, specialistID, clientID, sessionTypeID, clientBatchID, startsAt, endsAt, clientName, message, models.BookingStatusReschedulePending, durationMinutes, createdBy, recurringScheduleID, replacesBookingID); err != nil {
 		return nil, err
 	}
 
