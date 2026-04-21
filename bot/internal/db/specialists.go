@@ -469,7 +469,7 @@ func GetReferredClientsBySpecialist(specialistID, referralCode string) ([]models
 		return []models.Client{}, nil
 	}
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, referred_via_code
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, referred_via_code, telegram_username
 		FROM clients
 		WHERE specialist_id = ? AND referred_via_code = ? AND COALESCE(is_ghost, 0) = 0
 		ORDER BY created_at DESC
