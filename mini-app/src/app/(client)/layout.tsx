@@ -3,7 +3,7 @@
 import { CalendarDays, House, User } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { BottomTabBar } from '@/components/BottomTabBar';
 import { TelegramBackButtonProvider } from '@/components/TelegramBackButtonProvider';
@@ -92,8 +92,25 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     [bookHref, bookingsHref, homeHref, profileHref, recurringHref, tn],
   );
 
+  /***************************************************************************************************
+   * Track whether the user has navigated within the app since the layout mounted. A direct deep-link
+   * into /profile has no prior in-app entry, so Telegram's back button should fall back to home
+   * instead of leaving the mini-app via the webview's outer history stack.
+   ***************************************************************************************************/
+  const hasNavigatedRef = useRef(false);
+  const mountPathnameRef = useRef(pathname);
+  useEffect(() => {
+    if (pathname !== mountPathnameRef.current) {
+      hasNavigatedRef.current = true;
+    }
+  }, [pathname]);
+
   const handleBack = useCallback((): void => {
-    router.push(homeHref);
+    if (hasNavigatedRef.current) {
+      router.back();
+      return;
+    }
+    router.replace(homeHref);
   }, [homeHref, router]);
 
   return (
