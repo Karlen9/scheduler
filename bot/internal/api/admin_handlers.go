@@ -227,6 +227,7 @@ type CreateSessionTypeRequest struct {
 	Price           int    `json:"price"`
 	Currency        string `json:"currency,omitempty"`
 	ImageURL        string `json:"imageUrl,omitempty"`
+	SessionsCount   int    `json:"sessionsCount,omitempty"`
 }
 
 /***************************************************************************************************
@@ -239,7 +240,24 @@ type UpdateSessionTypeRequest struct {
 	Price           *int    `json:"price,omitempty"`
 	Currency        string  `json:"currency,omitempty"`
 	ImageURL        *string `json:"imageUrl,omitempty"`
+	SessionsCount   *int    `json:"sessionsCount,omitempty"`
 	IsActive        *bool   `json:"isActive,omitempty"`
+}
+
+func isValidServiceType(serviceType string) bool {
+	return serviceType == "common" || serviceType == "batch"
+}
+
+func validateServiceTypeConfig(w http.ResponseWriter, r *http.Request, serviceType string, sessionsCount int) bool {
+	if !isValidServiceType(serviceType) {
+		httpError(w, r, "Error.InvalidServiceType", http.StatusBadRequest)
+		return false
+	}
+	if serviceType == "batch" && sessionsCount <= 1 {
+		httpError(w, r, "Error.InvalidSessionsCount", http.StatusBadRequest)
+		return false
+	}
+	return true
 }
 
 /***************************************************************************************************
@@ -308,6 +326,9 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.MissingFields", http.StatusBadRequest)
 		return
 	}
+	if !validateServiceTypeConfig(w, r, req.Type, req.SessionsCount) {
+		return
+	}
 	if !isAllowedServiceDuration(req.DurationMinutes) {
 		httpError(w, r, "Error.InvalidDuration", http.StatusBadRequest)
 		return
@@ -323,7 +344,7 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 		currency = "RUB"
 	}
 
-	service, err := db.CreateSessionType(specialist.ID, req.Type, req.Name, req.DurationMinutes, req.Price, currency, req.ImageURL)
+	service, err := db.CreateSessionTypeWithSessionsCount(specialist.ID, req.Type, req.Name, req.DurationMinutes, req.Price, currency, req.ImageURL, req.SessionsCount)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -421,12 +442,23 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		imageURL = *req.ImageURL
 	}
 
+	sessionsCount := existing.SessionsCount
+	if req.SessionsCount != nil {
+		sessionsCount = *req.SessionsCount
+	}
+	if sessionType == "common" {
+		sessionsCount = 0
+	}
+	if !validateServiceTypeConfig(w, r, sessionType, sessionsCount) {
+		return
+	}
+
 	isActive := existing.IsActive
 	if req.IsActive != nil {
 		isActive = *req.IsActive
 	}
 
-	updated, err := db.UpdateSessionType(existing.ID, sessionType, name, duration, price, currency, imageURL, isActive)
+	updated, err := db.UpdateSessionTypeWithSessionsCount(existing.ID, sessionType, name, duration, price, currency, imageURL, sessionsCount, isActive)
 	if err != nil {
 		log.Printf("Error updating service: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -976,7 +1008,7 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if completedCount > 0 {
-		changes.Publish(specialist.ID, changes.GroupBookings)
+		changes.Publish(specialist.ID, changes.GroupBookings, changes.GroupClientBatches)
 	}
 
 	if query.Has("page") || query.Has("limit") {
@@ -1157,6 +1189,10 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		if err := db.UpdateBookingStatus(bookingID, models.BookingStatus(req.Status)); err != nil {
+			if errors.Is(err, db.ErrNoActiveClientBatch) {
+				httpError(w, r, "Error.NoActiveBatch", http.StatusBadRequest)
+				return
+			}
 			log.Printf("Error updating booking status: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
@@ -1196,7 +1232,58 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if booking != nil {
-		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
+	}
+	writeJSON(w, booking)
+}
+
+func HandleAdminCompleteBooking(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	if bookingID == "" {
+		httpError(w, r, "Error.MissingBookingID", http.StatusBadRequest)
+		return
+	}
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil || booking.SpecialistID != specialist.ID {
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
+		return
+	}
+
+	if err := db.UpdateBookingStatus(bookingID, models.BookingStatusCompleted); err != nil {
+		if errors.Is(err, db.ErrNoActiveClientBatch) {
+			httpError(w, r, "Error.NoActiveBatch", http.StatusBadRequest)
+			return
+		}
+		log.Printf("Error completing booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	booking, _ = db.GetBookingByID(bookingID)
+	if NotifyStatusChangeFunc != nil && booking != nil {
+		if err := NotifyStatusChangeFunc(booking, string(models.BookingStatusCompleted)); err != nil {
+			log.Printf("Error notifying client about completion: %v", err)
+		}
+	}
+	if UpdateSpecialistMessageFunc != nil && booking != nil {
+		if err := UpdateSpecialistMessageFunc(booking); err != nil {
+			log.Printf("Error updating specialist message: %v", err)
+		}
+	}
+	if booking != nil {
+		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
 	}
 	writeJSON(w, booking)
 }
@@ -1519,6 +1606,10 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	***************************************************************************************************/
 	booking, err := db.CreateBookingBySpecialist(specialist.ID, client.ID, sessionType.ID, startsAt, endsAt, client.Name, req.Message, duration)
 	if err != nil {
+		if errors.Is(err, db.ErrNoActiveClientBatch) {
+			httpError(w, r, "Error.NoActiveBatch", http.StatusBadRequest)
+			return
+		}
 		log.Printf("Error creating booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
@@ -1984,6 +2075,99 @@ func HandleAdminCreateGhostClient(w http.ResponseWriter, r *http.Request) {
 	changes.Publish(specialist.ID, changes.GroupClients)
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, client)
+}
+
+type AssignClientBatchRequest struct {
+	ServiceID      string `json:"service_id"`
+	ServiceIDCamel string `json:"serviceId"`
+}
+
+func getAdminOwnedClient(w http.ResponseWriter, r *http.Request, specialistID string) (*models.Client, bool) {
+	clientID := chi.URLParam(r, "id")
+	if clientID == "" {
+		httpError(w, r, "Error.MissingClientID", http.StatusBadRequest)
+		return nil, false
+	}
+
+	client, err := db.GetClientByID(clientID)
+	if err != nil {
+		log.Printf("Error getting client: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return nil, false
+	}
+	if client == nil || client.SpecialistID != specialistID {
+		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
+		return nil, false
+	}
+	return client, true
+}
+
+func HandleAdminGetClientBatches(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	client, ok := getAdminOwnedClient(w, r, specialist.ID)
+	if !ok {
+		return
+	}
+
+	batches, err := db.GetClientBatchesByClientID(client.ID, specialist.ID)
+	if err != nil {
+		log.Printf("Error getting client batches: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if batches == nil {
+		batches = []models.ClientBatch{}
+	}
+
+	setNoStore(w)
+	writeJSON(w, batches)
+}
+
+func HandleAdminAssignClientBatch(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	client, ok := getAdminOwnedClient(w, r, specialist.ID)
+	if !ok {
+		return
+	}
+
+	var req AssignClientBatchRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+	serviceID := req.ServiceID
+	if serviceID == "" {
+		serviceID = req.ServiceIDCamel
+	}
+	if serviceID == "" {
+		httpError(w, r, "Error.MissingServiceID", http.StatusBadRequest)
+		return
+	}
+
+	batch, err := db.AssignClientBatch(client.ID, specialist.ID, serviceID)
+	if err != nil {
+		if errors.Is(err, db.ErrServiceIsNotBatch) {
+			httpError(w, r, "Error.InvalidServiceType", http.StatusBadRequest)
+			return
+		}
+		log.Printf("Error assigning client batch: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	changes.Publish(specialist.ID, changes.GroupClientBatches, changes.GroupClients)
+	w.WriteHeader(http.StatusCreated)
+	writeJSON(w, batch)
 }
 
 /***************************************************************************************************
