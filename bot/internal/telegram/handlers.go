@@ -1370,12 +1370,12 @@ func (h *Handler) handleProfileCallback(update Update) {
 		// goal is to bring new specialists onto the platform, not to hand out yet another client
 		// link.
 		link := referralLink(h.MasterBotUsername, code)
-		shareText := myI18n.Tf(loc, "Referral.ShareText", map[string]interface{}{"Link": link})
+		shareText := myI18n.T(loc, "Referral.ShareText")
 
 		inviteText := myI18n.Tf(loc, "Referral.InviteMessage", map[string]interface{}{"Link": link})
 		keyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
-				{{Text: BtnInviteShare(loc), URL: shareURL(shareText)}},
+				{{Text: BtnInviteShare(loc), URL: shareURL(link, shareText)}},
 				{{Text: BtnProfileBack(loc), CallbackData: "profile:home"}},
 			},
 		}
@@ -1455,11 +1455,13 @@ func referralLink(botUsername, code string) string {
 }
 
 /***************************************************************************************************
-* shareURL wraps text for Telegram's native share picker (tg://msg_url). Telegram opens a chat
-* picker pre-filled with the provided text.
+* shareURL wraps a link + caption for Telegram's native share picker. The `url` param must be the
+* shared link (Telegram renders it as a tappable URL); the `text` param carries the message body.
+* Passing the body as `url` would make Telegram display the text as a URL (spaces become `+`) with
+* no click-through.
 ***************************************************************************************************/
-func shareURL(text string) string {
-	return "https://t.me/share/url?url=" + urlEncode(text)
+func shareURL(link, text string) string {
+	return "https://t.me/share/url?url=" + urlEncode(link) + "&text=" + urlEncode(text)
 }
 
 /***************************************************************************************************
