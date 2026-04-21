@@ -163,8 +163,8 @@ export default function AdminRecurringPage(): ReactNode {
         <div className={'animate-pulse space-y-3 p-4'}>
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={'bg-card space-y-2 rounded-xl p-4'}>
-              <div className={'bg-border h-4 w-1/3 rounded'} />
-              <div className={'bg-border h-3 w-2/3 rounded'} />
+              <div className={'bg-skeleton h-4 w-1/3 rounded'} />
+              <div className={'bg-skeleton h-3 w-2/3 rounded'} />
             </div>
           ))}
         </div>

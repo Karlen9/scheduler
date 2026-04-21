@@ -17,7 +17,7 @@
   --tg-theme-subtitle-text-color: #999999;
   --tg-theme-destructive-text-color: #e53935;
 
-  --bookings-bg: #455f93;
+  --bookings-bg: #3a3a3c;
 
   /* Semantic mapping from Telegram vars */
   --app-text: var(--tg-theme-text-color);
@@ -45,6 +45,7 @@
   --destructive: var(--app-destructive);
   --destructive-foreground: #ffffff;
   --border: var(--app-divider);
+  --skeleton: rgba(0, 0, 0, 0.08);
   --input: var(--card);
   --input-background: var(--card);
   --switch-background: #c7c7cc;
@@ -160,6 +161,7 @@
   --card: var(--tg-theme-secondary-bg-color);
 
   --app-divider: rgba(255, 255, 255, 0.08);
+  --skeleton: rgba(0, 0, 0, 0.35);
   --switch-background: #4a4a4a;
 
   /* App surface variants */
@@ -250,6 +252,7 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-skeleton: var(--skeleton);
   --color-input: var(--input);
   --color-input-background: var(--input-background);
   --color-switch-background: var(--switch-background);

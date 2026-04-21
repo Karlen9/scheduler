@@ -489,10 +489,10 @@ export default function AdminAllBookingsPage(): ReactNode {
                 key={index}
                 className={'bg-card flex animate-pulse items-center gap-3 rounded-xl p-4'}
               >
-                <div className={'bg-border h-10 w-10 rounded-full'} />
+                <div className={'bg-skeleton h-10 w-10 rounded-full'} />
                 <div className={'min-w-0 flex-1 space-y-2'}>
-                  <div className={'bg-border h-4 w-1/2 rounded'} />
-                  <div className={'bg-border h-3 w-2/3 rounded'} />
+                  <div className={'bg-skeleton h-4 w-1/2 rounded'} />
+                  <div className={'bg-skeleton h-3 w-2/3 rounded'} />
                 </div>
               </div>
             ))}
