@@ -3,13 +3,16 @@
     "other": "Welcome! Press the button below to open the booking app."
   },
   "Welcome.Specialist": {
-    "other": "👋 Welcome back!\n\n🔧 Admin panel — settings, schedule and client bookings.\n📅 Book — see how your clients view the bot."
+    "other": "👋 Welcome back!\n\nYour bot accepts online bookings from clients and helps you run your practice:\n• 📅 Clients can book through the app any time — all you need to do is confirm\n• 🔔 Automatic reminders to clients and notifications to you\n• 🔁 Recurring sessions and repeating schedules\n• 👥 Client base with visit history and notes\n• 📊 Revenue and workload analytics\n\n🔧 Open \"Admin\" to set up your profile, services and schedule.\n\n✨ This is the alpha version — all features are free for everyone. Some features will become paid over time."
   },
   "Help.Client": {
     "other": "This is a bot for online booking with a specialist.\n\nWhat you can do:\n• Choose a convenient date and time\n• Book a session\n• View and cancel your bookings\n• Create a recurring schedule\n\nPress the \"Book\" button below or /start to open the app."
   },
   "Help.Specialist": {
     "other": "You are the owner of this bot.\n\nHow to set up:\n1. Open \"Manage\" — Profile — fill in name, photo, description\n2. Services and prices — add session types\n3. Schedule — set working hours\n4. Days off — mark non-working dates\n\nHow booking works:\n• A client books — you get a notification\n• Confirm or decline right in the chat\n• All bookings are visible in the admin panel\n\nLink for clients (send it to them):\n<code>%s</code>\n\nCommands:\n/start — Main menu\n/admin — Admin panel\n/help — This help"
+  },
+  "Help.SpecialistSupport": {
+    "other": "💬 Need help? Contact an operator at @%s — tap \"Operator support\" in the menu."
   },
   "Btn.OpenApp": {
     "other": "Book"
@@ -57,7 +60,7 @@
     "other": "👤 Profile\n\nChoose an action:"
   },
   "Referral.InviteMessage": {
-    "other": "🤝 <b>Partner program</b>\n\nInvite fellow specialists to the platform and earn rewards when they subscribe.\n\n📌 <b>How it works</b>\n• Send the link below to a specialist who wants to accept bookings via Telegram.\n• They onboard and get the core features free.\n• Some of the current features will move to a paid tier, and we're rolling out advanced tools for power users.\n• When the invited specialist pays their first subscription, the referral becomes <b>active</b> and you earn a reward.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nStats live in the admin panel → Settings → Referrals (active / pending)."
+    "other": "🤝 <b>Partner program</b>\n\nInvite fellow specialists to the platform and earn rewards when they subscribe.\n\n📌 <b>How it works</b>\n• Send the link below to a specialist who wants to accept bookings via Telegram.\n• They onboard and get the core features free.\n• Some of the current features will move to a paid tier, and we're rolling out advanced tools for power users.\n• When the invited specialist pays their first subscription, the referral becomes <b>active</b> and you earn a reward.\n\n🧪 The platform is free during alpha. Rewards start accruing once the paid version launches — invites made now will be kept.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nStats live in the admin panel → Settings → Referrals (active / pending)."
   },
   "Referral.ShareText": {
     "other": "Try this Telegram booking platform — I'm already using it 👉 {{.Link}}"
@@ -529,7 +532,7 @@
     "other": "\n\n👥 Specialists: {{.Count}}"
   },
   "MasterMenu.Home": {
-    "other": "👋 Hi! I'll help you launch your own Telegram bot for client bookings.\n\nWhat your bot does:\n• 📅 Accepts online bookings 24/7 via a Mini App\n• 🔔 Sends automatic reminders to clients and notifications to you\n• 🔁 Handles recurring sessions and repeating schedules\n• 👥 Keeps a client base with visit history and notes\n• 📊 Shows revenue and workload analytics\n• 🎁 Provides a referral link to grow your client base\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\n💬 If you run into questions or issues during setup — reach out to an operator, they'll help you with everything.\n\nPick an option:"
+    "other": "👋 Hi! I'll help you launch your own Telegram bot for client bookings.\n\nWhat your bot does:\n• 📅 Accepts online bookings 24/7 via a Mini App\n• 🔔 Sends automatic reminders to clients and notifications to you\n• 🔁 Handles recurring sessions and repeating schedules\n• 👥 Keeps a client base with visit history and notes\n• 📊 Shows revenue and workload analytics\n• 🎁 Referral program — invite other specialists and earn bonuses\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\n💬 If you run into questions or issues during setup — reach out to an operator, they'll help you with everything.\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
