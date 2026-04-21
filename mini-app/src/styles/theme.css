@@ -17,7 +17,7 @@
   --tg-theme-subtitle-text-color: #999999;
   --tg-theme-destructive-text-color: #e53935;
 
-  --bookings-bg: #3a3a3c;
+  --bookings-bg: #455f93;
 
   /* Semantic mapping from Telegram vars */
   --app-text: var(--tg-theme-text-color);
