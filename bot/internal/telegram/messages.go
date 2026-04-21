@@ -299,11 +299,11 @@ func BtnLanguage(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Languag
 func BtnInfo(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Info") }
 
 /***************************************************************************************************
-* FormatWelcome creates a welcome message with version and changelog.
+* FormatWelcome creates a client welcome message.
 *
 * Parameters:
 * - loc: Loc used by the current operation.
-* - version: Version used by the current operation.
+* - version: Ignored for client-facing welcome messages.
 *
 * Returns:
 * - The computed value for the current operation as string.
@@ -311,16 +311,8 @@ func BtnInfo(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Info") }
 * Side effects:
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
-func FormatWelcome(loc *i18n.Localizer, version string) string {
-	msg := myI18n.T(loc, "Welcome.Client")
-	if version != "" {
-		msg += "\n\n" + myI18n.Tf(loc, "Version", map[string]interface{}{"Version": version})
-		changelog := myI18n.T(loc, "ChangelogContent")
-		if changelog != "" && changelog != "ChangelogContent" {
-			msg += "\n" + myI18n.Tf(loc, "Changelog", map[string]interface{}{"Changelog": changelog})
-		}
-	}
-	return msg
+func FormatWelcome(loc *i18n.Localizer, _ string) string {
+	return myI18n.T(loc, "Welcome.Client")
 }
 
 /***************************************************************************************************
