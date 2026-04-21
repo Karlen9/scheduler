@@ -161,7 +161,7 @@ function PendingBookingCardComponent({
             {booking.clientDisplayName || booking.clientName}
           </p>
           <p className={'text-muted-foreground text-sm'}>
-            {tc('workout')}
+            {booking.sessionType?.name || tc('workout')}
             {booking.durationMinutes
               ? ` · ${booking.durationMinutes} ${tc('min')}`
               : booking.sessionType?.durationMinutes
