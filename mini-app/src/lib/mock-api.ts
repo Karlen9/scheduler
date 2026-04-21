@@ -258,7 +258,27 @@ function createMockState(): TMockState {
     { dayOfWeek: 6, startTime: '10:00', endTime: '15:00' },
   ];
 
+  const testClient: TClientInfo = {
+    id: 'mock-profile',
+    telegramUserId: 999,
+    specialistId: 'mock-specialist',
+    name: 'Test Client',
+    displayName: 'Test Client',
+    phone: '+7 900 777-66-55',
+    createdAt: isoAt(-100, '09:00'),
+  };
+  clients.push(testClient);
+
   const bookings: TBooking[] = [
+    buildBooking({
+      id: 'mock-booking-test-client-confirmed',
+      client: testClient,
+      service: services[0],
+      days: 2,
+      time: '14:00',
+      status: 'confirmed',
+      createdBy: 'client',
+    }),
     buildBooking({
       id: 'mock-booking-pending',
       client: clients[0],
@@ -857,7 +877,9 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
       return clone(getAvailableSlots(state, endpoint)) as T;
     }
     if (path === '/api/bookings') {
-      return clone(getAllBookings(state)) as T;
+      return clone(
+        getAllBookings(state).filter((booking) => booking.clientName === state.clientProfile.name),
+      ) as T;
     }
     if (path === '/api/admin/bookings') {
       const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
