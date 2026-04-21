@@ -5,6 +5,7 @@ import type {
   TBooking,
   TChangeGroup,
   TChangeVersions,
+  TClientBatch,
   TClientInfo,
   TClientProfile,
   TClientStats,
@@ -30,6 +31,7 @@ type TMockState = {
   changeVersions: TChangeVersions;
   clientProfile: TClientProfile;
   clientSpecialist: TSpecialist;
+  clientBatches: TClientBatch[];
   clients: TClientInfo[];
   daysOff: TDayOff[];
   recurringSchedules: TRecurringSchedule[];
@@ -42,6 +44,7 @@ const changeGroups: TChangeGroup[] = [
   'recurring',
   'clients',
   'services',
+  'clientBatches',
   'workingHours',
   'daysOff',
   'specialist',
@@ -198,7 +201,7 @@ function createMockState(): TMockState {
   const services: TSessionType[] = [
     {
       id: 'mock-service-personal',
-      type: 'personal',
+      type: 'common',
       name: 'Personal training',
       durationMinutes: 60,
       price: 3500,
@@ -206,15 +209,16 @@ function createMockState(): TMockState {
     },
     {
       id: 'mock-service-mobility',
-      type: 'mobility',
+      type: 'batch',
       name: 'Mobility session',
       durationMinutes: 45,
-      price: 2800,
+      price: 10000,
       currency: 'RUB',
+      sessionsCount: 10,
     },
     {
       id: 'mock-service-consultation',
-      type: 'consultation',
+      type: 'common',
       name: 'Nutrition consultation',
       durationMinutes: 30,
       price: 2200,
@@ -455,7 +459,7 @@ function createMockState(): TMockState {
 
   const specialistBase: TSpecialist = {
     id: 'mock-specialist',
-    name: 'Alex Carter',
+    name: 'Карлен Мисакян',
     timezone: 'Europe/Moscow',
     cancelCutoffHours: 12,
     botUsername: 'mock_scheduler_bot',
@@ -465,6 +469,19 @@ function createMockState(): TMockState {
     bio: 'Focused strength work, posture, mobility, and habit-based progress for busy clients.',
     wallpaper: 'w3',
   };
+
+  const clientBatches: TClientBatch[] = [
+    {
+      id: 'mock-client-batch-active',
+      clientId: 'mock-profile',
+      serviceId: services[1].id,
+      totalSessions: 10,
+      remainingSessions: 7,
+      createdAt: new Date().toISOString(),
+      status: 'active',
+      service: services[1],
+    },
+  ];
 
   return {
     adminNotifications: {
@@ -491,6 +508,7 @@ function createMockState(): TMockState {
       ...specialistBase,
       isOwner: false,
     },
+    clientBatches,
     clients,
     daysOff: [
       {
@@ -700,10 +718,24 @@ function createBookingFromBody(
   if (createdBy === 'client' && isPastTodayTime(date, time)) {
     throw new Error('Cannot book a time in the past');
   }
+  const activeBatch =
+    service.type === 'batch'
+      ? state.clientBatches.find(
+          (batch) =>
+            batch.clientId === client.id &&
+            batch.serviceId === service.id &&
+            batch.status === 'active' &&
+            batch.remainingSessions > 0,
+        )
+      : undefined;
+  if (service.type === 'batch' && !activeBatch) {
+    throw new Error('No active batch');
+  }
   const startsAt = `${date}T${time}:00Z`;
   const booking: TBooking = {
     id: `mock-booking-${Date.now()}`,
     clientId: client.id,
+    clientBatchId: activeBatch?.id,
     sessionType: service,
     startsAt,
     endsAt: addMinutesToISO(startsAt, service.durationMinutes),
@@ -904,6 +936,11 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
         getAllBookings(state).filter((booking) => booking.clientName === state.clientProfile.name),
       ) as T;
     }
+    if (path === '/api/batches') {
+      return clone(
+        state.clientBatches.filter((batch) => batch.clientId === state.clientProfile.id),
+      ) as T;
+    }
     if (path === '/api/admin/bookings') {
       const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
       if (params.has('page') || params.has('limit')) {
@@ -974,6 +1011,13 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
         })),
       } satisfies TAdminStats) as T;
     }
+
+    const adminClientBatchesMatch = path.match(/^\/api\/admin\/clients\/([^/]+)\/batches$/);
+    if (adminClientBatchesMatch) {
+      return clone(
+        state.clientBatches.filter((batch) => batch.clientId === adminClientBatchesMatch[1]),
+      ) as T;
+    }
     if (path === '/api/changes') {
       return clone(state.changeVersions) as T;
     }
@@ -1024,16 +1068,38 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
     if (path === '/api/admin/services') {
       const service: TSessionType = {
         id: `mock-service-${Date.now()}`,
-        type: getString(body.type, 'personal'),
+        type: getString(body.type, 'common'),
         name: getString(body.name, 'New service'),
         durationMinutes: getNumber(body.durationMinutes, 60),
         price: getNumber(body.price, 0),
         currency: getString(body.currency, 'RUB'),
         imageUrl: getOptionalString(body.imageUrl),
+        sessionsCount: getNumber(body.sessionsCount, 0) || undefined,
       };
       state.services = [service, ...state.services];
       bumpChangeVersions(state, ['services']);
       return clone(service) as T;
+    }
+    const adminClientBatchesMatch = path.match(/^\/api\/admin\/clients\/([^/]+)\/batches$/);
+    if (adminClientBatchesMatch) {
+      const serviceId = getString(body.service_id, getString(body.serviceId));
+      const service = state.services.find((item) => item.id === serviceId);
+      if (service?.type !== 'batch' || !service.sessionsCount) {
+        throw new Error('Invalid batch service');
+      }
+      const batch: TClientBatch = {
+        id: `mock-client-batch-${Date.now()}`,
+        clientId: adminClientBatchesMatch[1],
+        serviceId,
+        totalSessions: service.sessionsCount,
+        remainingSessions: service.sessionsCount,
+        createdAt: new Date().toISOString(),
+        status: 'active',
+        service,
+      };
+      state.clientBatches = [...state.clientBatches, batch];
+      bumpChangeVersions(state, ['clientBatches', 'clients']);
+      return clone(batch) as T;
     }
     if (path === '/api/admin/days-off') {
       const dayOff: TDayOff = {
@@ -1326,6 +1392,16 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
         status: 'confirmed',
       }));
       return undefined as T;
+    }
+  }
+
+  if (method === 'PATCH') {
+    const adminCompleteMatch = path.match(/^\/api\/admin\/bookings\/([^/]+)\/complete$/);
+    if (adminCompleteMatch) {
+      return updateBooking(state, adminCompleteMatch[1], (booking) => ({
+        ...booking,
+        status: 'completed',
+      })) as T;
     }
   }
 
