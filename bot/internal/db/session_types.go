@@ -14,7 +14,7 @@ import (
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const sessionTypeColumns = `id, specialist_id, type, name, duration_minutes, price, currency, image_url, is_active`
+const sessionTypeColumns = `id, specialist_id, type, name, duration_minutes, price, currency, image_url, sessions_count, is_active`
 
 /***************************************************************************************************
 * Defines the nullable session type type used by the database layer.
@@ -28,6 +28,7 @@ type nullableSessionType struct {
 	price           sql.NullInt64
 	currency        sql.NullString
 	imageURL        sql.NullString
+	sessionsCount   sql.NullInt64
 	isActive        sql.NullInt64
 }
 
@@ -53,6 +54,7 @@ func (n *nullableSessionType) scanDest() []interface{} {
 		&n.price,
 		&n.currency,
 		&n.imageURL,
+		&n.sessionsCount,
 		&n.isActive,
 	}
 }
@@ -89,6 +91,9 @@ func (n nullableSessionType) model() *models.SessionType {
 	if n.price.Valid {
 		st.Price = int(n.price.Int64)
 	}
+	if n.sessionsCount.Valid {
+		st.SessionsCount = int(n.sessionsCount.Int64)
+	}
 	return st
 }
 
@@ -106,7 +111,11 @@ func (n nullableSessionType) model() *models.SessionType {
 ***************************************************************************************************/
 func scanSessionType(row interface{ Scan(...interface{}) error }) (models.SessionType, error) {
 	var st models.SessionType
-	err := row.Scan(&st.ID, &st.SpecialistID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.ImageURL, &st.IsActive)
+	var sessionsCount sql.NullInt64
+	err := row.Scan(&st.ID, &st.SpecialistID, &st.Type, &st.Name, &st.DurationMinutes, &st.Price, &st.Currency, &st.ImageURL, &sessionsCount, &st.IsActive)
+	if sessionsCount.Valid {
+		st.SessionsCount = int(sessionsCount.Int64)
+	}
 	return st, err
 }
 
@@ -224,12 +233,26 @@ func GetSessionTypeByType(specialistID, sessionType string) (*models.SessionType
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func CreateSessionType(specialistID, sessionType, name string, durationMinutes, price int, currency, imageURL string) (*models.SessionType, error) {
+	return CreateSessionTypeWithSessionsCount(specialistID, sessionType, name, durationMinutes, price, currency, imageURL, 0)
+}
+
+/***************************************************************************************************
+* Creates session type with optional batch sessions count.
+***************************************************************************************************/
+func CreateSessionTypeWithSessionsCount(specialistID, sessionType, name string, durationMinutes, price int, currency, imageURL string, sessionsCount int) (*models.SessionType, error) {
 	id := uuid.New().String()
+	if sessionType != "batch" {
+		sessionType = "common"
+	}
+	var sessionsCountValue interface{}
+	if sessionType == "batch" && sessionsCount > 1 {
+		sessionsCountValue = sessionsCount
+	}
 
 	_, err := DB.Exec(Q(`
-		INSERT INTO session_types (id, specialist_id, type, name, duration_minutes, price, currency, image_url)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`), id, specialistID, sessionType, name, durationMinutes, price, currency, imageURL)
+		INSERT INTO session_types (id, specialist_id, type, name, duration_minutes, price, currency, image_url, sessions_count)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`), id, specialistID, sessionType, name, durationMinutes, price, currency, imageURL, sessionsCountValue)
 	if err != nil {
 		return nil, err
 	}
@@ -342,11 +365,26 @@ func GetAllSessionTypesBySpecialistID(specialistID string) ([]models.SessionType
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func UpdateSessionType(id, sessionType, name string, durationMinutes, price int, currency, imageURL string, isActive bool) (*models.SessionType, error) {
+	return UpdateSessionTypeWithSessionsCount(id, sessionType, name, durationMinutes, price, currency, imageURL, 0, isActive)
+}
+
+/***************************************************************************************************
+* Updates session type with optional batch sessions count.
+***************************************************************************************************/
+func UpdateSessionTypeWithSessionsCount(id, sessionType, name string, durationMinutes, price int, currency, imageURL string, sessionsCount int, isActive bool) (*models.SessionType, error) {
+	if sessionType != "batch" {
+		sessionType = "common"
+	}
+	var sessionsCountValue interface{}
+	if sessionType == "batch" && sessionsCount > 1 {
+		sessionsCountValue = sessionsCount
+	}
+
 	_, err := DB.Exec(Q(`
 		UPDATE session_types
-		SET type = ?, name = ?, duration_minutes = ?, price = ?, currency = ?, image_url = ?, is_active = ?
+		SET type = ?, name = ?, duration_minutes = ?, price = ?, currency = ?, image_url = ?, sessions_count = ?, is_active = ?
 		WHERE id = ?
-	`), sessionType, name, durationMinutes, price, currency, imageURL, BoolVal(isActive), id)
+	`), sessionType, name, durationMinutes, price, currency, imageURL, sessionsCountValue, BoolVal(isActive), id)
 	if err != nil {
 		return nil, err
 	}
