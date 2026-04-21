@@ -43,6 +43,7 @@ type Specialist struct {
 type Client struct {
 	ID                  string    `json:"id"`
 	TelegramUserID      int64     `json:"telegramUserId"`
+	TelegramUsername    string    `json:"telegramUsername,omitempty"`
 	SpecialistID        string    `json:"specialistId"`
 	Name                string    `json:"name"`
 	DisplayName         string    `json:"displayName,omitempty"`
@@ -195,12 +196,13 @@ type Booking struct {
 	/***************************************************************************************************
 	* Joined fields for API responses.
 	***************************************************************************************************/
-	SessionType       *SessionType `json:"sessionType,omitempty"`
-	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
-	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
-	ClientIsGhost     bool         `json:"clientIsGhost,omitempty"`
-	ClientTelegramID  int64        `json:"clientTelegramUserId,omitempty"`
-	Client            *Client      `json:"-"`
+	SessionType            *SessionType `json:"sessionType,omitempty"`
+	ClientPhotoURL         string       `json:"clientPhotoUrl,omitempty"`
+	ClientDisplayName      string       `json:"clientDisplayName,omitempty"`
+	ClientIsGhost          bool         `json:"clientIsGhost,omitempty"`
+	ClientTelegramID       int64        `json:"clientTelegramUserId,omitempty"`
+	ClientTelegramUsername string       `json:"clientTelegramUsername,omitempty"`
+	Client                 *Client      `json:"-"`
 }
 
 type BookingListResponse struct {

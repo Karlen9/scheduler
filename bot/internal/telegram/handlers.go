@@ -37,6 +37,26 @@ func NewHandler(bot *Bot, webAppURL, masterBotUsername string) *Handler {
 }
 
 /***************************************************************************************************
+* syncClientTelegramUsername persists the latest Telegram @username when it changes, so the admin
+* mini app can build `https://t.me/<username>` links (tg://user?id=<id> triggers a confirmation
+* dialog outside Telegram and cannot reliably open the chat in an in-app webview).
+***************************************************************************************************/
+func syncClientTelegramUsername(client *models.Client, username string) {
+	if client == nil {
+		return
+	}
+	clean := strings.TrimPrefix(username, "@")
+	if clean == client.TelegramUsername {
+		return
+	}
+	if err := db.UpdateClientTelegramUsername(client.ID, clean); err != nil {
+		log.Printf("Error updating client telegram_username: %v", err)
+		return
+	}
+	client.TelegramUsername = clean
+}
+
+/***************************************************************************************************
 * HandleUpdate processes an incoming update.
 *
 * Parameters:
@@ -298,6 +318,7 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 			log.Printf("Error creating client: %v", err)
 			return
 		}
+		syncClientTelegramUsername(newClient, msg.From.Username)
 		if newClient.Language == "" {
 			if lerr := db.UpdateClientLanguage(newClient.ID, "ru"); lerr != nil {
 				log.Printf("Error setting default client language: %v", lerr)
@@ -311,6 +332,7 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 	/***************************************************************************************************
 	* Existing client (or freshly defaulted above).
 	***************************************************************************************************/
+	syncClientTelegramUsername(client, msg.From.Username)
 	lang := client.Language
 	if lang == "" {
 		lang = "ru"
@@ -612,6 +634,7 @@ func (h *Handler) handleLanguageCallback(update Update) {
 		log.Printf("Error creating client: %v", err)
 		return
 	}
+	syncClientTelegramUsername(client, cq.From.Username)
 
 	/***************************************************************************************************
 	* Update language.
