@@ -41,19 +41,20 @@ func NewHandler(bot *Bot, webAppURL, masterBotUsername string) *Handler {
 * mini app can build `https://t.me/<username>` links (tg://user?id=<id> triggers a confirmation
 * dialog outside Telegram and cannot reliably open the chat in an in-app webview).
 ***************************************************************************************************/
-func syncClientTelegramUsername(client *models.Client, username string) {
+func syncClientTelegramUsername(client *models.Client, username string) bool {
 	if client == nil {
-		return
+		return false
 	}
 	clean := strings.TrimPrefix(username, "@")
 	if clean == client.TelegramUsername {
-		return
+		return false
 	}
 	if err := db.UpdateClientTelegramUsername(client.ID, clean); err != nil {
 		log.Printf("Error updating client telegram_username: %v", err)
-		return
+		return false
 	}
 	client.TelegramUsername = clean
+	return true
 }
 
 /***************************************************************************************************
@@ -332,7 +333,9 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 	/***************************************************************************************************
 	* Existing client (or freshly defaulted above).
 	***************************************************************************************************/
-	syncClientTelegramUsername(client, msg.From.Username)
+	if syncClientTelegramUsername(client, msg.From.Username) {
+		changes.Publish(specialist.ID, changes.GroupClientProfile, changes.GroupClients)
+	}
 	lang := client.Language
 	if lang == "" {
 		lang = "ru"
@@ -634,7 +637,9 @@ func (h *Handler) handleLanguageCallback(update Update) {
 		log.Printf("Error creating client: %v", err)
 		return
 	}
-	syncClientTelegramUsername(client, cq.From.Username)
+	if syncClientTelegramUsername(client, cq.From.Username) {
+		changes.Publish(specialistID, changes.GroupClientProfile, changes.GroupClients)
+	}
 
 	/***************************************************************************************************
 	* Update language.
