@@ -46,6 +46,33 @@ func GetSupportThreadByTopicID(topicID int) (*models.SupportThread, error) {
 	`), topicID))
 }
 
+// ListInactiveSupportThreads returns open support threads whose last activity is at or before cutoff.
+func ListInactiveSupportThreads(cutoff time.Time) ([]*models.SupportThread, error) {
+	rows, err := DB.Query(Q(`
+		SELECT id, telegram_user_id, telegram_username, display_name, language_code,
+		       topic_id, created_at, last_message_at, closed_at
+		FROM support_threads
+		WHERE closed_at IS NULL AND COALESCE(last_message_at, created_at) <= ?
+	`), cutoff.UTC())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var threads []*models.SupportThread
+	for rows.Next() {
+		thread, err := scanSupportThread(rows)
+		if err != nil {
+			return nil, err
+		}
+		threads = append(threads, thread)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return threads, nil
+}
+
 // CreateSupportThread inserts a new thread mapping. Caller should ensure no open thread already exists for the user.
 func CreateSupportThread(telegramUserID int64, username, displayName, languageCode string, topicID int) (*models.SupportThread, error) {
 	id := uuid.NewString()
@@ -99,10 +126,29 @@ func ReopenSupportThread(threadID string) error {
 	return err
 }
 
-// CloseSupportThread marks the thread closed. Subsequent messages from the user will create a fresh thread.
+// CloseSupportThread marks the thread closed. The same topic can be reopened on the next explicit support request.
 func CloseSupportThread(threadID string) error {
 	_, err := DB.Exec(Q(`UPDATE support_threads SET closed_at = ? WHERE id = ? AND closed_at IS NULL`), time.Now().UTC(), threadID)
 	return err
+}
+
+// CloseInactiveSupportThread marks a thread closed only if it is still inactive at cutoff.
+func CloseInactiveSupportThread(threadID string, cutoff time.Time) (bool, error) {
+	res, err := DB.Exec(Q(`
+		UPDATE support_threads
+		SET closed_at = ?
+		WHERE id = ?
+		  AND closed_at IS NULL
+		  AND COALESCE(last_message_at, created_at) <= ?
+	`), time.Now().UTC(), threadID, cutoff.UTC())
+	if err != nil {
+		return false, err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return affected > 0, nil
 }
 
 // UpdateSupportThreadUser refreshes username / display-name / language when we see fresher values.
@@ -116,9 +162,21 @@ func UpdateSupportThreadUser(threadID, username, displayName, languageCode strin
 }
 
 func scanSupportThreadRow(row *sql.Row) (*models.SupportThread, error) {
+	thread, err := scanSupportThread(row)
+	if err == sql.ErrNoRows {
+		return nil, ErrSupportThreadNotFound
+	}
+	return thread, err
+}
+
+type supportThreadScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanSupportThread(scanner supportThreadScanner) (*models.SupportThread, error) {
 	var t models.SupportThread
 	var lastMsg, closed sql.NullTime
-	err := row.Scan(
+	err := scanner.Scan(
 		&t.ID,
 		&t.TelegramUserID,
 		&t.TelegramUsername,
@@ -129,9 +187,6 @@ func scanSupportThreadRow(row *sql.Row) (*models.SupportThread, error) {
 		&lastMsg,
 		&closed,
 	)
-	if err == sql.ErrNoRows {
-		return nil, ErrSupportThreadNotFound
-	}
 	if err != nil {
 		return nil, err
 	}

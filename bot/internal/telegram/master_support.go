@@ -1,10 +1,12 @@
 package telegram
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
@@ -18,8 +20,9 @@ import (
 //   - Incoming DMs (non-command, non-onboarding) are forwarded into the matching topic via
 //     copyMessage — this preserves media/voice/documents without the "Forwarded from" header.
 //   - Replies typed into the topic by any admin are copied back to the user's DM.
-//   - An admin can post /close inside the topic to archive the thread; the next DM from that
-//     user creates a fresh topic.
+//   - An admin can post /close inside the topic to archive the thread. Threads are also closed
+//     after a short inactivity timeout. The next explicit support request reopens the same topic
+//     whenever Telegram still has it.
 //
 // The relay intentionally refuses to run when SupportGroupID == 0 so deployments without a
 // configured support group degrade to a plain "contact operator" message instead of errors.
@@ -33,8 +36,13 @@ var spamPatterns = []string{
 	"nude", "sex chat", "1xbet", "casino",
 }
 
-// maxSupportMessageChars caps the incoming DM length to avoid spam walls into the topic.
-const maxSupportMessageChars = 4000
+const (
+	// maxSupportMessageChars caps the incoming DM length to avoid spam walls into the topic.
+	maxSupportMessageChars = 4000
+	// supportInactivityTimeout controls how long a support thread can sit idle before closing.
+	supportInactivityTimeout = 5 * time.Minute
+	supportInactivitySweep   = 30 * time.Second
+)
 
 // startOperatorSupport is invoked from the main-menu "Talk to operator" button. It makes sure
 // a topic exists for this user, posts a welcome in their DM, and tells the owner group that a
@@ -231,20 +239,67 @@ func (h *MasterHandler) closeSupportThread(threadID string, userID int64, topicI
 		log.Printf("master-support: close thread %s failed: %v", threadID, err)
 		return
 	}
+	closer := "owner"
+	if closedBy != nil {
+		closer = formatUserLine(*closedBy)
+	}
+	h.notifySupportThreadClosed(userID, topicID, closer)
+}
+
+func (h *MasterHandler) notifySupportThreadClosed(userID int64, topicID int, closer string) {
 	// Resolve the user's preferred language via the same precedence rules used everywhere else
 	// (specialist row → master_users row → "ru") so closure notices aren't silently English.
 	loc := h.localizerFor(userID)
 	// User-side notice.
 	h.bot.SendMessage(userID, myI18n.T(loc, "MasterSupport.Closed"), nil)
 	// Topic-side acknowledgement.
-	closer := "owner"
-	if closedBy != nil {
-		closer = formatUserLine(*closedBy)
-	}
 	h.bot.SendMessageToTopic(h.supportGroupID, topicID,
 		fmt.Sprintf("🔒 <b>Thread closed</b> by %s", closer))
 	// Best-effort: archive the topic so it visually collapses.
 	_ = h.bot.CloseForumTopic(h.supportGroupID, topicID)
+}
+
+// RunSupportInactivityCloser closes open support topics after five minutes without messages.
+func (h *MasterHandler) RunSupportInactivityCloser(ctx context.Context) {
+	if h.supportGroupID == 0 {
+		return
+	}
+
+	log.Println("Master support inactivity closer started")
+	h.closeInactiveSupportThreads(time.Now().UTC())
+
+	ticker := time.NewTicker(supportInactivitySweep)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Master support inactivity closer stopped")
+			return
+		case now := <-ticker.C:
+			h.closeInactiveSupportThreads(now.UTC())
+		}
+	}
+}
+
+func (h *MasterHandler) closeInactiveSupportThreads(now time.Time) {
+	cutoff := now.Add(-supportInactivityTimeout)
+	threads, err := db.ListInactiveSupportThreads(cutoff)
+	if err != nil {
+		log.Printf("master-support: list inactive threads failed: %v", err)
+		return
+	}
+	for _, thread := range threads {
+		closed, err := db.CloseInactiveSupportThread(thread.ID, cutoff)
+		if err != nil {
+			log.Printf("master-support: close inactive thread %s failed: %v", thread.ID, err)
+			continue
+		}
+		if !closed {
+			continue
+		}
+		log.Printf("master-support: closed inactive thread %s for user %d topic %d", thread.ID, thread.TelegramUserID, thread.TopicID)
+		h.notifySupportThreadClosed(thread.TelegramUserID, thread.TopicID, "inactivity")
+	}
 }
 
 // recreateSupportThread is the recovery path when a stored topic no longer exists in the group
