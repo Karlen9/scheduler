@@ -912,6 +912,9 @@ func main() {
 	reminderCtx, reminderCancel := context.WithCancel(context.Background())
 	defer reminderCancel()
 	go startReminderWorker(reminderCtx)
+	if masterHandler != nil {
+		go masterHandler.RunSupportInactivityCloser(reminderCtx)
+	}
 
 	/***************************************************************************************************
 	* Start background webhook healer — re-registers bots whose Telegram-side webhook is missing or
