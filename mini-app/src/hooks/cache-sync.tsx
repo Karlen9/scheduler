@@ -31,7 +31,9 @@ export function CacheSync(): null {
 
   useEffect(() => {
     return subscribeMutation((event) => {
-      void invalidateMutation(event);
+      void invalidateMutation(event).catch((err) => {
+        console.error('Mutation cache sync failed:', err);
+      });
     });
   }, []);
 
@@ -46,7 +48,9 @@ export function CacheSync(): null {
       lastVersionsRef.current = versions;
 
       if (changedGroups.length > 0) {
-        void invalidateChangeGroups(changedGroups);
+        void invalidateChangeGroups(changedGroups).catch((err) => {
+          console.error('Change-group invalidation failed:', err);
+        });
       }
     },
   });

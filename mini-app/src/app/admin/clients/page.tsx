@@ -4,7 +4,7 @@ import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@
 import { Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
@@ -59,18 +59,40 @@ export default function AdminClientsPage(): ReactNode {
   const [showUnblockDialog, setShowUnblockDialog] = useState(false);
   const [cancelBookingsOnBlock, setCancelBookingsOnBlock] = useState(false);
   const [cascadeDeleteData, setCascadeDeleteData] = useState(false);
+  const bookingsCountRequestIdRef = useRef(0);
 
   useEffect(() => {
-    if (!selectedClient) {
+    if (!selectedClient?.id) {
+      bookingsCountRequestIdRef.current += 1;
+      setBookingsCount(0);
+      setBookingsCountLoading(false);
       return;
     }
+
+    const requestId = bookingsCountRequestIdRef.current + 1;
+    bookingsCountRequestIdRef.current = requestId;
     setBookingsCountLoading(true);
     api.admin
       .getBookingsPage({ page: 1, limit: 1, clientId: selectedClient.id })
-      .then((res) => setBookingsCount(res.total))
-      .catch(() => setBookingsCount(0))
-      .finally(() => setBookingsCountLoading(false));
-  }, [selectedClient]);
+      .then((res) => {
+        if (requestId !== bookingsCountRequestIdRef.current) {
+          return;
+        }
+        setBookingsCount(res.total);
+      })
+      .catch(() => {
+        if (requestId !== bookingsCountRequestIdRef.current) {
+          return;
+        }
+        setBookingsCount(0);
+      })
+      .finally(() => {
+        if (requestId !== bookingsCountRequestIdRef.current) {
+          return;
+        }
+        setBookingsCountLoading(false);
+      });
+  }, [selectedClient?.id]);
 
   const handleMessageClient = (client: TClientInfo): void => {
     if (client.isGhost || !openTelegramUserChat(client.telegramUsername)) {

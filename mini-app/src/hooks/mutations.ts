@@ -5,6 +5,14 @@ import { CACHE_KEYS } from './cache-keys';
 import type { TMutationEvent } from '@/lib/mutation-events';
 import type { TChangeGroup } from '@/lib/types';
 
+async function runRevalidation(label: string, action: () => Promise<unknown>): Promise<void> {
+  try {
+    await action();
+  } catch (err) {
+    console.error(`Cache revalidation failed for ${label}:`, err);
+  }
+}
+
 function isRecurringDetailKey(key: unknown): boolean {
   return (
     typeof key === 'string' &&
@@ -22,22 +30,26 @@ function isAdminClientBatchesKey(key: unknown): boolean {
 
 async function revalidateKeys(keys: string[]): Promise<void> {
   await Promise.all(
-    [...new Set(keys)].map(async (key) => {
-      await mutate(key);
-    }),
+    [...new Set(keys)].map(async (key) => runRevalidation(key, async () => mutate(key))),
   );
 }
 
 async function revalidateRecurringDetails(): Promise<void> {
-  await mutate(isRecurringDetailKey, undefined, { revalidate: true });
+  await runRevalidation('recurring details', async () =>
+    mutate(isRecurringDetailKey, undefined, { revalidate: true }),
+  );
 }
 
 async function revalidateAdminBookingsLists(): Promise<void> {
-  await mutate(isAdminBookingsListKey, undefined, { revalidate: true });
+  await runRevalidation('admin bookings lists', async () =>
+    mutate(isAdminBookingsListKey, undefined, { revalidate: true }),
+  );
 }
 
 async function revalidateAdminClientBatches(): Promise<void> {
-  await mutate(isAdminClientBatchesKey, undefined, { revalidate: true });
+  await runRevalidation('admin client batches', async () =>
+    mutate(isAdminClientBatchesKey, undefined, { revalidate: true }),
+  );
 }
 
 function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChangeGroup[] {

@@ -77,7 +77,7 @@ export default function AdminNotificationsPage(): ReactNode {
     setters[key](value);
     try {
       await api.admin.updateNotificationPrefs({ [key]: value });
-      invalidateAdminNotifications();
+      await invalidateAdminNotifications();
     } catch {
       setters[key](!value);
       toast.error(te('saveSettingsFailed'));

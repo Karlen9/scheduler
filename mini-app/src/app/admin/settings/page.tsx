@@ -105,16 +105,40 @@ export default function SettingsPage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const syncedRef = useRef(false);
+  const syncingLanguageRef = useRef<string | null>(null);
   useEffect(() => {
-    if (
-      specialistProfile?.language &&
-      specialistProfile.language !== locale &&
-      !syncedRef.current
-    ) {
-      syncedRef.current = true;
-      setLocale(specialistProfile.language).then(() => router.refresh());
+    const targetLanguage = specialistProfile?.language;
+    if (!targetLanguage || targetLanguage === locale) {
+      syncingLanguageRef.current = null;
+      return;
     }
+
+    if (syncingLanguageRef.current === targetLanguage) {
+      return;
+    }
+
+    let active = true;
+    syncingLanguageRef.current = targetLanguage;
+
+    void (async () => {
+      try {
+        await setLocale(targetLanguage);
+        if (!active) {
+          return;
+        }
+        router.refresh();
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        syncingLanguageRef.current = null;
+        console.error('Failed to sync locale:', err);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [specialistProfile?.language, locale, router]);
 
   return (
