@@ -3,13 +3,13 @@
     "other": "Welcome! Press the button below to open the booking app."
   },
   "Welcome.Specialist": {
-    "other": "👋 Welcome back!\n\nYour bot accepts online bookings from clients and helps you run your practice:\n• 📅 Clients can book through the app any time — all you need to do is confirm\n• 🔔 Automatic reminders to clients and notifications to you\n• 🔁 Recurring sessions and repeating schedules\n• 👥 Client base with visit history and notes\n• 📊 Revenue and workload analytics\n\n🔧 Open \"Admin\" to set up your profile, services and schedule.\n\n✨ This is the alpha version — all features are free for everyone. Some features will become paid over time."
+    "other": "👋 Welcome back!\n\nYour bot accepts online bookings from clients and helps you run your practice:\n• 📅 Clients can book through the app any time — all you need to do is confirm\n• 🔔 Automatic reminders to clients and notifications to you\n• 🔁 Recurring sessions and repeating schedules\n• 👥 Client base with visit history and notes\n• 📊 Revenue and workload analytics\n\n🔧 Open \"Admin\" to set up your profile, services and schedule.\n👁 Use \"Preview\" to see how your public client page looks inside the mini app.\n\n✨ This is the alpha version — all features are free for everyone. Some features will become paid over time."
   },
   "Help.Client": {
     "other": "This is a bot for online booking with a specialist.\n\nWhat you can do:\n• Choose a convenient date and time\n• Book a session\n• View and cancel your bookings\n• Create a recurring schedule\n\nPress the \"Book\" button below or /start to open the app."
   },
   "Help.Specialist": {
-    "other": "You are the owner of this bot.\n\nHow to set up:\n1. Open \"Manage\" — Profile — fill in name, photo, description\n2. Services and prices — add session types\n3. Schedule — set working hours\n4. Days off — mark non-working dates\n\nHow booking works:\n• A client books — you get a notification\n• Confirm or decline right in the chat\n• All bookings are visible in the admin panel\n\nLink for clients (send it to them):\n<code>%s</code>\n\nCommands:\n/start — Main menu\n/admin — Admin panel\n/help — This help"
+    "other": "You are the owner of this bot.\n\nHow to set up:\n1. Open \"Manage\" — Profile — fill in name, photo, description\n2. Services and prices — add session types\n3. Schedule — set working hours\n4. Days off — mark non-working dates\n\nHow booking works:\n• A client books — you get a notification\n• Confirm or decline right in the chat\n• All bookings are visible in the admin panel\n• \"Preview\" opens your client-facing page so you can quickly check how it looks\n\nLink for clients (send it to them):\n<code>%s</code>\n\nCommands:\n/start — Main menu\n/admin — Admin panel\n/help — This help"
   },
   "Help.SpecialistSupport": {
     "other": "💬 Need help? Contact an operator at @%s — tap \"Operator support\" in the menu."
