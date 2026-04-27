@@ -264,7 +264,9 @@
     "rescheduleRequested": "Специалист предлагает новое время",
     "approveRescheduleButton": "Принять новое время",
     "declineRescheduleButton": "Отклонить",
-    "rescheduleOldLabel": "было"
+    "rescheduleOldLabel": "было",
+    "loadMore": "Загрузить ещё",
+    "loading": "Загрузка..."
   },
   "RecurringPage": {
     "emptyTitle": "Нет регулярных записей",
@@ -512,7 +514,8 @@
     "unblockSuccess": "Клиент {name} разблокирован",
     "blockError": "Не удалось заблокировать",
     "unblockError": "Не удалось разблокировать",
-    "blocked": "(заблокирован)"
+    "blocked": "(заблокирован)",
+    "loadMore": "Загрузить ещё"
   },
   "AdminAllBookings": {
     "title": "Все записи",

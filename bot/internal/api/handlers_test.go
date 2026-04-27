@@ -249,11 +249,13 @@ func TestCreateAndGetBooking(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var bookings []map[string]interface{}
-	parseJSON(t, w, &bookings)
+	var payload struct {
+		Bookings []map[string]interface{} `json:"bookings"`
+	}
+	parseJSON(t, w, &payload)
 
 	found := false
-	for _, b := range bookings {
+	for _, b := range payload.Bookings {
 		if b["id"] == bookingID {
 			found = true
 			break
@@ -413,10 +415,12 @@ func TestAdminGetBookings(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var bookings []map[string]interface{}
-	parseJSON(t, w, &bookings)
+	var payload struct {
+		Bookings []map[string]interface{} `json:"bookings"`
+	}
+	parseJSON(t, w, &payload)
 
-	if len(bookings) == 0 {
+	if len(payload.Bookings) == 0 {
 		t.Fatal("expected at least one booking from previous tests")
 	}
 }

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -401,6 +402,53 @@ func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
 		clients = append(clients, *c)
 	}
 	return clients, rows.Err()
+}
+
+func GetClientsBySpecialistIDPaged(specialistID, search string, limit, offset int) ([]models.Client, int, error) {
+	whereClauses := []string{"specialist_id = ?"}
+	args := []interface{}{specialistID}
+
+	if trimmed := strings.TrimSpace(search); trimmed != "" {
+		like := "%" + trimmed + "%"
+		whereClauses = append(whereClauses, `(name LIKE ? OR COALESCE(display_name, '') LIKE ? OR COALESCE(phone, '') LIKE ? OR COALESCE(telegram_username, '') LIKE ?)`)
+		args = append(args, like, like, like, like)
+	}
+
+	whereClause := strings.Join(whereClauses, " AND ")
+
+	var total int
+	if err := DB.QueryRow(Q(`
+		SELECT COUNT(*)
+		FROM clients
+		WHERE `+whereClause), args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := append([]interface{}{}, args...)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := DB.Query(Q(`
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
+		FROM clients
+		WHERE `+whereClause+`
+		ORDER BY name ASC
+		LIMIT ? OFFSET ?
+	`), queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var clients []models.Client
+	for rows.Next() {
+		c, err := scanClient(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		clients = append(clients, *c)
+	}
+
+	return clients, total, rows.Err()
 }
 
 /***************************************************************************************************

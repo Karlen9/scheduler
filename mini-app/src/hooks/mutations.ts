@@ -24,6 +24,14 @@ function isAdminBookingsListKey(key: unknown): boolean {
   return typeof key === 'string' && key.includes('adminBookingsList:');
 }
 
+function isBookingsListKey(key: unknown): boolean {
+  return typeof key === 'string' && key.includes('bookingsList:');
+}
+
+function isAdminClientsListKey(key: unknown): boolean {
+  return typeof key === 'string' && key.includes('adminClientsList:');
+}
+
 function isAdminClientBatchesKey(key: unknown): boolean {
   return typeof key === 'string' && key.includes('adminClientBatches:');
 }
@@ -43,6 +51,18 @@ async function revalidateRecurringDetails(): Promise<void> {
 async function revalidateAdminBookingsLists(): Promise<void> {
   await runRevalidation('admin bookings lists', async () =>
     mutate(isAdminBookingsListKey, undefined, { revalidate: true }),
+  );
+}
+
+async function revalidateBookingsLists(): Promise<void> {
+  await runRevalidation('client bookings lists', async () =>
+    mutate(isBookingsListKey, undefined, { revalidate: true }),
+  );
+}
+
+async function revalidateAdminClientsLists(): Promise<void> {
+  await runRevalidation('admin clients lists', async () =>
+    mutate(isAdminClientsListKey, undefined, { revalidate: true }),
   );
 }
 
@@ -120,6 +140,8 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
   const keys = new Set<string>();
   let shouldRevalidateRecurringDetails = false;
   let shouldRevalidateAdminBookingsLists = false;
+  let shouldRevalidateBookingsLists = false;
+  let shouldRevalidateAdminClientsLists = false;
   let shouldRevalidateAdminClientBatches = false;
 
   for (const group of new Set(groups)) {
@@ -130,6 +152,7 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
         keys.add(CACHE_KEYS.adminBookings);
         keys.add(CACHE_KEYS.adminStats);
         shouldRevalidateAdminBookingsLists = true;
+        shouldRevalidateBookingsLists = true;
         break;
       case 'clientBatches':
         keys.add(CACHE_KEYS.clientBatches);
@@ -142,6 +165,7 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
         break;
       case 'clients':
         keys.add(CACHE_KEYS.adminClients);
+        shouldRevalidateAdminClientsLists = true;
         break;
       case 'services':
         keys.add(CACHE_KEYS.sessionTypes);
@@ -176,6 +200,8 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
     revalidateKeys([...keys]),
     shouldRevalidateRecurringDetails ? revalidateRecurringDetails() : Promise.resolve(),
     shouldRevalidateAdminBookingsLists ? revalidateAdminBookingsLists() : Promise.resolve(),
+    shouldRevalidateBookingsLists ? revalidateBookingsLists() : Promise.resolve(),
+    shouldRevalidateAdminClientsLists ? revalidateAdminClientsLists() : Promise.resolve(),
     shouldRevalidateAdminClientBatches ? revalidateAdminClientBatches() : Promise.resolve(),
   ]);
 }

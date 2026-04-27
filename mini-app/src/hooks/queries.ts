@@ -10,8 +10,11 @@ import type {
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
+  TBookingListResponse,
   TClientBatch,
   TClientInfo,
+  TClientListQuery,
+  TClientListResponse,
   TClientProfile,
   TClientStats,
   TDayOff,
@@ -45,6 +48,23 @@ function adminBookingsQueryKey(params: TAdminBookingsQuery): string {
   }
   if (params.sort) {
     query.set('sort', params.sort);
+  }
+  return query.toString();
+}
+
+function clientBookingsQueryKey(params: { page: number; limit: number }): string {
+  const query = new URLSearchParams();
+  query.set('page', String(params.page));
+  query.set('limit', String(params.limit));
+  return query.toString();
+}
+
+function adminClientsQueryKey(params: TClientListQuery): string {
+  const query = new URLSearchParams();
+  query.set('page', String(params.page));
+  query.set('limit', String(params.limit));
+  if (params.search?.trim()) {
+    query.set('search', params.search.trim());
   }
   return query.toString();
 }
@@ -310,6 +330,32 @@ export function useBookings(): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
+export function useBookingsPage(params: { page: number; limit: number }): {
+  data: TBookingListResponse;
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TBookingListResponse>;
+} {
+  const queryKey = clientBookingsQueryKey(params);
+  const { data, isLoading, error, mutate } = useSWR<TBookingListResponse>(
+    CACHE_KEYS.bookingsList(queryKey),
+    async () => api.getBookingsPage(params),
+    dynamicConfig,
+  );
+  return {
+    data: data ?? {
+      bookings: [],
+      total: 0,
+      page: params.page,
+      limit: params.limit,
+      totalPages: 0,
+    },
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
 export function useClientBatches(): {
   data: TClientBatch[];
   isLoading: boolean;
@@ -373,6 +419,33 @@ export function useAdminBookingsPage(params: TAdminBookingsQuery): {
       page: params.page,
       limit: params.limit,
       totalPages: 0,
+    },
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+export function useAdminClientsPage(params: TClientListQuery): {
+  data: TClientListResponse;
+  isLoading: boolean;
+  error: Error | undefined;
+  mutate: KeyedMutator<TClientListResponse>;
+} {
+  const queryKey = adminClientsQueryKey(params);
+  const { data, isLoading, error, mutate } = useSWR<TClientListResponse>(
+    CACHE_KEYS.adminClientsList(queryKey),
+    async () => api.admin.getClientsPage(params),
+    userConfig,
+  );
+  return {
+    data: data ?? {
+      clients: [],
+      total: 0,
+      page: params.page,
+      limit: params.limit,
+      totalPages: 0,
+      searchQuery: params.search?.trim() ?? '',
     },
     isLoading,
     error,

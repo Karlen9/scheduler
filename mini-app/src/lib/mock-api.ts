@@ -3,10 +3,12 @@ import type {
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
+  TBookingListResponse,
   TChangeGroup,
   TChangeVersions,
   TClientBatch,
   TClientInfo,
+  TClientListResponse,
   TClientProfile,
   TClientStats,
   TDayOff,
@@ -621,6 +623,60 @@ function getAdminBookingsPage(state: TMockState, endpoint: string): TAdminBookin
   };
 }
 
+function getClientBookingsPage(state: TMockState, endpoint: string): TBookingListResponse {
+  const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
+  const page = Math.max(Number(params.get('page') ?? 1) || 1, 1);
+  const limit = Math.max(Number(params.get('limit') ?? 20) || 20, 1);
+  const bookings = getAllBookings(state)
+    .filter((booking) => booking.clientName === state.clientProfile.name)
+    .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+
+  const total = bookings.length;
+  const offset = (page - 1) * limit;
+  const pageBookings = bookings.slice(offset, offset + limit);
+  return {
+    bookings: clone(pageBookings),
+    total,
+    page,
+    limit,
+    totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+  };
+}
+
+function getAdminClientsPage(state: TMockState, endpoint: string): TClientListResponse {
+  const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
+  const search = (params.get('search') ?? '').trim().toLowerCase();
+  const page = Math.max(Number(params.get('page') ?? 1) || 1, 1);
+  const limit = Math.max(Number(params.get('limit') ?? 50) || 50, 1);
+
+  const filtered = state.clients.filter((client) => {
+    if (!search) {
+      return true;
+    }
+    const haystack = [
+      client.displayName ?? '',
+      client.name,
+      client.phone ?? '',
+      client.telegramUsername ?? '',
+    ]
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(search);
+  });
+
+  const total = filtered.length;
+  const offset = (page - 1) * limit;
+  const pageClients = filtered.slice(offset, offset + limit);
+  return {
+    clients: clone(pageClients),
+    total,
+    page,
+    limit,
+    totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    searchQuery: search,
+  };
+}
+
 function findBooking(state: TMockState, bookingId: string): TBooking | null {
   return getAllBookings(state).find((booking) => booking.id === bookingId) ?? null;
 }
@@ -932,6 +988,10 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
       return clone(getAvailableSlots(state, endpoint)) as T;
     }
     if (path === '/api/bookings') {
+      const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
+      if (params.has('page') || params.has('limit')) {
+        return getClientBookingsPage(state, endpoint) as T;
+      }
       return clone(
         getAllBookings(state).filter((booking) => booking.clientName === state.clientProfile.name),
       ) as T;
@@ -1031,6 +1091,10 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
       return clone(state.adminProfile) as T;
     }
     if (path === '/api/admin/clients') {
+      const params = new URLSearchParams(endpoint.split('?')[1] ?? '');
+      if (params.has('page') || params.has('limit') || params.has('search')) {
+        return getAdminClientsPage(state, endpoint) as T;
+      }
       return clone(state.clients) as T;
     }
     if (path === '/api/admin/notifications') {

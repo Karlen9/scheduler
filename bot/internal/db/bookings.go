@@ -253,6 +253,31 @@ func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
 	return scanBookings(rows)
 }
 
+func GetBookingsByClientIDPaged(clientID string, limit, offset int) ([]models.Booking, int, error) {
+	var total int
+	if err := DB.QueryRow(Q(`
+		SELECT COUNT(*)
+		FROM bookings
+		WHERE client_id = ?
+	`), clientID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	query := bookingSelectQuery("b.client_id = ?", "b.starts_at DESC") + "\nLIMIT ? OFFSET ?"
+	rows, err := DB.Query(Q(query), clientID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	bookings, err := scanBookings(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return bookings, total, nil
+}
+
 /***************************************************************************************************
 * Returns active bookings by client id.
 *
@@ -418,36 +443,70 @@ func updateBookingStatus(bookingID string, status models.BookingStatus, reason *
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Time) (int, error) {
-	rows, err := DB.Query(Q(`
-		SELECT id
-		FROM bookings
-		WHERE specialist_id = ?
-		  AND status = 'confirmed'
-		  AND starts_at <= ?
+	tx, err := DB.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	rows, err := tx.Query(Q(`
+		SELECT b.id, b.client_id, b.session_type_id, COALESCE(st.type, '')
+		FROM bookings b
+		LEFT JOIN session_types st ON st.id = b.session_type_id
+		WHERE b.specialist_id = ?
+		  AND b.status = 'confirmed'
+		  AND b.starts_at <= ?
 	`), specialistID, now)
 	if err != nil {
 		return 0, err
 	}
 	defer rows.Close()
 
-	var ids []string
+	type completionCandidate struct {
+		id            string
+		clientID      string
+		sessionTypeID string
+		serviceType   string
+	}
+
+	candidates := make([]completionCandidate, 0)
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
+		var candidate completionCandidate
+		if err := rows.Scan(&candidate.id, &candidate.clientID, &candidate.sessionTypeID, &candidate.serviceType); err != nil {
 			return 0, err
 		}
-		ids = append(ids, id)
+		candidates = append(candidates, candidate)
 	}
 	if err := rows.Err(); err != nil {
 		return 0, err
 	}
+	if len(candidates) == 0 {
+		return 0, tx.Commit()
+	}
 
-	for _, id := range ids {
-		if err := UpdateBookingStatus(id, models.BookingStatusCompleted); err != nil {
+	if _, err := tx.Exec(Q(`
+		UPDATE bookings
+		SET status = ?
+		WHERE specialist_id = ?
+		  AND status = 'confirmed'
+		  AND starts_at <= ?
+	`), models.BookingStatusCompleted, specialistID, now); err != nil {
+		return 0, err
+	}
+
+	for _, candidate := range candidates {
+		if candidate.serviceType != "batch" {
+			continue
+		}
+		if err := consumeClientBatchForBookingTx(tx, candidate.id, candidate.clientID, specialistID, candidate.sessionTypeID); err != nil {
 			return 0, err
 		}
 	}
-	return len(ids), nil
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return len(candidates), nil
 }
 
 /***************************************************************************************************

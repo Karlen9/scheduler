@@ -12,13 +12,15 @@ import { ClientDetailModal } from '@/components/ClientDetailModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { invalidateBookings, invalidateClients, invalidateRecurring } from '@/hooks/mutations';
-import { useClients } from '@/hooks/queries';
+import { useAdminClientsPage } from '@/hooks/queries';
 import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
 import { openTelegramUserChat } from '@/lib/telegram';
 
 import type { TClientInfo } from '@/lib/types';
 import type { ReactNode } from 'react';
+
+const CLIENTS_PAGE_LIMIT = 50;
 
 /***************************************************************************************************
  * Renders the admin clients page UI and related interactions.
@@ -42,7 +44,6 @@ export default function AdminClientsPage(): ReactNode {
   const router = useRouter();
   const t = useTranslations('AdminClients');
   const tc = useTranslations('Common');
-  const { data: clients, isLoading } = useClients();
   const [deleteTarget, setDeleteTarget] = useState<TClientInfo | null>(null);
   const [editTarget, setEditTarget] = useState<TClientInfo | null>(null);
   const [editName, setEditName] = useState('');
@@ -60,6 +61,39 @@ export default function AdminClientsPage(): ReactNode {
   const [cancelBookingsOnBlock, setCancelBookingsOnBlock] = useState(false);
   const [cascadeDeleteData, setCascadeDeleteData] = useState(false);
   const bookingsCountRequestIdRef = useRef(0);
+  const [page, setPage] = useState(1);
+  const [allClients, setAllClients] = useState<TClientInfo[]>([]);
+  const query = useMemo(
+    () => ({
+      page,
+      limit: CLIENTS_PAGE_LIMIT,
+      search: debouncedSearchQuery.trim() || undefined,
+    }),
+    [debouncedSearchQuery, page],
+  );
+  const { data, isLoading, error } = useAdminClientsPage(query);
+  const clients = data.clients;
+  const hasMore = data.page < data.totalPages;
+
+  useEffect(() => {
+    setPage(1);
+    setAllClients([]);
+  }, [debouncedSearchQuery]);
+
+  useEffect(() => {
+    if (page === 1) {
+      setAllClients(clients);
+      return;
+    }
+
+    setAllClients((prev) => {
+      const nextByID = new Map(clients.map((client) => [client.id, client]));
+      const merged = prev.map((client) => nextByID.get(client.id) ?? client);
+      const seen = new Set(merged.map((client) => client.id));
+      const appended = clients.filter((client) => !seen.has(client.id));
+      return appended.length === 0 ? merged : [...merged, ...appended];
+    });
+  }, [clients, page]);
 
   useEffect(() => {
     if (!selectedClient?.id) {
@@ -266,19 +300,6 @@ export default function AdminClientsPage(): ReactNode {
    ***************************************************************************************************/
   const clientDisplayName = (client: TClientInfo): string => client.displayName || client.name;
 
-  const filteredClients = useMemo(() => {
-    const query = debouncedSearchQuery.trim().toLowerCase();
-    if (!query) {
-      return clients;
-    }
-    return clients.filter((client) =>
-      [clientDisplayName(client), client.name, client.phone ?? '']
-        .join(' ')
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [clients, debouncedSearchQuery]);
-
   const header = (
     <div className={'space-y-3'}>
       <div className={'flex items-center justify-between gap-3'}>
@@ -412,7 +433,7 @@ export default function AdminClientsPage(): ReactNode {
     </Transition>
   );
 
-  if (isLoading) {
+  if (isLoading && allClients.length === 0) {
     return (
       <div>
         <div className={'space-y-3 p-4'}>
@@ -432,7 +453,23 @@ export default function AdminClientsPage(): ReactNode {
     );
   }
 
-  if (clients.length === 0) {
+  if (error && allClients.length === 0) {
+    return (
+      <div className={'flex flex-1 flex-col'}>
+        <div className={'p-4'}>{header}</div>
+        <div className={'flex min-h-[300px] flex-1 items-center justify-center'}>
+          <EmptyState
+            icon={<Search className={'h-16 w-16'} />}
+            title={t('emptySearchTitle')}
+            description={t('emptySearchDescription')}
+          />
+        </div>
+        {addClientDialog}
+      </div>
+    );
+  }
+
+  if (allClients.length === 0) {
     return (
       <div className={'flex flex-1 flex-col'}>
         <div className={'p-4'}>{header}</div>
@@ -452,7 +489,7 @@ export default function AdminClientsPage(): ReactNode {
     <div>
       <div className={'space-y-3 p-4'}>
         {header}
-        {filteredClients.length === 0 && (
+        {allClients.length === 0 && (
           <div className={'flex min-h-[240px] items-center justify-center'}>
             <EmptyState
               icon={<Search className={'h-16 w-16'} />}
@@ -461,7 +498,7 @@ export default function AdminClientsPage(): ReactNode {
             />
           </div>
         )}
-        {filteredClients.map((client) => (
+        {allClients.map((client) => (
           <button
             key={client.id}
             type={'button'}
@@ -509,6 +546,18 @@ export default function AdminClientsPage(): ReactNode {
             </button>
           </button>
         ))}
+        {hasMore && (
+          <button
+            type={'button'}
+            onClick={() => setPage((current) => current + 1)}
+            disabled={isLoading}
+            className={
+              'bg-card text-brand w-full rounded-xl py-3 text-center text-sm font-medium active:opacity-80 disabled:opacity-50'
+            }
+          >
+            {isLoading ? tc('loading') : t('loadMore')}
+          </button>
+        )}
       </div>
 
       {addClientDialog}

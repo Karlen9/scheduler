@@ -11,9 +11,12 @@ import type {
   TAdminScheduleContext,
   TAdminStats,
   TBooking,
+  TBookingListResponse,
   TChangeVersions,
   TClientBatch,
   TClientInfo,
+  TClientListQuery,
+  TClientListResponse,
   TClientProfile,
   TClientStats,
   TDayOff,
@@ -35,6 +38,9 @@ import type {
  * - Reused by the shared utility layer to keep shared values centralized.
  ***************************************************************************************************/
 const API_BASE_URL = '';
+const DEFAULT_CLIENT_BOOKINGS_LIMIT = 50;
+const DEFAULT_ADMIN_DASHBOARD_BOOKINGS_LIMIT = 100;
+const DEFAULT_ADMIN_CLIENTS_LIMIT = 50;
 
 function normalizeIncomingHours(hours: TWorkingHours[]): TWorkingHours[] {
   return hours.map((wh) => ({
@@ -345,7 +351,15 @@ export const api = {
    * - May read browser state, call shared helpers, or perform network requests.
    ***************************************************************************************************/
   async getBookings(): Promise<TBooking[]> {
-    return fetchAPI<TBooking[]>('/api/bookings');
+    const response = await this.getBookingsPage({ page: 1, limit: DEFAULT_CLIENT_BOOKINGS_LIMIT });
+    return response.bookings;
+  },
+
+  async getBookingsPage(params: { page: number; limit: number }): Promise<TBookingListResponse> {
+    const query = new URLSearchParams();
+    query.set('page', String(params.page));
+    query.set('limit', String(params.limit));
+    return fetchAPI<TBookingListResponse>(`/api/bookings?${query.toString()}`);
   },
 
   async getClientBatches(): Promise<TClientBatch[]> {
@@ -1053,15 +1067,14 @@ export const api = {
      * Side effects:
      * - May read browser state, call shared helpers, or perform network requests.
      ***************************************************************************************************/
-    async getBookings(status?: string): Promise<TBooking[]> {
-      /***************************************************************************************************
-       * Defines the query value used by the shared utility layer.
-       *
-       * Usage context:
-       * - Reused by the shared utility layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const query = status ? `?status=${status}` : '';
-      return fetchAPI<TBooking[]>(`/api/admin/bookings${query}`);
+    async getBookings(status?: TBooking['status']): Promise<TBooking[]> {
+      const response = await this.getBookingsPage({
+        page: 1,
+        limit: DEFAULT_ADMIN_DASHBOARD_BOOKINGS_LIMIT,
+        statuses: status ? [status] : ['pending', 'confirmed'],
+        sort: 'starts_at_asc',
+      });
+      return response.bookings;
     },
 
     async getBookingsPage(params: TAdminBookingsQuery): Promise<TAdminBookingsResponse> {
@@ -1189,7 +1202,21 @@ export const api = {
      * - May read browser state, call shared helpers, or perform network requests.
      ***************************************************************************************************/
     async getClients(): Promise<TClientInfo[]> {
-      return fetchAPI<TClientInfo[]>('/api/admin/clients');
+      const response = await this.getClientsPage({
+        page: 1,
+        limit: DEFAULT_ADMIN_CLIENTS_LIMIT,
+      });
+      return response.clients;
+    },
+
+    async getClientsPage(params: TClientListQuery): Promise<TClientListResponse> {
+      const query = new URLSearchParams();
+      query.set('page', String(params.page));
+      query.set('limit', String(params.limit));
+      if (params.search?.trim()) {
+        query.set('search', params.search.trim());
+      }
+      return fetchAPI<TClientListResponse>(`/api/admin/clients?${query.toString()}`);
     },
 
     /***************************************************************************************************

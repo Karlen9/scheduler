@@ -157,6 +157,14 @@ export type TBooking = {
   clientTelegramUsername?: string;
 };
 
+export type TBookingListResponse = {
+  bookings: TBooking[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
 /***************************************************************************************************
  * Defines the time slot shape shared by the shared utility layer.
  ***************************************************************************************************/
@@ -198,6 +206,21 @@ export type TClientInfo = {
   isGhost?: boolean;
   isBlocked?: boolean;
   createdAt: string;
+};
+
+export type TClientListQuery = {
+  page: number;
+  limit: number;
+  search?: string;
+};
+
+export type TClientListResponse = {
+  clients: TClientInfo[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  searchQuery?: string;
 };
 
 /***************************************************************************************************
@@ -436,13 +459,7 @@ export type TAdminBookingsQuery = {
   sort?: TAdminBookingsSort;
 };
 
-export type TAdminBookingsResponse = {
-  bookings: TBooking[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
+export type TAdminBookingsResponse = TBookingListResponse;
 
 /***************************************************************************************************
  * Defines the create recurring params shape shared by the shared utility layer.

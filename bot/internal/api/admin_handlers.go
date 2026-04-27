@@ -950,6 +950,8 @@ func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
 ***************************************************************************************************/
 const defaultAdminBookingsLimit = 20
 const maxAdminBookingsLimit = 100
+const defaultAdminClientsLimit = 50
+const maxAdminClientsLimit = 100
 
 func parseAdminBookingsPositiveInt(value string, fallback int) (int, error) {
 	if value == "" {
@@ -1011,87 +1013,70 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 		changes.Publish(specialist.ID, changes.GroupBookings, changes.GroupClientBatches)
 	}
 
-	if query.Has("page") || query.Has("limit") {
-		page, err := parseAdminBookingsPositiveInt(query.Get("page"), 1)
-		if err != nil {
-			httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-			return
-		}
-
-		limit, err := parseAdminBookingsPositiveInt(query.Get("limit"), defaultAdminBookingsLimit)
-		if err != nil {
-			httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-			return
-		}
-		if limit > maxAdminBookingsLimit {
-			limit = maxAdminBookingsLimit
-		}
-
-		dateFrom, err := parseAdminBookingsDate(query.Get("dateFrom"), false)
-		if err != nil {
-			httpError(w, r, "Error.BadDate", http.StatusBadRequest)
-			return
-		}
-		dateTo, err := parseAdminBookingsDate(query.Get("dateTo"), true)
-		if err != nil {
-			httpError(w, r, "Error.BadDate", http.StatusBadRequest)
-			return
-		}
-
-		filters := db.BookingListFilters{
-			Status:         status,
-			Statuses:       adminBookingsQueryValues(query, "status"),
-			ClientID:       strings.TrimSpace(query.Get("clientId")),
-			ClientIDs:      adminBookingsQueryValues(query, "clientId"),
-			ClientSearch:   strings.TrimSpace(query.Get("client")),
-			SessionTypeID:  strings.TrimSpace(query.Get("serviceId")),
-			SessionTypeIDs: adminBookingsQueryValues(query, "serviceId"),
-			DateFrom:       dateFrom,
-			DateTo:         dateTo,
-			Sort:           query.Get("sort"),
-			Limit:          limit,
-			Offset:         (page - 1) * limit,
-		}
-
-		bookings, total, err := db.GetBookingsBySpecialistIDFiltered(specialist.ID, filters)
-		if err != nil {
-			log.Printf("Error getting paginated bookings: %v", err)
-			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-			return
-		}
-		if bookings == nil {
-			bookings = []models.Booking{}
-		}
-
-		totalPages := 0
-		if total > 0 {
-			totalPages = (total + limit - 1) / limit
-		}
-
-		setNoStore(w)
-		writeJSON(w, models.BookingListResponse{
-			Bookings:   bookings,
-			Total:      total,
-			Page:       page,
-			Limit:      limit,
-			TotalPages: totalPages,
-		})
+	page, err := parseAdminBookingsPositiveInt(query.Get("page"), 1)
+	if err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
 
-	bookings, err := db.GetBookingsBySpecialistID(specialist.ID, status)
+	limit, err := parseAdminBookingsPositiveInt(query.Get("limit"), defaultAdminBookingsLimit)
 	if err != nil {
-		log.Printf("Error getting bookings: %v", err)
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+	if limit > maxAdminBookingsLimit {
+		limit = maxAdminBookingsLimit
+	}
+
+	dateFrom, err := parseAdminBookingsDate(query.Get("dateFrom"), false)
+	if err != nil {
+		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+		return
+	}
+	dateTo, err := parseAdminBookingsDate(query.Get("dateTo"), true)
+	if err != nil {
+		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
+		return
+	}
+
+	filters := db.BookingListFilters{
+		Status:         status,
+		Statuses:       adminBookingsQueryValues(query, "status"),
+		ClientID:       strings.TrimSpace(query.Get("clientId")),
+		ClientIDs:      adminBookingsQueryValues(query, "clientId"),
+		ClientSearch:   strings.TrimSpace(query.Get("client")),
+		SessionTypeID:  strings.TrimSpace(query.Get("serviceId")),
+		SessionTypeIDs: adminBookingsQueryValues(query, "serviceId"),
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
+		Sort:           query.Get("sort"),
+		Limit:          limit,
+		Offset:         (page - 1) * limit,
+	}
+
+	bookings, total, err := db.GetBookingsBySpecialistIDFiltered(specialist.ID, filters)
+	if err != nil {
+		log.Printf("Error getting paginated bookings: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-
 	if bookings == nil {
 		bookings = []models.Booking{}
 	}
 
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
 	setNoStore(w)
-	writeJSON(w, bookings)
+	writeJSON(w, models.BookingListResponse{
+		Bookings:   bookings,
+		Total:      total,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+	})
 }
 
 /***************************************************************************************************
@@ -2329,7 +2314,23 @@ func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clients, err := db.GetClientsBySpecialistID(specialist.ID)
+	query := r.URL.Query()
+	page, err := parseAdminBookingsPositiveInt(query.Get("page"), 1)
+	if err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+	limit, err := parseAdminBookingsPositiveInt(query.Get("limit"), defaultAdminClientsLimit)
+	if err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+	if limit > maxAdminClientsLimit {
+		limit = maxAdminClientsLimit
+	}
+
+	search := strings.TrimSpace(query.Get("search"))
+	clients, total, err := db.GetClientsBySpecialistIDPaged(specialist.ID, search, limit, (page-1)*limit)
 	if err != nil {
 		log.Printf("Error getting clients: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -2340,7 +2341,19 @@ func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 		clients = []models.Client{}
 	}
 
-	writeJSON(w, clients)
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
+	writeJSON(w, models.ClientListResponse{
+		Clients:     clients,
+		Total:       total,
+		Page:        page,
+		Limit:       limit,
+		TotalPages:  totalPages,
+		SearchQuery: search,
+	})
 }
 
 /***************************************************************************************************
