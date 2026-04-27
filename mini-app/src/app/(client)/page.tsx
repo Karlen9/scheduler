@@ -5,9 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { setLocale } from '@/actions/locale';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
@@ -275,6 +276,47 @@ export default function HomePage(): ReactNode {
   );
 
   const activeBookingsCount = activeBookings.length;
+  const syncingPreviewLanguageRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isPreviewInstance) {
+      syncingPreviewLanguageRef.current = null;
+      return;
+    }
+
+    const targetLanguage = specialist?.language;
+    if (!targetLanguage || targetLanguage === locale) {
+      syncingPreviewLanguageRef.current = null;
+      return;
+    }
+
+    if (syncingPreviewLanguageRef.current === targetLanguage) {
+      return;
+    }
+
+    let active = true;
+    syncingPreviewLanguageRef.current = targetLanguage;
+
+    void (async () => {
+      try {
+        await setLocale(targetLanguage);
+        if (!active) {
+          return;
+        }
+        router.refresh();
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+        syncingPreviewLanguageRef.current = null;
+        console.error('Failed to sync preview locale:', err);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [isPreviewInstance, locale, router, specialist?.language, syncingPreviewLanguageRef]);
 
   const formatCountdown = useCallback(
     (diffMs: number): string => {
