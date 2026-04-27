@@ -517,7 +517,10 @@
   "AdminAllBookings": {
     "title": "All Bookings",
     "totalCount": "{count} bookings",
-    "showPast": "Show past bookings",
+    "tabs": {
+      "upcoming": "Upcoming",
+      "history": "History"
+    },
     "filters": "Filters",
     "filtersWithCount": "Filters ({count})",
     "filtersTitle": "Filters and Sort",
