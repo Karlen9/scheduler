@@ -1,2 +1,2 @@
 0 * * * * /usr/local/bin/backup.sh >> /var/log/backup.log 2>&1
-30 * * * * /usr/local/bin/health.sh >> /var/log/health.log 2>&1
+0 * * * * /usr/local/bin/health.sh >> /var/log/health.log 2>&1
