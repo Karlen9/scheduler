@@ -12,7 +12,6 @@ import { ClientAvatar } from '@/components/ClientAvatar';
 import { EmptyState } from '@/components/EmptyState';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Switch } from '@/components/Switch';
 import { TopBar } from '@/components/TopBar';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useAdminBookingsPage, useAdminServices, useClients } from '@/hooks/queries';
@@ -28,7 +27,16 @@ import type { ReactNode } from 'react';
 
 const PAGE_LIMIT = 20;
 
-const statusOptions: TBooking['status'][] = [
+type TBookingsTab = 'upcoming' | 'history';
+
+const upcomingStatuses: TBooking['status'][] = [
+  'pending',
+  'confirmed',
+  'cancel_requested',
+  'reschedule_pending',
+];
+
+const allStatusOptions: TBooking['status'][] = [
   'pending',
   'confirmed',
   'cancel_requested',
@@ -46,53 +54,68 @@ const sortOptions: TAdminBookingsSort[] = [
 ];
 
 type TBookingPageFilters = {
+  tab: TBookingsTab;
   statuses: TBooking['status'][];
   dateFrom: string;
   dateTo: string;
   clientId: string;
   serviceIds: string[];
-  sort: TAdminBookingsSort;
-  showPast: boolean;
+  sort: TAdminBookingsSort | '';
 };
 
 const defaultFilters: TBookingPageFilters = {
+  tab: 'upcoming',
   statuses: [],
   dateFrom: '',
   dateTo: '',
   clientId: '',
   serviceIds: [],
-  sort: 'starts_at_asc',
-  showPast: false,
+  sort: '',
 };
+
+function tabDefaultSort(tab: TBookingsTab): TAdminBookingsSort {
+  return tab === 'history' ? 'starts_at_desc' : 'starts_at_asc';
+}
 
 function todayISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function yesterdayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function parseFiltersFromParams(params: URLSearchParams): TBookingPageFilters {
   const rawStatuses = params.get('statuses')?.split(',').filter(Boolean) ?? [];
   const statuses = rawStatuses.filter((s): s is TBooking['status'] =>
-    (statusOptions as string[]).includes(s),
+    (allStatusOptions as string[]).includes(s),
   );
   const sortParam = params.get('sort');
   const sort =
     sortParam && (sortOptions as string[]).includes(sortParam)
       ? (sortParam as TAdminBookingsSort)
-      : defaultFilters.sort;
+      : '';
+  const tabParam = params.get('tab');
+  const tab: TBookingsTab = tabParam === 'history' ? 'history' : 'upcoming';
   return {
+    tab,
     statuses,
     dateFrom: params.get('dateFrom') ?? '',
     dateTo: params.get('dateTo') ?? '',
     clientId: params.get('clientId') ?? '',
     serviceIds: params.get('services')?.split(',').filter(Boolean) ?? [],
     sort,
-    showPast: params.get('showPast') === '1',
   };
 }
 
 function serializeFiltersToParams(f: TBookingPageFilters): URLSearchParams {
   const params = new URLSearchParams();
+  if (f.tab !== 'upcoming') {
+    params.set('tab', f.tab);
+  }
   if (f.statuses.length > 0) {
     params.set('statuses', f.statuses.join(','));
   }
@@ -108,11 +131,8 @@ function serializeFiltersToParams(f: TBookingPageFilters): URLSearchParams {
   if (f.serviceIds.length > 0) {
     params.set('services', f.serviceIds.join(','));
   }
-  if (f.sort !== defaultFilters.sort) {
+  if (f.sort) {
     params.set('sort', f.sort);
-  }
-  if (f.showPast) {
-    params.set('showPast', '1');
   }
   return params;
 }
@@ -177,24 +197,39 @@ export default function AdminAllBookingsPage(): ReactNode {
 
   const query = useMemo<TAdminBookingsQuery>(() => {
     /***************************************************************************************************
-     * When "show past" is off, the effective dateFrom is max(user's dateFrom, today) so the
-     * user's explicit filter can't resurrect past rows.
+     * The selected tab clamps the date range and supplies a default status set so cancelled or
+     * past bookings can't leak into "Upcoming" and future rows can't leak into "History".
      ***************************************************************************************************/
     const today = todayISO();
-    const effectiveDateFrom = filters.showPast
-      ? filters.dateFrom
-      : filters.dateFrom && filters.dateFrom > today
-        ? filters.dateFrom
-        : today;
+    const yesterday = yesterdayISO();
+
+    let effectiveDateFrom = filters.dateFrom;
+    let effectiveDateTo = filters.dateTo;
+    let effectiveStatuses = filters.statuses;
+
+    if (filters.tab === 'upcoming') {
+      effectiveDateFrom = filters.dateFrom && filters.dateFrom > today ? filters.dateFrom : today;
+      if (effectiveStatuses.length === 0) {
+        effectiveStatuses = upcomingStatuses;
+      } else {
+        effectiveStatuses = effectiveStatuses.filter((s) => upcomingStatuses.includes(s));
+        if (effectiveStatuses.length === 0) {
+          effectiveStatuses = upcomingStatuses;
+        }
+      }
+    } else {
+      effectiveDateTo = filters.dateTo && filters.dateTo < yesterday ? filters.dateTo : yesterday;
+    }
+
     return {
       page,
       limit: PAGE_LIMIT,
-      statuses: filters.statuses,
+      statuses: effectiveStatuses,
       dateFrom: effectiveDateFrom,
-      dateTo: filters.dateTo,
+      dateTo: effectiveDateTo,
       clientId: filters.clientId,
       serviceIds: filters.serviceIds,
-      sort: filters.sort,
+      sort: filters.sort || tabDefaultSort(filters.tab),
     };
   }, [filters, page]);
 
@@ -343,7 +378,7 @@ export default function AdminAllBookingsPage(): ReactNode {
   };
 
   const resetFilters = (): void => {
-    const nextFilters = { ...defaultFilters };
+    const nextFilters: TBookingPageFilters = { ...defaultFilters, tab: filters.tab };
     setDraftFilters(nextFilters);
     writeFiltersToUrl(nextFilters);
     setClientFilterSearch('');
@@ -435,6 +470,31 @@ export default function AdminAllBookingsPage(): ReactNode {
       />
 
       <div className={'space-y-4 p-4'}>
+        <div role={'tablist'} className={'bg-card flex items-center gap-1 rounded-lg p-1'}>
+          {(['upcoming', 'history'] as TBookingsTab[]).map((tab) => {
+            const isActive = filters.tab === tab;
+            return (
+              <button
+                key={tab}
+                type={'button'}
+                role={'tab'}
+                aria-selected={isActive}
+                onClick={() => {
+                  if (filters.tab === tab) {
+                    return;
+                  }
+                  writeFiltersToUrl({ ...filters, tab, sort: '' });
+                }}
+                className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors active:opacity-80 ${
+                  isActive ? 'bg-background text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {t(`tabs.${tab}`)}
+              </button>
+            );
+          })}
+        </div>
+
         <div className={'flex items-center justify-between gap-3'}>
           <div className={'min-w-0'}>
             <p className={'text-muted-foreground text-sm'}>
@@ -680,27 +740,29 @@ export default function AdminAllBookingsPage(): ReactNode {
                     />
                     <span className={'min-w-0 truncate'}>{t('allStatuses')}</span>
                   </label>
-                  {statusOptions.map((status) => (
-                    <label
-                      key={status}
-                      className={'text-foreground flex items-center gap-3 text-sm'}
-                    >
-                      <input
-                        type={'checkbox'}
-                        checked={draftFilters.statuses.includes(status)}
-                        onChange={() =>
-                          setDraftFilters((value) => ({
-                            ...value,
-                            statuses: toggleFilterValue(value.statuses, status),
-                          }))
-                        }
-                        className={'accent-brand h-4 w-4 shrink-0'}
-                      />
-                      <span className={'min-w-0 truncate'}>
-                        {tst(statusTranslationKeys[status])}
-                      </span>
-                    </label>
-                  ))}
+                  {(draftFilters.tab === 'upcoming' ? upcomingStatuses : allStatusOptions).map(
+                    (status) => (
+                      <label
+                        key={status}
+                        className={'text-foreground flex items-center gap-3 text-sm'}
+                      >
+                        <input
+                          type={'checkbox'}
+                          checked={draftFilters.statuses.includes(status)}
+                          onChange={() =>
+                            setDraftFilters((value) => ({
+                              ...value,
+                              statuses: toggleFilterValue(value.statuses, status),
+                            }))
+                          }
+                          className={'accent-brand h-4 w-4 shrink-0'}
+                        />
+                        <span className={'min-w-0 truncate'}>
+                          {tst(statusTranslationKeys[status])}
+                        </span>
+                      </label>
+                    ),
+                  )}
                 </div>
               )}
             </div>
@@ -798,23 +860,10 @@ export default function AdminAllBookingsPage(): ReactNode {
             </div>
           </fieldset>
 
-          <div
-            className={
-              'bg-card flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm'
-            }
-          >
-            <span className={'text-foreground min-w-0 truncate'}>{t('showPast')}</span>
-            <Switch
-              checked={draftFilters.showPast}
-              onChange={(next) => setDraftFilters((value) => ({ ...value, showPast: next }))}
-              ariaLabel={t('showPast')}
-            />
-          </div>
-
           <label className={'block space-y-1'}>
             <span className={'text-muted-foreground text-sm'}>{t('sort')}</span>
             <select
-              value={draftFilters.sort}
+              value={draftFilters.sort || tabDefaultSort(draftFilters.tab)}
               onChange={(event) =>
                 setDraftFilters((value) => ({
                   ...value,
