@@ -203,6 +203,23 @@ func (h *MasterHandler) handleSupportGroupMessage(msg *Message) {
 		return
 	}
 
+	if msg.From != nil && msg.From.ID == h.bot.TelegramID() {
+		// Don't echo our own system notices (topic open markers, /close acks) back to the user.
+		return
+	}
+	if !h.canOperateSupportThread(msg.From) {
+		senderID := int64(0)
+		if msg.From != nil {
+			senderID = msg.From.ID
+		}
+		log.Printf(
+			"master-support: rejected topic message from unauthorized user %d in topic %d",
+			senderID,
+			msg.MessageThreadID,
+		)
+		return
+	}
+
 	// /close and /reply-like topic-scoped commands are admin-only. Everything else is copied
 	// verbatim to the user so operators can paste multi-line replies, voice notes, etc.
 	text := strings.TrimSpace(msg.Text)
@@ -216,11 +233,6 @@ func (h *MasterHandler) handleSupportGroupMessage(msg *Message) {
 		return
 	}
 
-	if msg.From != nil && msg.From.ID == h.bot.TelegramID() {
-		// Don't echo our own system notices (topic open markers, /close acks) back to the user.
-		return
-	}
-
 	if _, err := h.bot.CopyMessage(thread.TelegramUserID, h.supportGroupID, msg.MessageID, 0); err != nil {
 		log.Printf("master-support: copyMessage back to user %d failed: %v", thread.TelegramUserID, err)
 		if msg.MessageThreadID != 0 {
@@ -230,6 +242,16 @@ func (h *MasterHandler) handleSupportGroupMessage(msg *Message) {
 		return
 	}
 	_ = db.TouchSupportThread(thread.ID)
+}
+
+// canOperateSupportThread returns whether the sender may relay or close support-topic messages.
+// We intentionally limit this to configured master-bot admins; otherwise any group member who can
+// post into the support supergroup could message end users or close their threads.
+func (h *MasterHandler) canOperateSupportThread(sender *User) bool {
+	if sender == nil {
+		return false
+	}
+	return h.isAdmin(sender.ID)
 }
 
 // closeSupportThread marks the thread closed, notifies both sides, and closes the forum topic
