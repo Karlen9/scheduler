@@ -264,7 +264,9 @@
     "rescheduleRequested": "The specialist is requesting a new time",
     "approveRescheduleButton": "Accept new time",
     "declineRescheduleButton": "Decline",
-    "rescheduleOldLabel": "was"
+    "rescheduleOldLabel": "was",
+    "loadMore": "Load more",
+    "loading": "Loading..."
   },
   "RecurringPage": {
     "emptyTitle": "No recurring schedules",
@@ -512,7 +514,8 @@
     "unblockSuccess": "Client {name} unblocked",
     "blockError": "Failed to block client",
     "unblockError": "Failed to unblock client",
-    "blocked": "(blocked)"
+    "blocked": "(blocked)",
+    "loadMore": "Load more"
   },
   "AdminAllBookings": {
     "title": "All Bookings",

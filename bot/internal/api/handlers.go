@@ -700,6 +700,9 @@ func formatTime(hour, min int) string {
 	return strconv.Itoa(hour/10) + strconv.Itoa(hour%10) + ":" + strconv.Itoa(min/10) + strconv.Itoa(min%10)
 }
 
+const defaultClientBookingsLimit = 20
+const maxClientBookingsLimit = 100
+
 /***************************************************************************************************
 * Handles get bookings.
 *
@@ -731,7 +734,22 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 		changes.Publish(client.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
 	}
 
-	bookings, err := db.GetBookingsByClientID(client.ID)
+	query := r.URL.Query()
+	page, err := parseAdminBookingsPositiveInt(query.Get("page"), 1)
+	if err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+	limit, err := parseAdminBookingsPositiveInt(query.Get("limit"), defaultClientBookingsLimit)
+	if err != nil {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
+	}
+	if limit > maxClientBookingsLimit {
+		limit = maxClientBookingsLimit
+	}
+
+	bookings, total, err := db.GetBookingsByClientIDPaged(client.ID, limit, (page-1)*limit)
 	if err != nil {
 		log.Printf("Error getting bookings: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -742,8 +760,19 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 		bookings = []models.Booking{}
 	}
 
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
 	setNoStore(w)
-	writeJSON(w, bookings)
+	writeJSON(w, models.BookingListResponse{
+		Bookings:   bookings,
+		Total:      total,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+	})
 }
 
 func HandleGetClientBatches(w http.ResponseWriter, r *http.Request) {

@@ -10,7 +10,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { BookingCardSkeleton } from '@/components/LoadingSkeleton';
 import { invalidateBookings } from '@/hooks/mutations';
-import { useBookings } from '@/hooks/queries';
+import { useBookingsPage } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
 
@@ -24,6 +24,7 @@ const ACTIVE_STATUSES = new Set<TBooking['status']>([
   'cancel_requested',
   'reschedule_pending',
 ]);
+const BOOKINGS_PAGE_LIMIT = 20;
 
 function isPastBooking(booking: TBooking, now: number): boolean {
   return PAST_STATUSES.has(booking.status) || new Date(booking.startsAt).getTime() <= now;
@@ -64,11 +65,30 @@ export default function BookingsPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
-  const { data: bookings, isLoading, error, mutate } = useBookings();
+  const [page, setPage] = useState(1);
+  const [allBookings, setAllBookings] = useState<TBooking[]>([]);
+  const { data, isLoading, error } = useBookingsPage({ page, limit: BOOKINGS_PAGE_LIMIT });
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const hasMore = data.page < data.totalPages;
+  const bookings = allBookings;
+
+  useEffect(() => {
+    if (page === 1) {
+      setAllBookings(data.bookings);
+      return;
+    }
+
+    setAllBookings((prev) => {
+      const nextByID = new Map(data.bookings.map((booking) => [booking.id, booking]));
+      const merged = prev.map((booking) => nextByID.get(booking.id) ?? booking);
+      const seen = new Set(merged.map((booking) => booking.id));
+      const appended = data.bookings.filter((booking) => !seen.has(booking.id));
+      return appended.length === 0 ? merged : [...merged, ...appended];
+    });
+  }, [data.bookings, page]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 5000);
@@ -137,29 +157,14 @@ export default function BookingsPage(): ReactNode {
     const reason = cancelReason || t('cancelDefaultReason');
 
     try {
-      await mutate(
-        async (currentBookings) => {
-          await api.cancelBooking(bookingId, reason);
-
-          return (currentBookings ?? []).map((booking) =>
-            booking.id === bookingId
-              ? { ...booking, status: 'cancelled', cancelReason: reason }
-              : booking,
-          );
-        },
-        {
-          optimisticData: (currentBookings) =>
-            (currentBookings ?? []).map((booking) =>
-              booking.id === bookingId
-                ? { ...booking, status: 'cancelled', cancelReason: reason }
-                : booking,
-            ),
-          rollbackOnError: true,
-          populateCache: true,
-          revalidate: false,
-        },
+      await api.cancelBooking(bookingId, reason);
+      setAllBookings((currentBookings) =>
+        currentBookings.map((booking) =>
+          booking.id === bookingId
+            ? { ...booking, status: 'cancelled', cancelReason: reason }
+            : booking,
+        ),
       );
-
       toast.success(ts('bookingCancelled'));
       setCancelBookingTarget(null);
       setCancelReason('');
@@ -167,7 +172,7 @@ export default function BookingsPage(): ReactNode {
     } catch {
       toast.error(te('bookingCancelFailed'));
     }
-  }, [cancelBookingTarget, cancelReason, mutate, t, te, ts]);
+  }, [cancelBookingTarget, cancelReason, t, te, ts]);
 
   /***************************************************************************************************
    * Handles confirm.
@@ -209,7 +214,7 @@ export default function BookingsPage(): ReactNode {
 
   const reschedule = useRescheduleActions();
 
-  if (isLoading) {
+  if (isLoading && bookings.length === 0) {
     return (
       <div className={'space-y-4 p-4'}>
         <h2 className={'px-1 text-lg font-semibold'}>{t('title')}</h2>
@@ -310,6 +315,18 @@ export default function BookingsPage(): ReactNode {
                 {pastBookings.map((booking) => (
                   <BookingCard key={booking.id} booking={booking} />
                 ))}
+                {hasMore && (
+                  <button
+                    type={'button'}
+                    onClick={() => setPage((current) => current + 1)}
+                    disabled={isLoading}
+                    className={
+                      'bg-card text-brand w-full rounded-xl py-3 text-center text-sm font-medium active:opacity-80 disabled:opacity-50'
+                    }
+                  >
+                    {isLoading ? t('loading') : t('loadMore')}
+                  </button>
+                )}
               </div>
             )}
           </div>

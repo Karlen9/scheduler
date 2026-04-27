@@ -440,7 +440,7 @@ export default function HomePage(): ReactNode {
         <WallpaperBackground wallpaper={specialist.wallpaper} />
         <div
           className={
-            'from-brand/10 pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t to-transparent'
+            'from-brand/10 pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t to-transparent'
           }
         />
         <div className={'relative h-[160px] px-4 pt-5'}>

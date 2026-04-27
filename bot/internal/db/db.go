@@ -230,6 +230,8 @@ func migrateSQLite() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_specialist_id ON bookings(specialist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_specialist_starts_at ON bookings(specialist_id, starts_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_bookings_client_starts_at ON bookings(client_id, starts_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_bookings_specialist_status_starts_at ON bookings(specialist_id, status, starts_at)`,

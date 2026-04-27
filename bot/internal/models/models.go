@@ -230,6 +230,15 @@ type BookingListResponse struct {
 	TotalPages int       `json:"totalPages"`
 }
 
+type ClientListResponse struct {
+	Clients     []Client `json:"clients"`
+	Total       int      `json:"total"`
+	Page        int      `json:"page"`
+	Limit       int      `json:"limit"`
+	TotalPages  int      `json:"totalPages"`
+	SearchQuery string   `json:"searchQuery,omitempty"`
+}
+
 /***************************************************************************************************
 * RecurringScheduleStatus represents the status of a recurring schedule.
 ***************************************************************************************************/

@@ -33,6 +33,7 @@ export const CACHE_KEYS = {
   get bookings(): string {
     return scopedKey('bookings');
   },
+  bookingsList: (queryKey: string): string => scopedKey(`bookingsList:${queryKey}`),
   get clientBatches(): string {
     return scopedKey('clientBatches');
   },
@@ -60,6 +61,7 @@ export const CACHE_KEYS = {
   get adminClients(): string {
     return scopedKey('adminClients');
   },
+  adminClientsList: (queryKey: string): string => scopedKey(`adminClientsList:${queryKey}`),
   adminClientBatches: (clientId: string): string => scopedKey(`adminClientBatches:${clientId}`),
   get adminProfile(): string {
     return scopedKey('adminProfile');
