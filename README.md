@@ -8,8 +8,9 @@ A multi-tenant scheduling platform where professionals (fitness trainers, teache
 scheduler/
 ├── bot/              # Go backend (Telegram webhooks + REST API)
 ├── mini-app/         # Next.js 15 frontend (Telegram Mini App)
+├── backup-monitor/   # DB backup + /health watchdog with Telegram alerts
 ├── load-tests/       # k6 scripts + Prometheus/Grafana config
-├── deploy/           # VPS redeploy helper and webhook payload examples
+├── deploy/           # build/push scripts and VPS redeploy helpers
 ├── docs/             # implementation plans and workflow docs
 ├── docker-compose.yml
 └── docker-compose.loadtest.yml
@@ -79,22 +80,38 @@ bunx vercel --prod    # deploy to Vercel
 ### Updating the Bot (Go backend)
 
 ```bash
-# 1. Test locally
-cd bot && go build ./... && go test ./...
+# 1. Build, test, and push (locally)
+./deploy/build-and-push.sh
 
-# 2. Build and push Docker image
-docker build --platform linux/amd64 -t rainingman/scheduler-bot:latest -f bot/Dockerfile bot/
-docker push rainingman/scheduler-bot:latest
-
-# 3. On VPS: pull and restart
+# 2. On VPS: pull and restart
 ssh root@your-vps
 cd /root/sport-app
 docker compose pull bot
 docker compose down && docker compose up -d
 
-# 4. Verify
+# 3. Verify
 docker compose logs --tail 20 bot
 ```
+
+`build-and-push.sh` runs `go build ./...`, `go test ./...`, then builds and pushes
+`rainingman/scheduler-bot:latest`. Override the tag with `IMAGE=...` if needed.
+
+### Updating the backup-monitor
+
+```bash
+# 1. Build and push (locally)
+./deploy/build-and-push-monitor.sh
+
+# 2. On VPS: pull and restart
+ssh root@your-vps
+cd /root/sport-app/backup-monitor   # or wherever it lives on your VPS
+docker compose pull monitor
+docker compose up -d monitor
+```
+
+If the VPS still has the old `build: .` line in `backup-monitor/docker-compose.yml`,
+swap it for `image: rainingman/scheduler-monitor:latest` so it pulls instead of
+building locally.
 
 ### Quick reference: VPS commands
 
@@ -432,6 +449,35 @@ Automatic daily backups with cron:
 crontab -e
 # Add:
 0 3 * * * cp /root/sport-app/bot-data/scheduler.db /root/sport-app/bot-data/backups/scheduler-$(date +\%Y\%m\%d).db
+```
+
+### Backup-monitor service
+
+`backup-monitor/` is a small Alpine container that runs two cron jobs and posts to
+Telegram on failure:
+
+| Job      | Schedule | What it does                                                                       |
+| -------- | -------- | ---------------------------------------------------------------------------------- |
+| `backup` | hourly   | Pulls a DB snapshot to `/backups`, applies retention                               |
+| `health` | hourly   | `GET ${HEALTH_URL}`; on failure, retries once after 5s and alerts with exact error |
+
+Health alert format includes the curl exit code + stderr (for connection errors) or
+the HTTP status + first 1500 bytes of the body (for non-2xx responses), sent without
+Markdown so raw error text comes through clean.
+
+Required env (in `backup-monitor/.env`):
+
+```env
+HEALTH_URL=https://sport-app.rainingman.online/health
+TELEGRAM_ALERT_BOT_TOKEN=...
+TELEGRAM_ALERT_CHAT_ID=...
+# plus SSH_/DB_/RETENTION_/BACKUP_ vars used by backup.sh
+```
+
+Manual health check (without waiting for cron):
+
+```bash
+docker compose exec monitor /usr/local/bin/health.sh
 ```
 
 ### Token encryption at rest
