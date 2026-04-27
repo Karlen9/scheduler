@@ -441,6 +441,9 @@
   "Error.MissingDayOffID": {
     "other": "Please specify day off ID"
   },
+  "Error.DayOffNotFound": {
+    "other": "Day off not found"
+  },
   "Error.InvalidDate": {
     "other": "Invalid date"
   },

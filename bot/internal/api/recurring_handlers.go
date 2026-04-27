@@ -460,9 +460,14 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
-	if err != nil || sessionType == nil {
-		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
+	sessionType, errMsg, err := resolveSessionTypeForBooking(specialist.ID, req.SessionTypeID, 0)
+	if err != nil {
+		log.Printf("Error resolving recurring session type: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
@@ -554,9 +559,14 @@ func HandlePreviewRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
-	if err != nil || sessionType == nil {
-		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
+	sessionType, errMsg, err := resolveSessionTypeForBooking(specialist.ID, req.SessionTypeID, 0)
+	if err != nil {
+		log.Printf("Error resolving recurring session type: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
@@ -761,9 +771,14 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
-	if err != nil || sessionType == nil {
-		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
+	sessionType, errMsg, err := resolveSessionTypeForBooking(specialist.ID, req.SessionTypeID, 0)
+	if err != nil {
+		log.Printf("Error resolving recurring session type: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
@@ -862,9 +877,14 @@ func HandleAdminPreviewRecurringSchedule(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	sessionType, err := db.GetSessionTypeByID(req.SessionTypeID)
-	if err != nil || sessionType == nil {
-		httpError(w, r, "Error.ServiceNotFound", http.StatusBadRequest)
+	sessionType, errMsg, err := resolveSessionTypeForBooking(specialist.ID, req.SessionTypeID, 0)
+	if err != nil {
+		log.Printf("Error resolving recurring session type: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 

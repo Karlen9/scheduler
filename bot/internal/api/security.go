@@ -55,7 +55,7 @@ func isInternalRequest(r *http.Request) bool {
 		return false
 	}
 
-	return ip.IsLoopback() || ip.IsPrivate()
+	return ip.IsLoopback()
 }
 
 /***************************************************************************************************

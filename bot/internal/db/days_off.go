@@ -190,6 +190,32 @@ func DeleteDayOff(id string) error {
 }
 
 /***************************************************************************************************
+* DeleteDayOffForSpecialist deletes a day off only when it belongs to the given specialist.
+*
+* Parameters:
+* - id: Identifier used to target the current record.
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - The computed value for the current operation as bool together with an error when the operation
+*   cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func DeleteDayOffForSpecialist(id, specialistID string) (bool, error) {
+	res, err := DB.Exec(Q(`DELETE FROM days_off WHERE id = ? AND specialist_id = ?`), id, specialistID)
+	if err != nil {
+		return false, err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return affected > 0, nil
+}
+
+/***************************************************************************************************
 * Checks whether day off.
 *
 * Parameters:

@@ -60,53 +60,57 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/***************************************************************************************************
-	* Determine which specialist's bot to use.
+	* Determine which specialist's bot to use and authenticate the viewer against that bot. Image
+	* requests cannot send custom headers reliably, so this endpoint accepts initData in the query
+	* string for the mini-app's same-origin image loads.
 	***************************************************************************************************/
 	specialistID := r.URL.Query().Get("specialist")
 	if specialistID == "" {
 		specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
 	}
-	if specialistID != "" {
-		specialist, err := db.GetSpecialistByID(specialistID)
-		if err != nil || specialist == nil {
-			httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-			return
-		}
-		bot := &telegram.Bot{Token: specialist.BotToken}
-		data, contentType, err := bot.GetFile(fileID)
-		if err != nil {
-			log.Printf("GetFile error: %v", err)
-			httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
-			return
-		}
-		w.Header().Set("Content-Type", contentType)
-		setPublicCache(w, 3600, true)
-		w.Write(data)
+	if specialistID == "" {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusBadRequest)
 		return
 	}
 
-	/***************************************************************************************************
-	* No specialist specified — try all active specialists (file_ids are bot-scoped).
-	***************************************************************************************************/
-	specialists, err := db.GetAllActiveSpecialists()
-	if err != nil || len(specialists) == 0 {
-		httpError(w, r, "Error.SpecialistNotConfigured", http.StatusInternalServerError)
+	specialist, err := db.GetSpecialistByID(specialistID)
+	if err != nil || specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+	if !specialist.IsActive || specialist.DeletedAt != nil {
+		httpError(w, r, "Error.BotDeleted", http.StatusGone)
 		return
 	}
 
-	for _, specialist := range specialists {
-		bot := &telegram.Bot{Token: specialist.BotToken}
-		data, contentType, err := bot.GetFile(fileID)
-		if err == nil {
-			w.Header().Set("Content-Type", contentType)
-			setPublicCache(w, 3600, true)
-			w.Write(data)
+	initData := r.URL.Query().Get("initData")
+	if initData == "" {
+		initData = r.Header.Get("X-Telegram-Init-Data")
+	}
+	if LoadTestMode && r.Header.Get("X-Test-User-ID") != "" {
+		initData = "load-test"
+	}
+	if initData == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if initData != "load-test" {
+		if _, ok := validateInitData(initData, specialist.BotToken); !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 	}
 
-	log.Printf("GetFile error: no specialist's bot could resolve file_id %s", truncateForLog(fileID, 20))
-	httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
+	bot := &telegram.Bot{Token: specialist.BotToken}
+	data, contentType, err := bot.GetFile(fileID)
+	if err != nil {
+		log.Printf("GetFile error: %v", err)
+		httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
+		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	setPrivateCache(w, 300, 600)
+	w.Write(data)
 }
 
 /***************************************************************************************************
