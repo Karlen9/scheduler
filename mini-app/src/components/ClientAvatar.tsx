@@ -42,6 +42,7 @@ export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const cls = sizeClasses[size];
+  const photoSrc = !error ? getPhotoUrl(photoUrl) : null;
 
   /***************************************************************************************************
    * Implements the if logic used by this module.
@@ -55,12 +56,12 @@ export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps
    * Side effects:
    * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
    ***************************************************************************************************/
-  if (photoUrl && !error) {
+  if (photoSrc) {
     return (
       <Image
         width={32}
         height={32}
-        src={getPhotoUrl(photoUrl)}
+        src={photoSrc}
         alt={name}
         className={`${cls} shrink-0 rounded-full object-cover`}
         onError={() => setError(true)}

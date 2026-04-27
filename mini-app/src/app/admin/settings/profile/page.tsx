@@ -243,6 +243,7 @@ export default function ProfilePage(): ReactNode {
   }
 
   const hasPhoto = Boolean(photoUrl);
+  const photoSrc = hasPhoto && !photoError ? getPhotoUrl(photoUrl) : null;
   const isTelegramPhotoActive = Boolean(telegramPhotoUrl && photoUrl === telegramPhotoUrl);
   const canDeletePhoto = hasPhoto && !isTelegramPhotoActive;
 
@@ -256,11 +257,11 @@ export default function ProfilePage(): ReactNode {
          ***************************************************************************************************/}
         <div className={'flex justify-center'}>
           <div className={'relative cursor-pointer'} onClick={() => fileInputRef.current?.click()}>
-            {photoUrl && !photoError ? (
+            {photoSrc ? (
               <Image
                 width={96}
                 height={96}
-                src={getPhotoUrl(photoUrl)}
+                src={photoSrc}
                 alt={name}
                 unoptimized={isDirectPhotoUrl(photoUrl)}
                 className={'h-24 w-24 rounded-full object-cover'}

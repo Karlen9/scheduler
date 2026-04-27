@@ -10,18 +10,6 @@ services:
       - DATABASE_PATH=/data/scheduler.db
     restart: unless-stopped
 
-  bot-dev:
-    image: rainingman/scheduler-bot:dev
-    network_mode: host
-    env_file:
-      - bot/.env.dev
-    environment:
-      - DATABASE_URL=postgres://scheduler:${DB_PASSWORD:-scheduler}@localhost:5432/scheduler?sslmode=disable
-      - PORT=8081
-    depends_on:
-      - db
-    restart: unless-stopped
-
   db:
     image: postgres:16-alpine
     restart: unless-stopped

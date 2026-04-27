@@ -183,7 +183,11 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
  * Side effects:
  * - May read browser state, call shared helpers, or perform network requests.
  ***************************************************************************************************/
-export function getPhotoUrl(fileIdOrUrl: string): string {
+export function getPhotoUrl(fileIdOrUrl?: string | null): string | null {
+  if (!fileIdOrUrl) {
+    return null;
+  }
+
   /***************************************************************************************************
    * Direct URLs (e.g. Telegram profile photos) — use as-is.
    ***************************************************************************************************/
@@ -202,6 +206,9 @@ export function getPhotoUrl(fileIdOrUrl: string): string {
    ***************************************************************************************************/
   const specialistId = getSpecialistId();
   const initData = getInitData();
+  if (!specialistId || !initData) {
+    return null;
+  }
   /***************************************************************************************************
    * Defines the query value used by the shared utility layer.
    *
@@ -216,7 +223,7 @@ export function getPhotoUrl(fileIdOrUrl: string): string {
     query.set('initData', initData);
   }
   const suffix = query.toString();
-  return `${API_BASE_URL}/api/photo/${fileIdOrUrl}${suffix ? `?${suffix}` : ''}`;
+  return `${API_BASE_URL}/api/photo/${encodeURIComponent(fileIdOrUrl)}${suffix ? `?${suffix}` : ''}`;
 }
 
 /***************************************************************************************************

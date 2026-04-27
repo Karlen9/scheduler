@@ -31,14 +31,16 @@ export function AvatarSection({
   fileInputRef,
   onFileSelect,
 }: TAvatarSectionProps): ReactNode {
+  const photoSrc = !photoError ? getPhotoUrl(photoUrl) : null;
+
   return (
     <div className={'flex justify-center pt-2'}>
       <div className={'relative cursor-pointer'} onClick={onClickUpload}>
-        {photoUrl && !photoError ? (
+        {photoSrc ? (
           <Image
             width={96}
             height={96}
-            src={getPhotoUrl(photoUrl)}
+            src={photoSrc}
             alt={name}
             className={'h-24 w-24 rounded-full object-cover'}
             onError={onPhotoError}
