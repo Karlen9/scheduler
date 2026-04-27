@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 
@@ -13,6 +13,7 @@ import {
 } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { parseDateParam } from '@/lib/helpers';
+import { isPreviewRoute } from '@/lib/routes';
 import { getUserName } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
@@ -37,6 +38,8 @@ function ClientBookContent(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const t = useTranslations('BookingForm');
+  const tp = useTranslations('PreviewMode');
+  const pathname = usePathname();
   const { data: scheduleData, isLoading: scheduleLoading } = useScheduleContext();
   /***************************************************************************************************
    * Defines the working hours value used by the page layer.
@@ -55,6 +58,7 @@ function ClientBookContent(): ReactNode {
   const { data: services, isLoading: svcLoading } = useSessionTypes();
   const { data: clientBatches, isLoading: batchesLoading } = useClientBatches();
   const { data: bookings } = useBookings();
+  const isPreview = isPreviewRoute(pathname);
 
   const searchParams = useSearchParams();
   const initialDate = useMemo(() => parseDateParam(searchParams.get('date')), [searchParams]);
@@ -132,6 +136,8 @@ function ClientBookContent(): ReactNode {
           period: params.period,
         });
       }}
+      readOnly={isPreview}
+      readOnlyActionLabel={tp('readOnlyAction')}
     />
   );
 }

@@ -35,6 +35,8 @@ export function RecurringBookingFlow({
   onCreateRecurring,
   onPreviewRecurring,
   successRedirect,
+  readOnly = false,
+  readOnlyActionLabel,
 }: TRecurringBookingFlowProps): ReactNode {
   /***************************************************************************************************
    * Defines the router value used by the component layer.
@@ -280,6 +282,8 @@ export function RecurringBookingFlow({
         recFormReady={recFormReady}
         setSelectedPeriod={setSelectedPeriod}
         isPreviewing={isPreviewing}
+        readOnly={readOnly}
+        readOnlyActionLabel={readOnlyActionLabel}
         handlePreview={handlePreview}
         previewDates={previewDates}
         handleRecTimeSelect={handleRecTimeSelect}
@@ -292,8 +296,12 @@ export function RecurringBookingFlow({
           }
           style={{ maxWidth: '430px', margin: '0 auto' }}
         >
-          <PrimaryButton onClick={handleCreateSchedule} disabled={isSaving}>
-            {isSaving ? tc('saving') : t('submitRecurring')}
+          <PrimaryButton onClick={handleCreateSchedule} disabled={isSaving || readOnly}>
+            {readOnly
+              ? (readOnlyActionLabel ?? t('submitRecurring'))
+              : isSaving
+                ? tc('saving')
+                : t('submitRecurring')}
           </PrimaryButton>
         </div>
       )}

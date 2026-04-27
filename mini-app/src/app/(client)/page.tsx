@@ -26,7 +26,7 @@ import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
 import { formatDateISO, nextDateForWeekday } from '@/lib/helpers';
-import { isTestRoute, resolveTestAwareHref } from '@/lib/routes';
+import { isPreviewRoute, isTestRoute, resolveTestAwareHref } from '@/lib/routes';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
 import type { TBooking, TClientBatch, TSessionType, TWorkingHours } from '@/lib/types';
@@ -175,6 +175,7 @@ export default function HomePage(): ReactNode {
   const bookHref = useMemo(() => resolveTestAwareHref(pathname, '/book'), [pathname]);
   const bookingsHref = useMemo(() => resolveTestAwareHref(pathname, '/bookings'), [pathname]);
   const isTestInstance = isTestRoute(pathname);
+  const isPreviewInstance = isPreviewRoute(pathname);
   const batchByService = useMemo(() => {
     const result = new Map<string, TClientBatch | null>();
     for (const service of services) {
@@ -188,7 +189,7 @@ export default function HomePage(): ReactNode {
     router.prefetch(bookHref);
     router.prefetch(bookingsHref);
 
-    if (isTestInstance) {
+    if (isTestInstance || isPreviewInstance) {
       return;
     }
 
@@ -197,13 +198,17 @@ export default function HomePage(): ReactNode {
       setOwnerRedirecting(true);
       router.replace(adminHref);
     }
-  }, [adminHref, bookHref, bookingsHref, isTestInstance, router]);
+  }, [adminHref, bookHref, bookingsHref, isPreviewInstance, isTestInstance, router]);
 
   /***************************************************************************************************
    * Redirect specialist to admin panel.
    ***************************************************************************************************/
   useEffect(() => {
     if (!specialist) {
+      return;
+    }
+
+    if (isPreviewInstance) {
       return;
     }
 
@@ -214,7 +219,7 @@ export default function HomePage(): ReactNode {
       router.prefetch(adminHref);
       router.replace(adminHref);
     }
-  }, [adminHref, isTestInstance, router, specialist]);
+  }, [adminHref, isPreviewInstance, isTestInstance, router, specialist]);
 
   useEffect(() => {
     setBioExpanded(false);
@@ -756,7 +761,7 @@ export default function HomePage(): ReactNode {
               )}
             </div>
 
-            {selectedBooking.status === 'reschedule_pending' ? (
+            {!isPreviewInstance && selectedBooking.status === 'reschedule_pending' ? (
               <div className={'mt-5 flex gap-3'}>
                 <button
                   type={'button'}
@@ -787,7 +792,8 @@ export default function HomePage(): ReactNode {
                   {tb('declineRescheduleButton')}
                 </button>
               </div>
-            ) : selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed' ? (
+            ) : !isPreviewInstance &&
+              (selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') ? (
               <div className={'mt-5 flex gap-3'}>
                 <button
                   type={'button'}
@@ -819,31 +825,35 @@ export default function HomePage(): ReactNode {
         )}
       </BottomSheet>
 
-      <RescheduleSheet
-        booking={rescheduleBooking}
-        isOpen={!!rescheduleBooking}
-        onClose={() => setRescheduleBooking(null)}
-        onSuccess={handleRescheduleSuccess}
-        mode={'client'}
-      />
+      {!isPreviewInstance && (
+        <>
+          <RescheduleSheet
+            booking={rescheduleBooking}
+            isOpen={!!rescheduleBooking}
+            onClose={() => setRescheduleBooking(null)}
+            onSuccess={handleRescheduleSuccess}
+            mode={'client'}
+          />
 
-      <ConfirmDialog
-        isOpen={!!cancelBookingTarget}
-        onClose={() => {
-          setCancelBookingTarget(null);
-          setCancelReason('');
-        }}
-        onConfirm={handleCancelBooking}
-        title={t('cancelDialog')}
-        description={t('cancelConfirmMessage')}
-        confirmText={tc('yes')}
-        cancelText={tc('no')}
-        destructive
-        showInput
-        inputPlaceholder={t('cancelReasonPlaceholder')}
-        inputValue={cancelReason}
-        onInputChange={setCancelReason}
-      />
+          <ConfirmDialog
+            isOpen={!!cancelBookingTarget}
+            onClose={() => {
+              setCancelBookingTarget(null);
+              setCancelReason('');
+            }}
+            onConfirm={handleCancelBooking}
+            title={t('cancelDialog')}
+            description={t('cancelConfirmMessage')}
+            confirmText={tc('yes')}
+            cancelText={tc('no')}
+            destructive
+            showInput
+            inputPlaceholder={t('cancelReasonPlaceholder')}
+            inputValue={cancelReason}
+            onInputChange={setCancelReason}
+          />
+        </>
+      )}
     </div>
   );
 }

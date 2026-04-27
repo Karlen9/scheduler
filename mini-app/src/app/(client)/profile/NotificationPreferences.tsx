@@ -24,6 +24,7 @@ export function NotificationPreferences({
   notifyReminders,
   notifyDaysOff,
   notifyCancellations,
+  disabled = false,
   onToggle,
 }: TNotificationPreferencesProps): ReactNode {
   /***************************************************************************************************
@@ -80,6 +81,7 @@ export function NotificationPreferences({
             <Switch
               checked={item.value}
               onChange={(next) => onToggle(item.key, next)}
+              disabled={disabled}
               ariaLabel={item.label}
             />
           </div>

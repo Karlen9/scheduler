@@ -2,7 +2,7 @@ import { markBotDeleted } from './bot-deleted';
 import { fetchMockAPI } from './mock-api';
 import { emitMutation } from './mutation-events';
 import { dedupeRequest } from './request-cache';
-import { isTestRoute } from './routes';
+import { isPreviewRoute, isTestRoute } from './routes';
 import { getInitData, getSpecialistId, waitForInitData } from './telegram';
 
 import type {
@@ -41,6 +41,7 @@ const API_BASE_URL = '';
 const DEFAULT_CLIENT_BOOKINGS_LIMIT = 50;
 const DEFAULT_ADMIN_DASHBOARD_BOOKINGS_LIMIT = 100;
 const DEFAULT_ADMIN_CLIENTS_LIMIT = 50;
+const PREVIEW_READ_ONLY_ERROR = 'Preview is read-only';
 
 function normalizeIncomingHours(hours: TWorkingHours[]): TWorkingHours[] {
   return hours.map((wh) => ({
@@ -54,6 +55,14 @@ function normalizeOutgoingHours<T extends { endTime: string }>(hours: T[]): T[] 
     ...wh,
     endTime: wh.endTime === '00:00' ? '24:00' : wh.endTime,
   }));
+}
+
+function getPreviewEndpoint(endpoint: string): string {
+  if (!endpoint.startsWith('/api/') || endpoint.startsWith('/api/admin/')) {
+    return endpoint;
+  }
+
+  return `/api/preview${endpoint.slice('/api'.length)}`;
 }
 
 /***************************************************************************************************
@@ -95,6 +104,11 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
   const method = (options?.method ?? 'GET').toUpperCase();
+  const isPreview = isPreviewRoute();
+
+  if (isPreview && method !== 'GET') {
+    throw new Error(PREVIEW_READ_ONLY_ERROR);
+  }
 
   /***************************************************************************************************
    * Defines the is form data value used by the shared utility layer.
@@ -129,7 +143,8 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
      * Usage context:
      * - Reused by the shared utility layer to keep shared values centralized.
      ***************************************************************************************************/
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const resolvedEndpoint = isPreview ? getPreviewEndpoint(endpoint) : endpoint;
+    const response = await fetch(`${API_BASE_URL}${resolvedEndpoint}`, {
       ...options,
       cache: options?.cache ?? 'no-store',
       headers,
@@ -170,7 +185,12 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
      * Usage context:
      * - Reused by the shared utility layer to keep shared values centralized.
      ***************************************************************************************************/
-    const requestKey = [method, endpoint, specialistId ?? '', initData].join(':');
+    const requestKey = [
+      method,
+      isPreview ? getPreviewEndpoint(endpoint) : endpoint,
+      specialistId ?? '',
+      initData,
+    ].join(':');
     return dedupeRequest(requestKey, request);
   }
 

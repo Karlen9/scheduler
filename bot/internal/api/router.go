@@ -251,5 +251,24 @@ func NewRouter() http.Handler {
 		})
 	})
 
+	r.Route("/api/preview", func(r chi.Router) {
+		r.Use(PreviewAuthMiddleware)
+		r.Use(I18nMiddleware)
+
+		r.Get("/specialist", HandleGetSpecialist)
+		r.Get("/services", HandleGetServices)
+		r.Get("/working-hours", HandleGetWorkingHours)
+		r.Get("/schedule-context", HandleGetScheduleContext)
+		r.Get("/availability", HandleGetAvailability)
+		r.Get("/days-off", HandleGetPublicDaysOff)
+		r.Get("/durations", HandleGetDurations)
+		r.Get("/changes", HandleGetChangeVersions)
+		r.Get("/bookings", HandleGetPreviewBookings)
+		r.Get("/stats", HandleGetPreviewClientStats)
+		r.Get("/batches", HandleGetPreviewClientBatches)
+		r.Get("/profile", HandleGetPreviewClientProfile)
+		r.Get("/recurring", HandleGetPreviewRecurringSchedules)
+	})
+
 	return r
 }

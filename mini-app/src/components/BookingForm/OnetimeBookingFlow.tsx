@@ -39,6 +39,8 @@ export function OnetimeBookingFlow({
   nonWorkingDays,
   onCreateBooking,
   successRedirect,
+  readOnly = false,
+  readOnlyActionLabel,
   initialDate,
   initialService,
   initialTime,
@@ -357,6 +359,8 @@ export function OnetimeBookingFlow({
         handleOnetimeSubmit={handleOnetimeSubmit}
         mode={mode}
         timeAssignments={timeAssignments}
+        readOnly={readOnly}
+        readOnlyActionLabel={readOnlyActionLabel}
       />
     </>
   );

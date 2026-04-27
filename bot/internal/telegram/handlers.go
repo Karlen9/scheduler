@@ -259,6 +259,7 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 		loc := myI18n.NewLocalizer(lang)
 		adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
 		clientURL := h.WebAppURL + "?specialist=" + specialist.ID + "&lang=" + lang
+		previewURL := h.WebAppURL + "/preview/client?specialist=" + specialist.ID + "&lang=" + lang
 
 		/***************************************************************************************************
 		* Set persistent menu button for specialist (opens admin panel).
@@ -274,7 +275,10 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 		***************************************************************************************************/
 		inlineKeyboard := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
-				{{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}}},
+				{
+					{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}},
+					{Text: BtnOpenPreview(loc), WebApp: &WebAppInfo{URL: previewURL}},
+				},
 			},
 		}
 		if _, err := h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), inlineKeyboard); err != nil {

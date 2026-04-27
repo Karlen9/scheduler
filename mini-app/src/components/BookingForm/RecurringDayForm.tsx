@@ -34,6 +34,8 @@ export function RecurringDayForm({
   recFormReady,
   setSelectedPeriod,
   isPreviewing,
+  readOnly = false,
+  readOnlyActionLabel,
   handlePreview,
   previewDates,
   handleRecTimeSelect,
@@ -248,7 +250,7 @@ export function RecurringDayForm({
        ***************************************************************************************************/}
       {recFormReady && (
         <div className={'space-y-2'}>
-          {!previewDates && (
+          {!previewDates && !readOnly && (
             <button
               onClick={handlePreview}
               disabled={isPreviewing}
@@ -259,6 +261,12 @@ export function RecurringDayForm({
               <Eye className={'h-4 w-4'} />
               {isPreviewing ? tc('loading') : t('preview')}
             </button>
+          )}
+
+          {readOnly && (
+            <div className={'bg-card text-muted-foreground rounded-xl px-4 py-3 text-sm'}>
+              {readOnlyActionLabel ?? t('submitRecurring')}
+            </div>
           )}
 
           {previewDates && (

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { BottomTabBar } from '@/components/BottomTabBar';
 import { TelegramBackButtonProvider } from '@/components/TelegramBackButtonProvider';
-import { resolveTestAwareHref } from '@/lib/routes';
+import { isPreviewRoute, resolveTestAwareHref } from '@/lib/routes';
 
 import type { ReactNode } from 'react';
 
@@ -45,6 +45,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const tn = useTranslations('Navigation');
+  const tp = useTranslations('PreviewMode');
   const homeHref = resolveTestAwareHref(pathname, '/');
   const bookHref = resolveTestAwareHref(pathname, '/book');
   const bookingsHref = resolveTestAwareHref(pathname, '/bookings');
@@ -57,6 +58,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const isHome = pathname === homeHref || pathname === `${homeHref}/` || pathname === '';
+  const isPreview = isPreviewRoute(pathname);
   /***************************************************************************************************
    * Defines the is book page value used by the page layer.
    *
@@ -116,6 +118,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <TelegramBackButtonProvider isRoot={isHome} onBack={handleBack}>
       <div className={'bg-background min-h-screen'} style={{ maxWidth: '430px', margin: '0 auto' }}>
+        {isPreview && (
+          <div className={'bg-brand/10 text-foreground border-brand/20 border-b px-4 py-3'}>
+            <p className={'text-sm font-semibold'}>{tp('badge')}</p>
+            <p className={'text-muted-foreground mt-1 text-xs'}>{tp('description')}</p>
+          </div>
+        )}
         <div className={isBookPage ? '' : 'pb-[calc(7rem+env(safe-area-inset-bottom))]'}>
           {children}
         </div>

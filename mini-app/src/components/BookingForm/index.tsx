@@ -40,6 +40,8 @@ export function BookingForm({
   onPreviewRecurring,
   onCreateGhostClient,
   successRedirect,
+  readOnly = false,
+  readOnlyActionLabel,
   title,
   initialDate,
   initialService,
@@ -206,6 +208,8 @@ export function BookingForm({
                 nonWorkingDays={nonWorkingDays}
                 onCreateBooking={onCreateBooking}
                 successRedirect={successRedirect}
+                readOnly={readOnly}
+                readOnlyActionLabel={readOnlyActionLabel}
                 initialDate={initialDate}
                 initialService={initialService}
                 initialTime={initialTime}
@@ -220,6 +224,8 @@ export function BookingForm({
                 onCreateRecurring={onCreateRecurring}
                 onPreviewRecurring={onPreviewRecurring}
                 successRedirect={successRedirect}
+                readOnly={readOnly}
+                readOnlyActionLabel={readOnlyActionLabel}
               />
             )}
           </>

@@ -28,6 +28,8 @@ export function PinnedBottomButton({
   handleOnetimeSubmit,
   onetimeButtonDisabled,
   onetimeButtonText,
+  readOnly = false,
+  readOnlyActionLabel,
 }: TPinnedBottomButtonProps): ReactNode {
   return (
     <div
@@ -74,8 +76,8 @@ export function PinnedBottomButton({
           })}
         </div>
       )}
-      <PrimaryButton onClick={handleOnetimeSubmit} disabled={onetimeButtonDisabled}>
-        {onetimeButtonText}
+      <PrimaryButton onClick={handleOnetimeSubmit} disabled={onetimeButtonDisabled || readOnly}>
+        {readOnly ? (readOnlyActionLabel ?? onetimeButtonText) : onetimeButtonText}
       </PrimaryButton>
     </div>
   );

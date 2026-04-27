@@ -1,5 +1,6 @@
 const testClientBasePath = '/test/client';
 const testAdminBasePath = '/test/admin';
+const previewClientBasePath = '/preview/client';
 
 function getBrowserPathname(): string | null {
   if (typeof window === 'undefined') {
@@ -10,7 +11,7 @@ function getBrowserPathname(): string | null {
 }
 
 function getEffectivePathname(pathname?: string | null): string | null {
-  if (pathname && isTestPathname(pathname)) {
+  if (pathname && (isTestPathname(pathname) || isPreviewPathname(pathname))) {
     return pathname;
   }
 
@@ -59,8 +60,18 @@ export function isTestPathname(pathname?: string | null): boolean {
   );
 }
 
+export function isPreviewPathname(pathname?: string | null): boolean {
+  return (
+    pathname === previewClientBasePath || pathname?.startsWith(`${previewClientBasePath}/`) || false
+  );
+}
+
 export function isTestRoute(pathname?: string | null): boolean {
   return isTestPathname(getEffectivePathname(pathname));
+}
+
+export function isPreviewRoute(pathname?: string | null): boolean {
+  return isPreviewPathname(getEffectivePathname(pathname));
 }
 
 export function getDataScope(): string {
@@ -74,22 +85,35 @@ export function getDataScope(): string {
     return 'test-client';
   }
 
+  if (pathname === previewClientBasePath || pathname?.startsWith(`${previewClientBasePath}/`)) {
+    return 'preview-client';
+  }
+
   return 'live';
 }
 
 export function isRootTabHref(href: string): boolean {
   return (
-    href === '/' || href === '/admin' || href === testClientBasePath || href === testAdminBasePath
+    href === '/' ||
+    href === '/admin' ||
+    href === testClientBasePath ||
+    href === testAdminBasePath ||
+    href === previewClientBasePath
   );
 }
 
 export function resolveTestAwareHref(pathname: string | null, href: string): string {
-  if (!href.startsWith('/') || href.startsWith('//') || href.startsWith('/test/')) {
+  if (
+    !href.startsWith('/') ||
+    href.startsWith('//') ||
+    href.startsWith('/test/') ||
+    href.startsWith('/preview/')
+  ) {
     return href;
   }
 
   const effectivePathname = getEffectivePathname(pathname);
-  if (!isTestPathname(effectivePathname)) {
+  if (!isTestPathname(effectivePathname) && !isPreviewPathname(effectivePathname)) {
     return href;
   }
 
@@ -122,6 +146,15 @@ export function resolveTestAwareHref(pathname: string | null, href: string): str
     }
     if (isClientPath(path)) {
       return `${testClientBasePath}${path === '/' ? '' : path}${suffix}`;
+    }
+  }
+
+  if (
+    effectivePathname === previewClientBasePath ||
+    effectivePathname?.startsWith(`${previewClientBasePath}/`)
+  ) {
+    if (isClientPath(path)) {
+      return `${previewClientBasePath}${path === '/' ? '' : path}${suffix}`;
     }
   }
 

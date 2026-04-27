@@ -26,6 +26,7 @@ export function AvatarSection({
   photoUrl,
   photoError,
   isUploading,
+  disabled = false,
   onPhotoError,
   onClickUpload,
   fileInputRef,
@@ -35,7 +36,10 @@ export function AvatarSection({
 
   return (
     <div className={'flex justify-center pt-2'}>
-      <div className={'relative cursor-pointer'} onClick={onClickUpload}>
+      <div
+        className={`relative ${disabled ? '' : 'cursor-pointer'}`}
+        onClick={disabled ? undefined : onClickUpload}
+      >
         {photoSrc ? (
           <Image
             width={96}
@@ -52,26 +56,29 @@ export function AvatarSection({
             {name.charAt(0) || '?'}
           </div>
         )}
-        <div
-          className={
-            'bg-brand absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full shadow-lg'
-          }
-        >
-          {isUploading ? (
-            <div
-              className={
-                'h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent'
-              }
-            />
-          ) : (
-            <Camera className={'h-4 w-4 text-white'} />
-          )}
-        </div>
+        {!disabled && (
+          <div
+            className={
+              'bg-brand absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full shadow-lg'
+            }
+          >
+            {isUploading ? (
+              <div
+                className={
+                  'h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent'
+                }
+              />
+            ) : (
+              <Camera className={'h-4 w-4 text-white'} />
+            )}
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type={'file'}
           accept={'image/jpeg,image/png,image/webp'}
           className={'hidden'}
+          disabled={disabled}
           onChange={onFileSelect}
         />
       </div>
