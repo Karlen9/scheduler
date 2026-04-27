@@ -551,6 +551,7 @@ export type TAvatarSectionProps = {
   photoUrl: string;
   photoError: boolean;
   isUploading: boolean;
+  disabled?: boolean;
   onPhotoError: TVoidFunction;
   onClickUpload: TVoidFunction;
   fileInputRef: RefObject<HTMLInputElement | null>;
@@ -629,6 +630,8 @@ export type TBookingFormProps = {
   onPreviewRecurring: (params: TPreviewRecurringParams) => Promise<{ dates: string[] }>;
   onCreateGhostClient?: (name: string) => Promise<TClientInfo>;
   successRedirect: string;
+  readOnly?: boolean;
+  readOnlyActionLabel?: string;
   title?: string;
   initialDate?: Date;
   initialService?: TSessionType;
@@ -852,6 +855,7 @@ export type TNotificationPreferencesProps = {
   notifyReminders: boolean;
   notifyDaysOff: boolean;
   notifyCancellations: boolean;
+  disabled?: boolean;
   onToggle: (
     key: 'notifyBookingStatus' | 'notifyReminders' | 'notifyDaysOff' | 'notifyCancellations',
     value: boolean,
@@ -872,6 +876,8 @@ export type TOnetimeBookingFlowProps = {
   nonWorkingDays: number[];
   onCreateBooking: (params: TCreateBookingParams) => Promise<void>;
   successRedirect: string;
+  readOnly?: boolean;
+  readOnlyActionLabel?: string;
   initialDate?: Date;
   initialService?: TSessionType;
   initialTime?: string;
@@ -910,6 +916,8 @@ export type TPinnedBottomButtonProps = {
   activeDateISO: string | null;
   onetimeButtonDisabled: boolean;
   onetimeButtonText: string;
+  readOnly?: boolean;
+  readOnlyActionLabel?: string;
 };
 
 /***************************************************************************************************
@@ -933,6 +941,8 @@ export type TRecurringBookingFlowProps = {
   onCreateRecurring: (params: TCreateRecurringParams) => Promise<void>;
   onPreviewRecurring: (params: TPreviewRecurringParams) => Promise<{ dates: string[] }>;
   successRedirect: string;
+  readOnly?: boolean;
+  readOnlyActionLabel?: string;
 };
 
 /***************************************************************************************************
@@ -951,6 +961,8 @@ export type TRecurringDayFormProps = {
   recFormReady: boolean;
   setSelectedPeriod: (value: SetStateAction<string>) => void;
   isPreviewing: boolean;
+  readOnly?: boolean;
+  readOnlyActionLabel?: string;
   handlePreview: () => Promise<void>;
   previewDates: string[] | null;
   handleRecTimeSelect: (time: string) => void;

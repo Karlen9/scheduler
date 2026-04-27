@@ -20,6 +20,9 @@
   "Btn.OpenAdmin": {
     "other": "Manage"
   },
+  "Btn.OpenPreview": {
+    "other": "Preview"
+  },
   "Btn.Confirm": {
     "other": "✅ Confirm"
   },

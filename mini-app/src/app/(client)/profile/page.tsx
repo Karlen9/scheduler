@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { ThemeSelector } from '@/components/ThemeSelector';
 import { invalidateProfile } from '@/hooks/mutations';
 import { useProfile } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { isPreviewRoute } from '@/lib/routes';
 
 import { AvatarSection } from './AvatarSection';
 import { NotificationPreferences } from './NotificationPreferences';
@@ -67,6 +68,7 @@ export default function ClientProfilePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const tl = useTranslations('LanguageSelector');
+  const tp = useTranslations('PreviewMode');
   /***************************************************************************************************
    * Defines the locale value used by the page layer.
    *
@@ -74,6 +76,7 @@ export default function ClientProfilePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const locale = useLocale();
+  const pathname = usePathname();
   /***************************************************************************************************
    * Defines the router value used by the page layer.
    *
@@ -82,6 +85,7 @@ export default function ClientProfilePage(): ReactNode {
    ***************************************************************************************************/
   const router = useRouter();
   const { data: profile, isLoading: loading, mutate } = useProfile();
+  const isPreview = isPreviewRoute(pathname);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -339,11 +343,18 @@ export default function ClientProfilePage(): ReactNode {
           photoUrl={photoUrl}
           photoError={photoError}
           isUploading={isUploading}
+          disabled={isPreview}
           onPhotoError={() => setPhotoError(true)}
           onClickUpload={() => fileInputRef.current?.click()}
           fileInputRef={fileInputRef}
           onFileSelect={handleFileSelect}
         />
+
+        {isPreview && (
+          <div className={'bg-card text-muted-foreground rounded-xl px-4 py-3 text-sm'}>
+            {tp('profileNotice')}
+          </div>
+        )}
 
         {/***************************************************************************************************
          * Form.
@@ -356,6 +367,7 @@ export default function ClientProfilePage(): ReactNode {
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={50}
+              readOnly={isPreview}
               className={
                 'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
               }
@@ -370,6 +382,7 @@ export default function ClientProfilePage(): ReactNode {
               onChange={(e) => setPhone(e.target.value)}
               maxLength={20}
               placeholder={t('phonePlaceholder')}
+              readOnly={isPreview}
               className={
                 'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
               }
@@ -377,36 +390,34 @@ export default function ClientProfilePage(): ReactNode {
           </div>
         </div>
 
-        {/***************************************************************************************************
-         * Save Button.
-         ***************************************************************************************************/}
-        <PrimaryButton onClick={handleSave} disabled={isSaving}>
-          {isSaving ? tc('saving') : tc('save')}
-        </PrimaryButton>
+        {!isPreview && (
+          <PrimaryButton onClick={handleSave} disabled={isSaving}>
+            {isSaving ? tc('saving') : tc('save')}
+          </PrimaryButton>
+        )}
 
         <NotificationPreferences
           notifyBookingStatus={notifyBookingStatus}
           notifyReminders={notifyReminders}
           notifyDaysOff={notifyDaysOff}
           notifyCancellations={notifyCancellations}
+          disabled={isPreview}
           onToggle={handleToggleNotification}
         />
 
-        {/***************************************************************************************************
-         * Theme.
-         ***************************************************************************************************/}
-        <div>
-          <h3 className={'text-muted-foreground mb-3 text-sm'}>{t('theme')}</h3>
-          <ThemeSelector />
-        </div>
+        {!isPreview && (
+          <>
+            <div>
+              <h3 className={'text-muted-foreground mb-3 text-sm'}>{t('theme')}</h3>
+              <ThemeSelector />
+            </div>
 
-        {/***************************************************************************************************
-         * Language.
-         ***************************************************************************************************/}
-        <div>
-          <h3 className={'text-muted-foreground mb-3 text-sm'}>{tl('language')}</h3>
-          <LanguageSelector />
-        </div>
+            <div>
+              <h3 className={'text-muted-foreground mb-3 text-sm'}>{tl('language')}</h3>
+              <LanguageSelector />
+            </div>
+          </>
+        )}
 
         {editorImage && (
           <PhotoEditor

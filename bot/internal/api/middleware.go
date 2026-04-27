@@ -73,6 +73,13 @@ const (
 	* - Reused by the api layer to keep shared values centralized.
 	***************************************************************************************************/
 	TelegramUserContextKey contextKey = "telegramUser"
+	/***************************************************************************************************
+	* Defines the preview context key value used by the api layer.
+	*
+	* Usage context:
+	* - Reused by the api layer to keep shared values centralized.
+	***************************************************************************************************/
+	PreviewContextKey contextKey = "preview"
 )
 
 /***************************************************************************************************
@@ -111,16 +118,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			initData := r.Header.Get("X-Telegram-Init-Data")
-			specialistID := r.Header.Get("X-Specialist-ID")
-			if specialistID == "" {
-				specialistID = r.Header.Get("X-Trainer-ID") // legacy cached Telegram headers
-			}
-			if specialistID == "" {
-				specialistID = r.URL.Query().Get("specialist")
-			}
-			if specialistID == "" {
-				specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
-			}
+			specialistID := requestSpecialistID(r)
 
 			if LoadTestMode {
 				testUserIDStr := r.Header.Get("X-Test-User-ID")
@@ -163,13 +161,7 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			/***************************************************************************************************
 			* Get specialist by ID or fall back to first specialist.
 			***************************************************************************************************/
-			var specialist *models.Specialist
-			var err error
-			if specialistID != "" {
-				specialist, err = db.GetSpecialistByID(specialistID)
-			} else {
-				specialist, err = db.GetFirstSpecialist()
-			}
+			specialist, err := loadRequestSpecialist(specialistID)
 			if err != nil {
 				log.Printf("Error getting specialist: %v", err)
 				http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
@@ -246,6 +238,80 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+/***************************************************************************************************
+* PreviewAuthMiddleware validates Telegram initData for the specialist owner without creating a
+* client row. Preview requests are always read-only.
+***************************************************************************************************/
+func PreviewAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		initData := r.Header.Get("X-Telegram-Init-Data")
+		specialistID := requestSpecialistID(r)
+
+		specialist, err := loadRequestSpecialist(specialistID)
+		if err != nil {
+			log.Printf("Error getting preview specialist: %v", err)
+			http.Error(w, myI18n.T(localizerFromRequest(r), "Error.Internal"), http.StatusInternalServerError)
+			return
+		}
+		if specialist == nil {
+			http.Error(w, myI18n.T(localizerFromRequest(r), "Error.SpecialistNotFound"), http.StatusNotFound)
+			return
+		}
+		if !specialist.IsActive || specialist.DeletedAt != nil {
+			http.Error(w, myI18n.T(localizerFromRequest(r), "Error.BotDeleted"), http.StatusGone)
+			return
+		}
+		if initData == "" {
+			log.Printf("Preview auth rejected: no initData from %s", r.RemoteAddr)
+			http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TelegramAuth"), http.StatusUnauthorized)
+			return
+		}
+
+		user, ok := validateInitData(initData, specialist.BotToken)
+		if !ok {
+			http.Error(w, myI18n.T(localizerFromRequest(r), "Error.TelegramAuth"), http.StatusUnauthorized)
+			return
+		}
+		if user.ID != specialist.TelegramUserID {
+			httpError(w, r, "Error.Forbidden", http.StatusForbidden)
+			return
+		}
+
+		if specialist.PhotoURL == "" && user.PhotoURL != "" {
+			if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
+				specialist.PhotoURL = user.PhotoURL
+				changes.Publish(specialist.ID, changes.GroupSpecialist)
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), SpecialistContextKey, specialist)
+		ctx = context.WithValue(ctx, TelegramUserContextKey, user)
+		ctx = context.WithValue(ctx, PreviewContextKey, true)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func requestSpecialistID(r *http.Request) string {
+	specialistID := r.Header.Get("X-Specialist-ID")
+	if specialistID == "" {
+		specialistID = r.Header.Get("X-Trainer-ID") // legacy cached Telegram headers
+	}
+	if specialistID == "" {
+		specialistID = r.URL.Query().Get("specialist")
+	}
+	if specialistID == "" {
+		specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
+	}
+	return specialistID
+}
+
+func loadRequestSpecialist(specialistID string) (*models.Specialist, error) {
+	if specialistID != "" {
+		return db.GetSpecialistByID(specialistID)
+	}
+	return db.GetFirstSpecialist()
 }
 
 /***************************************************************************************************
@@ -397,6 +463,14 @@ func GetSpecialistFromContext(r *http.Request) *models.Specialist {
 func GetTelegramUserFromContext(r *http.Request) *TelegramUser {
 	user, _ := r.Context().Value(TelegramUserContextKey).(*TelegramUser)
 	return user
+}
+
+/***************************************************************************************************
+* IsPreviewRequest reports whether the current request is using preview auth/context.
+***************************************************************************************************/
+func IsPreviewRequest(r *http.Request) bool {
+	preview, _ := r.Context().Value(PreviewContextKey).(bool)
+	return preview
 }
 
 /***************************************************************************************************

@@ -1,6 +1,7 @@
 'use client';
 
 import { Repeat } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -11,6 +12,7 @@ import { RecurringScheduleCard } from '@/components/RecurringScheduleCard';
 import { invalidateRecurring } from '@/hooks/mutations';
 import { useRecurringSchedules, useSessionTypes } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { isPreviewRoute } from '@/lib/routes';
 
 import type { TRecurringSchedule } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -56,8 +58,10 @@ export default function ClientRecurringPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
+  const pathname = usePathname();
   const { data: schedules, isLoading: schedulesLoading } = useRecurringSchedules();
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
+  const isPreview = isPreviewRoute(pathname);
 
   /***************************************************************************************************
    * Defines the is loading value used by the page layer.
@@ -160,7 +164,7 @@ export default function ClientRecurringPage(): ReactNode {
                       key={schedule.id}
                       schedule={schedule}
                       services={services}
-                      onCancel={setCancelTarget}
+                      onCancel={isPreview ? undefined : setCancelTarget}
                       detailPath={'/recurring'}
                     />
                   ))}
@@ -179,7 +183,7 @@ export default function ClientRecurringPage(): ReactNode {
                       key={schedule.id}
                       schedule={schedule}
                       services={services}
-                      onCancel={setCancelTarget}
+                      onCancel={isPreview ? undefined : setCancelTarget}
                       detailPath={'/recurring'}
                     />
                   ))}
@@ -227,15 +231,17 @@ export default function ClientRecurringPage(): ReactNode {
         )}
       </div>
 
-      <ConfirmDialog
-        isOpen={!!cancelTarget}
-        onClose={() => setCancelTarget(null)}
-        onConfirm={handleCancel}
-        title={t('cancelDialog')}
-        description={t('cancelDialogDescription')}
-        confirmText={tc('cancelVerb')}
-        destructive
-      />
+      {!isPreview && (
+        <ConfirmDialog
+          isOpen={!!cancelTarget}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={handleCancel}
+          title={t('cancelDialog')}
+          description={t('cancelDialogDescription')}
+          confirmText={tc('cancelVerb')}
+          destructive
+        />
+      )}
     </div>
   );
 }

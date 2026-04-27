@@ -49,6 +49,12 @@
     "schedule": "Schedule",
     "recurring": "Schedule"
   },
+  "PreviewMode": {
+    "badge": "Preview mode",
+    "description": "This is the client-facing preview for your bot. Navigation is live, but actions are disabled.",
+    "readOnlyAction": "Preview only",
+    "profileNotice": "Profile editing is disabled in preview mode."
+  },
   "Dates": {
     "monthsShort": {
       "jan": "Jan",

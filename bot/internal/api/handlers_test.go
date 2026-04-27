@@ -91,6 +91,99 @@ func TestGetSpecialistAsClient(t *testing.T) {
 	}
 }
 
+func TestPreviewGetSpecialist(t *testing.T) {
+	w := doPreviewRequest(t, http.MethodGet, "/api/preview/specialist", nil)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var result map[string]interface{}
+	parseJSON(t, w, &result)
+
+	if isOwner, _ := result["isOwner"].(bool); isOwner {
+		t.Fatal("expected isOwner=false for preview specialist response")
+	}
+}
+
+func TestPreviewAuthRejectsNonOwner(t *testing.T) {
+	w := doClientRequest(t, http.MethodGet, "/api/preview/specialist", nil, 999999)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPreviewAuthRejectsInvalidInitData(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/preview/specialist", nil)
+	req.RemoteAddr = nextTestRemoteAddr()
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
+	req.Header.Set("X-Telegram-Init-Data", "hash=bad")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPreviewDoesNotCreateClientRow(t *testing.T) {
+	specialist, err := db.CreateSpecialist(777001, "preview-bot-token", "previewbot", "Preview Specialist", "UTC", 24)
+	if err != nil {
+		t.Fatalf("db.CreateSpecialist: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/preview/profile", nil)
+	req.RemoteAddr = nextTestRemoteAddr()
+	req.Header.Set("X-Specialist-ID", specialist.ID)
+	req.Header.Set("X-Telegram-Init-Data", buildInitData(specialist.TelegramUserID, "Preview Owner", specialist.BotToken))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	client, err := db.GetClientByTelegramID(specialist.TelegramUserID, specialist.ID)
+	if err != nil {
+		t.Fatalf("db.GetClientByTelegramID: %v", err)
+	}
+	if client != nil {
+		t.Fatal("expected preview auth not to create a client row")
+	}
+}
+
+func TestPreviewReturnsEmptyReadOnlyPayloads(t *testing.T) {
+	w := doPreviewRequest(t, http.MethodGet, "/api/preview/bookings?page=1&limit=20", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var bookingsResp map[string]interface{}
+	parseJSON(t, w, &bookingsResp)
+	if total, _ := bookingsResp["total"].(float64); total != 0 {
+		t.Fatalf("expected preview bookings total=0, got %v", bookingsResp["total"])
+	}
+
+	w = doPreviewRequest(t, http.MethodGet, "/api/preview/profile", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var profileResp map[string]interface{}
+	parseJSON(t, w, &profileResp)
+	if id, _ := profileResp["id"].(string); id != "preview" {
+		t.Fatalf("expected preview profile id, got %q", id)
+	}
+
+	w = doPreviewRequest(t, http.MethodGet, "/api/preview/recurring", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if body := strings.TrimSpace(w.Body.String()); body != "[]" {
+		t.Fatalf("expected empty recurring response, got %s", body)
+	}
+}
+
 /***************************************************************************************************
 * nextWeekday returns the next date (from tomorrow) that falls on the given weekday
 * (time.Monday=1, etc.).

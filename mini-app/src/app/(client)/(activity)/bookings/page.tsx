@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarX, ChevronDown } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import { useBookingsPage } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
+import { isPreviewRoute } from '@/lib/routes';
 
 import type { TBooking } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -65,6 +67,7 @@ export default function BookingsPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
+  const pathname = usePathname();
   const [page, setPage] = useState(1);
   const [allBookings, setAllBookings] = useState<TBooking[]>([]);
   const { data, isLoading, error } = useBookingsPage({ page, limit: BOOKINGS_PAGE_LIMIT });
@@ -72,6 +75,7 @@ export default function BookingsPage(): ReactNode {
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const isPreview = isPreviewRoute(pathname);
   const hasMore = data.page < data.totalPages;
   const bookings = allBookings;
 
@@ -268,22 +272,26 @@ export default function BookingsPage(): ReactNode {
                 <BookingCard
                   key={booking.id}
                   booking={booking}
-                  onCancel={setCancelBookingTarget}
+                  onCancel={isPreview ? undefined : setCancelBookingTarget}
                   onConfirm={
-                    booking.status === 'pending' && booking.createdBy === 'specialist'
+                    !isPreview && booking.status === 'pending' && booking.createdBy === 'specialist'
                       ? handleConfirm
                       : undefined
                   }
                   onDecline={
-                    booking.status === 'pending' && booking.createdBy === 'specialist'
+                    !isPreview && booking.status === 'pending' && booking.createdBy === 'specialist'
                       ? handleDecline
                       : undefined
                   }
                   onApproveReschedule={
-                    booking.status === 'reschedule_pending' ? reschedule.approve : undefined
+                    !isPreview && booking.status === 'reschedule_pending'
+                      ? reschedule.approve
+                      : undefined
                   }
                   onDeclineReschedule={
-                    booking.status === 'reschedule_pending' ? reschedule.decline : undefined
+                    !isPreview && booking.status === 'reschedule_pending'
+                      ? reschedule.decline
+                      : undefined
                   }
                   replacedBooking={
                     booking.status === 'reschedule_pending' && booking.replacesBookingId
@@ -333,23 +341,25 @@ export default function BookingsPage(): ReactNode {
         )}
       </div>
 
-      <ConfirmDialog
-        isOpen={!!cancelBookingTarget}
-        onClose={() => {
-          setCancelBookingTarget(null);
-          setCancelReason('');
-        }}
-        onConfirm={handleCancelBooking}
-        title={t('cancelDialog')}
-        description={t('cancelConfirmMessage')}
-        confirmText={tc('yes')}
-        cancelText={tc('no')}
-        destructive
-        showInput
-        inputPlaceholder={t('cancelReasonPlaceholder')}
-        inputValue={cancelReason}
-        onInputChange={setCancelReason}
-      />
+      {!isPreview && (
+        <ConfirmDialog
+          isOpen={!!cancelBookingTarget}
+          onClose={() => {
+            setCancelBookingTarget(null);
+            setCancelReason('');
+          }}
+          onConfirm={handleCancelBooking}
+          title={t('cancelDialog')}
+          description={t('cancelConfirmMessage')}
+          confirmText={tc('yes')}
+          cancelText={tc('no')}
+          destructive
+          showInput
+          inputPlaceholder={t('cancelReasonPlaceholder')}
+          inputValue={cancelReason}
+          onInputChange={setCancelReason}
+        />
+      )}
     </div>
   );
 }

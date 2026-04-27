@@ -211,6 +211,17 @@ func BtnOpenApp(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.OpenApp"
 func BtnOpenAdmin(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.OpenAdmin") }
 
 /***************************************************************************************************
+* BtnOpenPreview returns the localized button text for opening client preview.
+*
+* Parameters:
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - The computed value for the current operation as string.
+***************************************************************************************************/
+func BtnOpenPreview(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.OpenPreview") }
+
+/***************************************************************************************************
 * BtnConfirm returns the localized confirm button text. }.
 *
 * Parameters:

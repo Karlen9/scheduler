@@ -274,6 +274,14 @@ func doAdminRequest(t *testing.T, method, path string, body *string) *httptest.R
 }
 
 /***************************************************************************************************
+* doPreviewRequest sends a preview request as the specialist owner.
+***************************************************************************************************/
+func doPreviewRequest(t *testing.T, method, path string, body *string) *httptest.ResponseRecorder {
+	t.Helper()
+	return doRequest(t, method, path, body, testSpecialist.TelegramUserID)
+}
+
+/***************************************************************************************************
 * doAdminRequestWithPhoto sends a request as the specialist with Telegram photo data.
 *
 * Parameters:
