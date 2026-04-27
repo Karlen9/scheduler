@@ -124,10 +124,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <p className={'text-muted-foreground mt-1 text-xs'}>{tp('description')}</p>
           </div>
         )}
-        <div className={isBookPage ? '' : 'pb-[calc(7rem+env(safe-area-inset-bottom))]'}>
+        <div
+          className={isBookPage || isPreview ? '' : 'pb-[calc(7rem+env(safe-area-inset-bottom))]'}
+        >
           {children}
         </div>
-        {!isBookPage && <BottomTabBar tabs={clientTabs} />}
+        {!isBookPage && !isPreview && <BottomTabBar tabs={clientTabs} />}
       </div>
     </TelegramBackButtonProvider>
   );

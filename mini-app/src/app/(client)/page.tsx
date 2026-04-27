@@ -570,15 +570,17 @@ export default function HomePage(): ReactNode {
               </span>
             )}
           </h2>
-          <button
-            type={'button'}
-            onClick={() => router.push(bookingsHref)}
-            className={
-              'shrink-0 text-base font-medium text-white/70 transition-opacity active:opacity-80'
-            }
-          >
-            {t('viewAll')}
-          </button>
+          {!isPreviewInstance && (
+            <button
+              type={'button'}
+              onClick={() => router.push(bookingsHref)}
+              className={
+                'shrink-0 text-base font-medium text-white/70 transition-opacity active:opacity-80'
+              }
+            >
+              {t('viewAll')}
+            </button>
+          )}
         </div>
 
         {bookingsLoading ? (
@@ -614,16 +616,20 @@ export default function HomePage(): ReactNode {
         ) : (
           <div className={'bg-card text-muted-foreground rounded-lg px-4 py-10 text-center'}>
             <h3 className={'text-foreground text-xl font-medium'}>{t('emptyBookingsTitle')}</h3>
-            <p className={'mt-3 text-base'}>
-              <button
-                type={'button'}
-                onClick={() => router.push(bookHref)}
-                className={'text-brand font-medium'}
-              >
-                {t('emptyBookingsAction')}
-              </button>{' '}
-              {t('emptyBookingsDescription')}
-            </p>
+            {isPreviewInstance ? (
+              <p className={'mt-3 text-base'}>{t('emptyBookingsDescription')}</p>
+            ) : (
+              <p className={'mt-3 text-base'}>
+                <button
+                  type={'button'}
+                  onClick={() => router.push(bookHref)}
+                  className={'text-brand font-medium'}
+                >
+                  {t('emptyBookingsAction')}
+                </button>{' '}
+                {t('emptyBookingsDescription')}
+              </p>
+            )}
           </div>
         )}
       </section>
@@ -651,11 +657,17 @@ export default function HomePage(): ReactNode {
                   key={service.id}
                   service={service}
                   clientBatch={batchByService.get(service.id)}
-                  clickLabel={t('bookService')}
-                  onClick={() => {
-                    setActiveModal(null);
-                    router.push(resolveTestAwareHref(pathname, `/book?service=${service.id}`));
-                  }}
+                  clickLabel={isPreviewInstance ? undefined : t('bookService')}
+                  onClick={
+                    isPreviewInstance
+                      ? undefined
+                      : () => {
+                          setActiveModal(null);
+                          router.push(
+                            resolveTestAwareHref(pathname, `/book?service=${service.id}`),
+                          );
+                        }
+                  }
                 />
               ))}
             </div>
@@ -682,6 +694,14 @@ export default function HomePage(): ReactNode {
               >
                 <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
                 <span className={'text-muted-foreground text-right text-sm'}>{row.hoursLabel}</span>
+              </div>
+            ) : isPreviewInstance ? (
+              <div
+                key={row.day}
+                className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
+              >
+                <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
+                <span className={'text-foreground text-right text-sm'}>{row.hoursLabel}</span>
               </div>
             ) : (
               <Link
