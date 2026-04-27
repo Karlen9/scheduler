@@ -1836,9 +1836,14 @@ func HandleDeleteDayOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.DeleteDayOff(dayOffID); err != nil {
+	deleted, err := db.DeleteDayOffForSpecialist(dayOffID, specialist.ID)
+	if err != nil {
 		log.Printf("Error deleting day off: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if !deleted {
+		httpError(w, r, "Error.DayOffNotFound", http.StatusNotFound)
 		return
 	}
 

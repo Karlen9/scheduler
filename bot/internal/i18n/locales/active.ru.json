@@ -443,6 +443,9 @@
   "Error.MissingDayOffID": {
     "other": "Укажите ID выходного"
   },
+  "Error.DayOffNotFound": {
+    "other": "Выходной не найден"
+  },
   "Error.InvalidDate": {
     "other": "Неверная дата"
   },

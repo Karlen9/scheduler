@@ -62,6 +62,32 @@ func TestPerIPRateLimiter(t *testing.T) {
 	}
 }
 
+func TestPerIPRateLimiterIgnoresForwardedIPHeaders(t *testing.T) {
+	handler := PerIPRateLimitMiddleware(1, 2)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for i, spoofed := range []string{"127.0.0.1", "10.0.0.5"} {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.RemoteAddr = "1.2.3.4:1234"
+		req.Header.Set("X-Forwarded-For", spoofed)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("spoofed request %d: expected 200, got %d", i, w.Code)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "1.2.3.4:1234"
+	req.Header.Set("X-Forwarded-For", "203.0.113.200")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 after burst exhausted despite spoofed forwarded IPs, got %d", w.Code)
+	}
+}
+
 /***************************************************************************************************
 * Implements the test global rate limiter logic used by this module.
 *

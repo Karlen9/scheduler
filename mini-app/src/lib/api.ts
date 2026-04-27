@@ -3,7 +3,7 @@ import { fetchMockAPI } from './mock-api';
 import { emitMutation } from './mutation-events';
 import { dedupeRequest } from './request-cache';
 import { isTestRoute } from './routes';
-import { getSpecialistId, waitForInitData } from './telegram';
+import { getInitData, getSpecialistId, waitForInitData } from './telegram';
 
 import type {
   TAdminBookingsQuery,
@@ -201,14 +201,22 @@ export function getPhotoUrl(fileIdOrUrl: string): string {
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
   const specialistId = getSpecialistId();
+  const initData = getInitData();
   /***************************************************************************************************
    * Defines the query value used by the shared utility layer.
    *
    * Usage context:
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
-  const query = specialistId ? `?specialist=${specialistId}` : '';
-  return `${API_BASE_URL}/api/photo/${fileIdOrUrl}${query}`;
+  const query = new URLSearchParams();
+  if (specialistId) {
+    query.set('specialist', specialistId);
+  }
+  if (initData) {
+    query.set('initData', initData);
+  }
+  const suffix = query.toString();
+  return `${API_BASE_URL}/api/photo/${fileIdOrUrl}${suffix ? `?${suffix}` : ''}`;
 }
 
 /***************************************************************************************************

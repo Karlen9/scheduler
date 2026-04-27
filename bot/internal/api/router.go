@@ -37,7 +37,6 @@ func NewRouter() http.Handler {
 	***************************************************************************************************/
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.RealIP)
 	r.Use(PrometheusMiddleware)
 	r.Use(SecurityHeadersMiddleware)
 

@@ -913,6 +913,105 @@ func TestMetricsRequireInternalAccess(t *testing.T) {
 	}
 }
 
+func TestMetricsDoNotTrustForwardedLoopbackHeaders(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.RemoteAddr = "203.0.113.10:54321"
+	req.Header.Set("X-Forwarded-For", "127.0.0.1")
+	req.Header.Set("X-Real-IP", "127.0.0.1")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound && w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 404 or 401 for spoofed forwarded-loopback metrics access, got %d", w.Code)
+	}
+}
+
+func TestPhotoProxyRequiresTelegramAuth(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/photo/file-123?specialist="+testSpecialist.ID, nil)
+	req.RemoteAddr = nextTestRemoteAddr()
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated photo proxy request, got %d", w.Code)
+	}
+}
+
+func TestAdminDeleteDayOffRejectsCrossSpecialistDelete(t *testing.T) {
+	other, err := db.CreateSpecialist(222222, "cross-dayoff-token", "crossdayoffbot", "Other Specialist", "UTC", 24)
+	if err != nil {
+		t.Fatalf("CreateSpecialist: %v", err)
+	}
+	dayOffDate := time.Date(2026, time.May, 20, 0, 0, 0, 0, time.UTC)
+	dayOff, err := db.CreateDayOff(other.ID, dayOffDate, "")
+	if err != nil {
+		t.Fatalf("CreateDayOff: %v", err)
+	}
+
+	w := doAdminRequest(t, http.MethodDelete, "/api/admin/days-off/"+dayOff.ID, nil)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 when deleting another specialist's day off, got %d: %s", w.Code, w.Body.String())
+	}
+
+	stillThere, err := db.GetDayOff(other.ID, dayOffDate)
+	if err != nil {
+		t.Fatalf("GetDayOff: %v", err)
+	}
+	if stillThere == nil {
+		t.Fatal("expected cross-specialist delete attempt to leave day off intact")
+	}
+}
+
+func TestRecurringPreviewRejectsForeignSessionType(t *testing.T) {
+	other, err := db.CreateSpecialist(333333, "foreign-service-token", "foreignservicebot", "Foreign Specialist", "UTC", 24)
+	if err != nil {
+		t.Fatalf("CreateSpecialist: %v", err)
+	}
+	service, err := db.CreateSessionType(other.ID, "common", "Foreign Service", 60, 1500, "RUB", "")
+	if err != nil {
+		t.Fatalf("CreateSessionType: %v", err)
+	}
+
+	body := jsonBody(map[string]interface{}{
+		"sessionTypeId": service.ID,
+		"dayTimes": map[string]string{
+			"1": "10:00",
+		},
+		"period": "2weeks",
+	})
+
+	w := doClientRequest(t, http.MethodPost, "/api/recurring/preview", body, 4444444)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for foreign sessionTypeId in recurring preview, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestAdminRecurringPreviewRejectsForeignSessionType(t *testing.T) {
+	other, err := db.CreateSpecialist(444445, "foreign-admin-service-token", "foreignadminservicebot", "Foreign Admin Specialist", "UTC", 24)
+	if err != nil {
+		t.Fatalf("CreateSpecialist: %v", err)
+	}
+	service, err := db.CreateSessionType(other.ID, "common", "Foreign Admin Service", 60, 1500, "RUB", "")
+	if err != nil {
+		t.Fatalf("CreateSessionType: %v", err)
+	}
+
+	body := jsonBody(map[string]interface{}{
+		"sessionTypeId": service.ID,
+		"dayTimes": map[string]string{
+			"2": "11:00",
+		},
+		"period": "2weeks",
+	})
+
+	w := doAdminRequest(t, http.MethodPost, "/api/admin/recurring/preview", body)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for foreign sessionTypeId in admin recurring preview, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
 /***************************************************************************************************
 * Implements the test reject invalid booking time logic used by this module.
 *
