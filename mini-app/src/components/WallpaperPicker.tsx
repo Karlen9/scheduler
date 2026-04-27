@@ -140,7 +140,7 @@ function PatternFitness(): ReactNode {
   return (
     <div
       className={'h-full w-full bg-cover bg-center bg-no-repeat'}
-      style={{ backgroundImage: "url('/fitness.svg')" }}
+      style={{ backgroundImage: "url('/fintess-transparent.svg')" }}
     />
   );
 }
