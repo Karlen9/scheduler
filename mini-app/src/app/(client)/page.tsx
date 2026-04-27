@@ -431,6 +431,7 @@ export default function HomePage(): ReactNode {
   }
 
   const hasPhoto = specialist.photoUrl && !photoError;
+  const photoSrc = hasPhoto ? getPhotoUrl(specialist.photoUrl) : null;
   const hasMessage = Boolean(specialist.telegramHandle || specialist.botUsername);
 
   return (
@@ -459,12 +460,12 @@ export default function HomePage(): ReactNode {
       <section className={'bg-card relative -mt-8 rounded-[16px] px-4 pt-20 pb-14'}>
         <div className={'absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2'}>
           <div className={'bg-card ring-brand/20 rounded-full p-2 ring-2'}>
-            {hasPhoto ? (
+            {photoSrc ? (
               <Image
                 width={112}
                 height={112}
                 sizes={'112px'}
-                src={getPhotoUrl(specialist.photoUrl!)}
+                src={photoSrc}
                 alt={specialist.name}
                 unoptimized={isDirectPhotoUrl(specialist.photoUrl)}
                 className={'h-28 w-28 rounded-full object-cover'}
