@@ -31,6 +31,10 @@ function parseTimeToMin(time: string): number {
   return h * 60 + m;
 }
 
+function roundUpToQuarterHour(minute: number): number {
+  return Math.ceil(minute / 15) * 15;
+}
+
 function collapsedSlotOffset(minute: number, slot: TEmptySlot): number {
   const duration = slot.endMin - slot.startMin;
   if (duration <= 0) {
@@ -144,6 +148,11 @@ function DayTimelineComponent({
     if (dayWH.length === 0) {
       return [];
     }
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const minAvailableMinute = isToday ? roundUpToQuarterHour(nowMinutes) : 0;
+
     const occupied = bookings
       .map((b) => {
         const s = new Date(b.startsAt);
@@ -167,16 +176,22 @@ function DayTimelineComponent({
         const slotStart = Math.max(slot.start, whStart);
         const slotEnd = Math.min(slot.end, whEnd);
         if (cursor < slotStart) {
-          gaps.push({ startMin: cursor, endMin: slotStart, kind: 'available' });
+          const gapStart = isToday ? Math.max(cursor, minAvailableMinute) : cursor;
+          if (gapStart < slotStart) {
+            gaps.push({ startMin: gapStart, endMin: slotStart, kind: 'available' });
+          }
         }
         cursor = Math.max(cursor, slotEnd);
       }
       if (cursor < whEnd) {
-        gaps.push({ startMin: cursor, endMin: whEnd, kind: 'available' });
+        const gapStart = isToday ? Math.max(cursor, minAvailableMinute) : cursor;
+        if (gapStart < whEnd) {
+          gaps.push({ startMin: gapStart, endMin: whEnd, kind: 'available' });
+        }
       }
     }
     return gaps;
-  }, [bookings, dayWH]);
+  }, [bookings, dayWH, isToday]);
 
   const breakSlots = useMemo<TEmptySlot[]>(() => {
     const slots: TEmptySlot[] = [];
