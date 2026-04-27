@@ -5,9 +5,18 @@ import { useTranslations } from 'next-intl';
 
 import type { ReactNode } from 'react';
 
-export type TWallpaperId = 'none' | 'w1' | 'w2' | 'w3' | 'w4' | 'w5' | 'w6';
+export type TWallpaperId = 'none' | 'w1' | 'w2' | 'w3' | 'w4' | 'w5' | 'w6' | 'fitness';
 
-export const WALLPAPER_IDS: TWallpaperId[] = ['none', 'w1', 'w2', 'w3', 'w4', 'w5', 'w6'];
+export const WALLPAPER_IDS: TWallpaperId[] = [
+  'none',
+  'w1',
+  'w2',
+  'w3',
+  'w4',
+  'w5',
+  'w6',
+  'fitness',
+];
 
 function PatternW1(): ReactNode {
   return (
@@ -127,13 +136,23 @@ function PatternW6(): ReactNode {
   );
 }
 
-const PATTERN_COMPONENTS: Record<string, () => ReactNode> = {
+function PatternFitness(): ReactNode {
+  return (
+    <div
+      className={'h-full w-full bg-cover bg-center bg-no-repeat'}
+      style={{ backgroundImage: "url('/fitness.svg')" }}
+    />
+  );
+}
+
+const WALLPAPER_COMPONENTS: Record<string, () => ReactNode> = {
   w1: PatternW1,
   w2: PatternW2,
   w3: PatternW3,
   w4: PatternW4,
   w5: PatternW5,
   w6: PatternW6,
+  fitness: PatternFitness,
 };
 
 type TWallpaperPickerProps = {
@@ -150,7 +169,7 @@ export function WallpaperPicker({ value, onChange }: TWallpaperPickerProps): Rea
       <div className={'grid grid-cols-3 gap-2'}>
         {WALLPAPER_IDS.map((id) => {
           const isSelected = value === id;
-          const Pattern = id !== 'none' ? PATTERN_COMPONENTS[id] : null;
+          const Pattern = id !== 'none' ? WALLPAPER_COMPONENTS[id] : null;
 
           return (
             <button
@@ -159,7 +178,7 @@ export function WallpaperPicker({ value, onChange }: TWallpaperPickerProps): Rea
               onClick={() => onChange(id)}
               className={`relative h-[72px] overflow-hidden rounded-lg border-2 transition-all ${
                 isSelected ? 'border-brand ring-brand/30 ring-2' : 'border-surface-border'
-              } ${id === 'none' ? 'bg-card' : 'bg-brand/10 text-brand'}`}
+              } ${id === 'none' ? 'bg-card' : id === 'fitness' ? 'bg-card' : 'bg-brand/10 text-brand'}`}
             >
               {Pattern && (
                 <div className={'absolute inset-0'}>
@@ -193,7 +212,7 @@ export function WallpaperBackground({ wallpaper }: TWallpaperBackgroundProps): R
     return null;
   }
 
-  const Pattern = PATTERN_COMPONENTS[wallpaper];
+  const Pattern = WALLPAPER_COMPONENTS[wallpaper];
   if (!Pattern) {
     return null;
   }
