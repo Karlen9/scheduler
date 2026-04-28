@@ -131,48 +131,6 @@ func GetDayOff(specialistID string, date time.Time) (*models.DayOff, error) {
 }
 
 /***************************************************************************************************
-* Creates day off.
-*
-* Parameters:
-* - specialistID: Identifier used to target the current record.
-* - date: Date value used by the current operation.
-* - reason: Reason used by the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func CreateDayOff(specialistID string, date time.Time, reason string) (*models.DayOff, error) {
-	id := uuid.New().String()
-	dateStr := date.Format("2006-01-02")
-
-	var reasonVal interface{}
-	if reason != "" {
-		reasonVal = reason
-	} else {
-		reasonVal = nil
-	}
-
-	_, err := DB.Exec(Q(`
-		INSERT INTO days_off (id, specialist_id, date, reason)
-		VALUES (?, ?, ?, ?)
-	`), id, specialistID, dateStr, reasonVal)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.DayOff{
-		ID:           id,
-		SpecialistID: specialistID,
-		Date:         date,
-		Reason:       reason,
-		CreatedAt:    time.Now(),
-	}, nil
-}
-
-/***************************************************************************************************
 * Deletes day off.
 *
 * Parameters:

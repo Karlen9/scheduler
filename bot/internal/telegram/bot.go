@@ -192,6 +192,32 @@ type SendMessageResponse struct {
 }
 
 /***************************************************************************************************
+* BotCommand represents a Telegram slash-command entry exposed in the command menu.
+***************************************************************************************************/
+type BotCommand struct {
+	Command     string `json:"command"`
+	Description string `json:"description"`
+}
+
+/***************************************************************************************************
+* BotCommandScope describes which audience should see a command set.
+***************************************************************************************************/
+type BotCommandScope struct {
+	Type   string `json:"type"`
+	ChatID int64  `json:"chat_id,omitempty"`
+	UserID int64  `json:"user_id,omitempty"`
+}
+
+/***************************************************************************************************
+* SetMyCommandsRequest is the request body for setMyCommands.
+***************************************************************************************************/
+type SetMyCommandsRequest struct {
+	Commands     []BotCommand     `json:"commands"`
+	Scope        *BotCommandScope `json:"scope,omitempty"`
+	LanguageCode string           `json:"language_code,omitempty"`
+}
+
+/***************************************************************************************************
 * NewBot creates a new Bot instance.
 *
 * Parameters:
@@ -530,6 +556,52 @@ func (b *Bot) SetChatMenuButton(chatID int64, text, url string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	return nil
+}
+
+/***************************************************************************************************
+* SetMyCommands registers the slash-command menu for a specific scope and language.
+***************************************************************************************************/
+func (b *Bot) SetMyCommands(commands []BotCommand, scope *BotCommandScope, languageCode string) error {
+	req := SetMyCommandsRequest{
+		Commands:     commands,
+		Scope:        scope,
+		LanguageCode: languageCode,
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/setMyCommands",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK          bool   `json:"ok"`
+		Result      bool   `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+	if !result.OK {
+		if result.Description != "" {
+			return fmt.Errorf("setMyCommands returned not OK: %s", result.Description)
+		}
+		return fmt.Errorf("setMyCommands returned not OK")
+	}
+	if !result.Result {
+		return fmt.Errorf("setMyCommands returned false")
+	}
+
 	return nil
 }
 

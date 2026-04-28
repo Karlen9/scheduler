@@ -112,6 +112,10 @@ func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 		}
 	}
 
+	if err := telegram.RegisterSpecialistBotCommands(bot, specialist); err != nil {
+		log.Printf("Warning: failed to register commands for @%s: %v", bot.Username, err)
+	}
+
 	m.bots[specialist.WebhookSecret] = bot
 	m.handlers[specialist.WebhookSecret] = handler
 
@@ -421,6 +425,9 @@ func main() {
 		masterBot = b
 		masterBotUsername = b.Username
 		log.Printf("Master bot: @%s", b.Username)
+		if err := telegram.RegisterMasterBotCommands(masterBot, cfg.AdminIDs); err != nil {
+			log.Printf("Warning: failed to register master-bot commands: %v", err)
+		}
 	}
 	api.SetMasterBotUsername(masterBotUsername)
 

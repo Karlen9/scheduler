@@ -766,22 +766,6 @@ export type TCurrentTimeIndicatorProps = {
 };
 
 /***************************************************************************************************
- * Defines the bar chart point props shape shared by the shared utility layer.
- ***************************************************************************************************/
-export type TBarChartDatum = {
-  label: string;
-  value: number;
-};
-
-/***************************************************************************************************
- * Defines the bar chart props shape shared by the shared utility layer.
- ***************************************************************************************************/
-export type TBarChartProps = {
-  data: TBarChartDatum[];
-  valueFormatter?: (value: number) => string;
-};
-
-/***************************************************************************************************
  * Defines the day timeline props shape shared by the shared utility layer.
  ***************************************************************************************************/
 export type TDayTimelineProps = {
@@ -801,16 +785,6 @@ export type TEmptyStateProps = {
   title: string;
   description?: string;
   action?: ReactNode;
-};
-
-/***************************************************************************************************
- * Defines the month calendar props shape shared by the shared utility layer.
- ***************************************************************************************************/
-export type TMonthCalendarProps = {
-  selectedDate: Date;
-  onSelectDate: (date: Date) => void;
-  bookingDates?: Date[];
-  daysOff?: Date[];
 };
 
 /***************************************************************************************************

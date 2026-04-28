@@ -3,16 +3,19 @@
     "other": "Welcome! Press the button below to open the booking app."
   },
   "Welcome.Specialist": {
-    "other": "👋 Welcome back!\n\nYour bot accepts online bookings from clients and helps you run your practice:\n• 📅 Clients can book through the app any time — all you need to do is confirm\n• 🔔 Automatic reminders to clients and notifications to you\n• 🔁 Recurring sessions and repeating schedules\n• 👥 Client base with visit history and notes\n• 📊 Revenue and workload analytics\n\n🔧 Open \"Admin\" to set up your profile, services and schedule.\n👁 Use \"Preview\" to see how your public client page looks inside the mini app.\n\n✨ This is the alpha version — all features are free for everyone. Some features will become paid over time."
+    "other": "👋 Welcome back!\n\nYour bot accepts online bookings from clients and helps you run your practice:\n• 📅 Clients can book through the app any time — all you need to do is confirm\n• 🔔 Automatic reminders to clients and notifications to you\n• 🔁 Recurring sessions and repeating schedules\n• 👥 Client base with visit history and notes\n• 📊 Revenue and workload analytics\n\nUse the buttons below:\n• \"Manage\" opens the admin mini app\n• \"Preview\" shows the client-facing page\n• \"App\" / \"Preview\" / \"Help\" stay pinned in the keyboard\n• /profile opens your profile menu and referrals\n\n✨ This is the alpha version — all features are free for everyone. Some features will become paid over time."
   },
   "Help.Client": {
     "other": "This is a bot for online booking with a specialist.\n\nWhat you can do:\n• Choose a convenient date and time\n• Book a session\n• View and cancel your bookings\n• Create a recurring schedule\n\nPress the \"Book\" button below or /start to open the app."
   },
   "Help.Specialist": {
-    "other": "You are the owner of this bot.\n\nHow to set up:\n1. Open \"Manage\" — Profile — fill in name, photo, description\n2. Services and prices — add session types\n3. Schedule — set working hours\n4. Days off — mark non-working dates\n\nHow booking works:\n• A client books — you get a notification\n• Confirm or decline right in the chat\n• All bookings are visible in the admin panel\n• \"Preview\" opens your client-facing page so you can quickly check how it looks\n\nLink for clients (send it to them):\n<code>%s</code>\n\nCommands:\n/start — Main menu\n/admin — Admin panel\n/help — This help"
+    "other": "You are the owner of this bot.\n\nHow to set up:\n1. Open \"Manage\" — Profile — fill in name, photo, description\n2. Services and prices — add session types\n3. Schedule — set working hours\n4. Days off — mark non-working dates\n\nQuick access:\n• \"App\" opens the admin mini app\n• \"Preview\" opens your client-facing page\n• \"Help\" opens this guide\n• /profile opens your profile menu and referrals\n\nHow booking works:\n• A client books — you get a notification\n• Confirm or decline right in the chat\n• All bookings are visible in the admin panel\n\nLink for clients (send it to them):\n<code>%s</code>\n\nCommands:\n/start — Main menu\n/admin — Open admin mini app\n/profile — Open profile menu\n/help — This help\n/language — Change language"
   },
   "Help.SpecialistSupport": {
     "other": "💬 Need help? Contact an operator at @%s — tap \"Operator support\" in the menu."
+  },
+  "Btn.App": {
+    "other": "App"
   },
   "Btn.OpenApp": {
     "other": "Book"
@@ -22,6 +25,9 @@
   },
   "Btn.OpenPreview": {
     "other": "Preview"
+  },
+  "Btn.Help": {
+    "other": "Help"
   },
   "Btn.Confirm": {
     "other": "✅ Confirm"
@@ -206,6 +212,42 @@
   },
   "Handler.OpenAdmin": {
     "other": "Open admin panel"
+  },
+  "Handler.OpenPreview": {
+    "other": "Open preview"
+  },
+  "Command.Start": {
+    "other": "Open the main menu"
+  },
+  "Command.Help": {
+    "other": "Show help"
+  },
+  "Command.Language": {
+    "other": "Change language"
+  },
+  "Command.Admin": {
+    "other": "Open the admin mini app"
+  },
+  "Command.Profile": {
+    "other": "Open profile menu"
+  },
+  "Command.Menu": {
+    "other": "Open the main menu"
+  },
+  "Command.Cancel": {
+    "other": "Cancel the current action"
+  },
+  "Command.ReplaceToken": {
+    "other": "Replace your bot token (advanced)"
+  },
+  "Command.Specialists": {
+    "other": "List registered specialists"
+  },
+  "Command.Stats": {
+    "other": "Show platform stats"
+  },
+  "Command.MasterAdmin": {
+    "other": "Open the admin menu"
   },
   "Booking.CancelledSpecialistView": {
     "other": "❌ Booking cancelled\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
@@ -493,10 +535,10 @@
     "other": "👋 Hello! I'll help you create a bot for online booking of your clients.\n\n🎯 What you'll get:\n• A personal bot with your name (@your_name_bot)\n• Clients book themselves — you just confirm\n• Calendar, services and prices — everything is customizable\n• Notifications about new bookings right in Telegram\n\n⏱ Setup takes 2 minutes.\n\n📝 First step — create a bot in Telegram:\n\n1. Open @BotFather (click the link)\n2. Send the /newbot command\n3. Enter a name (e.g. \"Specialist John\")\n4. Enter a username (e.g. specialist_john_bot)\n5. Copy the token — a long string of numbers and letters\n\nSend me your bot token:"
   },
   "Master.Help": {
-    "other": "🤖 This bot helps you create a booking bot for your clients.\n\nCommands:\n/start - Start creating a bot\n/cancel - Cancel current operation\n\nIf you already have a bot, send /start to check status."
+    "other": "🤖 This bot helps you launch and maintain your client-booking bot.\n\nAvailable commands:\n/start — Open the main menu\n/menu — Open the main menu again\n/language — Change language\n/help — Show this help\n/cancel — Cancel the current action\n/replacetoken — Replace your existing bot token only if you know what you are doing\n\nUse the menu to create a bot, read the FAQ, or contact an operator."
   },
   "Master.HelpAdmin": {
-    "other": "🤖 This bot helps you create a booking bot for your clients.\n\nCommands:\n/start - Start creating a bot\n/cancel - Cancel current operation\n\n👑 Admin commands:\n/specialists - List all specialists\n/stats - Statistics"
+    "other": "🤖 This bot helps specialists launch and maintain their client-booking bots.\n\nAvailable commands:\n/start — Open the main menu\n/menu — Open the main menu again\n/language — Change language\n/help — Show this help\n/cancel — Cancel the current action\n/replacetoken — Replace your existing bot token only if you know what you are doing\n\n👑 Admin commands:\n/admin — Open the admin menu\n/specialists — List registered specialists\n/stats — Show platform stats"
   },
   "Master.Unknown": {
     "other": "I don't understand. Use /start to begin or /help for help."
@@ -544,7 +586,7 @@
     "other": "\n\n👥 Specialists: {{.Count}}"
   },
   "MasterMenu.Home": {
-    "other": "👋 Hi! I'll help you launch your own Telegram bot for client bookings.\n\nWhat your bot does:\n• 📅 Accepts online bookings 24/7 via a Mini App\n• 🔔 Sends automatic reminders to clients and notifications to you\n• 🔁 Handles recurring sessions and repeating schedules\n• 👥 Keeps a client base with visit history and notes\n• 📊 Shows revenue and workload analytics\n• 🎁 Referral program — invite other specialists and earn bonuses\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\n💬 If you run into questions or issues during setup — reach out to an operator, they'll help you with everything.\n\nPick an option:"
+    "other": "👋 Hi! I'll help you launch your own Telegram bot for client bookings.\n\nWhat your bot does:\n• 📅 Accepts online bookings 24/7 via a Mini App\n• 🔔 Sends automatic reminders to clients and notifications to you\n• 🔁 Handles recurring sessions and repeating schedules\n• 👥 Keeps a client base with visit history and notes\n• 📊 Shows revenue and workload analytics\n• 🎁 Referral program — invite other specialists and earn bonuses\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nAlready have a bot and need to rotate its token? Use /replacetoken only if you know exactly what you are doing.\n\n💬 If you run into questions or issues during setup, FAQ, or token recovery — contact an operator.\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
@@ -625,7 +667,7 @@
     "other": "📋 Specialist list"
   },
   "MasterReplace.Prompt": {
-    "other": "🔑 Replace token for @%s\n\nOpen @BotFather → /mybots → pick your bot → API Token → /revoke if needed, then send me the new long token.\n\nSend /cancel to abort."
+    "other": "🔑 Replace token for @%s\n\n⚠️ Use this only if you know what you are doing. This is an advanced recovery action for a bot you already own.\n\nOpen @BotFather → /mybots → pick your bot → API Token → /revoke if needed, then send me the new long token.\n\nSend /cancel to abort."
   },
   "MasterReplace.UsernameMismatch": {
     "other": "❌ That token belongs to a different bot (@%s instead of @%s).\n\nPlease send a token for *your* bot — I won't let you swap credentials between bots."

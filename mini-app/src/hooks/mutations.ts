@@ -122,11 +122,7 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
   if (path === '/api/admin/notifications') {
     return ['adminNotifications'];
   }
-  if (
-    path === '/api/admin/settings' ||
-    path === '/api/admin/profile' ||
-    path === '/api/admin/upload/photo'
-  ) {
+  if (path === '/api/admin/profile' || path === '/api/admin/upload/photo') {
     return ['specialist'];
   }
 

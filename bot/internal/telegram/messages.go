@@ -181,6 +181,11 @@ func localizeCancelReason(loc *i18n.Localizer, reason string) string {
 }
 
 /***************************************************************************************************
+* BtnApp returns the localized persistent-menu label for opening the specialist app entrypoint.
+***************************************************************************************************/
+func BtnApp(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.App") }
+
+/***************************************************************************************************
 * BtnOpenApp returns the localized button text for opening the mini-app. }.
 *
 * Parameters:
@@ -303,6 +308,11 @@ func BtnProfileBack(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Back
 * BtnLanguage returns the localized language menu button text.
 ***************************************************************************************************/
 func BtnLanguage(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Language") }
+
+/***************************************************************************************************
+* BtnHelp returns the localized help entry button text.
+***************************************************************************************************/
+func BtnHelp(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Help") }
 
 /***************************************************************************************************
 * BtnInfo returns the localized info button text (persistent reply keyboard).

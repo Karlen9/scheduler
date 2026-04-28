@@ -115,6 +115,8 @@ func (h *Handler) handleMessage(msg *Message) {
 	switch msg.Text {
 	case "/admin":
 		h.handleAdmin(msg)
+	case "/profile":
+		h.handleProfile(msg)
 	case "/help":
 		h.handleHelp(msg)
 	case "/language", "/lang":
@@ -182,16 +184,17 @@ func (h *Handler) handleSpecialistKeyboardTap(msg *Message) bool {
 	loc := myI18n.NewLocalizer(lang)
 
 	switch msg.Text {
-	case BtnProfile(loc):
-		if _, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Referral.ProfileMenu"), profileHomeKeyboard(loc)); err != nil {
-			log.Printf("Error sending profile menu: %v", err)
-		}
+	case BtnApp(loc), BtnOpenAdmin(loc):
+		h.handleAdmin(msg)
 		return true
-	case BtnInfo(loc):
-		clientURL := "https://t.me/" + h.Bot.Username
-		if _, err := h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL, h.MasterBotUsername), nil); err != nil {
-			log.Printf("Error sending info message: %v", err)
-		}
+	case BtnOpenPreview(loc):
+		h.handlePreview(msg)
+		return true
+	case BtnHelp(loc), BtnInfo(loc):
+		h.handleHelp(msg)
+		return true
+	case BtnProfile(loc):
+		h.handleProfile(msg)
 		return true
 	}
 	return false
@@ -292,7 +295,7 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 		***************************************************************************************************/
 		replyKeyboard := &ReplyKeyboardMarkup{
 			Keyboard: [][]KeyboardButton{
-				{{Text: BtnProfile(loc)}, {Text: BtnInfo(loc)}},
+				{{Text: BtnApp(loc)}, {Text: BtnOpenPreview(loc)}, {Text: BtnHelp(loc)}},
 			},
 			ResizeKeyboard: true,
 			IsPersistent:   true,
@@ -373,30 +376,8 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
 func (h *Handler) handleAdmin(msg *Message) {
-	/***************************************************************************************************
-	* Check if user is the specialist (owner of this bot).
-	***************************************************************************************************/
-	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
-	if err != nil {
-		log.Printf("Error getting specialist: %v", err)
-		return
-	}
-
-	if specialist == nil || specialist.TelegramUserID != msg.From.ID {
-		loc := myI18n.Default()
-		if specialist != nil {
-			/***************************************************************************************************
-			* Try to get client language.
-			***************************************************************************************************/
-			client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
-			if client != nil {
-				loc = myI18n.NewLocalizer(client.Language)
-			}
-		}
-		_, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Handler.SpecialistOnly"), nil)
-		if err != nil {
-			log.Printf("Error sending admin denied message: %v", err)
-		}
+	specialist, loc, ok := h.specialistOwnerContext(msg)
+	if !ok {
 		return
 	}
 
@@ -404,15 +385,48 @@ func (h *Handler) handleAdmin(msg *Message) {
 	if lang == "" {
 		lang = "ru"
 	}
-	loc := myI18n.NewLocalizer(lang)
 
 	/***************************************************************************************************
 	* Open admin panel with specialist ID.
 	***************************************************************************************************/
 	adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
-	_, err = h.Bot.SendWebAppButton(msg.Chat.ID, myI18n.T(loc, "Handler.OpenAdmin"), adminURL, BtnOpenAdmin(loc))
+	_, err := h.Bot.SendWebAppButton(msg.Chat.ID, myI18n.T(loc, "Handler.OpenAdmin"), adminURL, BtnOpenAdmin(loc))
 	if err != nil {
 		log.Printf("Error sending admin message: %v", err)
+	}
+}
+
+/***************************************************************************************************
+* handlePreview opens the read-only client preview for the specialist who owns this bot.
+***************************************************************************************************/
+func (h *Handler) handlePreview(msg *Message) {
+	specialist, loc, ok := h.specialistOwnerContext(msg)
+	if !ok {
+		return
+	}
+
+	lang := specialist.Language
+	if lang == "" {
+		lang = "ru"
+	}
+
+	previewURL := h.WebAppURL + "/preview/client?specialist=" + specialist.ID + "&lang=" + lang
+	if _, err := h.Bot.SendWebAppButton(msg.Chat.ID, myI18n.T(loc, "Handler.OpenPreview"), previewURL, BtnOpenPreview(loc)); err != nil {
+		log.Printf("Error sending preview message: %v", err)
+	}
+}
+
+/***************************************************************************************************
+* handleProfile opens the specialist profile submenu from the /profile command.
+***************************************************************************************************/
+func (h *Handler) handleProfile(msg *Message) {
+	_, loc, ok := h.specialistOwnerContext(msg)
+	if !ok {
+		return
+	}
+
+	if _, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Referral.ProfileMenu"), profileHomeKeyboard(loc)); err != nil {
+		log.Printf("Error sending profile menu: %v", err)
 	}
 }
 
@@ -451,6 +465,34 @@ func (h *Handler) handleHelp(msg *Message) {
 	if err != nil {
 		log.Printf("Error sending help message: %v", err)
 	}
+}
+
+func (h *Handler) specialistOwnerContext(msg *Message) (*models.Specialist, *i18n.Localizer, bool) {
+	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
+	if err != nil {
+		log.Printf("Error getting specialist: %v", err)
+		return nil, nil, false
+	}
+
+	if specialist == nil || msg.From == nil || specialist.TelegramUserID != msg.From.ID {
+		loc := myI18n.Default()
+		if specialist != nil && msg.From != nil {
+			client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
+			if client != nil {
+				loc = myI18n.NewLocalizer(client.Language)
+			}
+		}
+		if _, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Handler.SpecialistOnly"), nil); err != nil {
+			log.Printf("Error sending specialist-only message: %v", err)
+		}
+		return nil, nil, false
+	}
+
+	lang := specialist.Language
+	if lang == "" {
+		lang = "ru"
+	}
+	return specialist, myI18n.NewLocalizer(lang), true
 }
 
 /***************************************************************************************************
