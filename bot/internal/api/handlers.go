@@ -503,15 +503,20 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if durationParam == "" && sessionTypeParam == "" {
+		httpError(w, r, "Error.MissingDuration", http.StatusBadRequest)
+		return
+	}
+
 	var duration int
 	if durationParam != "" {
-		var err error
-		duration, err = strconv.Atoi(durationParam)
-		if err != nil || duration <= 0 {
+		parsedDuration, err := strconv.Atoi(durationParam)
+		if err != nil || parsedDuration <= 0 {
 			httpError(w, r, "Error.InvalidDuration", http.StatusBadRequest)
 			return
 		}
-	} else if sessionTypeParam != "" {
+		duration = parsedDuration
+	} else {
 		/***************************************************************************************************
 		* Legacy: look up duration from session type.
 		***************************************************************************************************/
@@ -521,9 +526,6 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		duration = sessionType.DurationMinutes
-	} else {
-		httpError(w, r, "Error.MissingDuration", http.StatusBadRequest)
-		return
 	}
 
 	date, err := time.Parse("2006-01-02", dateStr)

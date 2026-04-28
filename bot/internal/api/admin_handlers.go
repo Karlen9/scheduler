@@ -1827,16 +1827,19 @@ func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cascade := r.URL.Query().Get("cascade") == "1"
+	if !cascade {
+		if err := db.DeleteClient(clientID); err != nil {
+			log.Printf("Error deleting client: %v", err)
+			httpError(w, r, "Error.DeleteClientBookings", http.StatusConflict)
+			return
+		}
+	}
 	if cascade {
 		if err := db.DeleteClientCascade(clientID); err != nil {
 			log.Printf("Error cascade-deleting client: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
 		}
-	} else if err := db.DeleteClient(clientID); err != nil {
-		log.Printf("Error deleting client: %v", err)
-		httpError(w, r, "Error.DeleteClientBookings", http.StatusConflict)
-		return
 	}
 
 	log.Printf("CLIENT deleted: %s (%s) cascade=%v by specialist %s", client.Name, clientID[:8], cascade, specialist.Name)
