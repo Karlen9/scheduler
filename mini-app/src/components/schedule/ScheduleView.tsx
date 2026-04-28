@@ -39,6 +39,18 @@ const monthGenKeys = [
  ***************************************************************************************************/
 const dayFullKeysJS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+const advanceDateByViewMode: Record<TViewMode, (date: Date, delta: number) => void> = {
+  day: (date, delta) => {
+    date.setDate(date.getDate() + delta);
+  },
+  week: (date, delta) => {
+    date.setDate(date.getDate() + delta * 7);
+  },
+  month: (date, delta) => {
+    date.setMonth(date.getMonth() + delta);
+  },
+};
+
 /***************************************************************************************************
  * Checks whether same day.
  *
@@ -266,13 +278,7 @@ export function ScheduleView({
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
       const newDate = new Date(d);
-      if (viewMode === 'day') {
-        newDate.setDate(d.getDate() + delta);
-      } else if (viewMode === 'week') {
-        newDate.setDate(d.getDate() + delta * 7);
-      } else {
-        newDate.setMonth(d.getMonth() + delta);
-      }
+      advanceDateByViewMode[viewMode](newDate, delta);
       return newDate;
     });
   };

@@ -149,6 +149,20 @@ const lightThemeVars: Record<string, string> = {
   '--tg-theme-destructive-text-color': '#e53935',
 };
 
+const themePreferenceConfig: Record<
+  Exclude<TThemePreference, 'auto'>,
+  { isDark: boolean; vars: Record<string, string> }
+> = {
+  light: {
+    isDark: false,
+    vars: lightThemeVars,
+  },
+  dark: {
+    isDark: true,
+    vars: darkThemeVars,
+  },
+};
+
 /***************************************************************************************************
  * Sets inline theme vars.
  *
@@ -172,6 +186,10 @@ function setInlineThemeVars(vars: Record<string, string>): void {
   for (const [name, value] of Object.entries(vars)) {
     root.style.setProperty(name, value);
   }
+}
+
+function setDarkClass(isDark: boolean): void {
+  document.documentElement.classList.toggle('dark', isDark);
 }
 
 /***************************************************************************************************
@@ -246,24 +264,16 @@ export function applyTheme(): void {
    ***************************************************************************************************/
   const pref = getThemePreference();
   const webApp = getTelegramWebApp();
-  let isDark: boolean;
-
-  if (pref === 'light') {
-    isDark = false;
-    setInlineThemeVars(lightThemeVars);
-  } else if (pref === 'dark') {
-    isDark = true;
-    setInlineThemeVars(darkThemeVars);
-  } else {
-    isDark = webApp ? webApp.colorScheme === 'dark' : false;
-    setInlineThemeVars(getTelegramThemeVars(webApp));
+  if (pref !== 'auto') {
+    const { isDark, vars } = themePreferenceConfig[pref];
+    setInlineThemeVars(vars);
+    setDarkClass(isDark);
+    return;
   }
 
-  if (isDark) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
+  const isDark = webApp ? webApp.colorScheme === 'dark' : false;
+  setInlineThemeVars(getTelegramThemeVars(webApp));
+  setDarkClass(isDark);
 }
 
 /***************************************************************************************************

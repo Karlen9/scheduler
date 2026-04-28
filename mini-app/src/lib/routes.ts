@@ -50,6 +50,30 @@ function isClientPath(path: string): boolean {
   );
 }
 
+function isScopedPathname(pathname: string | null | undefined, basePath: string): boolean {
+  return pathname === basePath || pathname?.startsWith(`${basePath}/`) || false;
+}
+
+function resolveClientScopedHref(basePath: string, path: string, suffix: string): string | null {
+  if (!isClientPath(path)) {
+    return null;
+  }
+
+  return `${basePath}${path === '/' ? '' : path}${suffix}`;
+}
+
+function resolveTestScopedHref(path: string, suffix: string): string | null {
+  if (path === '/admin') {
+    return `${testAdminBasePath}${suffix}`;
+  }
+
+  if (path.startsWith('/admin/')) {
+    return `${testAdminBasePath}${path.slice('/admin'.length)}${suffix}`;
+  }
+
+  return resolveClientScopedHref(testClientBasePath, path, suffix);
+}
+
 export function isTestPathname(pathname?: string | null): boolean {
   return (
     pathname === testClientBasePath ||
@@ -77,15 +101,15 @@ export function isPreviewRoute(pathname?: string | null): boolean {
 export function getDataScope(): string {
   const pathname = getEffectivePathname();
 
-  if (pathname === testAdminBasePath || pathname?.startsWith(`${testAdminBasePath}/`)) {
+  if (isScopedPathname(pathname, testAdminBasePath)) {
     return 'test-admin';
   }
 
-  if (pathname === testClientBasePath || pathname?.startsWith(`${testClientBasePath}/`)) {
+  if (isScopedPathname(pathname, testClientBasePath)) {
     return 'test-client';
   }
 
-  if (pathname === previewClientBasePath || pathname?.startsWith(`${previewClientBasePath}/`)) {
+  if (isScopedPathname(pathname, previewClientBasePath)) {
     return 'preview-client';
   }
 
@@ -120,42 +144,14 @@ export function resolveTestAwareHref(pathname: string | null, href: string): str
   const { path, suffix } = splitHref(href);
 
   if (
-    effectivePathname === testAdminBasePath ||
-    effectivePathname?.startsWith(`${testAdminBasePath}/`)
+    isScopedPathname(effectivePathname, testAdminBasePath) ||
+    isScopedPathname(effectivePathname, testClientBasePath)
   ) {
-    if (path === '/admin') {
-      return `${testAdminBasePath}${suffix}`;
-    }
-    if (path.startsWith('/admin/')) {
-      return `${testAdminBasePath}${path.slice('/admin'.length)}${suffix}`;
-    }
-    if (isClientPath(path)) {
-      return `${testClientBasePath}${path === '/' ? '' : path}${suffix}`;
-    }
+    return resolveTestScopedHref(path, suffix) ?? href;
   }
 
-  if (
-    effectivePathname === testClientBasePath ||
-    effectivePathname?.startsWith(`${testClientBasePath}/`)
-  ) {
-    if (path === '/admin') {
-      return `${testAdminBasePath}${suffix}`;
-    }
-    if (path.startsWith('/admin/')) {
-      return `${testAdminBasePath}${path.slice('/admin'.length)}${suffix}`;
-    }
-    if (isClientPath(path)) {
-      return `${testClientBasePath}${path === '/' ? '' : path}${suffix}`;
-    }
-  }
-
-  if (
-    effectivePathname === previewClientBasePath ||
-    effectivePathname?.startsWith(`${previewClientBasePath}/`)
-  ) {
-    if (isClientPath(path)) {
-      return `${previewClientBasePath}${path === '/' ? '' : path}${suffix}`;
-    }
+  if (isScopedPathname(effectivePathname, previewClientBasePath)) {
+    return resolveClientScopedHref(previewClientBasePath, path, suffix) ?? href;
   }
 
   return href;
