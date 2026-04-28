@@ -129,95 +129,6 @@ func HandleAdminGetDurations(w http.ResponseWriter, r *http.Request) {
 }
 
 /***************************************************************************************************
-* Specialist Settings.
-***************************************************************************************************/
-type UpdateSpecialistRequest struct {
-	Name            string `json:"name,omitempty"`
-	Timezone        string `json:"timezone,omitempty"`
-	CancelCutoffHrs *int   `json:"cancelCutoffHours,omitempty"`
-}
-
-/***************************************************************************************************
-* Handles get specialist settings.
-*
-* Parameters:
-* - w: HTTP response writer used to send the reply.
-* - r: HTTP request carrying headers, params, query values, and body data.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
-*
-***************************************************************************************************/
-func HandleGetSpecialistSettings(w http.ResponseWriter, r *http.Request) {
-	specialist := GetSpecialistFromContext(r)
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-
-	writeJSON(w, specialist)
-}
-
-/***************************************************************************************************
-* Handles update specialist settings.
-*
-* Parameters:
-* - w: HTTP response writer used to send the reply.
-* - r: HTTP request carrying headers, params, query values, and body data.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
-*
-***************************************************************************************************/
-func HandleUpdateSpecialistSettings(w http.ResponseWriter, r *http.Request) {
-	specialist := GetSpecialistFromContext(r)
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-
-	var req UpdateSpecialistRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-		return
-	}
-
-	/***************************************************************************************************
-	* Apply updates.
-	***************************************************************************************************/
-	name := specialist.Name
-	if req.Name != "" {
-		name = req.Name
-	}
-
-	timezone := specialist.Timezone
-	if req.Timezone != "" {
-		timezone = req.Timezone
-	}
-
-	cancelCutoff := specialist.CancelCutoffHrs
-	if req.CancelCutoffHrs != nil {
-		cancelCutoff = *req.CancelCutoffHrs
-	}
-
-	updated, err := db.UpdateSpecialist(specialist.ID, name, timezone, cancelCutoff)
-	if err != nil {
-		log.Printf("Error updating specialist: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-
-	changes.Publish(specialist.ID, changes.GroupSpecialist)
-	writeJSON(w, updated)
-}
-
-/***************************************************************************************************
 * Session Types.
 ***************************************************************************************************/
 type CreateSessionTypeRequest struct {
@@ -537,23 +448,6 @@ type BulkWorkingHoursRequest struct {
 }
 
 /***************************************************************************************************
-* Defines the day working-hours interval request type used by the api layer.
-***************************************************************************************************/
-type DayWorkingHoursIntervalRequest struct {
-	StartTime string `json:"startTime"`
-	EndTime   string `json:"endTime"`
-}
-
-/***************************************************************************************************
-* Defines the day working-hours request type used by the api layer.
-***************************************************************************************************/
-type DayWorkingHoursRequest struct {
-	Hours     []DayWorkingHoursIntervalRequest `json:"hours"`
-	StartTime string                           `json:"startTime"`
-	EndTime   string                           `json:"endTime"`
-}
-
-/***************************************************************************************************
 * Handles admin get working hours.
 *
 * Parameters:
@@ -688,47 +582,6 @@ func validateWorkingHoursRequests(hours []WorkingHoursRequest) error {
 }
 
 /***************************************************************************************************
-* Normalizes a day-level working-hours request into the bulk request shape.
-*
-* Parameters:
-* - day: Day used by the current operation.
-* - req: Req used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as []WorkingHoursRequest together with an error
-*   when the operation cannot complete successfully.
-*
-* Side effects:
-* - May coordinate request handling, authentication checks, or other API-facing behavior.
-***************************************************************************************************/
-func normalizeDayWorkingHoursRequest(day int, req DayWorkingHoursRequest) ([]WorkingHoursRequest, error) {
-	if len(req.Hours) == 0 {
-		if req.StartTime == "" || req.EndTime == "" {
-			return nil, errMissingTimeRange
-		}
-
-		return []WorkingHoursRequest{
-			{
-				DayOfWeek: day,
-				StartTime: req.StartTime,
-				EndTime:   req.EndTime,
-			},
-		}, nil
-	}
-
-	hours := make([]WorkingHoursRequest, 0, len(req.Hours))
-	for _, interval := range req.Hours {
-		hours = append(hours, WorkingHoursRequest{
-			DayOfWeek: day,
-			StartTime: interval.StartTime,
-			EndTime:   interval.EndTime,
-		})
-	}
-
-	return hours, nil
-}
-
-/***************************************************************************************************
 * Handles admin get schedule context.
 *
 * Parameters:
@@ -822,116 +675,6 @@ func HandleUpdateWorkingHours(w http.ResponseWriter, r *http.Request) {
 	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
 	changes.Publish(specialist.ID, changes.GroupWorkingHours)
 	writeJSON(w, hours)
-}
-
-/***************************************************************************************************
-* Handles set working hours for day.
-*
-* Parameters:
-* - w: HTTP response writer used to send the reply.
-* - r: HTTP request carrying headers, params, query values, and body data.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
-*
-***************************************************************************************************/
-func HandleSetWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
-	specialist := GetSpecialistFromContext(r)
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-
-	dayStr := chi.URLParam(r, "day")
-	day, err := strconv.Atoi(dayStr)
-	if err != nil || day < 0 || day > 6 {
-		httpError(w, r, "Error.InvalidDayOfWeek", http.StatusBadRequest)
-		return
-	}
-
-	var req DayWorkingHoursRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-		return
-	}
-
-	dayHours, err := normalizeDayWorkingHoursRequest(day, req)
-	if err != nil {
-		if err == errMissingTimeRange {
-			httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
-			return
-		}
-		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-		return
-	}
-
-	if err := validateWorkingHoursRequests(dayHours); err != nil {
-		if err == errMissingTimeRange {
-			httpError(w, r, "Error.MissingTimeRange", http.StatusBadRequest)
-			return
-		}
-		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-		return
-	}
-
-	if err := db.DeleteWorkingHours(specialist.ID, day); err != nil {
-		log.Printf("Error clearing working hours for day: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-
-	for _, wh := range dayHours {
-		if err := db.UpsertWorkingHours(specialist.ID, wh.DayOfWeek, wh.StartTime, wh.EndTime); err != nil {
-			log.Printf("Error setting working hours: %v", err)
-			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	hours, _ := db.GetWorkingHoursBySpecialistID(specialist.ID)
-	changes.Publish(specialist.ID, changes.GroupWorkingHours)
-	writeJSON(w, hours)
-}
-
-/***************************************************************************************************
-* Handles delete working hours for day.
-*
-* Parameters:
-* - w: HTTP response writer used to send the reply.
-* - r: HTTP request carrying headers, params, query values, and body data.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
-*
-***************************************************************************************************/
-func HandleDeleteWorkingHoursForDay(w http.ResponseWriter, r *http.Request) {
-	specialist := GetSpecialistFromContext(r)
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-
-	dayStr := chi.URLParam(r, "day")
-	day, err := strconv.Atoi(dayStr)
-	if err != nil || day < 0 || day > 6 {
-		httpError(w, r, "Error.InvalidDayOfWeek", http.StatusBadRequest)
-		return
-	}
-
-	if err := db.DeleteWorkingHours(specialist.ID, day); err != nil {
-		log.Printf("Error deleting working hours: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-
-	changes.Publish(specialist.ID, changes.GroupWorkingHours)
-	w.WriteHeader(http.StatusNoContent)
 }
 
 /***************************************************************************************************
@@ -1216,57 +959,6 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if booking != nil {
-		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
-	}
-	writeJSON(w, booking)
-}
-
-func HandleAdminCompleteBooking(w http.ResponseWriter, r *http.Request) {
-	specialist := GetSpecialistFromContext(r)
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-
-	bookingID := chi.URLParam(r, "id")
-	if bookingID == "" {
-		httpError(w, r, "Error.MissingBookingID", http.StatusBadRequest)
-		return
-	}
-
-	booking, err := db.GetBookingByID(bookingID)
-	if err != nil {
-		log.Printf("Error getting booking: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-	if booking == nil || booking.SpecialistID != specialist.ID {
-		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
-		return
-	}
-
-	if err := db.UpdateBookingStatus(bookingID, models.BookingStatusCompleted); err != nil {
-		if errors.Is(err, db.ErrNoActiveClientBatch) {
-			httpError(w, r, "Error.NoActiveBatch", http.StatusBadRequest)
-			return
-		}
-		log.Printf("Error completing booking: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-
-	booking, _ = db.GetBookingByID(bookingID)
-	if NotifyStatusChangeFunc != nil && booking != nil {
-		if err := NotifyStatusChangeFunc(booking, string(models.BookingStatusCompleted)); err != nil {
-			log.Printf("Error notifying client about completion: %v", err)
-		}
-	}
-	if UpdateSpecialistMessageFunc != nil && booking != nil {
-		if err := UpdateSpecialistMessageFunc(booking); err != nil {
-			log.Printf("Error updating specialist message: %v", err)
-		}
-	}
 	if booking != nil {
 		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
 	}
@@ -1630,11 +1322,6 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 /***************************************************************************************************
 * Days Off.
 ***************************************************************************************************/
-type CreateDayOffRequest struct {
-	Date   string `json:"date"` // YYYY-MM-DD
-	Reason string `json:"reason,omitempty"`
-}
-
 type BatchCreateDayOffRequest struct {
 	Dates  []string `json:"dates"` // YYYY-MM-DD[]
 	Reason string   `json:"reason,omitempty"`
@@ -1676,65 +1363,6 @@ func HandleGetDaysOff(w http.ResponseWriter, r *http.Request) {
 
 	setPrivateCache(w, 300, 600)
 	writeJSON(w, daysOff)
-}
-
-/***************************************************************************************************
-* Handles create day off.
-*
-* Parameters:
-* - w: HTTP response writer used to send the reply.
-* - r: HTTP request carrying headers, params, query values, and body data.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
-*
-***************************************************************************************************/
-func HandleCreateDayOff(w http.ResponseWriter, r *http.Request) {
-	specialist := GetSpecialistFromContext(r)
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-
-	var req CreateDayOffRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
-		return
-	}
-
-	if req.Date == "" {
-		httpError(w, r, "Error.MissingDate", http.StatusBadRequest)
-		return
-	}
-
-	date, err := parseDate(req.Date)
-	if err != nil {
-		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
-		return
-	}
-
-	/***************************************************************************************************
-	* Check if already exists.
-	***************************************************************************************************/
-	existing, _ := db.GetDayOff(specialist.ID, date)
-	if existing != nil {
-		httpError(w, r, "Error.DayOffDuplicate", http.StatusConflict)
-		return
-	}
-
-	dayOff, err := db.CreateDayOff(specialist.ID, date, req.Reason)
-	if err != nil {
-		log.Printf("Error creating day off: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-
-	changes.Publish(specialist.ID, changes.GroupDaysOff)
-	w.WriteHeader(http.StatusCreated)
-	writeJSON(w, dayOff)
 }
 
 /***************************************************************************************************

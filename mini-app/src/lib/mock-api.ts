@@ -934,22 +934,6 @@ function createRecurringSchedule(
   return clone(schedule);
 }
 
-function updateWorkingHoursForDay(
-  state: TMockState,
-  day: number,
-  intervals: { startTime: string; endTime: string }[],
-): TWorkingHours[] {
-  state.workingHours = [
-    ...state.workingHours.filter((item) => item.dayOfWeek !== day),
-    ...intervals.map((interval) => ({ dayOfWeek: day, ...interval })),
-  ].sort(
-    (left, right) =>
-      left.dayOfWeek - right.dayOfWeek || left.startTime.localeCompare(right.startTime),
-  );
-  bumpChangeVersions(state, ['workingHours']);
-  return clone(state.workingHours);
-}
-
 export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const state = getState();
   const method = (options?.method ?? 'GET').toUpperCase();
@@ -1165,17 +1149,6 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
       bumpChangeVersions(state, ['clientBatches', 'clients']);
       return clone(batch) as T;
     }
-    if (path === '/api/admin/days-off') {
-      const dayOff: TDayOff = {
-        id: `mock-day-off-${Date.now()}`,
-        date: getString(body.date, dateString(1)),
-        reason: getOptionalString(body.reason),
-        createdAt: new Date().toISOString(),
-      };
-      state.daysOff = [dayOff, ...state.daysOff];
-      bumpChangeVersions(state, ['daysOff']);
-      return clone(dayOff) as T;
-    }
     if (path === '/api/admin/days-off/batch') {
       const rawDates = Array.isArray(body.dates) ? (body.dates as unknown[]) : [];
       const reason = getOptionalString(body.reason);
@@ -1380,14 +1353,6 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
       return clone(updated) as T;
     }
 
-    const workingHoursDayMatch = path.match(/^\/api\/admin\/working-hours\/(\d+)$/);
-    if (workingHoursDayMatch) {
-      const intervals = Array.isArray(body.hours)
-        ? (body.hours as { startTime: string; endTime: string }[])
-        : [];
-      return updateWorkingHoursForDay(state, Number(workingHoursDayMatch[1]), intervals) as T;
-    }
-
     const clientMatch = path.match(/^\/api\/admin\/clients\/([^/]+)$/);
     if (clientMatch) {
       let updated: TClientInfo | null = null;
@@ -1459,16 +1424,6 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
     }
   }
 
-  if (method === 'PATCH') {
-    const adminCompleteMatch = path.match(/^\/api\/admin\/bookings\/([^/]+)\/complete$/);
-    if (adminCompleteMatch) {
-      return updateBooking(state, adminCompleteMatch[1], (booking) => ({
-        ...booking,
-        status: 'completed',
-      })) as T;
-    }
-  }
-
   if (method === 'DELETE') {
     const clientBookingMatch = path.match(/^\/api\/bookings\/([^/]+)$/);
     if (clientBookingMatch) {
@@ -1484,15 +1439,6 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
     if (serviceMatch) {
       state.services = state.services.filter((service) => service.id !== serviceMatch[1]);
       bumpChangeVersions(state, ['services']);
-      return undefined as T;
-    }
-
-    const workingHoursDayMatch = path.match(/^\/api\/admin\/working-hours\/(\d+)$/);
-    if (workingHoursDayMatch) {
-      state.workingHours = state.workingHours.filter(
-        (item) => item.dayOfWeek !== Number(workingHoursDayMatch[1]),
-      );
-      bumpChangeVersions(state, ['workingHours']);
       return undefined as T;
     }
 

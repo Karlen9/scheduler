@@ -147,12 +147,6 @@ func NewRouter() http.Handler {
 			r.Use(AdminAuthMiddleware)
 
 			/***************************************************************************************************
-			* Specialist settings.
-			***************************************************************************************************/
-			r.Get("/settings", HandleGetSpecialistSettings)
-			r.Put("/settings", HandleUpdateSpecialistSettings)
-
-			/***************************************************************************************************
 			* Durations.
 			***************************************************************************************************/
 			r.Get("/durations", HandleAdminGetDurations)
@@ -171,8 +165,6 @@ func NewRouter() http.Handler {
 			r.Get("/working-hours", HandleAdminGetWorkingHours)
 			r.Get("/schedule-context", HandleAdminGetScheduleContext)
 			r.Put("/working-hours", HandleUpdateWorkingHours)
-			r.Put("/working-hours/{day}", HandleSetWorkingHoursForDay)
-			r.Delete("/working-hours/{day}", HandleDeleteWorkingHoursForDay)
 
 			/***************************************************************************************************
 			* Bookings management.
@@ -181,14 +173,12 @@ func NewRouter() http.Handler {
 			r.Get("/stats", HandleGetAdminStats)
 			r.Post("/bookings", HandleAdminCreateBooking)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
-			r.Patch("/bookings/{id}/complete", HandleAdminCompleteBooking)
 			r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
 
 			/***************************************************************************************************
 			* Days off management.
 			***************************************************************************************************/
 			r.Get("/days-off", HandleGetDaysOff)
-			r.Post("/days-off", HandleCreateDayOff)
 			r.Post("/days-off/batch", HandleBatchCreateDayOff)
 			r.Delete("/days-off/{id}", HandleDeleteDayOff)
 

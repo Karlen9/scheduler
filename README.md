@@ -236,7 +236,6 @@ Examples:
 
 | Method       | Path                                                                    | Description                                    |
 | ------------ | ----------------------------------------------------------------------- | ---------------------------------------------- |
-| `GET/PUT`    | `/api/admin/settings`                                                   | Specialist settings                            |
 | `GET/PUT`    | `/api/admin/profile`                                                    | Specialist profile                             |
 | `GET/PUT`    | `/api/admin/notifications`                                              | Notification preferences                       |
 | `GET`        | `/api/admin/durations`                                                  | Available durations                            |
@@ -244,12 +243,12 @@ Examples:
 | `PUT/DELETE` | `/api/admin/services/{id}`                                              | Service update/delete                          |
 | `GET/PUT`    | `/api/admin/working-hours`                                              | Working hours                                  |
 | `GET`        | `/api/admin/schedule-context`                                           | Working hours, services, days off              |
-| `PUT/DELETE` | `/api/admin/working-hours/{day}`                                        | Per-day working-hour intervals                 |
 | `GET/POST`   | `/api/admin/bookings`                                                   | Bookings list/create                           |
 | `GET`        | `/api/admin/stats`                                                      | Admin analytics                                |
 | `PUT`        | `/api/admin/bookings/{id}/status`                                       | Update booking status                          |
 | `PUT`        | `/api/admin/bookings/{id}/reschedule`                                   | Reschedule booking                             |
-| `GET/POST`   | `/api/admin/days-off`                                                   | Days off list/create                           |
+| `GET`        | `/api/admin/days-off`                                                   | Days off list                                  |
+| `POST`       | `/api/admin/days-off/batch`                                             | Batch create days off                          |
 | `DELETE`     | `/api/admin/days-off/{id}`                                              | Delete day off                                 |
 | `GET/POST`   | `/api/admin/clients`                                                    | Clients list / create ghost client             |
 | `PUT/DELETE` | `/api/admin/clients/{id}`                                               | Update/delete client                           |

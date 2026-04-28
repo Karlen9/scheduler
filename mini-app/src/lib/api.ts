@@ -28,7 +28,6 @@ import type {
   TSpecialist,
   TTimeSlot,
   TWorkingHours,
-  TWorkingInterval,
 } from './types';
 
 /***************************************************************************************************
@@ -972,49 +971,6 @@ export const api = {
     },
 
     /***************************************************************************************************
-     * Sets working hours for day.
-     *
-     * Parameters:
-     * - day: Day used by the current operation.
-     * - startTime: Time value used by the current operation.
-     * - endTime: Time value used by the current operation.
-     *
-     * Returns:
-     * - A promise that resolves with TWorkingHours[].
-     *
-     * Side effects:
-     * - May read browser state, call shared helpers, or perform network requests.
-     ***************************************************************************************************/
-    async setWorkingHoursForDay(
-      day: number,
-      intervals: TWorkingInterval[],
-    ): Promise<TWorkingHours[]> {
-      const result = await fetchAPI<TWorkingHours[]>(`/api/admin/working-hours/${day}`, {
-        method: 'PUT',
-        body: JSON.stringify({ hours: normalizeOutgoingHours(intervals) }),
-      });
-      return normalizeIncomingHours(result);
-    },
-
-    /***************************************************************************************************
-     * Deletes working hours for day.
-     *
-     * Parameters:
-     * - day: Day used by the current operation.
-     *
-     * Returns:
-     * - A promise that resolves with void.
-     *
-     * Side effects:
-     * - May read browser state, call shared helpers, or perform network requests.
-     ***************************************************************************************************/
-    async deleteWorkingHoursForDay(day: number): Promise<void> {
-      await fetchAPI<void>(`/api/admin/working-hours/${day}`, {
-        method: 'DELETE',
-      });
-    },
-
-    /***************************************************************************************************
      * Days Off.
      *
      * Parameters:
@@ -1028,26 +984,6 @@ export const api = {
      ***************************************************************************************************/
     async getDaysOff(): Promise<TDayOff[]> {
       return fetchAPI<TDayOff[]>('/api/admin/days-off');
-    },
-
-    /***************************************************************************************************
-     * Creates day off.
-     *
-     * Parameters:
-     * - date: Date value used by the current operation.
-     * - reason: Reason used by the current operation.
-     *
-     * Returns:
-     * - A promise that resolves with TDayOff.
-     *
-     * Side effects:
-     * - May read browser state, call shared helpers, or perform network requests.
-     ***************************************************************************************************/
-    async createDayOff(date: string, reason?: string): Promise<TDayOff> {
-      return fetchAPI<TDayOff>('/api/admin/days-off', {
-        method: 'POST',
-        body: JSON.stringify({ date, reason }),
-      });
     },
 
     async createDayOffsBatch(dates: string[], reason?: string): Promise<TDayOff[]> {
@@ -1160,12 +1096,6 @@ export const api = {
       return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status, reason }),
-      });
-    },
-
-    async completeBooking(bookingId: string): Promise<TBooking> {
-      return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/complete`, {
-        method: 'PATCH',
       });
     },
 

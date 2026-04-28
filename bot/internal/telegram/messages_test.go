@@ -137,6 +137,24 @@ func TestFormatSpecialistCreatedBookingClientPromptsForResponse(t *testing.T) {
 	}
 }
 
+func TestFormatHelpSpecialistIncludesUpdatedCommandSet(t *testing.T) {
+	loc := myI18n.NewLocalizer("en")
+
+	msg := FormatHelpSpecialist(loc, "https://t.me/example_bot", "operator_bot")
+	expectedParts := []string{
+		"\"App\" opens the admin mini app",
+		"/profile — Open profile menu",
+		"/language — Change language",
+		"https://t.me/example_bot",
+		"@operator_bot",
+	}
+	for _, part := range expectedParts {
+		if !strings.Contains(msg, part) {
+			t.Fatalf("FormatHelpSpecialist() missing %q in %q", part, msg)
+		}
+	}
+}
+
 func testBooking() *models.Booking {
 	return &models.Booking{
 		ClientName:      "Alex",

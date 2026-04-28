@@ -534,7 +534,7 @@ func TestAdminUnauthorized(t *testing.T) {
 	/***************************************************************************************************
 	* Regular client (888888) should get 403 on admin endpoint.
 	***************************************************************************************************/
-	w := doClientRequest(t, http.MethodGet, "/api/admin/settings", nil, 888888)
+	w := doClientRequest(t, http.MethodGet, "/api/admin/profile", nil, 888888)
 
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
@@ -1042,10 +1042,14 @@ func TestAdminDeleteDayOffRejectsCrossSpecialistDelete(t *testing.T) {
 		t.Fatalf("CreateSpecialist: %v", err)
 	}
 	dayOffDate := time.Date(2026, time.May, 20, 0, 0, 0, 0, time.UTC)
-	dayOff, err := db.CreateDayOff(other.ID, dayOffDate, "")
+	created, err := db.CreateDayOffsBatch(other.ID, []time.Time{dayOffDate}, "")
 	if err != nil {
-		t.Fatalf("CreateDayOff: %v", err)
+		t.Fatalf("CreateDayOffsBatch: %v", err)
 	}
+	if len(created) != 1 {
+		t.Fatalf("expected one created day off, got %d", len(created))
+	}
+	dayOff := created[0]
 
 	w := doAdminRequest(t, http.MethodDelete, "/api/admin/days-off/"+dayOff.ID, nil)
 	if w.Code != http.StatusNotFound {
@@ -1220,17 +1224,17 @@ func TestRejectOverlappingWorkingHoursIntervals(t *testing.T) {
 * Side effects:
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
-func TestSetWorkingHoursForDayAllowsMultipleIntervals(t *testing.T) {
+func TestUpdateWorkingHoursAllowsMultipleIntervals(t *testing.T) {
 	body := jsonBody(map[string]interface{}{
 		"hours": []map[string]interface{}{
-			{"startTime": "09:00", "endTime": "12:00"},
-			{"startTime": "14:00", "endTime": "18:00"},
+			{"dayOfWeek": 1, "startTime": "09:00", "endTime": "12:00"},
+			{"dayOfWeek": 1, "startTime": "14:00", "endTime": "18:00"},
 		},
 	})
 
-	w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours/1", body)
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours", body)
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200 for multi-interval day update, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("expected 200 for multi-interval working-hours update, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var hours []map[string]interface{}
