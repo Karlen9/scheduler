@@ -225,7 +225,7 @@ func (h *MasterHandler) handleSupportGroupMessage(msg *Message) {
 	text := strings.TrimSpace(msg.Text)
 	switch {
 	case text == "/close":
-		h.closeSupportThread(thread.ID, thread.TelegramUserID, msg.MessageThreadID, msg.From)
+		h.closeSupportThread(thread.ID, msg.MessageThreadID, msg.From)
 		return
 	case strings.HasPrefix(text, "/"):
 		// Leave slash-commands as signals for operators; they won't be relayed back.
@@ -254,9 +254,9 @@ func (h *MasterHandler) canOperateSupportThread(sender *User) bool {
 	return h.isAdmin(sender.ID)
 }
 
-// closeSupportThread marks the thread closed, notifies both sides, and closes the forum topic
-// so new replies don't accidentally land in a silent thread.
-func (h *MasterHandler) closeSupportThread(threadID string, userID int64, topicID int, closedBy *User) {
+// closeSupportThread marks the thread closed, acknowledges it in the operator topic, and closes
+// the forum topic so new replies don't accidentally land in a silent thread.
+func (h *MasterHandler) closeSupportThread(threadID string, topicID int, closedBy *User) {
 	if err := db.CloseSupportThread(threadID); err != nil {
 		log.Printf("master-support: close thread %s failed: %v", threadID, err)
 		return
@@ -265,15 +265,10 @@ func (h *MasterHandler) closeSupportThread(threadID string, userID int64, topicI
 	if closedBy != nil {
 		closer = formatUserLine(*closedBy)
 	}
-	h.notifySupportThreadClosed(userID, topicID, closer)
+	h.notifySupportThreadClosed(topicID, closer)
 }
 
-func (h *MasterHandler) notifySupportThreadClosed(userID int64, topicID int, closer string) {
-	// Resolve the user's preferred language via the same precedence rules used everywhere else
-	// (specialist row → master_users row → "ru") so closure notices aren't silently English.
-	loc := h.localizerFor(userID)
-	// User-side notice.
-	h.bot.SendMessage(userID, myI18n.T(loc, "MasterSupport.Closed"), nil)
+func (h *MasterHandler) notifySupportThreadClosed(topicID int, closer string) {
 	// Topic-side acknowledgement.
 	h.bot.SendMessageToTopic(h.supportGroupID, topicID,
 		fmt.Sprintf("🔒 <b>Thread closed</b> by %s", closer))
@@ -320,7 +315,7 @@ func (h *MasterHandler) closeInactiveSupportThreads(now time.Time) {
 			continue
 		}
 		log.Printf("master-support: closed inactive thread %s for user %d topic %d", thread.ID, thread.TelegramUserID, thread.TopicID)
-		h.notifySupportThreadClosed(thread.TelegramUserID, thread.TopicID, "inactivity")
+		h.notifySupportThreadClosed(thread.TopicID, "inactivity")
 	}
 }
 
