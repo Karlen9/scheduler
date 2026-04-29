@@ -122,17 +122,17 @@ export function setThemePreference(pref: TThemePreference): void {
 }
 
 const darkThemeVars: Record<string, string> = {
-  '--tg-theme-bg-color': '#17212b',
-  '--tg-theme-text-color': '#ffffff',
-  '--tg-theme-hint-color': '#708499',
-  '--tg-theme-link-color': '#6ab3f3',
-  '--tg-theme-button-color': '#5288c1',
-  '--tg-theme-button-text-color': '#ffffff',
-  '--tg-theme-secondary-bg-color': '#232e3c',
-  '--tg-theme-header-bg-color': '#17212b',
-  '--tg-theme-section-bg-color': '#232e3c',
-  '--tg-theme-subtitle-text-color': '#708499',
-  '--tg-theme-destructive-text-color': '#ec3942',
+  '--tg-theme-bg-color': '#15202B',
+  '--tg-theme-text-color': '#FFFFFF',
+  '--tg-theme-hint-color': '#8899A6',
+  '--tg-theme-link-color': '#24A1DE',
+  '--tg-theme-button-color': '#24A1DE',
+  '--tg-theme-button-text-color': '#FFFFFF',
+  '--tg-theme-secondary-bg-color': '#192734',
+  '--tg-theme-header-bg-color': '#15202B',
+  '--tg-theme-section-bg-color': '#192734',
+  '--tg-theme-subtitle-text-color': '#8899A6',
+  '--tg-theme-destructive-text-color': '#24A1DE',
 };
 
 const lightThemeVars: Record<string, string> = {
@@ -204,32 +204,35 @@ function setDarkClass(isDark: boolean): void {
  * - None.
  ***************************************************************************************************/
 function getTelegramThemeVars(webApp: TTelegramWebApp | null): Record<string, string> {
-  const fallbackVars = webApp?.colorScheme === 'dark' ? darkThemeVars : lightThemeVars;
+  if (webApp?.colorScheme === 'dark') {
+    return darkThemeVars;
+  }
 
   if (!webApp) {
-    return fallbackVars;
+    return lightThemeVars;
   }
 
   const { themeParams } = webApp;
 
   return {
-    '--tg-theme-bg-color': themeParams.bg_color ?? fallbackVars['--tg-theme-bg-color'],
-    '--tg-theme-text-color': themeParams.text_color ?? fallbackVars['--tg-theme-text-color'],
-    '--tg-theme-hint-color': themeParams.hint_color ?? fallbackVars['--tg-theme-hint-color'],
-    '--tg-theme-link-color': themeParams.link_color ?? fallbackVars['--tg-theme-link-color'],
-    '--tg-theme-button-color': themeParams.button_color ?? fallbackVars['--tg-theme-button-color'],
+    '--tg-theme-bg-color': themeParams.bg_color ?? lightThemeVars['--tg-theme-bg-color'],
+    '--tg-theme-text-color': themeParams.text_color ?? lightThemeVars['--tg-theme-text-color'],
+    '--tg-theme-hint-color': themeParams.hint_color ?? lightThemeVars['--tg-theme-hint-color'],
+    '--tg-theme-link-color': themeParams.link_color ?? lightThemeVars['--tg-theme-link-color'],
+    '--tg-theme-button-color':
+      themeParams.button_color ?? lightThemeVars['--tg-theme-button-color'],
     '--tg-theme-button-text-color':
-      themeParams.button_text_color ?? fallbackVars['--tg-theme-button-text-color'],
+      themeParams.button_text_color ?? lightThemeVars['--tg-theme-button-text-color'],
     '--tg-theme-secondary-bg-color':
-      themeParams.secondary_bg_color ?? fallbackVars['--tg-theme-secondary-bg-color'],
+      themeParams.secondary_bg_color ?? lightThemeVars['--tg-theme-secondary-bg-color'],
     '--tg-theme-header-bg-color':
-      themeParams.header_bg_color ?? fallbackVars['--tg-theme-header-bg-color'],
+      themeParams.header_bg_color ?? lightThemeVars['--tg-theme-header-bg-color'],
     '--tg-theme-section-bg-color':
-      themeParams.section_bg_color ?? fallbackVars['--tg-theme-section-bg-color'],
+      themeParams.section_bg_color ?? lightThemeVars['--tg-theme-section-bg-color'],
     '--tg-theme-subtitle-text-color':
-      themeParams.subtitle_text_color ?? fallbackVars['--tg-theme-subtitle-text-color'],
+      themeParams.subtitle_text_color ?? lightThemeVars['--tg-theme-subtitle-text-color'],
     '--tg-theme-destructive-text-color':
-      themeParams.destructive_text_color ?? fallbackVars['--tg-theme-destructive-text-color'],
+      themeParams.destructive_text_color ?? lightThemeVars['--tg-theme-destructive-text-color'],
   };
 }
 

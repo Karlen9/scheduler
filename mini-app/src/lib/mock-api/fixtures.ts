@@ -282,7 +282,7 @@ export function createMockState(): TMockState {
     phone: '+7 900 555-44-33',
     specialization: 'Strength and mobility coach',
     bio: 'Focused strength work, posture, mobility, and habit-based progress for busy clients.',
-    wallpaper: 'w3',
+    wallpaper: 'fitness',
   };
 
   const clientBatches: TClientBatch[] = [
