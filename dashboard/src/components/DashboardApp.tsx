@@ -2,6 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  DashboardI18nProvider,
+  LanguageSwitch,
+  dashboardLocale,
+  translateStatus,
+  useDashboardI18n,
+  weekdayName,
+} from "@/lib/i18n";
 import type {
   Booking,
   DashboardAdminsResponse,
@@ -58,8 +66,6 @@ const navItems: Array<{
   { key: "settings", label: "Settings", needsSpecialist: true },
 ];
 
-const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/dashboard/${path}`, {
     ...init,
@@ -88,18 +94,18 @@ async function apiEmpty(path: string, init?: RequestInit): Promise<void> {
 }
 
 function formatNumber(value: number): string {
-  return new Intl.NumberFormat("en-US").format(value || 0);
+  return new Intl.NumberFormat(dashboardLocale()).format(value || 0);
 }
 
 function formatPercent(value: number): string {
-  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value || 0)}%`;
+  return `${new Intl.NumberFormat(dashboardLocale(), { maximumFractionDigits: 1 }).format(value || 0)}%`;
 }
 
 function formatDateTime(value?: string): string {
   if (!value) {
     return "-";
   }
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(dashboardLocale(), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -111,7 +117,7 @@ function formatDate(value?: string): string {
   if (!value) {
     return "-";
   }
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(dashboardLocale(), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -184,11 +190,20 @@ function EmptyState({ children }: { children: ReactNode }): ReactNode {
   return <div className={"empty-state"}>{children}</div>;
 }
 
-export function DashboardApp({
+export function DashboardApp(props: { initialUser: DashboardUser }): ReactNode {
+  return (
+    <DashboardI18nProvider>
+      <DashboardAppInner {...props} />
+    </DashboardI18nProvider>
+  );
+}
+
+function DashboardAppInner({
   initialUser,
 }: {
   initialUser: DashboardUser;
 }): ReactNode {
+  const { language, t } = useDashboardI18n();
   const [view, setView] = useState<ViewKey>("overview");
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [specialists, setSpecialists] = useState<DashboardSpecialist[]>([]);
@@ -376,12 +391,12 @@ export function DashboardApp({
       await Promise.all([loadOverview(), loadSpecialists(), loadActivity()]);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load dashboard.",
+        err instanceof Error ? err.message : t("Failed to load dashboard."),
       );
     } finally {
       setIsLoading(false);
     }
-  }, [loadActivity, loadOverview, loadSpecialists]);
+  }, [loadActivity, loadOverview, loadSpecialists, t]);
 
   useEffect(() => {
     void loadAll();
@@ -417,7 +432,7 @@ export function DashboardApp({
         loadActivity(),
       ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed.");
+      setError(err instanceof Error ? err.message : t("Action failed."));
     }
   }
 
@@ -440,7 +455,7 @@ export function DashboardApp({
 
   function renderOverview(): ReactNode {
     if (!overview) {
-      return <EmptyState>{"No overview data loaded."}</EmptyState>;
+      return <EmptyState>{t("No overview data loaded.")}</EmptyState>;
     }
     const maxMonthly = Math.max(
       ...overview.monthlyTrends.map((point) => point.bookings),
@@ -450,31 +465,31 @@ export function DashboardApp({
       <div className={"content-stack"}>
         <div className={"metrics-grid"}>
           <Card
-            label={"Specialists"}
+            label={t("Specialists")}
             value={formatNumber(overview.platform.totalSpecialists)}
-            detail={`${overview.platform.activeSpecialists} active`}
+            detail={`${formatNumber(overview.platform.activeSpecialists)} ${translateStatus(language, "active")}`}
           />
           <Card
-            label={"Bookings, 30d"}
+            label={t("Bookings, 30d")}
             value={formatNumber(overview.bookings.last30d)}
-            detail={`${overview.bookings.statusPending} pending`}
+            detail={`${formatNumber(overview.bookings.statusPending)} ${translateStatus(language, "pending")}`}
           />
           <Card
-            label={"Clients"}
+            label={t("Clients")}
             value={formatNumber(overview.clients.total)}
-            detail={`${overview.clients.blocked} blocked`}
+            detail={`${formatNumber(overview.clients.blocked)} ${translateStatus(language, "blocked")}`}
           />
           <Card
-            label={"Revenue"}
+            label={t("Revenue")}
             value={formatNumber(totalRevenue)}
             detail={
               overview.revenueByCurrency
                 .map((item) => item.currency)
-                .join(", ") || "No currency"
+                .join(", ") || t("No currency")
             }
           />
           <Card
-            label={"Completion"}
+            label={t("Completion")}
             value={formatPercent(
               overview.bookings.total
                 ? (overview.bookings.statusCompleted /
@@ -484,48 +499,48 @@ export function DashboardApp({
             )}
           />
           <Card
-            label={"Cancellation"}
+            label={t("Cancellation")}
             value={formatPercent(overview.bookings.cancellationRate)}
           />
           <Card
-            label={"Recurring"}
+            label={t("Recurring")}
             value={formatNumber(overview.recurring.total)}
-            detail={`${overview.recurring.pending} pending`}
+            detail={`${formatNumber(overview.recurring.pending)} ${translateStatus(language, "pending")}`}
           />
           <Card
-            label={"Referrals"}
+            label={t("Referrals")}
             value={formatNumber(
               overview.referrals.referredClients +
                 overview.referrals.specialistsWithCode,
             )}
-            detail={"clients and specialists"}
+            detail={t("clients and specialists")}
           />
         </div>
 
         <div className={"metrics-grid compact"}>
           <Card
-            label={"Funnel completion"}
+            label={t("Funnel completion")}
             value={formatPercent(overview.bookingFunnel.completionRate)}
-            detail={`${formatNumber(overview.bookingFunnel.completed)} completed of ${formatNumber(overview.bookingFunnel.created)}`}
+            detail={`${formatNumber(overview.bookingFunnel.completed)} ${translateStatus(language, "completed")} / ${formatNumber(overview.bookingFunnel.created)}`}
           />
           <Card
-            label={"Capacity, 7d"}
+            label={t("Capacity, 7d")}
             value={formatPercent(overview.capacity.utilizationRate)}
-            detail={`${formatNumber(overview.capacity.bookedSlots)} active bookings`}
+            detail={`${formatNumber(overview.capacity.bookedSlots)} ${translateStatus(language, "active")} ${t("Bookings").toLowerCase()}`}
           />
           <Card
-            label={"Returning clients"}
+            label={t("Returning clients")}
             value={formatPercent(overview.retention.returningRate)}
-            detail={`${formatNumber(overview.retention.repeatClients)} repeat clients`}
+            detail={`${formatNumber(overview.retention.repeatClients)} ${t("Returning clients").toLowerCase()}`}
           />
           <Card
-            label={"Reminder queue"}
+            label={t("Reminder queue")}
             value={formatNumber(overview.notificationHealth.remindersPending)}
-            detail={`${formatNumber(overview.notificationHealth.remindersSent)} sent`}
+            detail={`${formatNumber(overview.notificationHealth.remindersSent)} ${t("sent")}`}
           />
         </div>
 
-        <Section title={"Monthly activity"}>
+        <Section title={t("Monthly activity")}>
           <div className={"bar-chart"}>
             {overview.monthlyTrends.map((point) => (
               <div className={"bar-row"} key={point.month}>
@@ -544,10 +559,10 @@ export function DashboardApp({
         </Section>
 
         <div className={"two-col"}>
-          <Section title={"Top by bookings"}>
+          <Section title={t("Top by bookings")}>
             <RankList items={overview.topSpecialistsByBookings} />
           </Section>
-          <Section title={"Revenue by currency"}>
+          <Section title={t("Revenue by currency")}>
             <div className={"compact-list"}>
               {overview.revenueByCurrency.length ? (
                 overview.revenueByCurrency.map((item) => (
@@ -557,64 +572,73 @@ export function DashboardApp({
                   </div>
                 ))
               ) : (
-                <EmptyState>{"No completed paid bookings yet."}</EmptyState>
+                <EmptyState>{t("No completed paid bookings yet.")}</EmptyState>
               )}
             </div>
           </Section>
         </div>
 
         <div className={"two-col"}>
-          <Section title={"Revenue by specialist"}>
+          <Section title={t("Revenue by specialist")}>
             <RevenueLeaderList items={overview.revenueBySpecialist} />
           </Section>
-          <Section title={"Revenue by service"}>
+          <Section title={t("Revenue by service")}>
             <RevenueLeaderList items={overview.revenueByService} />
           </Section>
         </div>
 
         <div className={"two-col"}>
-          <Section title={"Booking funnel"}>
+          <Section title={t("Booking funnel")}>
             <NamedValueList
               items={[
-                { name: "Pending", value: overview.bookingFunnel.pending },
-                { name: "Confirmed", value: overview.bookingFunnel.confirmed },
-                { name: "Completed", value: overview.bookingFunnel.completed },
-                { name: "Cancelled", value: overview.bookingFunnel.cancelled },
-                { name: "Rejected", value: overview.bookingFunnel.rejected },
+                { name: t("Pending"), value: overview.bookingFunnel.pending },
+                {
+                  name: t("Confirmed"),
+                  value: overview.bookingFunnel.confirmed,
+                },
+                {
+                  name: t("Completed"),
+                  value: overview.bookingFunnel.completed,
+                },
+                {
+                  name: t("Cancelled"),
+                  value: overview.bookingFunnel.cancelled,
+                },
+                { name: t("Rejected"), value: overview.bookingFunnel.rejected },
               ]}
             />
           </Section>
-          <Section title={"Cancellation sources"}>
+          <Section title={t("Cancellation sources")}>
             <NamedValueList
               items={[
                 {
-                  name: "Client cancelled",
+                  name: t("Client cancelled"),
                   value: overview.cancellations.clientCancelled,
                 },
                 {
-                  name: "Specialist cancelled",
+                  name: t("Specialist cancelled"),
                   value: overview.cancellations.specialistCancelled,
                 },
-                { name: "Rejected", value: overview.cancellations.rejected },
+                { name: t("Rejected"), value: overview.cancellations.rejected },
               ]}
             />
           </Section>
         </div>
 
         <div className={"two-col"}>
-          <Section title={"Busiest hours"}>
+          <Section title={t("Busiest hours")}>
             <NamedValueList items={overview.capacity.busiestHours} />
           </Section>
-          <Section title={"Cancellation by service"}>
+          <Section title={t("Cancellation by service")}>
             <NamedValueList items={overview.cancellations.byService} />
           </Section>
         </div>
 
         <div className={"two-col"}>
-          <Section title={"Cancellation by specialist"}>
+          <Section title={t("Cancellation by specialist")}>
             <NamedValueList items={overview.cancellations.bySpecialist} />
           </Section>
-          <Section title={"Recent activity"}>
+          <Section title={t("Recent activity")}>
             <ActivityList events={overview.activity} />
           </Section>
         </div>
@@ -626,7 +650,7 @@ export function DashboardApp({
     return (
       <div className={"content-stack"}>
         <Section
-          title={`Specialists (${formatNumber(specialistTotal)})`}
+          title={`${t("Specialists")} (${formatNumber(specialistTotal)})`}
           actions={
             <form
               className={"toolbar-form"}
@@ -638,18 +662,18 @@ export function DashboardApp({
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder={"Search"}
+                placeholder={t("Search")}
               />
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
               >
-                <option value={""}>{"All"}</option>
-                <option value={"active"}>{"Active"}</option>
-                <option value={"inactive"}>{"Inactive"}</option>
-                <option value={"deleted"}>{"Deleted"}</option>
+                <option value={""}>{t("All")}</option>
+                <option value={"active"}>{t("Active")}</option>
+                <option value={"inactive"}>{t("Inactive")}</option>
+                <option value={"deleted"}>{t("Deleted")}</option>
               </select>
-              <button type={"submit"}>{"Apply"}</button>
+              <button type={"submit"}>{t("Apply")}</button>
             </form>
           }
         >
@@ -657,13 +681,13 @@ export function DashboardApp({
             <table>
               <thead>
                 <tr>
-                  <th>{"Name"}</th>
-                  <th>{"Bot"}</th>
-                  <th>{"Telegram ID"}</th>
-                  <th>{"Bookings"}</th>
-                  <th>{"Clients"}</th>
-                  <th>{"Status"}</th>
-                  <th>{"Created"}</th>
+                  <th>{t("Name")}</th>
+                  <th>{t("Bot")}</th>
+                  <th>{t("Telegram ID")}</th>
+                  <th>{t("Bookings")}</th>
+                  <th>{t("Clients")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Created")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -694,10 +718,10 @@ export function DashboardApp({
                         }
                       >
                         {specialist.deletedAt
-                          ? "deleted"
+                          ? translateStatus(language, "deleted")
                           : specialist.isActive
-                            ? "active"
-                            : "inactive"}
+                            ? translateStatus(language, "active")
+                            : translateStatus(language, "inactive")}
                       </span>
                     </td>
                     <td>{formatDate(specialist.createdAt)}</td>
@@ -715,14 +739,14 @@ export function DashboardApp({
     return (
       <div className={"content-stack"}>
         <Section
-          title={"Live activity"}
+          title={t("Live activity")}
           actions={
-            <button onClick={() => void loadActivity()}>{"Refresh"}</button>
+            <button onClick={() => void loadActivity()}>{t("Refresh")}</button>
           }
         >
           <ActivityList events={activity} />
         </Section>
-        <Section title={"Audit trail"}>
+        <Section title={t("Audit trail")}>
           <AuditLogTable items={auditLog} />
         </Section>
       </div>
@@ -732,7 +756,7 @@ export function DashboardApp({
   function renderSearch(): ReactNode {
     return (
       <div className={"content-stack"}>
-        <Section title={"Global search"}>
+        <Section title={t("Global search")}>
           <form
             className={"toolbar-form"}
             onSubmit={(event) => {
@@ -743,15 +767,15 @@ export function DashboardApp({
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={"Specialist, client, booking ID, Telegram ID"}
+              placeholder={t("Specialist, client, booking ID, Telegram ID")}
             />
-            <button type={"submit"}>{"Search"}</button>
+            <button type={"submit"}>{t("Search")}</button>
           </form>
         </Section>
         {searchResults ? (
           <div className={"three-col"}>
             <Section
-              title={`Specialists (${searchResults.specialists.length})`}
+              title={`${t("Specialists")} (${formatNumber(searchResults.specialists.length)})`}
             >
               <div className={"compact-list"}>
                 {searchResults.specialists.map((item) => (
@@ -764,12 +788,17 @@ export function DashboardApp({
                       <strong>{item.name}</strong>
                       {item.botUsername ? ` @${item.botUsername}` : ""}
                     </span>
-                    <small>{formatNumber(item.bookingCount)} bookings</small>
+                    <small>
+                      {formatNumber(item.bookingCount)}{" "}
+                      {t("Bookings").toLowerCase()}
+                    </small>
                   </button>
                 ))}
               </div>
             </Section>
-            <Section title={`Clients (${searchResults.clients.length})`}>
+            <Section
+              title={`${t("Clients")} (${formatNumber(searchResults.clients.length)})`}
+            >
               <div className={"compact-list"}>
                 {searchResults.clients.map((item) => (
                   <button
@@ -790,7 +819,9 @@ export function DashboardApp({
                 ))}
               </div>
             </Section>
-            <Section title={`Bookings (${searchResults.bookings.length})`}>
+            <Section
+              title={`${t("Bookings")} (${formatNumber(searchResults.bookings.length)})`}
+            >
               <div className={"compact-list"}>
                 {searchResults.bookings.map((item) => (
                   <button
@@ -805,7 +836,8 @@ export function DashboardApp({
                       {item.serviceName ? ` · ${item.serviceName}` : ""}
                     </span>
                     <small>
-                      {formatDateTime(item.startsAt)} · {item.status}
+                      {formatDateTime(item.startsAt)} ·{" "}
+                      {translateStatus(language, item.status)}
                     </small>
                   </button>
                 ))}
@@ -814,7 +846,7 @@ export function DashboardApp({
           </div>
         ) : (
           <EmptyState>
-            {"Search across specialists, clients, and bookings."}
+            {t("Search across specialists, clients, and bookings.")}
           </EmptyState>
         )}
       </div>
@@ -825,7 +857,7 @@ export function DashboardApp({
     return (
       <div className={"content-stack"}>
         <Section
-          title={`Platform calendar (${formatNumber(calendarEvents.length)})`}
+          title={`${t("Platform calendar")} (${formatNumber(calendarEvents.length)})`}
           actions={
             <form
               className={"toolbar-form"}
@@ -844,12 +876,12 @@ export function DashboardApp({
                 value={calendarTo}
                 onChange={(event) => setCalendarTo(event.target.value)}
               />
-              <button type={"submit"}>{"Load"}</button>
+              <button type={"submit"}>{t("Load")}</button>
               <a
                 className={"button-link"}
                 href={`/api/dashboard/export/bookings.csv?dateFrom=${calendarFrom}&dateTo=${calendarTo}`}
               >
-                {"Export CSV"}
+                {t("Export CSV")}
               </a>
             </form>
           }
@@ -865,8 +897,8 @@ export function DashboardApp({
       <div className={"content-stack"}>
         <div className={"metrics-grid compact"}>
           <Card
-            label={"Backend"}
-            value={systemStatus?.backendOk ? "OK" : "-"}
+            label={t("Backend")}
+            value={systemStatus?.backendOk ? t("OK") : "-"}
             detail={
               systemStatus?.serverTime
                 ? formatDateTime(systemStatus.serverTime)
@@ -874,37 +906,41 @@ export function DashboardApp({
             }
           />
           <Card
-            label={"Database"}
-            value={systemStatus?.databaseOk ? "OK" : "Check"}
+            label={t("Database")}
+            value={systemStatus?.databaseOk ? t("OK") : t("Check")}
           />
           <Card
-            label={"Telegram auth"}
-            value={systemStatus?.telegramAuthConfigured ? "OK" : "Missing"}
+            label={t("Telegram auth")}
+            value={
+              systemStatus?.telegramAuthConfigured ? t("OK") : t("Missing")
+            }
           />
           <Card
-            label={"Admins"}
+            label={t("Admins")}
             value={formatNumber(admins?.count ?? 0)}
-            detail={admins?.adminIds.join(", ") || "No ADMIN_IDS loaded"}
+            detail={admins?.adminIds.join(", ") || t("No ADMIN_IDS loaded")}
           />
         </div>
         <div className={"two-col"}>
           <Section
-            title={"Conflict detector"}
+            title={t("Conflict detector")}
             actions={
-              <button onClick={() => void loadOps()}>{"Refresh"}</button>
+              <button onClick={() => void loadOps()}>{t("Refresh")}</button>
             }
           >
             <ConflictList report={conflicts} onOpen={selectSpecialist} />
           </Section>
-          <Section title={"Danger zone"}>
+          <Section title={t("Danger zone")}>
             {selectedSpecialist ? (
               <div className={"cards-list"}>
                 <div className={"list-card"}>
                   <div>
                     <strong>{selectedSpecialist.name}</strong>
                     <span>
-                      {selectedSpecialist.isActive ? "Active" : "Inactive"} ·
-                      whole-bot deletion is not available here
+                      {selectedSpecialist.isActive
+                        ? t("Active")
+                        : t("Inactive")}{" "}
+                      · {t("whole-bot deletion is not available here")}
                     </span>
                   </div>
                   <button
@@ -915,16 +951,18 @@ export function DashboardApp({
                       )
                     }
                   >
-                    {selectedSpecialist.isActive ? "Disable" : "Enable"}
+                    {selectedSpecialist.isActive ? t("Disable") : t("Enable")}
                   </button>
                 </div>
               </div>
             ) : (
-              <EmptyState>{"Select a specialist to manage state."}</EmptyState>
+              <EmptyState>
+                {t("Select a specialist to manage state.")}
+              </EmptyState>
             )}
           </Section>
         </div>
-        <Section title={"Audit log"}>
+        <Section title={t("Audit log")}>
           <AuditLogTable items={auditLog} />
         </Section>
       </div>
@@ -936,10 +974,10 @@ export function DashboardApp({
   ): ReactNode {
     const data = requireSnapshot();
     if (!selectedSpecialistId) {
-      return <EmptyState>{"Select a specialist first."}</EmptyState>;
+      return <EmptyState>{t("Select a specialist first.")}</EmptyState>;
     }
     if (isSnapshotLoading || !data) {
-      return <EmptyState>{"Loading specialist data..."}</EmptyState>;
+      return <EmptyState>{t("Loading specialist data...")}</EmptyState>;
     }
     return children(data);
   }
@@ -949,23 +987,23 @@ export function DashboardApp({
       <div className={"content-stack"}>
         <div className={"metrics-grid compact"}>
           <Card
-            label={"Total"}
+            label={t("Total")}
             value={formatNumber(data.stats.totalBookings)}
           />
           <Card
-            label={"This month"}
+            label={t("This month")}
             value={formatNumber(data.stats.bookingsThisMonth)}
           />
           <Card
-            label={"Completion"}
+            label={t("Completion")}
             value={formatPercent(data.stats.completionRate)}
           />
           <Card
-            label={"Revenue"}
+            label={t("Revenue")}
             value={`${formatNumber(data.stats.revenueThisMonth)} ${data.stats.revenueCurrency || ""}`}
           />
         </div>
-        <Section title={"Create booking"}>
+        <Section title={t("Create booking")}>
           <form
             className={"form-grid"}
             onSubmit={(event) => void createBooking(event)}
@@ -976,7 +1014,7 @@ export function DashboardApp({
                 setBookingForm({ ...bookingForm, clientId: event.target.value })
               }
             >
-              <option value={""}>{"Select client"}</option>
+              <option value={""}>{t("Select client")}</option>
               {data.clients.clients.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.displayName || client.name}
@@ -992,7 +1030,7 @@ export function DashboardApp({
                 })
               }
             >
-              <option value={""}>{"Select service"}</option>
+              <option value={""}>{t("Select service")}</option>
               {data.services
                 .filter((service) => service.type !== "")
                 .map((service) => (
@@ -1007,7 +1045,7 @@ export function DashboardApp({
               onChange={(event) =>
                 setBookingForm({ ...bookingForm, duration: event.target.value })
               }
-              placeholder={"Duration"}
+              placeholder={t("Duration")}
             />
             <input
               type={"date"}
@@ -1028,13 +1066,13 @@ export function DashboardApp({
               onChange={(event) =>
                 setBookingForm({ ...bookingForm, message: event.target.value })
               }
-              placeholder={"Message"}
+              placeholder={t("Message")}
             />
-            <button type={"submit"}>{"Create"}</button>
+            <button type={"submit"}>{t("Create")}</button>
           </form>
         </Section>
         <Section
-          title={`Recent bookings (${formatNumber(data.bookings.total)})`}
+          title={`${t("Recent bookings")} (${formatNumber(data.bookings.total)})`}
         >
           <BookingsTable
             bookings={data.bookings.bookings}
@@ -1049,7 +1087,9 @@ export function DashboardApp({
   function renderClients(): ReactNode {
     return renderNeedsSpecialist((data) => (
       <div className={"content-stack"}>
-        <Section title={`Clients (${formatNumber(data.clients.total)})`}>
+        <Section
+          title={`${t("Clients")} (${formatNumber(data.clients.total)})`}
+        >
           <form
             className={"inline-form"}
             onSubmit={(event) => void createGhostClient(event)}
@@ -1057,19 +1097,19 @@ export function DashboardApp({
             <input
               value={ghostName}
               onChange={(event) => setGhostName(event.target.value)}
-              placeholder={"Ghost client name"}
+              placeholder={t("Ghost client name")}
             />
-            <button type={"submit"}>{"Create ghost"}</button>
+            <button type={"submit"}>{t("Create ghost")}</button>
           </form>
           <div className={"table-wrap"}>
             <table>
               <thead>
                 <tr>
-                  <th>{"Name"}</th>
-                  <th>{"Telegram"}</th>
-                  <th>{"Created"}</th>
-                  <th>{"State"}</th>
-                  <th>{"Actions"}</th>
+                  <th>{t("Name")}</th>
+                  <th>{t("Telegram")}</th>
+                  <th>{t("Created")}</th>
+                  <th>{t("State")}</th>
+                  <th>{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1077,7 +1117,7 @@ export function DashboardApp({
                   <tr key={client.id}>
                     <td>
                       <strong>{client.displayName || client.name}</strong>
-                      {client.isGhost ? <small>{" ghost"}</small> : null}
+                      {client.isGhost ? <small> {t("ghost")}</small> : null}
                     </td>
                     <td>
                       {client.telegramUsername
@@ -1093,7 +1133,9 @@ export function DashboardApp({
                             : "status status-good"
                         }
                       >
-                        {client.isBlocked ? "blocked" : "active"}
+                        {client.isBlocked
+                          ? translateStatus(language, "blocked")
+                          : translateStatus(language, "active")}
                       </span>
                     </td>
                     <td className={"actions-cell"}>
@@ -1105,11 +1147,11 @@ export function DashboardApp({
                           )
                         }
                       >
-                        {"Rename"}
+                        {t("Rename")}
                       </button>
                       {batchServices.length ? (
                         <button onClick={() => void assignBatch(client.id)}>
-                          {"Batch"}
+                          {t("Batch")}
                         </button>
                       ) : null}
                       {!client.isGhost ? (
@@ -1118,7 +1160,7 @@ export function DashboardApp({
                             void setClientBlocked(client.id, !client.isBlocked)
                           }
                         >
-                          {client.isBlocked ? "Unblock" : "Block"}
+                          {client.isBlocked ? t("Unblock") : t("Block")}
                         </button>
                       ) : null}
                     </td>
@@ -1135,7 +1177,7 @@ export function DashboardApp({
   function renderServices(): ReactNode {
     return renderNeedsSpecialist((data) => (
       <div className={"content-stack"}>
-        <Section title={"Create service"}>
+        <Section title={t("Create service")}>
           <form
             className={"form-grid"}
             onSubmit={(event) => void createService(event)}
@@ -1146,15 +1188,15 @@ export function DashboardApp({
                 setServiceForm({ ...serviceForm, type: event.target.value })
               }
             >
-              <option value={"common"}>{"Common"}</option>
-              <option value={"batch"}>{"Batch"}</option>
+              <option value={"common"}>{t("Common")}</option>
+              <option value={"batch"}>{t("Batch")}</option>
             </select>
             <input
               value={serviceForm.name}
               onChange={(event) =>
                 setServiceForm({ ...serviceForm, name: event.target.value })
               }
-              placeholder={"Name"}
+              placeholder={t("Name")}
             />
             <input
               type={"number"}
@@ -1165,7 +1207,7 @@ export function DashboardApp({
                   durationMinutes: event.target.value,
                 })
               }
-              placeholder={"Minutes"}
+              placeholder={t("Minutes")}
             />
             <input
               type={"number"}
@@ -1173,7 +1215,7 @@ export function DashboardApp({
               onChange={(event) =>
                 setServiceForm({ ...serviceForm, price: event.target.value })
               }
-              placeholder={"Price"}
+              placeholder={t("Price")}
             />
             <input
               value={serviceForm.currency}
@@ -1183,7 +1225,7 @@ export function DashboardApp({
                   currency: event.target.value.toUpperCase(),
                 })
               }
-              placeholder={"Currency"}
+              placeholder={t("Currency")}
             />
             <input
               type={"number"}
@@ -1194,28 +1236,29 @@ export function DashboardApp({
                   sessionsCount: event.target.value,
                 })
               }
-              placeholder={"Batch sessions"}
+              placeholder={t("Batch sessions")}
             />
-            <button type={"submit"}>{"Create"}</button>
+            <button type={"submit"}>{t("Create")}</button>
           </form>
         </Section>
-        <Section title={"Services"}>
+        <Section title={t("Services")}>
           <div className={"cards-list"}>
             {data.services.map((service) => (
               <div className={"list-card"} key={service.id}>
                 <div>
                   <strong>{service.name}</strong>
                   <span>
-                    {service.type} · {service.durationMinutes} min ·{" "}
+                    {t(service.type === "batch" ? "Batch" : "Common")} ·{" "}
+                    {service.durationMinutes} {t("min")} ·{" "}
                     {formatNumber(service.price)} {service.currency}
                   </span>
                 </div>
                 <div className={"actions-cell"}>
                   <button onClick={() => void editService(service)}>
-                    {"Edit"}
+                    {t("Edit")}
                   </button>
                   <button onClick={() => void deleteService(service.id)}>
-                    {"Deactivate"}
+                    {t("Deactivate")}
                   </button>
                 </div>
               </div>
@@ -1229,9 +1272,9 @@ export function DashboardApp({
   function renderSchedule(): ReactNode {
     return renderNeedsSpecialist((data) => (
       <div className={"content-stack"}>
-        <Section title={"Working hours"}>
+        <Section title={t("Working hours")}>
           <p className={"muted"}>
-            {"JSON preserves multiple intervals per day."}
+            {t("JSON preserves multiple intervals per day.")}
           </p>
           <textarea
             className={"json-editor"}
@@ -1240,11 +1283,11 @@ export function DashboardApp({
           />
           <div className={"actions-row"}>
             <button onClick={() => void saveWorkingHours()}>
-              {"Save working hours"}
+              {t("Save working hours")}
             </button>
           </div>
         </Section>
-        <Section title={"Days off"}>
+        <Section title={t("Days off")}>
           <form
             className={"inline-form"}
             onSubmit={(event) => void createDayOff(event)}
@@ -1257,19 +1300,19 @@ export function DashboardApp({
             <input
               value={dayOffReason}
               onChange={(event) => setDayOffReason(event.target.value)}
-              placeholder={"Reason"}
+              placeholder={t("Reason")}
             />
-            <button type={"submit"}>{"Add day off"}</button>
+            <button type={"submit"}>{t("Add day off")}</button>
           </form>
           <div className={"cards-list"}>
             {data.schedule.daysOff.map((day) => (
               <div className={"list-card"} key={day.id}>
                 <div>
                   <strong>{formatDate(day.date)}</strong>
-                  <span>{day.reason || "No reason"}</span>
+                  <span>{day.reason || t("No reason")}</span>
                 </div>
                 <button onClick={() => void deleteDayOff(day.id)}>
-                  {"Delete"}
+                  {t("Delete")}
                 </button>
               </div>
             ))}
@@ -1282,33 +1325,36 @@ export function DashboardApp({
   function renderRecurring(): ReactNode {
     return renderNeedsSpecialist((data) => (
       <Section
-        title={`Recurring schedules (${formatNumber(data.recurring.length)})`}
+        title={`${t("Recurring schedules")} (${formatNumber(data.recurring.length)})`}
       >
         <div className={"table-wrap"}>
           <table>
             <thead>
               <tr>
-                <th>{"Client"}</th>
-                <th>{"Days"}</th>
-                <th>{"Time"}</th>
-                <th>{"Service"}</th>
-                <th>{"Status"}</th>
-                <th>{"Actions"}</th>
+                <th>{t("Client")}</th>
+                <th>{t("Days")}</th>
+                <th>{t("Time")}</th>
+                <th>{t("Service")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
               {data.recurring.map((schedule) => (
                 <tr key={schedule.id}>
                   <td>{schedule.clientDisplayName || schedule.clientName}</td>
-                  <td>{schedule.daysOfWeek || weekDays[schedule.dayOfWeek]}</td>
+                  <td>
+                    {schedule.daysOfWeek ||
+                      weekdayName(language, schedule.dayOfWeek)}
+                  </td>
                   <td>{schedule.time}</td>
                   <td>
                     {schedule.sessionType?.name ||
-                      `${schedule.durationMinutes} min`}
+                      `${schedule.durationMinutes} ${t("min")}`}
                   </td>
                   <td>
                     <span className={statusClass(schedule.status)}>
-                      {schedule.status}
+                      {translateStatus(language, schedule.status)}
                     </span>
                   </td>
                   <td className={"actions-cell"}>
@@ -1318,7 +1364,7 @@ export function DashboardApp({
                           void recurringAction(schedule.id, "approve")
                         }
                       >
-                        {"Approve"}
+                        {t("Approve")}
                       </button>
                     ) : null}
                     {schedule.status === "pending" ? (
@@ -1327,12 +1373,12 @@ export function DashboardApp({
                           void recurringAction(schedule.id, "decline")
                         }
                       >
-                        {"Decline"}
+                        {t("Decline")}
                       </button>
                     ) : null}
                     {schedule.status !== "cancelled" ? (
                       <button onClick={() => void deleteRecurring(schedule.id)}>
-                        {"Cancel"}
+                        {t("Cancel")}
                       </button>
                     ) : null}
                   </td>
@@ -1349,21 +1395,21 @@ export function DashboardApp({
     return renderNeedsSpecialist((data) => (
       <div className={"content-stack"}>
         <div className={"metrics-grid compact"}>
-          <Card label={"Code"} value={data.referrals.code || "-"} />
+          <Card label={t("Code")} value={data.referrals.code || "-"} />
           <Card
-            label={"Client referrals"}
+            label={t("Client referrals")}
             value={formatNumber(data.referrals.count)}
           />
           <Card
-            label={"Specialist referrals"}
+            label={t("Specialist referrals")}
             value={formatNumber(data.referrals.specialistCount)}
           />
           <Card
-            label={"Active referred specialists"}
+            label={t("Active referred specialists")}
             value={formatNumber(data.referrals.activeCount)}
           />
         </div>
-        <Section title={"Referral link"}>
+        <Section title={t("Referral link")}>
           <a
             className={"text-link"}
             href={data.referrals.link}
@@ -1374,10 +1420,10 @@ export function DashboardApp({
           </a>
         </Section>
         <div className={"two-col"}>
-          <Section title={"Referred clients"}>
+          <Section title={t("Referred clients")}>
             <ReferralClientList data={data} />
           </Section>
-          <Section title={"Referred specialists"}>
+          <Section title={t("Referred specialists")}>
             <ReferralSpecialistList data={data} />
           </Section>
         </div>
@@ -1388,7 +1434,7 @@ export function DashboardApp({
   function renderSettings(): ReactNode {
     return renderNeedsSpecialist(() => (
       <div className={"content-stack"}>
-        <Section title={"Profile"}>
+        <Section title={t("Profile")}>
           <form
             className={"form-grid"}
             onSubmit={(event) => void saveProfile(event)}
@@ -1398,7 +1444,7 @@ export function DashboardApp({
               onChange={(event) =>
                 setProfileForm({ ...profileForm, name: event.target.value })
               }
-              placeholder={"Name"}
+              placeholder={t("Name")}
             />
             <input
               value={profileForm.telegramHandle ?? ""}
@@ -1408,14 +1454,14 @@ export function DashboardApp({
                   telegramHandle: event.target.value,
                 })
               }
-              placeholder={"Telegram handle"}
+              placeholder={t("Telegram handle")}
             />
             <input
               value={profileForm.phone ?? ""}
               onChange={(event) =>
                 setProfileForm({ ...profileForm, phone: event.target.value })
               }
-              placeholder={"Phone"}
+              placeholder={t("Phone")}
             />
             <input
               value={profileForm.specialization ?? ""}
@@ -1425,14 +1471,14 @@ export function DashboardApp({
                   specialization: event.target.value,
                 })
               }
-              placeholder={"Specialization"}
+              placeholder={t("Specialization")}
             />
             <input
               value={profileForm.photoUrl ?? ""}
               onChange={(event) =>
                 setProfileForm({ ...profileForm, photoUrl: event.target.value })
               }
-              placeholder={"Photo URL or file id"}
+              placeholder={t("Photo URL or file id")}
             />
             <select
               value={profileForm.language ?? "ru"}
@@ -1440,20 +1486,20 @@ export function DashboardApp({
                 setProfileForm({ ...profileForm, language: event.target.value })
               }
             >
-              <option value={"ru"}>{"Russian"}</option>
-              <option value={"en"}>{"English"}</option>
+              <option value={"ru"}>{t("Russian")}</option>
+              <option value={"en"}>{t("English")}</option>
             </select>
             <textarea
               value={profileForm.bio ?? ""}
               onChange={(event) =>
                 setProfileForm({ ...profileForm, bio: event.target.value })
               }
-              placeholder={"Bio"}
+              placeholder={t("Bio")}
             />
-            <button type={"submit"}>{"Save profile"}</button>
+            <button type={"submit"}>{t("Save profile")}</button>
           </form>
         </Section>
-        <Section title={"Notifications"}>
+        <Section title={t("Notifications")}>
           <div className={"toggle-row"}>
             <label>
               <input
@@ -1466,7 +1512,7 @@ export function DashboardApp({
                   })
                 }
               />
-              {"New bookings"}
+              {t("New bookings")}
             </label>
             <label>
               <input
@@ -1479,10 +1525,10 @@ export function DashboardApp({
                   })
                 }
               />
-              {"Cancellations"}
+              {t("Cancellations")}
             </label>
             <button onClick={() => void saveNotifications()}>
-              {"Save notifications"}
+              {t("Save notifications")}
             </button>
           </div>
         </Section>
@@ -1496,9 +1542,9 @@ export function DashboardApp({
   ): Promise<void> {
     const reason =
       status === "rejected" || status === "cancelled"
-        ? window.prompt("Reason", "") || undefined
+        ? window.prompt(t("Reason"), "") || undefined
         : undefined;
-    await mutate("Booking updated.", async () => {
+    await mutate(t("Booking updated."), async () => {
       await apiJson(
         `specialists/${selectedSpecialistId}/bookings/${booking.id}/status`,
         {
@@ -1511,17 +1557,17 @@ export function DashboardApp({
 
   async function rescheduleBooking(booking: Booking): Promise<void> {
     const date = window.prompt(
-      "New date YYYY-MM-DD",
+      t("New date YYYY-MM-DD"),
       booking.startsAt.slice(0, 10),
     );
     if (!date) {
       return;
     }
-    const time = window.prompt("New time HH:MM", "10:00");
+    const time = window.prompt(t("New time HH:MM"), "10:00");
     if (!time) {
       return;
     }
-    await mutate("Booking rescheduled.", async () => {
+    await mutate(t("Booking rescheduled."), async () => {
       await apiJson(
         `specialists/${selectedSpecialistId}/bookings/${booking.id}/reschedule`,
         {
@@ -1536,7 +1582,7 @@ export function DashboardApp({
     event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault();
-    await mutate("Booking created.", async () => {
+    await mutate(t("Booking created."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/bookings`, {
         method: "POST",
         body: JSON.stringify({
@@ -1558,7 +1604,7 @@ export function DashboardApp({
     if (!ghostName.trim()) {
       return;
     }
-    await mutate("Client created.", async () => {
+    await mutate(t("Client created."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/clients`, {
         method: "POST",
         body: JSON.stringify({ name: ghostName.trim() }),
@@ -1571,11 +1617,11 @@ export function DashboardApp({
     clientId: string,
     currentName: string,
   ): Promise<void> {
-    const name = window.prompt("Client display name", currentName);
+    const name = window.prompt(t("Client display name"), currentName);
     if (!name) {
       return;
     }
-    await mutate("Client renamed.", async () => {
+    await mutate(t("Client renamed."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/clients/${clientId}`, {
         method: "PUT",
         body: JSON.stringify({ name }),
@@ -1589,11 +1635,11 @@ export function DashboardApp({
   ): Promise<void> {
     const cancelBookings = blocked
       ? window.confirm(
-          "Cancel active bookings and recurring schedules for this client?",
+          t("Cancel active bookings and recurring schedules for this client?"),
         )
       : false;
     await mutate(
-      blocked ? "Client blocked." : "Client unblocked.",
+      blocked ? t("Client blocked.") : t("Client unblocked."),
       async () => {
         await apiJson(
           `specialists/${selectedSpecialistId}/clients/${clientId}/block`,
@@ -1608,13 +1654,13 @@ export function DashboardApp({
 
   async function assignBatch(clientId: string): Promise<void> {
     const serviceId = window.prompt(
-      "Batch service ID",
+      t("Batch service ID"),
       batchServices[0]?.id ?? "",
     );
     if (!serviceId) {
       return;
     }
-    await mutate("Batch assigned.", async () => {
+    await mutate(t("Batch assigned."), async () => {
       await apiJson(
         `specialists/${selectedSpecialistId}/clients/${clientId}/batches`,
         {
@@ -1629,7 +1675,7 @@ export function DashboardApp({
     event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault();
-    await mutate("Service created.", async () => {
+    await mutate(t("Service created."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/services`, {
         method: "POST",
         body: JSON.stringify({
@@ -1649,15 +1695,15 @@ export function DashboardApp({
   }
 
   async function editService(service: SessionType): Promise<void> {
-    const name = window.prompt("Service name", service.name);
+    const name = window.prompt(t("Service name"), service.name);
     if (!name) {
       return;
     }
-    const price = window.prompt("Price", String(service.price));
+    const price = window.prompt(t("Price"), String(service.price));
     if (price == null) {
       return;
     }
-    await mutate("Service updated.", async () => {
+    await mutate(t("Service updated."), async () => {
       await apiJson(
         `specialists/${selectedSpecialistId}/services/${service.id}`,
         {
@@ -1669,10 +1715,10 @@ export function DashboardApp({
   }
 
   async function deleteService(serviceId: string): Promise<void> {
-    if (!window.confirm("Deactivate this service?")) {
+    if (!window.confirm(t("Deactivate this service?"))) {
       return;
     }
-    await mutate("Service deactivated.", async () => {
+    await mutate(t("Service deactivated."), async () => {
       await apiEmpty(
         `specialists/${selectedSpecialistId}/services/${serviceId}`,
         { method: "DELETE" },
@@ -1682,7 +1728,7 @@ export function DashboardApp({
 
   async function saveWorkingHours(): Promise<void> {
     const hours = JSON.parse(workingHoursJson) as unknown;
-    await mutate("Working hours saved.", async () => {
+    await mutate(t("Working hours saved."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/working-hours`, {
         method: "PUT",
         body: JSON.stringify({ hours }),
@@ -1697,7 +1743,7 @@ export function DashboardApp({
     if (!dayOffDate) {
       return;
     }
-    await mutate("Day off added.", async () => {
+    await mutate(t("Day off added."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/days-off/batch`, {
         method: "POST",
         body: JSON.stringify({
@@ -1711,7 +1757,7 @@ export function DashboardApp({
   }
 
   async function deleteDayOff(dayOffId: string): Promise<void> {
-    await mutate("Day off deleted.", async () => {
+    await mutate(t("Day off deleted."), async () => {
       await apiEmpty(
         `specialists/${selectedSpecialistId}/days-off/${dayOffId}`,
         { method: "DELETE" },
@@ -1723,7 +1769,7 @@ export function DashboardApp({
     id: string,
     action: "approve" | "decline",
   ): Promise<void> {
-    await mutate("Recurring schedule updated.", async () => {
+    await mutate(t("Recurring schedule updated."), async () => {
       await apiJson(
         `specialists/${selectedSpecialistId}/recurring/${id}/${action}`,
         { method: "PUT" },
@@ -1732,10 +1778,10 @@ export function DashboardApp({
   }
 
   async function deleteRecurring(id: string): Promise<void> {
-    if (!window.confirm("Cancel this recurring schedule?")) {
+    if (!window.confirm(t("Cancel this recurring schedule?"))) {
       return;
     }
-    await mutate("Recurring schedule cancelled.", async () => {
+    await mutate(t("Recurring schedule cancelled."), async () => {
       await apiEmpty(`specialists/${selectedSpecialistId}/recurring/${id}`, {
         method: "DELETE",
       });
@@ -1744,7 +1790,7 @@ export function DashboardApp({
 
   async function saveProfile(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    await mutate("Profile saved.", async () => {
+    await mutate(t("Profile saved."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/profile`, {
         method: "PUT",
         body: JSON.stringify(profileForm),
@@ -1753,7 +1799,7 @@ export function DashboardApp({
   }
 
   async function saveNotifications(): Promise<void> {
-    await mutate("Notifications saved.", async () => {
+    await mutate(t("Notifications saved."), async () => {
       await apiJson(`specialists/${selectedSpecialistId}/notifications`, {
         method: "PUT",
         body: JSON.stringify(notifications),
@@ -1768,14 +1814,14 @@ export function DashboardApp({
     if (
       !window.confirm(
         active
-          ? "Enable this specialist bot?"
-          : "Disable this specialist bot? Existing data stays in place.",
+          ? t("Enable this specialist bot?")
+          : t("Disable this specialist bot? Existing data stays in place."),
       )
     ) {
       return;
     }
     await mutate(
-      active ? "Specialist enabled." : "Specialist disabled.",
+      active ? t("Specialist enabled.") : t("Specialist disabled."),
       async () => {
         await apiJson(`specialists/${specialistId}/state`, {
           method: "PATCH",
@@ -1819,13 +1865,15 @@ export function DashboardApp({
         return renderSettings();
     }
   })();
+  const currentNavLabel =
+    navItems.find((item) => item.key === view)?.label ?? "Overview";
 
   return (
     <div className={"dashboard-shell"}>
       <aside className={"sidebar"}>
         <div className={"brand-block"}>
-          <span>{"Scheduler"}</span>
-          <strong>{"Owner dashboard"}</strong>
+          <span>{t("Scheduler")}</span>
+          <strong>{t("Owner dashboard")}</strong>
         </div>
         <nav>
           {navItems.map((item) => (
@@ -1835,12 +1883,12 @@ export function DashboardApp({
               disabled={item.needsSpecialist && !selectedSpecialistId}
               onClick={() => setView(item.key)}
             >
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </nav>
         <button className={"logout-button"} onClick={() => void logout()}>
-          {"Log out"}
+          {t("Log out")}
         </button>
       </aside>
       <main className={"dashboard-main"}>
@@ -1853,23 +1901,28 @@ export function DashboardApp({
             </p>
             <h1>
               {view === "overview"
-                ? "Platform overview"
-                : view[0].toUpperCase() + view.slice(1)}
+                ? t("Platform overview")
+                : t(currentNavLabel)}
             </h1>
           </div>
-          <div className={"selected-specialist"}>
-            <span>{"Selected specialist"}</span>
-            <select
-              value={selectedSpecialistId}
-              onChange={(event) => setSelectedSpecialistId(event.target.value)}
-            >
-              <option value={""}>{"None"}</option>
-              {specialists.map((specialist) => (
-                <option key={specialist.id} value={specialist.id}>
-                  {specialist.name}
-                </option>
-              ))}
-            </select>
+          <div className={"topbar-actions"}>
+            <LanguageSwitch />
+            <div className={"selected-specialist"}>
+              <span>{t("Selected specialist")}</span>
+              <select
+                value={selectedSpecialistId}
+                onChange={(event) =>
+                  setSelectedSpecialistId(event.target.value)
+                }
+              >
+                <option value={""}>{t("None")}</option>
+                {specialists.map((specialist) => (
+                  <option key={specialist.id} value={specialist.id}>
+                    {specialist.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </header>
         {selectedSpecialist ? (
@@ -1883,7 +1936,7 @@ export function DashboardApp({
         {error ? <div className={"error-box"}>{error}</div> : null}
         {notice ? <div className={"notice-box"}>{notice}</div> : null}
         {isLoading ? (
-          <EmptyState>{"Loading dashboard..."}</EmptyState>
+          <EmptyState>{t("Loading dashboard...")}</EmptyState>
         ) : (
           content
         )}
@@ -1897,8 +1950,9 @@ function RankList({
 }: {
   items: Array<{ name: string; botUsername: string; value: number }>;
 }): ReactNode {
+  const { t } = useDashboardI18n();
   if (!items.length) {
-    return <EmptyState>{"No data yet."}</EmptyState>;
+    return <EmptyState>{t("No data yet.")}</EmptyState>;
   }
   return (
     <div className={"compact-list"}>
@@ -1916,8 +1970,9 @@ function RankList({
 }
 
 function NamedValueList({ items }: { items: OwnerNamedValue[] }): ReactNode {
+  const { t } = useDashboardI18n();
   if (!items.length) {
-    return <EmptyState>{"No data yet."}</EmptyState>;
+    return <EmptyState>{t("No data yet.")}</EmptyState>;
   }
   return (
     <div className={"compact-list"}>
@@ -1936,8 +1991,9 @@ function RevenueLeaderList({
 }: {
   items: OwnerRevenueLeader[];
 }): ReactNode {
+  const { t } = useDashboardI18n();
   if (!items.length) {
-    return <EmptyState>{"No revenue yet."}</EmptyState>;
+    return <EmptyState>{t("No revenue yet.")}</EmptyState>;
   }
   return (
     <div className={"compact-list"}>
@@ -1957,23 +2013,26 @@ function RevenueLeaderList({
 }
 
 function ActivityList({ events }: { events: OwnerActivityEvent[] }): ReactNode {
+  const { language, t } = useDashboardI18n();
   if (!events.length) {
-    return <EmptyState>{"No activity yet."}</EmptyState>;
+    return <EmptyState>{t("No activity yet.")}</EmptyState>;
   }
   return (
     <div className={"activity-list"}>
       {events.map((event) => (
         <div className={"activity-item"} key={event.id}>
           <div>
-            <strong>{event.title}</strong>
+            <strong>{t(event.title)}</strong>
             <span>
-              {event.detail || event.entityType || "Event"}
+              {event.detail ? t(event.detail) : event.entityType || t("Event")}
               {event.specialistName ? ` · ${event.specialistName}` : ""}
             </span>
           </div>
           <div>
             {event.status ? (
-              <span className={statusClass(event.status)}>{event.status}</span>
+              <span className={statusClass(event.status)}>
+                {translateStatus(language, event.status)}
+              </span>
             ) : null}
             <small>{formatDateTime(event.occurredAt)}</small>
           </div>
@@ -1988,19 +2047,20 @@ function AuditLogTable({
 }: {
   items: DashboardAuditLogItem[];
 }): ReactNode {
+  const { t } = useDashboardI18n();
   if (!items.length) {
-    return <EmptyState>{"No dashboard actions recorded yet."}</EmptyState>;
+    return <EmptyState>{t("No dashboard actions recorded yet.")}</EmptyState>;
   }
   return (
     <div className={"table-wrap"}>
       <table>
         <thead>
           <tr>
-            <th>{"Time"}</th>
-            <th>{"Actor"}</th>
-            <th>{"Action"}</th>
-            <th>{"Specialist"}</th>
-            <th>{"Status"}</th>
+            <th>{t("Time")}</th>
+            <th>{t("Actor")}</th>
+            <th>{t("Action")}</th>
+            <th>{t("Specialist")}</th>
+            <th>{t("Status")}</th>
           </tr>
         </thead>
         <tbody>
@@ -2039,20 +2099,21 @@ function CalendarTable({
   events: DashboardCalendarEvent[];
   onOpen: (id: string, view?: ViewKey) => void;
 }): ReactNode {
+  const { language, t } = useDashboardI18n();
   if (!events.length) {
-    return <EmptyState>{"No bookings in this range."}</EmptyState>;
+    return <EmptyState>{t("No bookings in this range.")}</EmptyState>;
   }
   return (
     <div className={"table-wrap"}>
       <table>
         <thead>
           <tr>
-            <th>{"Time"}</th>
-            <th>{"Specialist"}</th>
-            <th>{"Client"}</th>
-            <th>{"Service"}</th>
-            <th>{"Status"}</th>
-            <th>{"Open"}</th>
+            <th>{t("Time")}</th>
+            <th>{t("Specialist")}</th>
+            <th>{t("Client")}</th>
+            <th>{t("Service")}</th>
+            <th>{t("Status")}</th>
+            <th>{t("Open")}</th>
           </tr>
         </thead>
         <tbody>
@@ -2070,7 +2131,7 @@ function CalendarTable({
               <td>{event.serviceName || "-"}</td>
               <td>
                 <span className={statusClass(event.status)}>
-                  {event.status}
+                  {translateStatus(language, event.status)}
                 </span>
               </td>
               <td>
@@ -2093,14 +2154,15 @@ function ConflictList({
   report: DashboardConflictReport | null;
   onOpen: (id: string, view?: ViewKey) => void;
 }): ReactNode {
+  const { language, t } = useDashboardI18n();
   if (!report) {
-    return <EmptyState>{"Loading checks..."}</EmptyState>;
+    return <EmptyState>{t("Loading checks...")}</EmptyState>;
   }
   if (
     !report.overlappingBookings.length &&
     !report.invalidWorkingHours.length
   ) {
-    return <EmptyState>{"No conflicts detected."}</EmptyState>;
+    return <EmptyState>{t("No conflicts detected.")}</EmptyState>;
   }
   return (
     <div className={"cards-list"}>
@@ -2112,12 +2174,12 @@ function ConflictList({
           <div>
             <strong>{item.specialistName}</strong>
             <span>
-              {item.firstClient} overlaps {item.secondClient} ·{" "}
+              {item.firstClient} {t("overlaps")} {item.secondClient} ·{" "}
               {formatDateTime(item.startsAt)}
             </span>
           </div>
           <button onClick={() => onOpen(item.specialistId, "bookings")}>
-            {"Open"}
+            {t("Open")}
           </button>
         </div>
       ))}
@@ -2129,12 +2191,12 @@ function ConflictList({
           <div>
             <strong>{item.specialistName}</strong>
             <span>
-              {weekDays[item.dayOfWeek]} {item.startTime}-{item.endTime} ·{" "}
-              {item.reason}
+              {weekdayName(language, item.dayOfWeek)} {item.startTime}-
+              {item.endTime} · {t(item.reason)}
             </span>
           </div>
           <button onClick={() => onOpen(item.specialistId, "schedule")}>
-            {"Open"}
+            {t("Open")}
           </button>
         </div>
       ))}
@@ -2151,16 +2213,17 @@ function BookingsTable({
   onStatus: (booking: Booking, status: string) => Promise<void>;
   onReschedule: (booking: Booking) => Promise<void>;
 }): ReactNode {
+  const { language, t } = useDashboardI18n();
   return (
     <div className={"table-wrap"}>
       <table>
         <thead>
           <tr>
-            <th>{"Client"}</th>
-            <th>{"Time"}</th>
-            <th>{"Service"}</th>
-            <th>{"Status"}</th>
-            <th>{"Actions"}</th>
+            <th>{t("Client")}</th>
+            <th>{t("Time")}</th>
+            <th>{t("Service")}</th>
+            <th>{t("Status")}</th>
+            <th>{t("Actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -2175,40 +2238,40 @@ function BookingsTable({
               <td>{formatDateTime(booking.startsAt)}</td>
               <td>
                 {booking.sessionType?.name ||
-                  `${booking.durationMinutes ?? "-"} min`}
+                  `${booking.durationMinutes ?? "-"} ${t("min")}`}
               </td>
               <td>
                 <span className={statusClass(booking.status)}>
-                  {booking.status}
+                  {translateStatus(language, booking.status)}
                 </span>
               </td>
               <td className={"actions-cell"}>
                 {booking.status === "pending" &&
                 booking.createdBy !== "specialist" ? (
                   <button onClick={() => void onStatus(booking, "confirmed")}>
-                    {"Confirm"}
+                    {t("Confirm")}
                   </button>
                 ) : null}
                 {booking.status === "pending" ? (
                   <button onClick={() => void onStatus(booking, "rejected")}>
-                    {"Reject"}
+                    {t("Reject")}
                   </button>
                 ) : null}
                 {booking.status === "pending" ||
                 booking.status === "confirmed" ? (
                   <button onClick={() => void onReschedule(booking)}>
-                    {"Move"}
+                    {t("Move")}
                   </button>
                 ) : null}
                 {booking.status === "confirmed" ? (
                   <button onClick={() => void onStatus(booking, "completed")}>
-                    {"Complete"}
+                    {t("Complete")}
                   </button>
                 ) : null}
                 {booking.status === "pending" ||
                 booking.status === "confirmed" ? (
                   <button onClick={() => void onStatus(booking, "cancelled")}>
-                    {"Cancel"}
+                    {t("Cancel")}
                   </button>
                 ) : null}
               </td>
@@ -2221,8 +2284,9 @@ function BookingsTable({
 }
 
 function ReferralClientList({ data }: { data: SpecialistSnapshot }): ReactNode {
+  const { t } = useDashboardI18n();
   if (!data.referrals.referrals.length) {
-    return <EmptyState>{"No referred clients yet."}</EmptyState>;
+    return <EmptyState>{t("No referred clients yet.")}</EmptyState>;
   }
   return (
     <div className={"compact-list"}>
@@ -2241,8 +2305,9 @@ function ReferralSpecialistList({
 }: {
   data: SpecialistSnapshot;
 }): ReactNode {
+  const { language, t } = useDashboardI18n();
   if (!data.referrals.specialists.length) {
-    return <EmptyState>{"No referred specialists yet."}</EmptyState>;
+    return <EmptyState>{t("No referred specialists yet.")}</EmptyState>;
   }
   return (
     <div className={"compact-list"}>
@@ -2251,7 +2316,9 @@ function ReferralSpecialistList({
           <span>
             {item.name} @{item.botUsername}
           </span>
-          <strong>{item.isActive ? "active" : "passive"}</strong>
+          <strong>
+            {translateStatus(language, item.isActive ? "active" : "passive")}
+          </strong>
         </div>
       ))}
     </div>
