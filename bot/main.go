@@ -750,6 +750,8 @@ func main() {
 
 	api.SuperadminSecret = cfg.SuperadminSecret
 	api.WebAppURL = cfg.WebAppURL
+	api.MasterBotToken = cfg.MasterBotToken
+	api.AdminIDs = cfg.AdminIDs
 
 	api.LoadTestMode = os.Getenv("LOAD_TEST_MODE") == "true"
 	if api.LoadTestMode {

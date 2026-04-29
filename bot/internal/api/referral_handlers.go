@@ -87,29 +87,34 @@ func HandleAdminGetReferrals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resp, err := buildReferralsResponse(specialist)
+	if err != nil {
+		log.Printf("Error building referrals response: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, resp)
+}
+
+func buildReferralsResponse(specialist *models.Specialist) (ReferralsResponse, error) {
 	code := specialist.ReferralCode
 	if code == "" {
 		ensured, err := db.EnsureSpecialistReferralCode(specialist.ID)
 		if err != nil {
-			log.Printf("Error ensuring referral code: %v", err)
-			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-			return
+			return ReferralsResponse{}, err
 		}
 		code = ensured
 	}
 
 	referred, err := db.GetReferredClientsBySpecialist(specialist.ID, code)
 	if err != nil {
-		log.Printf("Error listing referred clients: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
+		return ReferralsResponse{}, err
 	}
 
 	referredSpecialists, err := db.ListReferredSpecialists(code)
 	if err != nil {
-		log.Printf("Error listing referred specialists: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
+		return ReferralsResponse{}, err
 	}
 
 	masterBot := getMasterBotUsername()
@@ -149,7 +154,7 @@ func HandleAdminGetReferrals(w http.ResponseWriter, r *http.Request) {
 		resp.Specialists = append(resp.Specialists, item)
 	}
 
-	writeJSON(w, resp)
+	return resp, nil
 }
 
 func buildReferralLink(botUsername, code string) string {
