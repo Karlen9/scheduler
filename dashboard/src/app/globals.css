@@ -146,6 +146,11 @@ tr:hover td {
   min-height: 48px;
 }
 
+.telegram-login-block {
+  display: grid;
+  gap: 10px;
+}
+
 .dashboard-shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
