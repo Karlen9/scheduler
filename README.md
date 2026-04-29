@@ -8,6 +8,7 @@ A multi-tenant scheduling platform where professionals (fitness trainers, teache
 scheduler/
 ├── bot/              # Go backend (Telegram webhooks + REST API)
 ├── mini-app/         # Next.js 15 frontend (Telegram Mini App)
+├── dashboard/        # Next.js owner dashboard (Telegram Login Widget)
 ├── backup-monitor/   # DB backup + /health watchdog with Telegram alerts
 ├── load-tests/       # k6 scripts + Prometheus/Grafana config
 ├── deploy/           # build/push scripts and VPS redeploy helpers
@@ -517,6 +518,15 @@ Encrypted values in the DB are prefixed with `enc:` so the migration is idempote
 | --------- | -------- | ------------------------------------------------------------------------- |
 | `API_URL` | No       | Backend URL for Next.js API rewrites; defaults to `http://localhost:8080` |
 
+### Dashboard environment
+
+| Variable                            | Required | Description                                                     |
+| ----------------------------------- | -------- | --------------------------------------------------------------- |
+| `BACKEND_BASE_URL`                  | Yes      | Go backend base URL                                             |
+| `BACKEND_SUPERADMIN_SECRET`         | Yes      | Same value as backend `SUPERADMIN_SECRET`                       |
+| `DASHBOARD_SESSION_SECRET`          | Yes      | Random secret for signed dashboard cookies                      |
+| `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | Yes      | Master bot username linked to the dashboard domain in BotFather |
+
 ---
 
 ## Development
@@ -535,6 +545,16 @@ bun run test      # Vitest
 ```
 
 When the dev server is running, use `/test/client` and `/test/admin` for mocked UI testing without Telegram initData or backend access.
+
+#### Dashboard
+
+```bash
+cd dashboard
+cp .env.example .env.local
+npm install
+npm run dev      # http://localhost:3000 by default
+npm run build    # production build
+```
 
 #### Bot
 

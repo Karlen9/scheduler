@@ -6,80 +6,80 @@ import (
 
 // OwnerPlatformStats holds platform-wide specialist metrics shown in the master bot's owner panel.
 type OwnerPlatformStats struct {
-	TotalSpecialists    int
-	ActiveSpecialists   int // is_active = 1
-	DeletedSpecialists  int // deleted_at IS NOT NULL
-	NewSpecialists7d    int
-	NewSpecialists30d   int
-	RecentlyActive7d    int // at least one booking touched in last 7d
-	RecentlyActive30d   int
-	ConfiguredWithPhoto int // has non-empty photo_url
-	WithCustomBio       int
-	WithReferralCode    int
+	TotalSpecialists    int `json:"totalSpecialists"`
+	ActiveSpecialists   int `json:"activeSpecialists"`  // is_active = 1
+	DeletedSpecialists  int `json:"deletedSpecialists"` // deleted_at IS NOT NULL
+	NewSpecialists7d    int `json:"newSpecialists7d"`
+	NewSpecialists30d   int `json:"newSpecialists30d"`
+	RecentlyActive7d    int `json:"recentlyActive7d"` // at least one booking touched in last 7d
+	RecentlyActive30d   int `json:"recentlyActive30d"`
+	ConfiguredWithPhoto int `json:"configuredWithPhoto"` // has non-empty photo_url
+	WithCustomBio       int `json:"withCustomBio"`
+	WithReferralCode    int `json:"withReferralCode"`
 }
 
 // OwnerBookingStats aggregates every specialist's bookings into a single platform view.
 type OwnerBookingStats struct {
-	Total            int
-	Last7d           int
-	Last30d          int
-	StatusPending    int
-	StatusConfirmed  int
-	StatusCompleted  int
-	StatusCancelled  int
-	StatusRejected   int
-	StatusReschedule int // reschedule_pending / cancel_requested
-	CancellationRate float64
-	Reschedules      int // bookings with replaces_booking_id set
-	AvgPerSpecialist float64
+	Total            int     `json:"total"`
+	Last7d           int     `json:"last7d"`
+	Last30d          int     `json:"last30d"`
+	StatusPending    int     `json:"statusPending"`
+	StatusConfirmed  int     `json:"statusConfirmed"`
+	StatusCompleted  int     `json:"statusCompleted"`
+	StatusCancelled  int     `json:"statusCancelled"`
+	StatusRejected   int     `json:"statusRejected"`
+	StatusReschedule int     `json:"statusReschedule"` // reschedule_pending / cancel_requested
+	CancellationRate float64 `json:"cancellationRate"`
+	Reschedules      int     `json:"reschedules"` // bookings with replaces_booking_id set
+	AvgPerSpecialist float64 `json:"avgPerSpecialist"`
 }
 
 // OwnerClientStats aggregates every client across the platform.
 type OwnerClientStats struct {
-	Total       int
-	Ghosts      int
-	Real        int
-	Blocked     int
-	New7d       int
-	New30d      int
-	AvgPerSpec  float64
-	ViaReferral int
+	Total       int     `json:"total"`
+	Ghosts      int     `json:"ghosts"`
+	Real        int     `json:"real"`
+	Blocked     int     `json:"blocked"`
+	New7d       int     `json:"new7d"`
+	New30d      int     `json:"new30d"`
+	AvgPerSpec  float64 `json:"avgPerSpec"`
+	ViaReferral int     `json:"viaReferral"`
 }
 
 // OwnerRecurringStats aggregates recurring schedules platform-wide.
 type OwnerRecurringStats struct {
-	Total     int
-	Active    int
-	Pending   int
-	Cancelled int
-	Declined  int
+	Total     int `json:"total"`
+	Active    int `json:"active"`
+	Pending   int `json:"pending"`
+	Cancelled int `json:"cancelled"`
+	Declined  int `json:"declined"`
 }
 
 // OwnerReferralStats summarises the referral program.
 type OwnerReferralStats struct {
-	ReferredClients     int
-	SpecialistsWithCode int
-	TopReferrers        []OwnerTopReferrer
+	ReferredClients     int                `json:"referredClients"`
+	SpecialistsWithCode int                `json:"specialistsWithCode"`
+	TopReferrers        []OwnerTopReferrer `json:"topReferrers"`
 }
 
 // OwnerTopReferrer is one row of the top-referrers leaderboard.
 type OwnerTopReferrer struct {
-	SpecialistName string
-	BotUsername    string
-	ReferredCount  int
+	SpecialistName string `json:"specialistName"`
+	BotUsername    string `json:"botUsername"`
+	ReferredCount  int    `json:"referredCount"`
 }
 
 // OwnerTopSpecialist is one row of the generic "top N" lists.
 type OwnerTopSpecialist struct {
-	Name        string
-	BotUsername string
-	Value       int
+	Name        string `json:"name"`
+	BotUsername string `json:"botUsername"`
+	Value       int    `json:"value"`
 }
 
 // OwnerDurationStat is one row of the duration popularity breakdown.
 type OwnerDurationStat struct {
-	DurationMinutes int
-	Count           int
+	DurationMinutes int `json:"durationMinutes"`
+	Count           int `json:"count"`
 }
 
 // GetOwnerPlatformStats returns specialist-level platform metrics.

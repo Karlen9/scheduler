@@ -75,11 +75,77 @@ func NewRouter() http.Handler {
 	r.With(MetricsAuthMiddleware).Handle("/metrics", promhttp.Handler())
 
 	/***************************************************************************************************
+	* Dashboard Telegram login (Telegram Login Widget auth + ADMIN_IDS allowlist).
+	***************************************************************************************************/
+	r.Post("/dashboard/auth/telegram", HandleDashboardTelegramAuth)
+
+	/***************************************************************************************************
 	* Super admin (bearer token auth).
 	***************************************************************************************************/
 	r.Route("/superadmin", func(r chi.Router) {
 		r.Use(SuperadminAuthMiddleware)
 		r.Get("/specialists", HandleListAllSpecialists)
+
+		r.Route("/dashboard", func(r chi.Router) {
+			r.Get("/overview", HandleDashboardOverview)
+			r.Get("/specialists", HandleDashboardListSpecialists)
+
+			r.Route("/specialists/{specialistID}", func(r chi.Router) {
+				r.Use(DashboardSpecialistContextMiddleware)
+
+				r.Get("/snapshot", HandleDashboardSpecialistSnapshot)
+				r.Get("/durations", HandleAdminGetDurations)
+
+				r.Get("/services", HandleAdminGetServices)
+				r.Post("/services", HandleCreateService)
+				r.Put("/services/{id}", HandleUpdateService)
+				r.Delete("/services/{id}", HandleDeleteService)
+
+				r.Get("/working-hours", HandleAdminGetWorkingHours)
+				r.Get("/schedule-context", HandleAdminGetScheduleContext)
+				r.Put("/working-hours", HandleUpdateWorkingHours)
+
+				r.Get("/bookings", HandleAdminGetBookings)
+				r.Get("/stats", HandleGetAdminStats)
+				r.Post("/bookings", HandleAdminCreateBooking)
+				r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
+				r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
+
+				r.Get("/days-off", HandleGetDaysOff)
+				r.Post("/days-off/batch", HandleBatchCreateDayOff)
+				r.Delete("/days-off/{id}", HandleDeleteDayOff)
+
+				r.Get("/clients", HandleAdminGetClients)
+				r.Post("/clients", HandleAdminCreateGhostClient)
+				r.Put("/clients/{id}", HandleAdminUpdateClient)
+				r.Delete("/clients/{id}", HandleAdminDeleteClient)
+				r.Put("/clients/{id}/block", HandleAdminBlockClient)
+				r.Get("/clients/{id}/batches", HandleAdminGetClientBatches)
+				r.Post("/clients/{id}/batches", HandleAdminAssignClientBatch)
+
+				r.Get("/profile", HandleGetProfile)
+				r.Put("/profile", HandleUpdateProfile)
+
+				r.Get("/recurring", HandleAdminGetRecurringSchedules)
+				r.Post("/recurring", HandleAdminCreateRecurringSchedule)
+				r.Post("/recurring/preview", HandleAdminPreviewRecurringSchedule)
+				r.Get("/recurring/{id}", HandleAdminGetRecurringScheduleDetail)
+				r.Put("/recurring/{id}/approve", HandleAdminApproveRecurringSchedule)
+				r.Put("/recurring/{id}/decline", HandleAdminDeclineRecurringSchedule)
+				r.Delete("/recurring/{id}", HandleAdminCancelRecurringSchedule)
+				r.Put("/recurring/{scheduleId}/bookings/{bookingId}/cancel-request", HandleAdminBookingCancelRequest)
+				r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleAdminBookingMoveRequest)
+				r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-move", HandleAdminApproveMoveBooking)
+				r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
+
+				r.Post("/upload/photo", HandleAdminUploadPhoto)
+
+				r.Get("/notifications", HandleAdminGetNotificationPrefs)
+				r.Put("/notifications", HandleAdminUpdateNotificationPrefs)
+
+				r.Get("/referrals", HandleAdminGetReferrals)
+			})
+		})
 	})
 
 	/***************************************************************************************************
