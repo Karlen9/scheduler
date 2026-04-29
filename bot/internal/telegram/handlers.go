@@ -1421,7 +1421,7 @@ func (h *Handler) handleProfileCallback(update Update) {
 		// goal is to bring new specialists onto the platform, not to hand out yet another client
 		// link.
 		link := referralLink(h.MasterBotUsername, code)
-		shareText := myI18n.Tf(loc, "Referral.ShareText", map[string]interface{}{"Link": link})
+		shareText := myI18n.T(loc, "Referral.ShareText")
 
 		inviteText := myI18n.Tf(loc, "Referral.InviteMessage", map[string]interface{}{"Link": link})
 		keyboard := &InlineKeyboardMarkup{
@@ -1506,18 +1506,18 @@ func referralLink(botUsername, code string) string {
 }
 
 /***************************************************************************************************
-* shareURL builds a Telegram share-picker URL: `url` is the referral link (rendered as a preview
-* card on the recipient side), `text` is the caption body. The caption is expected to also
-* contain the link inline — with an inline-button flow, an empty `url=` makes Telegram drop the
-* link preview, and in that case the inline URL inside the text is the only signal to the reader.
+* shareURL builds a Telegram share-picker URL: `url` is the referral link and `text` is the
+* caption body. Keep the link out of `text`; Telegram renders the `url` value in the final message.
 ***************************************************************************************************/
 func shareURL(link, text string) string {
 	return "https://t.me/share/url?url=" + urlEncode(link) + "&text=" + urlEncode(text)
 }
 
 /***************************************************************************************************
-* urlEncode escapes a string for safe embedding in a query string.
+* urlEncode escapes a string for safe embedding in Telegram share query strings. QueryEscape uses
+* `+` for spaces, but Telegram can surface those plus signs literally in share text, so spaces stay
+* percent-encoded.
 ***************************************************************************************************/
 func urlEncode(s string) string {
-	return url.QueryEscape(s)
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }

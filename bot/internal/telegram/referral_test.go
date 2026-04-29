@@ -1,6 +1,8 @@
 package telegram
 
 import (
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -80,5 +82,29 @@ func TestReferralLink(t *testing.T) {
 				t.Fatalf("referralLink(%q, %q) = %q, want %q", tt.username, tt.code, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestShareURL(t *testing.T) {
+	link := "https://t.me/masterbot?start=ref_abc"
+	text := "Привет! Веду запись\nСвой бот заводится за пару минут."
+
+	got := shareURL(link, text)
+	if strings.Contains(got, "+") {
+		t.Fatalf("shareURL() contains plus-encoded spaces: %q", got)
+	}
+
+	parsed, err := url.Parse(got)
+	if err != nil {
+		t.Fatalf("url.Parse() error = %v", err)
+	}
+	if parsed.Query().Get("url") != link {
+		t.Fatalf("shareURL() url param = %q, want %q", parsed.Query().Get("url"), link)
+	}
+	if parsed.Query().Get("text") != text {
+		t.Fatalf("shareURL() text param = %q, want %q", parsed.Query().Get("text"), text)
+	}
+	if strings.Contains(parsed.Query().Get("text"), link) {
+		t.Fatalf("shareURL() text param should not duplicate referral link: %q", parsed.Query().Get("text"))
 	}
 }

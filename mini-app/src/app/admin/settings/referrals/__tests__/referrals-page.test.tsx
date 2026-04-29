@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -35,7 +35,7 @@ const messages = {
     linkCopied: 'Ок',
     copyFailed: 'Ошибка',
     shareTelegram: 'Поделиться',
-    shareText: 'Попробуй 👉 {link}',
+    shareText: 'Попробуй 👉',
     statsActive: 'Активные',
     statsPending: 'Ожидают',
     sectionActive: 'Активные',
@@ -132,5 +132,24 @@ describe('ReferralsPage', () => {
   it('shows empty state when no specialists at all', () => {
     renderWith(makeResponse());
     expect(screen.getByText('Никого нет')).toBeTruthy();
+  });
+
+  it('shares referral link once without plus-encoded text', () => {
+    const openMock = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const link = 'https://t.me/masterbot?start=ref_abc';
+
+    renderWith(makeResponse({ link }));
+    fireEvent.click(screen.getByRole('button', { name: 'Поделиться' }));
+
+    expect(openMock).toHaveBeenCalledTimes(1);
+    const shareUrl = String(openMock.mock.calls[0][0]);
+    expect(shareUrl).not.toContain('+');
+
+    const parsed = new URL(shareUrl);
+    expect(parsed.searchParams.get('url')).toBe(link);
+    expect(parsed.searchParams.get('text')).toBe('Попробуй 👉');
+    expect(parsed.searchParams.get('text')).not.toContain(link);
+
+    openMock.mockRestore();
   });
 });
