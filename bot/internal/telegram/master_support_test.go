@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -38,6 +39,25 @@ func (t *countingTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	}, nil
 }
 
+type recordedRequest struct {
+	path string
+	body string
+}
+
+type recordingTransport struct {
+	calls []recordedRequest
+}
+
+func (t *recordingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	body, _ := io.ReadAll(req.Body)
+	t.calls = append(t.calls, recordedRequest{path: req.URL.Path, body: string(body)})
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString(`{"ok":true}`)),
+		Header:     make(http.Header),
+	}, nil
+}
+
 func TestHandleSupportGroupMessageRejectsUnauthorizedClose(t *testing.T) {
 	setupMasterSupportTestDB(t)
 
@@ -66,6 +86,61 @@ func TestHandleSupportGroupMessageRejectsUnauthorizedClose(t *testing.T) {
 	}
 	if got.ClosedAt != nil {
 		t.Fatal("expected unauthorized /close to leave support thread open")
+	}
+}
+
+func TestHandleSupportGroupMessageCloseIsSilentForClient(t *testing.T) {
+	setupMasterSupportTestDB(t)
+
+	thread, err := db.CreateSupportThread(4001, "client", "Client User", "en", 31)
+	if err != nil {
+		t.Fatalf("CreateSupportThread: %v", err)
+	}
+
+	transport := &recordingTransport{}
+	previousTransport := http.DefaultTransport
+	http.DefaultTransport = transport
+	defer func() {
+		http.DefaultTransport = previousTransport
+	}()
+
+	handler := &MasterHandler{
+		bot:            &Bot{Token: "test", ID: 9000},
+		adminIDs:       []int64{42},
+		supportGroupID: -100123,
+	}
+
+	handler.handleSupportGroupMessage(&Message{
+		MessageID:       3,
+		Chat:            Chat{ID: handler.supportGroupID},
+		From:            &User{ID: 42, FirstName: "Admin"},
+		Text:            "/close",
+		MessageThreadID: thread.TopicID,
+	})
+
+	got, err := db.GetAnySupportThreadByUserID(4001)
+	if err != nil {
+		t.Fatalf("GetAnySupportThreadByUserID: %v", err)
+	}
+	if got.ClosedAt == nil {
+		t.Fatal("expected authorized /close to close support thread")
+	}
+
+	var sawTopicNotice bool
+	for _, call := range transport.calls {
+		if strings.Contains(call.path, "/sendMessage") &&
+			strings.Contains(call.body, `"chat_id":4001`) {
+			t.Fatalf("expected /close to avoid sending client DM, got request body %s", call.body)
+		}
+		if strings.Contains(call.path, "/sendMessage") &&
+			strings.Contains(call.body, `"chat_id":-100123`) &&
+			strings.Contains(call.body, `"message_thread_id":31`) &&
+			strings.Contains(call.body, "Thread closed") {
+			sawTopicNotice = true
+		}
+	}
+	if !sawTopicNotice {
+		t.Fatalf("expected /close to post closure notice in support topic, calls: %#v", transport.calls)
 	}
 }
 

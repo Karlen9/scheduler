@@ -627,9 +627,6 @@
   "MasterSupport.Welcome": {
     "other": "💬 <b>You're connected to an operator</b>\n\nDescribe your question — we'll reply right here. Text, photos, voice messages and documents all work.\n\nTo end the chat, just stop replying — you can come back any time."
   },
-  "MasterSupport.Closed": {
-    "other": "🔒 The conversation with the operator is closed. Write again any time if you need more help."
-  },
   "MasterSupport.Disabled": {
     "other": "⚠️ Operator chat is temporarily unavailable. Please try again later."
   },
