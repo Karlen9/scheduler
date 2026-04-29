@@ -210,15 +210,6 @@ function DayTimelineComponent({
     [emptySlots, breakSlots],
   );
 
-  // Sorted capped slots for the mapping function.
-  const sortedCollapsed = useMemo(
-    () =>
-      timelineSlots
-        .filter((s) => s.endMin - s.startMin > COLLAPSE_THRESHOLD_MIN)
-        .sort((a, b) => a.startMin - b.startMin),
-    [timelineSlots],
-  );
-
   const { minHour, maxHour } = useMemo(() => {
     let min = 23;
     let max = 0;
@@ -233,8 +224,60 @@ function DayTimelineComponent({
       const endHour = end.getUTCHours() + (end.getUTCMinutes() > 0 ? 1 : 0);
       max = Math.max(max, endHour);
     }
+    if (isToday) {
+      min = Math.max(min, today.getHours());
+    }
     return { minHour: min, maxHour: max };
-  }, [bookings, dayWH]);
+  }, [bookings, dayWH, isToday, today]);
+
+  const timelineStartMin = minHour * 60;
+  const timelineEndMin = maxHour * 60;
+
+  const visibleTimelineSlots = useMemo(
+    () =>
+      timelineSlots
+        .map((slot) => ({
+          ...slot,
+          startMin: Math.max(slot.startMin, timelineStartMin),
+          endMin: Math.min(slot.endMin, timelineEndMin),
+        }))
+        .filter((slot) => slot.startMin < slot.endMin),
+    [timelineSlots, timelineEndMin, timelineStartMin],
+  );
+
+  const visibleBookings = useMemo(
+    () =>
+      bookings.flatMap((booking) => {
+        const start = new Date(booking.startsAt);
+        const end = new Date(booking.endsAt);
+        const startMin = start.getUTCHours() * 60 + start.getUTCMinutes();
+        const endMin = end.getUTCHours() * 60 + end.getUTCMinutes();
+        const clippedStartMin = Math.max(startMin, timelineStartMin);
+        const clippedEndMin = Math.min(endMin, timelineEndMin);
+
+        if (clippedStartMin >= clippedEndMin) {
+          return [];
+        }
+
+        return [
+          {
+            booking,
+            startMin: clippedStartMin,
+            endMin: clippedEndMin,
+          },
+        ];
+      }),
+    [bookings, timelineEndMin, timelineStartMin],
+  );
+
+  // Sorted capped slots for the mapping function.
+  const sortedCollapsed = useMemo(
+    () =>
+      visibleTimelineSlots
+        .filter((s) => s.endMin - s.startMin > COLLAPSE_THRESHOLD_MIN)
+        .sort((a, b) => a.startMin - b.startMin),
+    [visibleTimelineSlots],
+  );
 
   const toPixel = useCallback(
     (minute: number) => minuteToPixel(minute, minHour * 60, sortedCollapsed),
@@ -242,17 +285,17 @@ function DayTimelineComponent({
   );
 
   // No working hours and no bookings
-  if (bookings.length === 0 && dayWH.length === 0) {
+  if (visibleBookings.length === 0 && visibleTimelineSlots.length === 0) {
     return (
       <div className={'text-muted-foreground py-12 text-center text-sm'}>{t('noBookings')}</div>
     );
   }
 
   // No bookings but is a working day
-  if (bookings.length === 0 && dayWH.length > 0) {
+  if (visibleBookings.length === 0 && visibleTimelineSlots.length > 0) {
     return (
       <div className={'space-y-2'}>
-        {timelineSlots.map((slot) => (
+        {visibleTimelineSlots.map((slot) => (
           <TimelineEmptySlot
             key={`${slot.kind}-${slot.startMin}`}
             slot={slot}
@@ -403,7 +446,7 @@ function DayTimelineComponent({
       ))}
 
       {/* Empty slot cards */}
-      {timelineSlots.map((slot) => {
+      {visibleTimelineSlots.map((slot) => {
         const slotTop = toPixel(slot.startMin);
         const slotBottom = toPixel(slot.endMin);
         const slotHeight = slotBottom - slotTop;
@@ -424,11 +467,7 @@ function DayTimelineComponent({
       })}
 
       {/* Booking cards */}
-      {bookings.map((booking) => {
-        const start = new Date(booking.startsAt);
-        const end = new Date(booking.endsAt);
-        const startMin = start.getUTCHours() * 60 + start.getUTCMinutes();
-        const endMin = end.getUTCHours() * 60 + end.getUTCMinutes();
+      {visibleBookings.map(({ booking, startMin, endMin }) => {
         const bTop = toPixel(startMin);
         const bBottom = toPixel(endMin);
         const bHeight = bBottom - bTop;
