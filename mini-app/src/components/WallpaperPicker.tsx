@@ -139,7 +139,7 @@ function PatternW6(): ReactNode {
 function PatternFitness(): ReactNode {
   return (
     <div
-      className={'h-full w-full bg-cover bg-center bg-no-repeat'}
+      className={'h-full w-full bg-cover bg-center bg-no-repeat dark:invert'}
       style={{ backgroundImage: "url('/fintess-transparent.svg')" }}
     />
   );

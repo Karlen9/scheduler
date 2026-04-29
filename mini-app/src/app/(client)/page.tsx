@@ -680,7 +680,7 @@ export default function HomePage(): ReactNode {
         isOpen={activeModal === 'services'}
         onClose={() => setActiveModal(null)}
         title={t('servicesButton')}
-        className={'pb-6'}
+        className={'!bg-background pb-6'}
       >
         {services.length > 0 ? (
           batchesLoading ? (

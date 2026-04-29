@@ -144,85 +144,49 @@
 /* ═══════════════════════════════════════════════ */
 :root.dark {
   /* Telegram fallbacks for dark dev mode */
-  --tg-theme-bg-color: #17212b;
+  --tg-theme-bg-color: #15202b;
   --tg-theme-text-color: #ffffff;
-  --tg-theme-hint-color: #708499;
-  --tg-theme-link-color: #6ab3f3;
-  --tg-theme-button-color: #5288c1;
+  --tg-theme-hint-color: #8899a6;
+  --tg-theme-link-color: #24a1de;
+  --tg-theme-button-color: #24a1de;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #232e3c;
-  --tg-theme-header-bg-color: #17212b;
-  --tg-theme-section-bg-color: #232e3c;
-  --tg-theme-subtitle-text-color: #708499;
-  --tg-theme-destructive-text-color: #ec3942;
+  --tg-theme-secondary-bg-color: #192734;
+  --tg-theme-header-bg-color: #15202b;
+  --tg-theme-section-bg-color: #192734;
+  --tg-theme-subtitle-text-color: #8899a6;
+  --tg-theme-destructive-text-color: #24a1de;
 
   /* Dark: page bg = primary (dark), cards = secondary (slightly lighter) */
   --background: var(--tg-theme-bg-color);
-  --card: color-mix(in srgb, var(--tg-theme-section-bg-color) 90%, var(--tg-theme-button-color));
+  --card: var(--tg-theme-secondary-bg-color);
 
-  --app-divider: color-mix(in srgb, var(--tg-theme-hint-color) 24%, transparent);
-  --skeleton: color-mix(in srgb, var(--tg-theme-button-color) 16%, transparent);
-  --switch-background: color-mix(
-    in srgb,
-    var(--tg-theme-hint-color) 32%,
-    var(--tg-theme-secondary-bg-color)
-  );
-  --bookings-bg: color-mix(in srgb, var(--tg-theme-button-color) 10%, var(--tg-theme-bg-color));
+  --app-divider: var(--tg-theme-bg-color);
+  --skeleton: var(--tg-theme-bg-color);
+  --switch-background: var(--tg-theme-bg-color);
+  --bookings-bg: var(--tg-theme-bg-color);
 
   /* App surface variants */
-  --surface: color-mix(
-    in srgb,
-    var(--tg-theme-secondary-bg-color) 86%,
-    var(--tg-theme-button-color)
-  );
-  --surface-hover: color-mix(
-    in srgb,
-    var(--tg-theme-secondary-bg-color) 76%,
-    var(--tg-theme-button-color)
-  );
-  --surface-border: color-mix(
-    in srgb,
-    var(--tg-theme-button-color) 34%,
-    var(--tg-theme-secondary-bg-color)
-  );
-  --brand: color-mix(in srgb, var(--tg-theme-button-color) 86%, var(--tg-theme-link-color));
-  --brand-hover: color-mix(in srgb, var(--tg-theme-button-color) 72%, var(--tg-theme-link-color));
+  --surface: var(--tg-theme-secondary-bg-color);
+  --surface-hover: var(--tg-theme-bg-color);
+  --surface-border: var(--tg-theme-bg-color);
+  --brand: var(--tg-theme-button-color);
+  --brand-hover: var(--tg-theme-link-color);
 
   /* Status badge colors */
-  --status-pending-bg: color-mix(in srgb, var(--tg-theme-button-color) 18%, transparent);
-  --status-pending-text: color-mix(
-    in srgb,
-    var(--tg-theme-button-color) 72%,
-    var(--tg-theme-text-color)
-  );
-  --status-confirmed-bg: color-mix(in srgb, var(--tg-theme-link-color) 18%, transparent);
-  --status-confirmed-text: color-mix(
-    in srgb,
-    var(--tg-theme-link-color) 76%,
-    var(--tg-theme-text-color)
-  );
-  --status-rejected-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 20%, transparent);
-  --status-rejected-text: color-mix(
-    in srgb,
-    var(--tg-theme-destructive-text-color) 82%,
-    var(--tg-theme-text-color)
-  );
-  --status-cancelled-bg: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
+  --status-pending-bg: var(--tg-theme-bg-color);
+  --status-pending-text: var(--tg-theme-link-color);
+  --status-confirmed-bg: var(--tg-theme-bg-color);
+  --status-confirmed-text: var(--tg-theme-link-color);
+  --status-rejected-bg: var(--tg-theme-bg-color);
+  --status-rejected-text: var(--tg-theme-link-color);
+  --status-cancelled-bg: var(--tg-theme-bg-color);
   --status-cancelled-text: var(--tg-theme-subtitle-text-color);
-  --status-completed-bg: color-mix(in srgb, var(--tg-theme-link-color) 22%, transparent);
+  --status-completed-bg: var(--tg-theme-bg-color);
   --status-completed-text: var(--tg-theme-link-color);
-  --status-warning-bg: color-mix(in srgb, var(--tg-theme-button-color) 22%, transparent);
-  --status-warning-text: color-mix(
-    in srgb,
-    var(--tg-theme-button-color) 66%,
-    var(--tg-theme-text-color)
-  );
-  --status-purple-bg: color-mix(in srgb, var(--tg-theme-button-color) 16%, transparent);
-  --status-purple-text: color-mix(
-    in srgb,
-    var(--tg-theme-button-color) 52%,
-    var(--tg-theme-link-color)
-  );
+  --status-warning-bg: var(--tg-theme-bg-color);
+  --status-warning-text: var(--tg-theme-link-color);
+  --status-purple-bg: var(--tg-theme-bg-color);
+  --status-purple-text: var(--tg-theme-link-color);
 
   /* Status borders */
   --status-pending-border: var(--tg-theme-button-color);
@@ -231,48 +195,34 @@
   --status-cancelled-border: var(--tg-theme-hint-color);
 
   /* Action buttons */
-  --action-success-bg: color-mix(in srgb, var(--tg-theme-link-color) 22%, transparent);
+  --action-success-bg: var(--tg-theme-bg-color);
   --action-success-text: var(--tg-theme-link-color);
-  --action-danger-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 22%, transparent);
+  --action-danger-bg: var(--tg-theme-bg-color);
   --action-danger-text: var(--tg-theme-destructive-text-color);
-  --action-confirm-bg: color-mix(
-    in srgb,
-    var(--tg-theme-button-color) 34%,
-    var(--tg-theme-bg-color)
-  );
+  --action-confirm-bg: var(--tg-theme-button-color);
   --action-confirm-text: var(--tg-theme-button-text-color);
 
   /* Calendar day-off */
-  --dayoff-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 20%, transparent);
+  --dayoff-bg: var(--tg-theme-bg-color);
   --dayoff-text: var(--tg-theme-destructive-text-color);
 
   /* Tab bar */
-  --tab-bar-bg: color-mix(
-    in srgb,
-    var(--tg-theme-secondary-bg-color) 90%,
-    var(--tg-theme-bg-color)
-  );
-  --tab-bar-border: color-mix(in srgb, var(--tg-theme-hint-color) 28%, transparent);
-  --tab-bar-indicator: color-mix(
-    in srgb,
-    var(--tg-theme-button-color) 20%,
-    var(--tg-theme-secondary-bg-color)
-  );
+  --tab-bar-bg: var(--tg-theme-secondary-bg-color);
+  --tab-bar-border: var(--tg-theme-bg-color);
+  --tab-bar-indicator: var(--tg-theme-bg-color);
 
   /* Timeline booking blocks */
-  --timeline-1-bg: color-mix(in srgb, var(--tg-theme-button-color) 18%, transparent);
+  --timeline-1-bg: var(--tg-theme-secondary-bg-color);
   --timeline-1-border: var(--tg-theme-button-color);
-  --timeline-2-bg: color-mix(in srgb, var(--tg-theme-link-color) 18%, transparent);
+  --timeline-2-bg: var(--tg-theme-secondary-bg-color);
   --timeline-2-border: var(--tg-theme-link-color);
-  --timeline-3-bg: color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent);
+  --timeline-3-bg: var(--tg-theme-secondary-bg-color);
   --timeline-3-border: var(--tg-theme-hint-color);
-  --timeline-4-bg: color-mix(in srgb, var(--tg-theme-destructive-text-color) 16%, transparent);
+  --timeline-4-bg: var(--tg-theme-secondary-bg-color);
   --timeline-4-border: var(--tg-theme-destructive-text-color);
 
   /* Card outline */
-  --card-shadow:
-    0 0 0 1px color-mix(in srgb, var(--tg-theme-button-color) 15%, transparent),
-    0 12px 36px color-mix(in srgb, var(--tg-theme-bg-color) 68%, transparent);
+  --card-shadow: 0 0 0 1px var(--tg-theme-bg-color);
 
   /* Accent colors */
   --warning: var(--tg-theme-button-color);
@@ -281,8 +231,8 @@
   --destructive-foreground: var(--tg-theme-button-text-color);
   --chart-1: var(--tg-theme-button-color);
   --chart-2: var(--tg-theme-link-color);
-  --chart-3: color-mix(in srgb, var(--tg-theme-button-color) 55%, var(--tg-theme-link-color));
-  --chart-4: color-mix(in srgb, var(--tg-theme-hint-color) 72%, var(--tg-theme-link-color));
+  --chart-3: var(--tg-theme-text-color);
+  --chart-4: var(--tg-theme-hint-color);
   --chart-5: var(--tg-theme-destructive-text-color);
 
   /* Sidebar */
@@ -408,15 +358,6 @@
       BlinkMacSystemFont,
       'Segoe UI',
       sans-serif;
-  }
-
-  :root.dark body {
-    background-image: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--tg-theme-button-color) 12%, var(--background)) 0%,
-      var(--background) 42%,
-      color-mix(in srgb, var(--tg-theme-secondary-bg-color) 78%, var(--background)) 100%
-    );
   }
 
   /**
