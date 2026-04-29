@@ -421,7 +421,7 @@ function DayTimelineComponent({
               top: railTop,
               height: railHeight,
               backgroundImage:
-                'repeating-linear-gradient(to bottom, rgba(156, 163, 175, 0.45) 0 3px, transparent 3px 8px)',
+                'repeating-linear-gradient(to bottom, var(--muted-foreground) 0 3px, transparent 3px 8px)',
               WebkitMaskImage:
                 'linear-gradient(to bottom, transparent 0, black 14px, black calc(100% - 14px), transparent 100%)',
               maskImage:
@@ -440,7 +440,7 @@ function DayTimelineComponent({
           style={{ top: toPixel(minute) }}
         >
           <span
-            className={`bg-muted-foreground/45 h-0.5 shrink-0 rounded-full ${offset === 30 ? 'w-5' : 'w-3'}`}
+            className={`bg-muted-foreground/45 dark:bg-muted-foreground h-0.5 shrink-0 rounded-full ${offset === 30 ? 'w-5' : 'w-3'}`}
           />
         </div>
       ))}

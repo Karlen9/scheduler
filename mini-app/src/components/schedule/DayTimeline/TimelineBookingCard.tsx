@@ -84,7 +84,7 @@ function TimelineBookingCardComponent({
     <button
       key={booking.id}
       onClick={() => onBookingClick?.(booking)}
-      className={`absolute right-0 left-12 ${style.bg} overflow-hidden text-left transition-opacity active:opacity-80 ${
+      className={`ring-background absolute right-0 left-12 overflow-hidden text-left ring-1 transition-opacity active:opacity-80 ${style.bg} ${
         compact ? 'rounded-lg px-2 py-1' : 'rounded-xl px-3 py-1.5'
       }`}
       style={{ top: top + 3, height: height - 3 }}
