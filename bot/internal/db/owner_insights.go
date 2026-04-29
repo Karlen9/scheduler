@@ -536,7 +536,7 @@ func GetOwnerRetentionStats() (*OwnerRetentionStats, error) {
 			FROM bookings
 			GROUP BY client_id
 			HAVING COUNT(*) >= 2 AND MAX(starts_at) >= ?
-		) returning
+		) returning_clients
 	`), since).Scan(&stats.ReturningActive30d); err != nil {
 		return nil, err
 	}
