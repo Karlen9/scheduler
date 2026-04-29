@@ -51,6 +51,13 @@ button {
   padding: 0 14px;
 }
 
+button,
+.button-link {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
 button:hover {
   background: var(--brand-strong);
 }
@@ -479,6 +486,20 @@ tr:hover td {
   overflow-wrap: anywhere;
 }
 
+.button-link {
+  background: var(--brand);
+  border-radius: 8px;
+  color: white;
+  font-weight: 650;
+  min-height: 38px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: var(--brand-strong);
+}
+
 .toggle-row label {
   align-items: center;
   display: flex;
@@ -488,6 +509,65 @@ tr:hover td {
 .toggle-row input {
   min-height: auto;
   width: auto;
+}
+
+.three-col {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.result-row {
+  background: #fbfcfd;
+  border: 1px solid var(--line);
+  color: var(--text);
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-height: 0;
+  padding: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.result-row:hover {
+  background: var(--panel-soft);
+}
+
+.result-row small {
+  color: var(--muted);
+}
+
+.activity-list {
+  display: grid;
+  gap: 10px;
+}
+
+.activity-item {
+  align-items: center;
+  background: #fbfcfd;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.activity-item div {
+  display: grid;
+  gap: 4px;
+}
+
+.activity-item span,
+.activity-item small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.activity-item .status {
+  color: inherit;
+  width: max-content;
 }
 
 @media (max-width: 1000px) {
@@ -506,6 +586,7 @@ tr:hover td {
   .metrics-grid,
   .metrics-grid.compact,
   .two-col,
+  .three-col,
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -534,6 +615,7 @@ tr:hover td {
   .metrics-grid,
   .metrics-grid.compact,
   .two-col,
+  .three-col,
   .form-grid {
     grid-template-columns: 1fr;
   }

@@ -64,12 +64,99 @@ export type OwnerReferralStats = {
   }>;
 };
 
+export type OwnerNamedValue = {
+  name: string;
+  value: number;
+};
+
+export type OwnerRevenueLeader = {
+  name: string;
+  botUsername?: string;
+  currency: string;
+  revenue: number;
+};
+
+export type OwnerActivityEvent = {
+  id: string;
+  type: string;
+  title: string;
+  detail?: string;
+  entityId?: string;
+  entityType?: string;
+  status?: string;
+  specialistId?: string;
+  specialistName?: string;
+  botUsername?: string;
+  occurredAt: string;
+};
+
+export type OwnerBookingFunnel = {
+  created: number;
+  pending: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+  rejected: number;
+  reschedulePending: number;
+  cancelRequested: number;
+  completionRate: number;
+  dropoffRate: number;
+};
+
+export type OwnerCapacityStats = {
+  windowStart: string;
+  windowEnd: string;
+  workingMinutes: number;
+  bookedMinutes: number;
+  bookedSlots: number;
+  utilizationRate: number;
+  specialistsWithoutWorkingHours: number;
+  busiestWeekdays: OwnerNamedValue[];
+  busiestHours: OwnerNamedValue[];
+};
+
+export type OwnerCancellationStats = {
+  cancelled: number;
+  rejected: number;
+  clientCancelled: number;
+  specialistCancelled: number;
+  cancellationRate: number;
+  bySpecialist: OwnerNamedValue[];
+  byService: OwnerNamedValue[];
+};
+
+export type OwnerRetentionStats = {
+  totalClients: number;
+  repeatClients: number;
+  oneTimeClients: number;
+  newClients30d: number;
+  activeClients30d: number;
+  returningActive30d: number;
+  returningRate: number;
+};
+
+export type OwnerNotificationHealth = {
+  remindersSent: number;
+  remindersPending: number;
+  specialistBookingMessagesLinked: number;
+  clientBookingMessagesLinked: number;
+  specialistOptOutNewBookings: number;
+  specialistOptOutCancellations: number;
+  clientOptOutStatus: number;
+  clientOptOutReminders: number;
+};
+
 export type DashboardOverview = {
   platform: OwnerPlatformStats;
   bookings: OwnerBookingStats;
   clients: OwnerClientStats;
   recurring: OwnerRecurringStats;
   referrals: OwnerReferralStats;
+  bookingFunnel: OwnerBookingFunnel;
+  capacity: OwnerCapacityStats;
+  cancellations: OwnerCancellationStats;
+  retention: OwnerRetentionStats;
+  notificationHealth: OwnerNotificationHealth;
   topSpecialistsByBookings: Array<{
     name: string;
     botUsername: string;
@@ -90,6 +177,9 @@ export type DashboardOverview = {
     newSpecialists: number;
   }>;
   revenueByCurrency: Array<{ currency: string; revenue: number }>;
+  revenueBySpecialist: OwnerRevenueLeader[];
+  revenueByService: OwnerRevenueLeader[];
+  activity: OwnerActivityEvent[];
 };
 
 export type DashboardSpecialist = {
@@ -303,4 +393,92 @@ export type SpecialistSnapshot = {
   };
   referrals: ReferralsResponse;
   durations: number[];
+};
+
+export type DashboardSearchClient = {
+  id: string;
+  specialistId: string;
+  specialistName: string;
+  name: string;
+  displayName?: string;
+  telegramUserId: number;
+  telegramUsername?: string;
+  isGhost: boolean;
+  isBlocked: boolean;
+  createdAt: string;
+};
+
+export type DashboardSearchBooking = {
+  id: string;
+  specialistId: string;
+  specialistName: string;
+  clientName: string;
+  serviceName?: string;
+  status: string;
+  startsAt: string;
+};
+
+export type DashboardSearchResponse = {
+  specialists: DashboardSpecialist[];
+  clients: DashboardSearchClient[];
+  bookings: DashboardSearchBooking[];
+};
+
+export type DashboardCalendarEvent = {
+  bookingId: string;
+  specialistId: string;
+  specialistName: string;
+  botUsername?: string;
+  clientName: string;
+  serviceName?: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+};
+
+export type DashboardConflictReport = {
+  overlappingBookings: Array<{
+    specialistId: string;
+    specialistName: string;
+    firstBookingId: string;
+    secondBookingId: string;
+    firstClient: string;
+    secondClient: string;
+    startsAt: string;
+    endsAt: string;
+  }>;
+  invalidWorkingHours: Array<{
+    specialistId: string;
+    specialistName: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    reason: string;
+  }>;
+};
+
+export type DashboardAuditLogItem = {
+  id: string;
+  actorTelegramId: number;
+  method: string;
+  path: string;
+  action: string;
+  specialistId?: string;
+  specialistName?: string;
+  statusCode: number;
+  createdAt: string;
+};
+
+export type DashboardSystemStatus = {
+  backendOk: boolean;
+  databaseOk: boolean;
+  superadminEnabled: boolean;
+  telegramAuthConfigured: boolean;
+  adminCount: number;
+  serverTime: string;
+};
+
+export type DashboardAdminsResponse = {
+  adminIds: number[];
+  count: number;
 };

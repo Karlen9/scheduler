@@ -4,9 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   Booking,
+  DashboardAdminsResponse,
+  DashboardAuditLogItem,
+  DashboardCalendarEvent,
+  DashboardConflictReport,
   DashboardOverview,
+  DashboardSearchResponse,
   DashboardSpecialist,
+  DashboardSystemStatus,
   DashboardUser,
+  OwnerActivityEvent,
+  OwnerNamedValue,
+  OwnerRevenueLeader,
   SessionType,
   SpecialistListResponse,
   SpecialistProfile,
@@ -17,12 +26,16 @@ import type { FormEvent, ReactNode } from "react";
 type ViewKey =
   | "overview"
   | "specialists"
+  | "activity"
+  | "search"
+  | "calendar"
   | "bookings"
   | "clients"
   | "recurring"
   | "services"
   | "schedule"
   | "referrals"
+  | "ops"
   | "settings";
 
 const navItems: Array<{
@@ -32,12 +45,16 @@ const navItems: Array<{
 }> = [
   { key: "overview", label: "Overview" },
   { key: "specialists", label: "Specialists" },
+  { key: "activity", label: "Activity" },
+  { key: "search", label: "Search" },
+  { key: "calendar", label: "Calendar" },
   { key: "bookings", label: "Bookings", needsSpecialist: true },
   { key: "clients", label: "Clients", needsSpecialist: true },
   { key: "recurring", label: "Recurring", needsSpecialist: true },
   { key: "services", label: "Services", needsSpecialist: true },
   { key: "schedule", label: "Schedule", needsSpecialist: true },
   { key: "referrals", label: "Referrals", needsSpecialist: true },
+  { key: "ops", label: "Ops" },
   { key: "settings", label: "Settings", needsSpecialist: true },
 ];
 
@@ -99,6 +116,16 @@ function formatDate(value?: string): string {
     month: "short",
     day: "numeric",
   }).format(new Date(value));
+}
+
+function dateInputValue(offsetDays = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+function shortID(value: string): string {
+  return value ? value.slice(0, 8) : "-";
 }
 
 function statusClass(status: string): string {
@@ -201,6 +228,22 @@ export function DashboardApp({
     time: "",
     message: "",
   });
+  const [activity, setActivity] = useState<OwnerActivityEvent[]>([]);
+  const [auditLog, setAuditLog] = useState<DashboardAuditLogItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] =
+    useState<DashboardSearchResponse | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<
+    DashboardCalendarEvent[]
+  >([]);
+  const [calendarFrom, setCalendarFrom] = useState(dateInputValue(0));
+  const [calendarTo, setCalendarTo] = useState(dateInputValue(31));
+  const [conflicts, setConflicts] = useState<DashboardConflictReport | null>(
+    null,
+  );
+  const [systemStatus, setSystemStatus] =
+    useState<DashboardSystemStatus | null>(null);
+  const [admins, setAdmins] = useState<DashboardAdminsResponse | null>(null);
 
   const selectedSpecialist = useMemo(
     () =>
@@ -244,8 +287,10 @@ export function DashboardApp({
     );
     setSpecialists(response.specialists);
     setSpecialistTotal(response.total);
-    setSelectedSpecialistId(
-      (current) => current || response.specialists[0]?.id || "",
+    setSelectedSpecialistId((current) =>
+      response.specialists.some((specialist) => specialist.id === current)
+        ? current
+        : response.specialists[0]?.id || "",
     );
   }, [search, statusFilter]);
 
@@ -279,11 +324,56 @@ export function DashboardApp({
     [],
   );
 
+  const loadActivity = useCallback(async (): Promise<void> => {
+    const response = await apiJson<{ activity: OwnerActivityEvent[] }>(
+      "activity?limit=75",
+    );
+    setActivity(response.activity);
+  }, []);
+
+  const loadAuditLog = useCallback(async (): Promise<void> => {
+    const response = await apiJson<{ items: DashboardAuditLogItem[] }>(
+      "audit-log?limit=100",
+    );
+    setAuditLog(response.items);
+  }, []);
+
+  const loadOps = useCallback(async (): Promise<void> => {
+    const [conflictResponse, systemResponse, adminsResponse] =
+      await Promise.all([
+        apiJson<DashboardConflictReport>("conflicts?limit=50"),
+        apiJson<DashboardSystemStatus>("system"),
+        apiJson<DashboardAdminsResponse>("admins"),
+      ]);
+    setConflicts(conflictResponse);
+    setSystemStatus(systemResponse);
+    setAdmins(adminsResponse);
+    await loadAuditLog();
+  }, [loadAuditLog]);
+
+  const loadCalendar = useCallback(async (): Promise<void> => {
+    const query = new URLSearchParams({
+      dateFrom: calendarFrom,
+      dateTo: calendarTo,
+    });
+    const response = await apiJson<{ events: DashboardCalendarEvent[] }>(
+      `calendar?${query.toString()}`,
+    );
+    setCalendarEvents(response.events);
+  }, [calendarFrom, calendarTo]);
+
+  const runSearch = useCallback(async (): Promise<void> => {
+    const query = new URLSearchParams({ q: searchQuery, limit: "12" });
+    setSearchResults(
+      await apiJson<DashboardSearchResponse>(`search?${query.toString()}`),
+    );
+  }, [searchQuery]);
+
   const loadAll = useCallback(async (): Promise<void> => {
     setError("");
     setIsLoading(true);
     try {
-      await Promise.all([loadOverview(), loadSpecialists()]);
+      await Promise.all([loadOverview(), loadSpecialists(), loadActivity()]);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load dashboard.",
@@ -291,7 +381,7 @@ export function DashboardApp({
     } finally {
       setIsLoading(false);
     }
-  }, [loadOverview, loadSpecialists]);
+  }, [loadActivity, loadOverview, loadSpecialists]);
 
   useEffect(() => {
     void loadAll();
@@ -300,6 +390,19 @@ export function DashboardApp({
   useEffect(() => {
     void loadSnapshot(selectedSpecialistId);
   }, [loadSnapshot, selectedSpecialistId]);
+
+  useEffect(() => {
+    if (view === "activity") {
+      void loadActivity();
+      void loadAuditLog();
+    }
+    if (view === "calendar") {
+      void loadCalendar();
+    }
+    if (view === "ops") {
+      void loadOps();
+    }
+  }, [loadActivity, loadAuditLog, loadCalendar, loadOps, view]);
 
   async function mutate(label: string, fn: () => Promise<void>): Promise<void> {
     setNotice("");
@@ -311,6 +414,7 @@ export function DashboardApp({
         loadOverview(),
         loadSpecialists(),
         loadSnapshot(selectedSpecialistId),
+        loadActivity(),
       ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
@@ -398,6 +502,29 @@ export function DashboardApp({
           />
         </div>
 
+        <div className={"metrics-grid compact"}>
+          <Card
+            label={"Funnel completion"}
+            value={formatPercent(overview.bookingFunnel.completionRate)}
+            detail={`${formatNumber(overview.bookingFunnel.completed)} completed of ${formatNumber(overview.bookingFunnel.created)}`}
+          />
+          <Card
+            label={"Capacity, 7d"}
+            value={formatPercent(overview.capacity.utilizationRate)}
+            detail={`${formatNumber(overview.capacity.bookedSlots)} active bookings`}
+          />
+          <Card
+            label={"Returning clients"}
+            value={formatPercent(overview.retention.returningRate)}
+            detail={`${formatNumber(overview.retention.repeatClients)} repeat clients`}
+          />
+          <Card
+            label={"Reminder queue"}
+            value={formatNumber(overview.notificationHealth.remindersPending)}
+            detail={`${formatNumber(overview.notificationHealth.remindersSent)} sent`}
+          />
+        </div>
+
         <Section title={"Monthly activity"}>
           <div className={"bar-chart"}>
             {overview.monthlyTrends.map((point) => (
@@ -433,6 +560,62 @@ export function DashboardApp({
                 <EmptyState>{"No completed paid bookings yet."}</EmptyState>
               )}
             </div>
+          </Section>
+        </div>
+
+        <div className={"two-col"}>
+          <Section title={"Revenue by specialist"}>
+            <RevenueLeaderList items={overview.revenueBySpecialist} />
+          </Section>
+          <Section title={"Revenue by service"}>
+            <RevenueLeaderList items={overview.revenueByService} />
+          </Section>
+        </div>
+
+        <div className={"two-col"}>
+          <Section title={"Booking funnel"}>
+            <NamedValueList
+              items={[
+                { name: "Pending", value: overview.bookingFunnel.pending },
+                { name: "Confirmed", value: overview.bookingFunnel.confirmed },
+                { name: "Completed", value: overview.bookingFunnel.completed },
+                { name: "Cancelled", value: overview.bookingFunnel.cancelled },
+                { name: "Rejected", value: overview.bookingFunnel.rejected },
+              ]}
+            />
+          </Section>
+          <Section title={"Cancellation sources"}>
+            <NamedValueList
+              items={[
+                {
+                  name: "Client cancelled",
+                  value: overview.cancellations.clientCancelled,
+                },
+                {
+                  name: "Specialist cancelled",
+                  value: overview.cancellations.specialistCancelled,
+                },
+                { name: "Rejected", value: overview.cancellations.rejected },
+              ]}
+            />
+          </Section>
+        </div>
+
+        <div className={"two-col"}>
+          <Section title={"Busiest hours"}>
+            <NamedValueList items={overview.capacity.busiestHours} />
+          </Section>
+          <Section title={"Cancellation by service"}>
+            <NamedValueList items={overview.cancellations.byService} />
+          </Section>
+        </div>
+
+        <div className={"two-col"}>
+          <Section title={"Cancellation by specialist"}>
+            <NamedValueList items={overview.cancellations.bySpecialist} />
+          </Section>
+          <Section title={"Recent activity"}>
+            <ActivityList events={overview.activity} />
           </Section>
         </div>
       </div>
@@ -523,6 +706,226 @@ export function DashboardApp({
               </tbody>
             </table>
           </div>
+        </Section>
+      </div>
+    );
+  }
+
+  function renderActivity(): ReactNode {
+    return (
+      <div className={"content-stack"}>
+        <Section
+          title={"Live activity"}
+          actions={
+            <button onClick={() => void loadActivity()}>{"Refresh"}</button>
+          }
+        >
+          <ActivityList events={activity} />
+        </Section>
+        <Section title={"Audit trail"}>
+          <AuditLogTable items={auditLog} />
+        </Section>
+      </div>
+    );
+  }
+
+  function renderSearch(): ReactNode {
+    return (
+      <div className={"content-stack"}>
+        <Section title={"Global search"}>
+          <form
+            className={"toolbar-form"}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void runSearch();
+            }}
+          >
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={"Specialist, client, booking ID, Telegram ID"}
+            />
+            <button type={"submit"}>{"Search"}</button>
+          </form>
+        </Section>
+        {searchResults ? (
+          <div className={"three-col"}>
+            <Section
+              title={`Specialists (${searchResults.specialists.length})`}
+            >
+              <div className={"compact-list"}>
+                {searchResults.specialists.map((item) => (
+                  <button
+                    className={"result-row"}
+                    key={item.id}
+                    onClick={() => selectSpecialist(item.id, "settings")}
+                  >
+                    <span>
+                      <strong>{item.name}</strong>
+                      {item.botUsername ? ` @${item.botUsername}` : ""}
+                    </span>
+                    <small>{formatNumber(item.bookingCount)} bookings</small>
+                  </button>
+                ))}
+              </div>
+            </Section>
+            <Section title={`Clients (${searchResults.clients.length})`}>
+              <div className={"compact-list"}>
+                {searchResults.clients.map((item) => (
+                  <button
+                    className={"result-row"}
+                    key={item.id}
+                    onClick={() =>
+                      selectSpecialist(item.specialistId, "clients")
+                    }
+                  >
+                    <span>
+                      <strong>{item.displayName || item.name}</strong>
+                      {item.telegramUsername
+                        ? ` @${item.telegramUsername}`
+                        : ""}
+                    </span>
+                    <small>{item.specialistName}</small>
+                  </button>
+                ))}
+              </div>
+            </Section>
+            <Section title={`Bookings (${searchResults.bookings.length})`}>
+              <div className={"compact-list"}>
+                {searchResults.bookings.map((item) => (
+                  <button
+                    className={"result-row"}
+                    key={item.id}
+                    onClick={() =>
+                      selectSpecialist(item.specialistId, "bookings")
+                    }
+                  >
+                    <span>
+                      <strong>{item.clientName}</strong>
+                      {item.serviceName ? ` · ${item.serviceName}` : ""}
+                    </span>
+                    <small>
+                      {formatDateTime(item.startsAt)} · {item.status}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            </Section>
+          </div>
+        ) : (
+          <EmptyState>
+            {"Search across specialists, clients, and bookings."}
+          </EmptyState>
+        )}
+      </div>
+    );
+  }
+
+  function renderCalendar(): ReactNode {
+    return (
+      <div className={"content-stack"}>
+        <Section
+          title={`Platform calendar (${formatNumber(calendarEvents.length)})`}
+          actions={
+            <form
+              className={"toolbar-form"}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loadCalendar();
+              }}
+            >
+              <input
+                type={"date"}
+                value={calendarFrom}
+                onChange={(event) => setCalendarFrom(event.target.value)}
+              />
+              <input
+                type={"date"}
+                value={calendarTo}
+                onChange={(event) => setCalendarTo(event.target.value)}
+              />
+              <button type={"submit"}>{"Load"}</button>
+              <a
+                className={"button-link"}
+                href={`/api/dashboard/export/bookings.csv?dateFrom=${calendarFrom}&dateTo=${calendarTo}`}
+              >
+                {"Export CSV"}
+              </a>
+            </form>
+          }
+        >
+          <CalendarTable events={calendarEvents} onOpen={selectSpecialist} />
+        </Section>
+      </div>
+    );
+  }
+
+  function renderOps(): ReactNode {
+    return (
+      <div className={"content-stack"}>
+        <div className={"metrics-grid compact"}>
+          <Card
+            label={"Backend"}
+            value={systemStatus?.backendOk ? "OK" : "-"}
+            detail={
+              systemStatus?.serverTime
+                ? formatDateTime(systemStatus.serverTime)
+                : ""
+            }
+          />
+          <Card
+            label={"Database"}
+            value={systemStatus?.databaseOk ? "OK" : "Check"}
+          />
+          <Card
+            label={"Telegram auth"}
+            value={systemStatus?.telegramAuthConfigured ? "OK" : "Missing"}
+          />
+          <Card
+            label={"Admins"}
+            value={formatNumber(admins?.count ?? 0)}
+            detail={admins?.adminIds.join(", ") || "No ADMIN_IDS loaded"}
+          />
+        </div>
+        <div className={"two-col"}>
+          <Section
+            title={"Conflict detector"}
+            actions={
+              <button onClick={() => void loadOps()}>{"Refresh"}</button>
+            }
+          >
+            <ConflictList report={conflicts} onOpen={selectSpecialist} />
+          </Section>
+          <Section title={"Danger zone"}>
+            {selectedSpecialist ? (
+              <div className={"cards-list"}>
+                <div className={"list-card"}>
+                  <div>
+                    <strong>{selectedSpecialist.name}</strong>
+                    <span>
+                      {selectedSpecialist.isActive ? "Active" : "Inactive"} ·
+                      whole-bot deletion is not available here
+                    </span>
+                  </div>
+                  <button
+                    onClick={() =>
+                      void toggleSpecialistState(
+                        selectedSpecialist.id,
+                        !selectedSpecialist.isActive,
+                      )
+                    }
+                  >
+                    {selectedSpecialist.isActive ? "Disable" : "Enable"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <EmptyState>{"Select a specialist to manage state."}</EmptyState>
+            )}
+          </Section>
+        </div>
+        <Section title={"Audit log"}>
+          <AuditLogTable items={auditLog} />
         </Section>
       </div>
     );
@@ -1358,24 +1761,64 @@ export function DashboardApp({
     });
   }
 
-  const content =
-    view === "overview"
-      ? renderOverview()
-      : view === "specialists"
-        ? renderSpecialists()
-        : view === "bookings"
-          ? renderBookings()
-          : view === "clients"
-            ? renderClients()
-            : view === "recurring"
-              ? renderRecurring()
-              : view === "services"
-                ? renderServices()
-                : view === "schedule"
-                  ? renderSchedule()
-                  : view === "referrals"
-                    ? renderReferrals()
-                    : renderSettings();
+  async function toggleSpecialistState(
+    specialistId: string,
+    active: boolean,
+  ): Promise<void> {
+    if (
+      !window.confirm(
+        active
+          ? "Enable this specialist bot?"
+          : "Disable this specialist bot? Existing data stays in place.",
+      )
+    ) {
+      return;
+    }
+    await mutate(
+      active ? "Specialist enabled." : "Specialist disabled.",
+      async () => {
+        await apiJson(`specialists/${specialistId}/state`, {
+          method: "PATCH",
+          body: JSON.stringify({ active }),
+        });
+        if (!active && selectedSpecialistId === specialistId) {
+          setView("specialists");
+        }
+      },
+    );
+    await loadOps();
+  }
+
+  const content = (() => {
+    switch (view) {
+      case "overview":
+        return renderOverview();
+      case "specialists":
+        return renderSpecialists();
+      case "activity":
+        return renderActivity();
+      case "search":
+        return renderSearch();
+      case "calendar":
+        return renderCalendar();
+      case "bookings":
+        return renderBookings();
+      case "clients":
+        return renderClients();
+      case "recurring":
+        return renderRecurring();
+      case "services":
+        return renderServices();
+      case "schedule":
+        return renderSchedule();
+      case "referrals":
+        return renderReferrals();
+      case "ops":
+        return renderOps();
+      case "settings":
+        return renderSettings();
+    }
+  })();
 
   return (
     <div className={"dashboard-shell"}>
@@ -1466,6 +1909,233 @@ function RankList({
             {item.botUsername ? ` @${item.botUsername}` : ""}
           </span>
           <strong>{formatNumber(item.value)}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NamedValueList({ items }: { items: OwnerNamedValue[] }): ReactNode {
+  if (!items.length) {
+    return <EmptyState>{"No data yet."}</EmptyState>;
+  }
+  return (
+    <div className={"compact-list"}>
+      {items.map((item) => (
+        <div key={item.name}>
+          <span>{item.name}</span>
+          <strong>{formatNumber(item.value)}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RevenueLeaderList({
+  items,
+}: {
+  items: OwnerRevenueLeader[];
+}): ReactNode {
+  if (!items.length) {
+    return <EmptyState>{"No revenue yet."}</EmptyState>;
+  }
+  return (
+    <div className={"compact-list"}>
+      {items.map((item, index) => (
+        <div key={`${item.name}-${item.currency}-${index}`}>
+          <span>
+            {item.name}
+            {item.botUsername ? ` @${item.botUsername}` : ""}
+          </span>
+          <strong>
+            {formatNumber(item.revenue)} {item.currency}
+          </strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ActivityList({ events }: { events: OwnerActivityEvent[] }): ReactNode {
+  if (!events.length) {
+    return <EmptyState>{"No activity yet."}</EmptyState>;
+  }
+  return (
+    <div className={"activity-list"}>
+      {events.map((event) => (
+        <div className={"activity-item"} key={event.id}>
+          <div>
+            <strong>{event.title}</strong>
+            <span>
+              {event.detail || event.entityType || "Event"}
+              {event.specialistName ? ` · ${event.specialistName}` : ""}
+            </span>
+          </div>
+          <div>
+            {event.status ? (
+              <span className={statusClass(event.status)}>{event.status}</span>
+            ) : null}
+            <small>{formatDateTime(event.occurredAt)}</small>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AuditLogTable({
+  items,
+}: {
+  items: DashboardAuditLogItem[];
+}): ReactNode {
+  if (!items.length) {
+    return <EmptyState>{"No dashboard actions recorded yet."}</EmptyState>;
+  }
+  return (
+    <div className={"table-wrap"}>
+      <table>
+        <thead>
+          <tr>
+            <th>{"Time"}</th>
+            <th>{"Actor"}</th>
+            <th>{"Action"}</th>
+            <th>{"Specialist"}</th>
+            <th>{"Status"}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id}>
+              <td>{formatDateTime(item.createdAt)}</td>
+              <td>{item.actorTelegramId}</td>
+              <td>
+                <strong>{item.method}</strong>
+                <small>{item.path}</small>
+              </td>
+              <td>{item.specialistName || item.specialistId || "-"}</td>
+              <td>
+                <span
+                  className={
+                    item.statusCode < 400
+                      ? "status status-good"
+                      : "status status-bad"
+                  }
+                >
+                  {item.statusCode}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CalendarTable({
+  events,
+  onOpen,
+}: {
+  events: DashboardCalendarEvent[];
+  onOpen: (id: string, view?: ViewKey) => void;
+}): ReactNode {
+  if (!events.length) {
+    return <EmptyState>{"No bookings in this range."}</EmptyState>;
+  }
+  return (
+    <div className={"table-wrap"}>
+      <table>
+        <thead>
+          <tr>
+            <th>{"Time"}</th>
+            <th>{"Specialist"}</th>
+            <th>{"Client"}</th>
+            <th>{"Service"}</th>
+            <th>{"Status"}</th>
+            <th>{"Open"}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((event) => (
+            <tr key={event.bookingId}>
+              <td>
+                <strong>{formatDateTime(event.startsAt)}</strong>
+                <small>{formatDateTime(event.endsAt)}</small>
+              </td>
+              <td>
+                {event.specialistName}
+                {event.botUsername ? <small>@{event.botUsername}</small> : null}
+              </td>
+              <td>{event.clientName}</td>
+              <td>{event.serviceName || "-"}</td>
+              <td>
+                <span className={statusClass(event.status)}>
+                  {event.status}
+                </span>
+              </td>
+              <td>
+                <button onClick={() => onOpen(event.specialistId, "bookings")}>
+                  {shortID(event.bookingId)}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ConflictList({
+  report,
+  onOpen,
+}: {
+  report: DashboardConflictReport | null;
+  onOpen: (id: string, view?: ViewKey) => void;
+}): ReactNode {
+  if (!report) {
+    return <EmptyState>{"Loading checks..."}</EmptyState>;
+  }
+  if (
+    !report.overlappingBookings.length &&
+    !report.invalidWorkingHours.length
+  ) {
+    return <EmptyState>{"No conflicts detected."}</EmptyState>;
+  }
+  return (
+    <div className={"cards-list"}>
+      {report.overlappingBookings.map((item) => (
+        <div
+          className={"list-card"}
+          key={`${item.firstBookingId}-${item.secondBookingId}`}
+        >
+          <div>
+            <strong>{item.specialistName}</strong>
+            <span>
+              {item.firstClient} overlaps {item.secondClient} ·{" "}
+              {formatDateTime(item.startsAt)}
+            </span>
+          </div>
+          <button onClick={() => onOpen(item.specialistId, "bookings")}>
+            {"Open"}
+          </button>
+        </div>
+      ))}
+      {report.invalidWorkingHours.map((item, index) => (
+        <div
+          className={"list-card"}
+          key={`${item.specialistId}-${item.dayOfWeek}-${index}`}
+        >
+          <div>
+            <strong>{item.specialistName}</strong>
+            <span>
+              {weekDays[item.dayOfWeek]} {item.startTime}-{item.endTime} ·{" "}
+              {item.reason}
+            </span>
+          </div>
+          <button onClick={() => onOpen(item.specialistId, "schedule")}>
+            {"Open"}
+          </button>
         </div>
       ))}
     </div>

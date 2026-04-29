@@ -290,6 +290,18 @@ func migrateSQLite() error {
 			first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS dashboard_audit_log (
+			id TEXT PRIMARY KEY,
+			actor_telegram_id INTEGER NOT NULL,
+			method TEXT NOT NULL,
+			path TEXT NOT NULL,
+			action TEXT NOT NULL,
+			specialist_id TEXT,
+			status_code INTEGER NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_created_at ON dashboard_audit_log(created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_specialist_id ON dashboard_audit_log(specialist_id)`,
 	}
 
 	for _, migration := range migrations {
@@ -555,6 +567,18 @@ func migratePostgres() error {
 			first_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 			last_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS dashboard_audit_log (
+			id TEXT PRIMARY KEY,
+			actor_telegram_id BIGINT NOT NULL,
+			method TEXT NOT NULL,
+			path TEXT NOT NULL,
+			action TEXT NOT NULL,
+			specialist_id TEXT,
+			status_code INTEGER NOT NULL,
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_created_at ON dashboard_audit_log(created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_specialist_id ON dashboard_audit_log(specialist_id)`,
 	}
 
 	for _, migration := range migrations {

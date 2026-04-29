@@ -13,16 +13,24 @@ import (
 )
 
 type DashboardOverviewResponse struct {
-	Platform                 *db.OwnerPlatformStats      `json:"platform"`
-	Bookings                 *db.OwnerBookingStats       `json:"bookings"`
-	Clients                  *db.OwnerClientStats        `json:"clients"`
-	Recurring                *db.OwnerRecurringStats     `json:"recurring"`
-	Referrals                *db.OwnerReferralStats      `json:"referrals"`
-	TopSpecialistsByBookings []db.OwnerTopSpecialist     `json:"topSpecialistsByBookings"`
-	TopSpecialistsByClients  []db.OwnerTopSpecialist     `json:"topSpecialistsByClients"`
-	DurationBreakdown        []db.OwnerDurationStat      `json:"durationBreakdown"`
-	MonthlyTrends            []db.OwnerMonthlyTrendPoint `json:"monthlyTrends"`
-	RevenueByCurrency        []db.OwnerRevenueByCurrency `json:"revenueByCurrency"`
+	Platform                 *db.OwnerPlatformStats           `json:"platform"`
+	Bookings                 *db.OwnerBookingStats            `json:"bookings"`
+	Clients                  *db.OwnerClientStats             `json:"clients"`
+	Recurring                *db.OwnerRecurringStats          `json:"recurring"`
+	Referrals                *db.OwnerReferralStats           `json:"referrals"`
+	BookingFunnel            *db.OwnerBookingFunnel           `json:"bookingFunnel"`
+	Capacity                 *db.OwnerCapacityStats           `json:"capacity"`
+	Cancellations            *db.OwnerCancellationStats       `json:"cancellations"`
+	Retention                *db.OwnerRetentionStats          `json:"retention"`
+	NotificationHealth       *db.OwnerNotificationHealthStats `json:"notificationHealth"`
+	TopSpecialistsByBookings []db.OwnerTopSpecialist          `json:"topSpecialistsByBookings"`
+	TopSpecialistsByClients  []db.OwnerTopSpecialist          `json:"topSpecialistsByClients"`
+	DurationBreakdown        []db.OwnerDurationStat           `json:"durationBreakdown"`
+	MonthlyTrends            []db.OwnerMonthlyTrendPoint      `json:"monthlyTrends"`
+	RevenueByCurrency        []db.OwnerRevenueByCurrency      `json:"revenueByCurrency"`
+	RevenueBySpecialist      []db.OwnerRevenueLeader          `json:"revenueBySpecialist"`
+	RevenueByService         []db.OwnerRevenueLeader          `json:"revenueByService"`
+	Activity                 []db.OwnerActivityEvent          `json:"activity"`
 }
 
 type DashboardSpecialistsResponse struct {
@@ -79,6 +87,31 @@ func HandleDashboardOverview(w http.ResponseWriter, r *http.Request) {
 		dashboardInternalError(w, "dashboard overview referrals", err)
 		return
 	}
+	funnel, err := db.GetOwnerBookingFunnel()
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview funnel", err)
+		return
+	}
+	capacity, err := db.GetOwnerCapacityStats(7)
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview capacity", err)
+		return
+	}
+	cancellations, err := db.GetOwnerCancellationStats()
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview cancellations", err)
+		return
+	}
+	retention, err := db.GetOwnerRetentionStats()
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview retention", err)
+		return
+	}
+	notificationHealth, err := db.GetOwnerNotificationHealthStats()
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview notifications", err)
+		return
+	}
 	topByBookings, err := db.GetOwnerTopSpecialistsByBookings(10)
 	if err != nil {
 		dashboardInternalError(w, "dashboard overview top bookings", err)
@@ -104,6 +137,21 @@ func HandleDashboardOverview(w http.ResponseWriter, r *http.Request) {
 		dashboardInternalError(w, "dashboard overview revenue", err)
 		return
 	}
+	revenueBySpecialist, err := db.GetOwnerRevenueBySpecialist(10)
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview revenue by specialist", err)
+		return
+	}
+	revenueByService, err := db.GetOwnerRevenueByService(10)
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview revenue by service", err)
+		return
+	}
+	activity, err := db.GetOwnerActivityFeed(12)
+	if err != nil {
+		dashboardInternalError(w, "dashboard overview activity", err)
+		return
+	}
 
 	setNoStore(w)
 	writeJSON(w, DashboardOverviewResponse{
@@ -112,11 +160,19 @@ func HandleDashboardOverview(w http.ResponseWriter, r *http.Request) {
 		Clients:                  clients,
 		Recurring:                recurring,
 		Referrals:                referrals,
+		BookingFunnel:            funnel,
+		Capacity:                 capacity,
+		Cancellations:            cancellations,
+		Retention:                retention,
+		NotificationHealth:       notificationHealth,
 		TopSpecialistsByBookings: topByBookings,
 		TopSpecialistsByClients:  topByClients,
 		DurationBreakdown:        durations,
 		MonthlyTrends:            monthly,
 		RevenueByCurrency:        revenueByCurrency,
+		RevenueBySpecialist:      revenueBySpecialist,
+		RevenueByService:         revenueByService,
+		Activity:                 activity,
 	})
 }
 
@@ -178,7 +234,12 @@ func DashboardSpecialistContextMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Specialist not found", http.StatusNotFound)
 			return
 		}
-		if r.Method != http.MethodGet && (!specialist.IsActive || specialist.DeletedAt != nil) {
+		isStatePatch := r.Method == http.MethodPatch && strings.HasSuffix(r.URL.Path, "/state")
+		if isStatePatch && specialist.DeletedAt != nil {
+			http.Error(w, "Specialist is deleted", http.StatusConflict)
+			return
+		}
+		if r.Method != http.MethodGet && !isStatePatch && (!specialist.IsActive || specialist.DeletedAt != nil) {
 			http.Error(w, "Specialist is inactive", http.StatusConflict)
 			return
 		}
