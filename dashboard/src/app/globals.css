@@ -158,6 +158,11 @@ tr:hover td {
   gap: 10px;
 }
 
+.login-language {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .dashboard-shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
@@ -229,6 +234,36 @@ tr:hover td {
   display: flex;
   gap: 16px;
   justify-content: space-between;
+}
+
+.topbar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.language-switch {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.language-switch button {
+  background: transparent;
+  border-radius: 0;
+  color: var(--muted);
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.language-switch button.active,
+.language-switch button:hover {
+  background: var(--brand);
+  color: white;
 }
 
 .selected-specialist {
@@ -601,6 +636,18 @@ tr:hover td {
   .section-title {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    justify-content: stretch;
+  }
+
+  .language-switch {
+    width: 100%;
+  }
+
+  .language-switch button {
+    flex: 1;
   }
 
   .selected-specialist,

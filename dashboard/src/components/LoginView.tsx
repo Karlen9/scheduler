@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import {
+  DashboardI18nProvider,
+  LanguageSwitch,
+  useDashboardI18n,
+} from "@/lib/i18n";
 import type { ReactNode } from "react";
 
 type TelegramLoginUser = {
@@ -31,18 +36,35 @@ function isValidBotUsername(value: string): boolean {
   );
 }
 
-function getTelegramOriginError(location: Location): string {
+function getTelegramOriginError(
+  location: Location,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
   const localHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
   if (localHosts.has(location.hostname)) {
-    return "Telegram Login does not work from localhost. Open the dashboard through a public HTTPS domain or tunnel, then set that domain for this bot in BotFather.";
+    return t(
+      "Telegram Login does not work from localhost. Open the dashboard through a public HTTPS domain or tunnel, then set that domain for this bot in BotFather.",
+    );
   }
   if (location.protocol !== "https:") {
-    return `Telegram Login requires HTTPS. Current origin is ${location.origin}. Open the dashboard through HTTPS and set that domain for this bot in BotFather.`;
+    return t(
+      "Telegram Login requires HTTPS. Current origin is {{origin}}. Open the dashboard through HTTPS and set that domain for this bot in BotFather.",
+      { origin: location.origin },
+    );
   }
   return "";
 }
 
 export function LoginView(): ReactNode {
+  return (
+    <DashboardI18nProvider>
+      <LoginViewInner />
+    </DashboardI18nProvider>
+  );
+}
+
+function LoginViewInner(): ReactNode {
+  const { t } = useDashboardI18n();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState("");
   const [widgetError, setWidgetError] = useState("");
@@ -61,7 +83,7 @@ export function LoginView(): ReactNode {
       return;
     }
 
-    const originError = getTelegramOriginError(window.location);
+    const originError = getTelegramOriginError(window.location, t);
     if (originError) {
       setWidgetError(originError);
       setIsWidgetLoading(false);
@@ -82,8 +104,8 @@ export function LoginView(): ReactNode {
       if (!response.ok) {
         setError(
           response.status === 403
-            ? "This Telegram account is not allowed."
-            : "Telegram login failed.",
+            ? t("This Telegram account is not allowed.")
+            : t("Telegram login failed."),
         );
         return;
       }
@@ -101,7 +123,7 @@ export function LoginView(): ReactNode {
     script.setAttribute("data-onauth", "onTelegramDashboardAuth(user)");
     script.onerror = () => {
       setIsWidgetLoading(false);
-      setWidgetError("Telegram login widget could not be loaded.");
+      setWidgetError(t("Telegram login widget could not be loaded."));
     };
     containerRef.current.appendChild(script);
 
@@ -117,7 +139,9 @@ export function LoginView(): ReactNode {
       if (!containerRef.current?.querySelector("iframe")) {
         setIsWidgetLoading(false);
         setWidgetError(
-          "Telegram login widget did not render. Check NEXT_PUBLIC_TELEGRAM_BOT_USERNAME and BotFather /setdomain.",
+          t(
+            "Telegram login widget did not render. Check NEXT_PUBLIC_TELEGRAM_BOT_USERNAME and BotFather /setdomain.",
+          ),
         );
       }
     }, 3500);
@@ -127,25 +151,30 @@ export function LoginView(): ReactNode {
       observer.disconnect();
       delete window.onTelegramDashboardAuth;
     };
-  }, [botUsername, hasValidBotUsername]);
+  }, [botUsername, hasValidBotUsername, t]);
 
   return (
     <main className={"login-shell"}>
       <section className={"login-panel"}>
+        <div className={"login-language"}>
+          <LanguageSwitch />
+        </div>
         <div>
-          <p className={"eyebrow"}>{"Owner console"}</p>
-          <h1>{"Scheduler dashboard"}</h1>
+          <p className={"eyebrow"}>{t("Owner console")}</p>
+          <h1>{t("Scheduler dashboard")}</h1>
           <p className={"login-copy"}>
-            {
-              "Sign in with the Telegram account listed in ADMIN_IDS to view platform analytics and manage specialists."
-            }
+            {t(
+              "Sign in with the Telegram account listed in ADMIN_IDS to view platform analytics and manage specialists.",
+            )}
           </p>
         </div>
         {hasValidBotUsername ? (
           <div className={"telegram-login-block"}>
             <div className={"telegram-login"} ref={containerRef} />
             {isWidgetLoading ? (
-              <div className={"notice-box"}>{"Loading Telegram login..."}</div>
+              <div className={"notice-box"}>
+                {t("Loading Telegram login...")}
+              </div>
             ) : null}
             {widgetError ? (
               <div className={"error-box"}>{widgetError}</div>
@@ -154,8 +183,10 @@ export function LoginView(): ReactNode {
         ) : (
           <div className={"error-box"}>
             {hasBotUsername
-              ? "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME must be the bot username from BotFather, for example scheduler_admin_bot. Do not use a bot token, Telegram account username, @ prefix, or t.me link."
-              : "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME is not configured."}
+              ? t(
+                  "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME must be the bot username from BotFather, for example scheduler_admin_bot. Do not use a bot token, Telegram account username, @ prefix, or t.me link.",
+                )
+              : t("NEXT_PUBLIC_TELEGRAM_BOT_USERNAME is not configured.")}
           </div>
         )}
         {error ? <div className={"error-box"}>{error}</div> : null}
