@@ -31,6 +31,17 @@ function isValidBotUsername(value: string): boolean {
   );
 }
 
+function getTelegramOriginError(location: Location): string {
+  const localHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+  if (localHosts.has(location.hostname)) {
+    return "Telegram Login does not work from localhost. Open the dashboard through a public HTTPS domain or tunnel, then set that domain for this bot in BotFather.";
+  }
+  if (location.protocol !== "https:") {
+    return `Telegram Login requires HTTPS. Current origin is ${location.origin}. Open the dashboard through HTTPS and set that domain for this bot in BotFather.`;
+  }
+  return "";
+}
+
 export function LoginView(): ReactNode {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState("");
@@ -47,6 +58,13 @@ export function LoginView(): ReactNode {
 
   useEffect(() => {
     if (!hasValidBotUsername || !botUsername || !containerRef.current) {
+      return;
+    }
+
+    const originError = getTelegramOriginError(window.location);
+    if (originError) {
+      setWidgetError(originError);
+      setIsWidgetLoading(false);
       return;
     }
 

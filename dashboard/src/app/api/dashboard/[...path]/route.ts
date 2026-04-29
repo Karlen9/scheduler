@@ -40,6 +40,7 @@ async function proxyDashboardRequest(
 
   const headers = new Headers();
   headers.set("Authorization", `Bearer ${superadminSecret()}`);
+  headers.set("X-Dashboard-User-ID", String(user.id));
   const contentType = request.headers.get("content-type");
   if (contentType) {
     headers.set("Content-Type", contentType);
@@ -67,6 +68,10 @@ async function proxyDashboardRequest(
   const responseContentType = response.headers.get("content-type");
   if (responseContentType) {
     responseHeaders.set("Content-Type", responseContentType);
+  }
+  const contentDisposition = response.headers.get("content-disposition");
+  if (contentDisposition) {
+    responseHeaders.set("Content-Disposition", contentDisposition);
   }
   return new NextResponse(response.body, {
     status: response.status,

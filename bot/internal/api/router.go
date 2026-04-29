@@ -87,13 +87,23 @@ func NewRouter() http.Handler {
 		r.Get("/specialists", HandleListAllSpecialists)
 
 		r.Route("/dashboard", func(r chi.Router) {
+			r.Use(DashboardAuditMiddleware)
 			r.Get("/overview", HandleDashboardOverview)
+			r.Get("/activity", HandleDashboardActivity)
+			r.Get("/audit-log", HandleDashboardAuditLog)
+			r.Get("/search", HandleDashboardSearch)
+			r.Get("/calendar", HandleDashboardCalendar)
+			r.Get("/conflicts", HandleDashboardConflicts)
+			r.Get("/system", HandleDashboardSystem)
+			r.Get("/admins", HandleDashboardAdmins)
+			r.Get("/export/bookings.csv", HandleDashboardExportBookingsCSV)
 			r.Get("/specialists", HandleDashboardListSpecialists)
 
 			r.Route("/specialists/{specialistID}", func(r chi.Router) {
 				r.Use(DashboardSpecialistContextMiddleware)
 
 				r.Get("/snapshot", HandleDashboardSpecialistSnapshot)
+				r.Patch("/state", HandleDashboardSetSpecialistState)
 				r.Get("/durations", HandleAdminGetDurations)
 
 				r.Get("/services", HandleAdminGetServices)
