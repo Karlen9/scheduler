@@ -12,7 +12,13 @@ import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { NextBookingBanner } from '@/components/schedule/NextBookingBanner';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { invalidateBookings } from '@/hooks/mutations';
-import { useAdminBookings, useAdminScheduleContext, useAdminServices } from '@/hooks/queries';
+import {
+  useAdminBookings,
+  useAdminBookingsPage,
+  useAdminScheduleContext,
+  useAdminServices,
+} from '@/hooks/queries';
+import { ADMIN_UPCOMING_BOOKING_STATUSES, todayISO } from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
 import { getNonWorkingDays } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
@@ -22,7 +28,7 @@ import { CancelDialog } from './CancelDialog';
 import { RejectDialog } from './RejectDialog';
 import { StatsSection } from './StatsSection';
 
-import type { TBooking } from '@/lib/types';
+import type { TAdminBookingsQuery, TBooking } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 /***************************************************************************************************
@@ -68,11 +74,28 @@ export default function AdminHomePage(): ReactNode {
    ***************************************************************************************************/
   const ts = useTranslations('Success');
   const [isPageVisible, setIsPageVisible] = useState(true);
+  const activeBookingsCountQuery = useMemo<TAdminBookingsQuery>(
+    () => ({
+      page: 1,
+      limit: 1,
+      statuses: ADMIN_UPCOMING_BOOKING_STATUSES,
+      dateFrom: todayISO(),
+      sort: 'starts_at_asc',
+    }),
+    [],
+  );
   const {
     data: bookings,
     isLoading,
     error: fetchError,
   } = useAdminBookings({ refreshInterval: isPageVisible ? 15000 : 0 });
+  const {
+    data: activeBookingsPage,
+    isLoading: activeBookingsCountLoading,
+    error: activeBookingsCountError,
+  } = useAdminBookingsPage(activeBookingsCountQuery, {
+    refreshInterval: isPageVisible ? 15000 : 0,
+  });
   const { data: scheduleData } = useAdminScheduleContext();
   const { data: services } = useAdminServices();
 
@@ -124,9 +147,10 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const error = fetchError
-    ? fetchError instanceof Error
-      ? fetchError.message
+  const fetchFailure = fetchError ?? activeBookingsCountError;
+  const error = fetchFailure
+    ? fetchFailure instanceof Error
+      ? fetchFailure.message
       : t('loadError')
     : null;
 
@@ -320,7 +344,7 @@ export default function AdminHomePage(): ReactNode {
     [pathname, router],
   );
 
-  if (isLoading) {
+  if (isLoading || activeBookingsCountLoading) {
     return (
       <div className={'space-y-6 p-4'}>
         <div className={'animate-pulse'}>
@@ -363,7 +387,7 @@ export default function AdminHomePage(): ReactNode {
          ***************************************************************************************************/}
         <StatsSection
           pendingCount={pendingCount}
-          bookingsCount={bookings.length}
+          bookingsCount={activeBookingsPage.total}
           onPendingClick={pendingCount > 0 ? () => setShowPendingSheet(true) : undefined}
           onBookingsClick={() => router.push(resolveTestAwareHref(pathname, '/admin/bookings'))}
         />

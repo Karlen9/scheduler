@@ -400,7 +400,10 @@ export function useAdminBookings(opts?: { refreshInterval?: number }): {
   return { data: data ?? [], isLoading, error, mutate };
 }
 
-export function useAdminBookingsPage(params: TAdminBookingsQuery): {
+export function useAdminBookingsPage(
+  params: TAdminBookingsQuery,
+  opts?: { refreshInterval?: number },
+): {
   data: TAdminBookingsResponse;
   isLoading: boolean;
   error: Error | undefined;
@@ -410,7 +413,11 @@ export function useAdminBookingsPage(params: TAdminBookingsQuery): {
   const { data, isLoading, error, mutate } = useSWR<TAdminBookingsResponse>(
     CACHE_KEYS.adminBookingsList(queryKey),
     async () => api.admin.getBookingsPage(params),
-    dynamicConfig,
+    {
+      ...dynamicConfig,
+      refreshInterval: opts?.refreshInterval,
+      refreshWhenHidden: false,
+    },
   );
   return {
     data: data ?? {
