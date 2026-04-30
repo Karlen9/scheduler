@@ -930,6 +930,48 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 	return data, contentType, nil
 }
 
+// GetUserProfilePhotoFileID returns the largest available file_id for the user's current Telegram
+// profile photo. An empty string means Telegram reported no profile photos for that user.
+func (b *Bot) GetUserProfilePhotoFileID(userID int64) (string, error) {
+	body := map[string]interface{}{
+		"user_id": userID,
+		"limit":   1,
+	}
+	jsonBody, _ := json.Marshal(body)
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/getUserProfilePhotos",
+		"application/json",
+		bytes.NewBuffer(jsonBody),
+	)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			TotalCount int `json:"total_count"`
+			Photos     [][]struct {
+				FileID string `json:"file_id"`
+			} `json:"photos"`
+		} `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+	if !result.OK {
+		return "", fmt.Errorf("getUserProfilePhotos failed: %s", result.Description)
+	}
+	if result.Result.TotalCount == 0 || len(result.Result.Photos) == 0 || len(result.Result.Photos[0]) == 0 {
+		return "", nil
+	}
+
+	photos := result.Result.Photos[0]
+	return photos[len(photos)-1].FileID, nil
+}
+
 /***************************************************************************************************
 * PollUpdates starts polling for updates.
 *

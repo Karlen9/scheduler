@@ -468,7 +468,11 @@ export function getInitData(): string {
    * - Reused by the shared utility layer to keep shared values centralized.
    ***************************************************************************************************/
   const webApp = getTelegramWebApp();
-  return webApp?.initData ?? '';
+  const initData = webApp?.initData || initDataCache || '';
+  if (initData && !initDataCache) {
+    initDataCache = initData;
+  }
+  return initData;
 }
 
 /***************************************************************************************************

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api } from '../api';
+import { api, getPhotoUrl } from '../api';
 
 vi.mock('../telegram', () => ({
+  getInitData: () => 'mock-init-data',
   getSpecialistId: () => 'mock-specialist-id',
   waitForInitData: async () => Promise.resolve('mock-init-data'),
 }));
@@ -156,5 +157,19 @@ describe('error handling', () => {
     });
 
     await expect(api.getSpecialist()).rejects.toThrow('HTTP 500');
+  });
+});
+
+describe('getPhotoUrl', () => {
+  it('proxies Telegram file IDs with auth query params', () => {
+    expect(getPhotoUrl('telegram:profile_file_id')).toBe(
+      '/api/photo/profile_file_id?specialist=mock-specialist-id&initData=mock-init-data',
+    );
+  });
+
+  it('leaves direct Telegram URLs untouched', () => {
+    const url = 'https://t.me/i/userpic/320/user.jpg';
+
+    expect(getPhotoUrl(url)).toBe(url);
   });
 });

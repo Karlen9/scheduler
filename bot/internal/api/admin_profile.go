@@ -29,6 +29,7 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
+	ensureSpecialistTelegramProfilePhoto(r, specialist)
 
 	writeJSON(w, SpecialistResponse{
 		ID:                specialist.ID,
@@ -97,10 +98,7 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if req.PhotoURL != nil {
 		photoURL = *req.PhotoURL
 		if photoURL == "" {
-			user := GetTelegramUserFromContext(r)
-			if user != nil && user.ID == specialist.TelegramUserID && user.PhotoURL != "" {
-				photoURL = user.PhotoURL
-			}
+			photoURL = resolveTelegramProfilePhoto(r, specialist.BotToken, specialist.TelegramUserID)
 		}
 	}
 	locationLatitude := specialist.LocationLatitude

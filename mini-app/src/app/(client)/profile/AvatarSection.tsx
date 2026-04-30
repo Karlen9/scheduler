@@ -9,12 +9,6 @@ import { getAvatarColor } from '@/lib/colors';
 import type { TAvatarSectionProps } from '@/lib/types';
 import type { ReactNode } from 'react';
 
-function isDirectPhotoUrl(photoUrl: string): boolean {
-  return (
-    photoUrl.startsWith('http') || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')
-  );
-}
-
 /***************************************************************************************************
  * Renders the avatar section UI and related interactions.
  *
@@ -52,7 +46,7 @@ export function AvatarSection({
             height={96}
             src={photoSrc}
             alt={name}
-            unoptimized={isDirectPhotoUrl(photoUrl)}
+            unoptimized
             className={'h-24 w-24 rounded-full object-cover'}
             onError={onPhotoError}
           />

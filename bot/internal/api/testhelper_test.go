@@ -105,6 +105,7 @@ func TestMain(m *testing.M) {
 	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error { return nil }
 	api.NotifyRescheduleRequestFunc = func(newBooking, oldBooking *models.Booking) error { return nil }
 	api.NotifyRescheduleResponseFunc = func(newBooking, oldBooking *models.Booking, approved bool) error { return nil }
+	api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) { return "", nil })
 
 	/***************************************************************************************************
 	* Create the router.

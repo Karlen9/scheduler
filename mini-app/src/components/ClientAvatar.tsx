@@ -21,13 +21,6 @@ const sizeClasses = {
   lg: 'w-16 h-16 text-2xl',
 };
 
-function isDirectPhotoUrl(photoUrl?: string): boolean {
-  return Boolean(
-    photoUrl &&
-    (photoUrl.startsWith('http') || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')),
-  );
-}
-
 /***************************************************************************************************
  * Renders the client avatar UI and related interactions.
  *
@@ -74,7 +67,7 @@ export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps
         height={32}
         src={photoSrc}
         alt={name}
-        unoptimized={isDirectPhotoUrl(photoUrl)}
+        unoptimized
         className={`${cls} shrink-0 rounded-full object-cover`}
         onError={() => setError(true)}
       />
