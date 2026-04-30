@@ -200,6 +200,7 @@ func NewRouter() http.Handler {
 		r.Get("/profile", HandleGetClientProfile)
 		r.Put("/profile", HandleUpdateClientProfile)
 		r.Put("/profile/notifications", HandleUpdateClientNotificationPrefs)
+		r.Post("/profile/restore-telegram-photo", HandleRestoreClientTelegramPhoto)
 
 		/***************************************************************************************************
 		* Client recurring schedules.
@@ -274,6 +275,7 @@ func NewRouter() http.Handler {
 			***************************************************************************************************/
 			r.Get("/profile", HandleGetProfile)
 			r.Put("/profile", HandleUpdateProfile)
+			r.Post("/profile/restore-telegram-photo", HandleRestoreSpecialistTelegramPhoto)
 
 			/***************************************************************************************************
 			* Recurring schedules (admin).

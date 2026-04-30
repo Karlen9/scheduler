@@ -90,7 +90,7 @@ func isTelegramProfilePhotoValue(photoURL string) bool {
 }
 
 func ensureClientTelegramProfilePhoto(r *http.Request, client *models.Client, specialist *models.Specialist) {
-	if client == nil || specialist == nil {
+	if client == nil || specialist == nil || client.PhotoRemoved {
 		return
 	}
 
@@ -107,7 +107,7 @@ func ensureClientTelegramProfilePhoto(r *http.Request, client *models.Client, sp
 }
 
 func ensureSpecialistTelegramProfilePhoto(r *http.Request, specialist *models.Specialist) {
-	if specialist == nil {
+	if specialist == nil || specialist.PhotoRemoved {
 		return
 	}
 

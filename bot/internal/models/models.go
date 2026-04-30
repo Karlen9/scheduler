@@ -22,6 +22,7 @@ type Specialist struct {
 	Specialization      string     `json:"specialization"`
 	Bio                 string     `json:"bio"`
 	PhotoURL            string     `json:"photoUrl"`
+	PhotoRemoved        bool       `json:"-"`
 	LocationLatitude    float64    `json:"locationLatitude"`
 	LocationLongitude   float64    `json:"locationLongitude"`
 	Language            string     `json:"language,omitempty"`
@@ -49,6 +50,7 @@ type Client struct {
 	DisplayName         string    `json:"displayName,omitempty"`
 	Phone               string    `json:"phone,omitempty"`
 	PhotoURL            string    `json:"photoUrl,omitempty"`
+	PhotoRemoved        bool      `json:"-"`
 	PreferredDuration   int       `json:"preferredDuration,omitempty"`
 	Language            string    `json:"language,omitempty"`
 	ReferredViaCode     string    `json:"referredViaCode,omitempty"`

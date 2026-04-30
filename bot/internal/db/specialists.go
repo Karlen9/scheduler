@@ -56,12 +56,12 @@ func generateReferralCode() string {
 func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, error) {
 	var t models.Specialist
 	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper, referralCode, referredViaCode sql.NullString
-	var notifyNewBookings, notifyCancellations sql.NullInt64
+	var notifyNewBookings, notifyCancellations, photoRemoved sql.NullInt64
 	var deletedAt, firstPaymentAt sql.NullTime
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
-		&telegramHandle, &phone, &specialization, &bio, &photoURL,
+		&telegramHandle, &phone, &specialization, &bio, &photoURL, &photoRemoved,
 		&t.LocationLatitude, &t.LocationLongitude,
 		&availableDurations,
 		&notifyNewBookings, &notifyCancellations,
@@ -84,6 +84,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	t.Specialization = specialization.String
 	t.Bio = bio.String
 	t.PhotoURL = photoURL.String
+	t.PhotoRemoved = photoRemoved.Valid && photoRemoved.Int64 == 1
 	t.AvailableDurations = availableDurations.String
 	t.NotifyNewBookings = !notifyNewBookings.Valid || notifyNewBookings.Int64 == 1
 	t.NotifyCancellations = !notifyCancellations.Valid || notifyCancellations.Int64 == 1
@@ -120,7 +121,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -469,7 +470,7 @@ func GetReferredClientsBySpecialist(specialistID, referralCode string) ([]models
 		return []models.Client{}, nil
 	}
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, referred_via_code, telegram_username
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, referred_via_code, telegram_username
 		FROM clients
 		WHERE specialist_id = ? AND referred_via_code = ? AND COALESCE(is_ghost, 0) = 0
 		ORDER BY created_at DESC
@@ -536,13 +537,13 @@ func UpdateSpecialist(id, name, timezone string, cancelCutoffHrs int) (*models.S
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
-func UpdateSpecialistProfile(id, telegramHandle, phone, specialization, bio, photoURL string, locationLatitude, locationLongitude float64, wallpaper string) (*models.Specialist, error) {
+func UpdateSpecialistProfile(id, telegramHandle, phone, specialization, bio string, locationLatitude, locationLongitude float64, wallpaper string) (*models.Specialist, error) {
 	_, err := DB.Exec(Q(`
 		UPDATE specialists
-		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?, photo_url = ?,
+		SET telegram_handle = ?, phone = ?, specialization = ?, bio = ?,
 		    location_latitude = ?, location_longitude = ?, wallpaper = ?
 		WHERE id = ?
-	`), telegramHandle, phone, specialization, bio, photoURL, locationLatitude, locationLongitude, wallpaper, id)
+	`), telegramHandle, phone, specialization, bio, locationLatitude, locationLongitude, wallpaper, id)
 	if err != nil {
 		return nil, err
 	}

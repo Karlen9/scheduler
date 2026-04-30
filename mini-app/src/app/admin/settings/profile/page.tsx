@@ -99,12 +99,9 @@ export default function ProfilePage(): ReactNode {
     setBio(profile.bio || '');
     setPhone(profile.phone || '');
     setTelegram(profile.telegramHandle || '');
+    setPhotoUrl(profile.photoUrl || '');
     if (isStoredTelegramProfilePhoto(profile.photoUrl)) {
-      setTelegramPhotoUrl((current) => current || profile.photoUrl || '');
       setTelegramPhotoVersion(String(Date.now()));
-      setPhotoUrl('');
-    } else {
-      setPhotoUrl(profile.photoUrl || '');
     }
     setWallpaper((profile.wallpaper as TWallpaperId) || 'none');
     setInitialized(true);
@@ -197,33 +194,40 @@ export default function ProfilePage(): ReactNode {
   };
 
   /***************************************************************************************************
-   * Handles delete photo.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
+   * Clears the photo entirely. Backend records the explicit removal so the Telegram avatar is not
+   * silently restored — the user must click "Use Telegram photo" to bring it back.
    ***************************************************************************************************/
   const handleDeletePhoto = async (): Promise<void> => {
     setIsDeletingPhoto(true);
     try {
-      const fallbackTelegramPhotoUrl =
-        telegramPhotoUrl || getTelegramUserPhotoUrl() || (await waitForTelegramUserPhotoUrl());
       const updated = await api.admin.updateProfile({ photoUrl: '' });
-      if (isStoredTelegramProfilePhoto(updated.photoUrl)) {
-        setTelegramPhotoUrl(updated.photoUrl ?? '');
-        setTelegramPhotoVersion(String(Date.now()));
-        setPhotoUrl('');
-      } else if (fallbackTelegramPhotoUrl) {
-        setTelegramPhotoUrl(fallbackTelegramPhotoUrl);
-        setTelegramPhotoVersion(String(Date.now()));
-        setPhotoUrl(updated.photoUrl || '');
-      } else {
-        setPhotoUrl(updated.photoUrl || '');
-      }
+      setPhotoUrl(updated.photoUrl ?? '');
       setPhotoError(false);
       invalidateSpecialist();
       toast.success(ts('photoRemoved'));
     } catch (err) {
       console.error('Failed to delete photo:', err);
+      toast.error(te('saveFailed'));
+    } finally {
+      setIsDeletingPhoto(false);
+    }
+  };
+
+  /***************************************************************************************************
+   * Restores the user's current Telegram profile photo via the dedicated endpoint. Surfaces a
+   * toast when Telegram has no photo to restore (e.g., the user has no avatar set).
+   ***************************************************************************************************/
+  const handleUseTelegramPhoto = async (): Promise<void> => {
+    setIsDeletingPhoto(true);
+    try {
+      const updated = await api.admin.restoreTelegramPhoto();
+      setPhotoUrl(updated.photoUrl ?? '');
+      setTelegramPhotoVersion(String(Date.now()));
+      setPhotoError(false);
+      invalidateSpecialist();
+      toast.success(ts('photoUpdated'));
+    } catch (err) {
+      console.error('Failed to restore Telegram photo:', err);
       toast.error(te('saveFailed'));
     } finally {
       setIsDeletingPhoto(false);
@@ -279,17 +283,15 @@ export default function ProfilePage(): ReactNode {
     );
   }
 
-  const customPhotoUrl = isCustomProfilePhoto(photoUrl) ? photoUrl : '';
-  const storedTelegramPhotoUrl = isStoredTelegramProfilePhoto(photoUrl) ? photoUrl : '';
-  const rawTelegramPhotoUrl = telegramPhotoUrl || storedTelegramPhotoUrl;
-  const displayPhotoUrl =
-    customPhotoUrl ||
-    (rawTelegramPhotoUrl
-      ? getTelegramPhotoDisplayUrl(rawTelegramPhotoUrl, telegramPhotoVersion)
-      : '');
-  const hasPhoto = Boolean(displayPhotoUrl);
+  const isCurrentTelegramPhoto = isStoredTelegramProfilePhoto(photoUrl);
+  const isCurrentCustomPhoto = isCustomProfilePhoto(photoUrl);
+  const hasPhoto = Boolean(photoUrl);
+  const displayPhotoUrl = isCurrentTelegramPhoto
+    ? getTelegramPhotoDisplayUrl(photoUrl, telegramPhotoVersion)
+    : photoUrl;
   const photoSrc = hasPhoto && !photoError ? getPhotoUrl(displayPhotoUrl) : null;
-  const canDeletePhoto = Boolean(customPhotoUrl);
+  const canRestoreTelegramPhoto =
+    !isCurrentTelegramPhoto && (isCurrentCustomPhoto || !hasPhoto || Boolean(telegramPhotoUrl));
 
   return (
     <div>
@@ -342,9 +344,9 @@ export default function ProfilePage(): ReactNode {
             />
           </div>
         </div>
-        {hasPhoto && (
-          <div className={'-mt-4 flex justify-center'}>
-            {canDeletePhoto ? (
+        {(hasPhoto || canRestoreTelegramPhoto) && (
+          <div className={'-mt-4 flex flex-wrap items-center justify-center gap-2'}>
+            {hasPhoto && (
               <button
                 type={'button'}
                 onClick={handleDeletePhoto}
@@ -362,12 +364,20 @@ export default function ProfilePage(): ReactNode {
                 ) : (
                   <Trash2 className={'h-4 w-4'} />
                 )}
-                {telegramPhotoUrl ? t('useTelegramPhoto') : t('removePhoto')}
+                {t('removePhoto')}
               </button>
-            ) : (
-              <p className={'text-muted-foreground px-3 py-2 text-sm'}>
-                {t('telegramPhotoActive')}
-              </p>
+            )}
+            {canRestoreTelegramPhoto && (
+              <button
+                type={'button'}
+                onClick={handleUseTelegramPhoto}
+                disabled={isDeletingPhoto || isUploading}
+                className={
+                  'text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-50'
+                }
+              >
+                {t('useTelegramPhoto')}
+              </button>
             )}
           </div>
         )}

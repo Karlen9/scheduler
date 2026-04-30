@@ -120,12 +120,9 @@ export default function ClientProfilePage(): ReactNode {
     if (profile) {
       setName(profile.name || '');
       setPhone(profile.phone || '');
+      setPhotoUrl(profile.photoUrl || '');
       if (isStoredTelegramProfilePhoto(profile.photoUrl)) {
-        setTelegramPhotoUrl((current) => current || profile.photoUrl || '');
         setTelegramPhotoVersion(String(Date.now()));
-        setPhotoUrl('');
-      } else {
-        setPhotoUrl(profile.photoUrl || '');
       }
       setPhotoError(false);
       setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
@@ -276,20 +273,8 @@ export default function ClientProfilePage(): ReactNode {
     setIsDeletingPhoto(true);
 
     try {
-      const fallbackTelegramPhotoUrl =
-        telegramPhotoUrl || getTelegramUserPhotoUrl() || (await waitForTelegramUserPhotoUrl());
       const updatedProfile = await api.updateProfile({ photoUrl: '' });
-      if (isStoredTelegramProfilePhoto(updatedProfile.photoUrl)) {
-        setTelegramPhotoUrl(updatedProfile.photoUrl ?? '');
-        setTelegramPhotoVersion(String(Date.now()));
-        setPhotoUrl('');
-      } else if (fallbackTelegramPhotoUrl) {
-        setTelegramPhotoUrl(fallbackTelegramPhotoUrl);
-        setTelegramPhotoVersion(String(Date.now()));
-        setPhotoUrl(updatedProfile.photoUrl || '');
-      } else {
-        setPhotoUrl(updatedProfile.photoUrl || '');
-      }
+      setPhotoUrl(updatedProfile.photoUrl ?? '');
       setPhotoError(false);
 
       if (profile) {
@@ -308,7 +293,32 @@ export default function ClientProfilePage(): ReactNode {
     } finally {
       setIsDeletingPhoto(false);
     }
-  }, [mutate, profile, te, telegramPhotoUrl, ts]);
+  }, [mutate, profile, te, ts]);
+
+  const handleUseTelegramPhoto = useCallback(async (): Promise<void> => {
+    setIsDeletingPhoto(true);
+    try {
+      const updatedProfile = await api.restoreTelegramPhoto();
+      setPhotoUrl(updatedProfile.photoUrl ?? '');
+      setTelegramPhotoVersion(String(Date.now()));
+      setPhotoError(false);
+      if (profile) {
+        await mutate(async () => updatedProfile, {
+          populateCache: true,
+          revalidate: false,
+        });
+      } else {
+        invalidateProfile();
+      }
+      invalidateProfile();
+      toast.success(ts('photoUpdated'));
+    } catch (err) {
+      console.error('Failed to restore Telegram photo:', err);
+      toast.error(te('saveFailed'));
+    } finally {
+      setIsDeletingPhoto(false);
+    }
+  }, [mutate, profile, te, ts]);
 
   /***************************************************************************************************
    * Handles save.
@@ -410,16 +420,14 @@ export default function ClientProfilePage(): ReactNode {
     );
   }
 
-  const customPhotoUrl = isCustomProfilePhoto(photoUrl) ? photoUrl : '';
-  const storedTelegramPhotoUrl = isStoredTelegramProfilePhoto(photoUrl) ? photoUrl : '';
-  const rawTelegramPhotoUrl = telegramPhotoUrl || storedTelegramPhotoUrl;
-  const displayPhotoUrl =
-    customPhotoUrl ||
-    (rawTelegramPhotoUrl
-      ? getTelegramPhotoDisplayUrl(rawTelegramPhotoUrl, telegramPhotoVersion)
-      : '');
-  const hasPhoto = Boolean(displayPhotoUrl);
-  const canDeletePhoto = Boolean(customPhotoUrl);
+  const isCurrentTelegramPhoto = isStoredTelegramProfilePhoto(photoUrl);
+  const isCurrentCustomPhoto = isCustomProfilePhoto(photoUrl);
+  const hasPhoto = Boolean(photoUrl);
+  const displayPhotoUrl = isCurrentTelegramPhoto
+    ? getTelegramPhotoDisplayUrl(photoUrl, telegramPhotoVersion)
+    : photoUrl;
+  const canRestoreTelegramPhoto =
+    !isCurrentTelegramPhoto && (isCurrentCustomPhoto || !hasPhoto || Boolean(telegramPhotoUrl));
 
   return (
     <div>
@@ -436,9 +444,9 @@ export default function ClientProfilePage(): ReactNode {
           onFileSelect={handleFileSelect}
         />
 
-        {!isPreview && hasPhoto && (
-          <div className={'-mt-4 flex justify-center'}>
-            {canDeletePhoto ? (
+        {!isPreview && (hasPhoto || canRestoreTelegramPhoto) && (
+          <div className={'-mt-4 flex flex-wrap items-center justify-center gap-2'}>
+            {hasPhoto && (
               <button
                 type={'button'}
                 onClick={handleDeletePhoto}
@@ -456,12 +464,20 @@ export default function ClientProfilePage(): ReactNode {
                 ) : (
                   <Trash2 className={'h-4 w-4'} />
                 )}
-                {telegramPhotoUrl ? t('useTelegramPhoto') : t('removePhoto')}
+                {t('removePhoto')}
               </button>
-            ) : (
-              <p className={'text-muted-foreground px-3 py-2 text-sm'}>
-                {t('telegramPhotoActive')}
-              </p>
+            )}
+            {canRestoreTelegramPhoto && (
+              <button
+                type={'button'}
+                onClick={handleUseTelegramPhoto}
+                disabled={isDeletingPhoto || isUploading}
+                className={
+                  'text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-50'
+                }
+              >
+                {t('useTelegramPhoto')}
+              </button>
             )}
           </div>
         )}

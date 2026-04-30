@@ -531,6 +531,9 @@
   "Error.PhotoOnlyImages": {
     "other": "Only image files allowed"
   },
+  "Error.TelegramPhotoUnavailable": {
+    "other": "Telegram profile photo not available"
+  },
   "Master.Welcome": {
     "other": "👋 Hello! I'll help you create a bot for online booking of your clients.\n\n🎯 What you'll get:\n• A personal bot with your name (@your_name_bot)\n• Clients book themselves — you just confirm\n• Calendar, services and prices — everything is customizable\n• Notifications about new bookings right in Telegram\n\n⏱ Setup takes 2 minutes.\n\n📝 First step — create a bot in Telegram:\n\n1. Open @BotFather (click the link)\n2. Send the /newbot command\n3. Enter a name (e.g. \"Specialist John\")\n4. Enter a username (e.g. specialist_john_bot)\n5. Copy the token — a long string of numbers and letters\n\nSend me your bot token:"
   },

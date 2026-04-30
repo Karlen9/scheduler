@@ -214,18 +214,20 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 
 			/***************************************************************************************************
-			* Auto-set Telegram profile photo if client has no custom photo.
+			* Auto-set Telegram profile photo only when the user has not explicitly removed it. The
+			* photo_removed flag persists deliberate clears so they survive subsequent web-app loads.
 			***************************************************************************************************/
-			if client.PhotoURL == "" && user.PhotoURL != "" {
+			if client.PhotoURL == "" && !client.PhotoRemoved && user.PhotoURL != "" {
 				if err := db.UpdateClientPhoto(client.ID, user.PhotoURL); err == nil {
 					client.PhotoURL = user.PhotoURL
 				}
 			}
 
 			/***************************************************************************************************
-			* Auto-set specialist Telegram profile photo if the owner has no custom photo.
+			* Auto-set specialist Telegram profile photo if the owner has no custom photo and has not
+			* explicitly removed it.
 			***************************************************************************************************/
-			if specialist.PhotoURL == "" && user.PhotoURL != "" && user.ID == specialist.TelegramUserID {
+			if specialist.PhotoURL == "" && !specialist.PhotoRemoved && user.PhotoURL != "" && user.ID == specialist.TelegramUserID {
 				if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
 					specialist.PhotoURL = user.PhotoURL
 					changes.Publish(specialist.ID, changes.GroupSpecialist)
@@ -279,7 +281,7 @@ func PreviewAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if specialist.PhotoURL == "" && user.PhotoURL != "" {
+		if specialist.PhotoURL == "" && !specialist.PhotoRemoved && user.PhotoURL != "" {
 			if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
 				specialist.PhotoURL = user.PhotoURL
 				changes.Publish(specialist.ID, changes.GroupSpecialist)
