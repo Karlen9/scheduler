@@ -43,6 +43,7 @@ func HandleGetClientProfile(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	ensureClientTelegramProfilePhoto(r, client, GetSpecialistFromContext(r))
 
 	setNoStore(w)
 	writeJSON(w, ClientProfileResponse{
@@ -97,10 +98,12 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 	if req.PhotoURL != nil {
 		photoURL := *req.PhotoURL
 		if photoURL == "" {
-			user := GetTelegramUserFromContext(r)
-			if user != nil && user.ID == client.TelegramUserID && user.PhotoURL != "" {
-				photoURL = user.PhotoURL
+			specialist := GetSpecialistFromContext(r)
+			botToken := ""
+			if specialist != nil {
+				botToken = specialist.BotToken
 			}
+			photoURL = resolveTelegramProfilePhoto(r, botToken, client.TelegramUserID)
 		}
 		if err := db.UpdateClientPhoto(client.ID, photoURL); err != nil {
 			log.Printf("Error updating client photo: %v", err)

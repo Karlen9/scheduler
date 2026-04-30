@@ -122,16 +122,6 @@ function formatBookingTimeRange(booking: TBooking, locale: string): string {
   return `${startsAt} - ${endsAt}`;
 }
 
-function isDirectPhotoUrl(photoUrl: string | undefined): boolean {
-  return Boolean(
-    photoUrl &&
-    (photoUrl.startsWith('http://') ||
-      photoUrl.startsWith('https://') ||
-      photoUrl.startsWith('data:') ||
-      photoUrl.startsWith('blob:')),
-  );
-}
-
 /***************************************************************************************************
  * Renders the home page UI and related interactions.
  *
@@ -514,7 +504,7 @@ export default function HomePage(): ReactNode {
                 sizes={'112px'}
                 src={photoSrc}
                 alt={specialist.name}
-                unoptimized={isDirectPhotoUrl(specialist.photoUrl)}
+                unoptimized
                 className={'h-28 w-28 rounded-full object-cover'}
                 onError={() => setPhotoError(true)}
               />

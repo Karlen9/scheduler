@@ -14,6 +14,11 @@ import { ThemeSelector } from '@/components/ThemeSelector';
 import { invalidateProfile } from '@/hooks/mutations';
 import { useProfile } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import {
+  getTelegramPhotoDisplayUrl,
+  isCustomProfilePhoto,
+  isStoredTelegramProfilePhoto,
+} from '@/lib/photos';
 import { isPreviewRoute } from '@/lib/routes';
 import { getTelegramUserPhotoUrl, waitForTelegramUserPhotoUrl } from '@/lib/telegram';
 
@@ -21,39 +26,6 @@ import { AvatarSection } from './AvatarSection';
 import { NotificationPreferences } from './NotificationPreferences';
 
 import type { ReactNode } from 'react';
-
-function isTelegramProfilePhotoUrl(photoUrl: string): boolean {
-  if (!photoUrl.startsWith('http')) {
-    return false;
-  }
-
-  try {
-    const { hostname } = new URL(photoUrl);
-    return (
-      hostname === 't.me' ||
-      hostname === 'telegram.org' ||
-      hostname.endsWith('.telegram.org') ||
-      hostname.endsWith('.telegram-cdn.org') ||
-      hostname.endsWith('.cdn-telegram.org')
-    );
-  } catch {
-    return false;
-  }
-}
-
-function getTelegramPhotoDisplayUrl(photoUrl: string, version: string): string {
-  if (!isTelegramProfilePhotoUrl(photoUrl)) {
-    return photoUrl;
-  }
-
-  try {
-    const url = new URL(photoUrl);
-    url.searchParams.set('v', version);
-    return url.toString();
-  } catch {
-    return photoUrl;
-  }
-}
 
 /***************************************************************************************************
  * Renders the client profile page UI and related interactions.
@@ -148,7 +120,7 @@ export default function ClientProfilePage(): ReactNode {
     if (profile) {
       setName(profile.name || '');
       setPhone(profile.phone || '');
-      if (profile.photoUrl && isTelegramProfilePhotoUrl(profile.photoUrl)) {
+      if (isStoredTelegramProfilePhoto(profile.photoUrl)) {
         setTelegramPhotoUrl((current) => current || profile.photoUrl || '');
         setTelegramPhotoVersion(String(Date.now()));
         setPhotoUrl('');
@@ -307,12 +279,10 @@ export default function ClientProfilePage(): ReactNode {
       const fallbackTelegramPhotoUrl =
         telegramPhotoUrl || getTelegramUserPhotoUrl() || (await waitForTelegramUserPhotoUrl());
       const updatedProfile = await api.updateProfile({ photoUrl: '' });
-      if (updatedProfile.photoUrl?.startsWith('http')) {
+      if (isStoredTelegramProfilePhoto(updatedProfile.photoUrl)) {
         setTelegramPhotoUrl(updatedProfile.photoUrl);
         setTelegramPhotoVersion(String(Date.now()));
-        setPhotoUrl(
-          isTelegramProfilePhotoUrl(updatedProfile.photoUrl) ? '' : updatedProfile.photoUrl,
-        );
+        setPhotoUrl('');
       } else if (fallbackTelegramPhotoUrl) {
         setTelegramPhotoUrl(fallbackTelegramPhotoUrl);
         setTelegramPhotoVersion(String(Date.now()));
@@ -440,8 +410,8 @@ export default function ClientProfilePage(): ReactNode {
     );
   }
 
-  const customPhotoUrl = photoUrl && !isTelegramProfilePhotoUrl(photoUrl) ? photoUrl : '';
-  const storedTelegramPhotoUrl = photoUrl && isTelegramProfilePhotoUrl(photoUrl) ? photoUrl : '';
+  const customPhotoUrl = isCustomProfilePhoto(photoUrl) ? photoUrl : '';
+  const storedTelegramPhotoUrl = isStoredTelegramProfilePhoto(photoUrl) ? photoUrl : '';
   const rawTelegramPhotoUrl = telegramPhotoUrl || storedTelegramPhotoUrl;
   const displayPhotoUrl =
     customPhotoUrl ||

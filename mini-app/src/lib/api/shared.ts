@@ -1,6 +1,7 @@
 import { markBotDeleted } from '../bot-deleted';
 import { fetchMockAPI } from '../mock-api';
 import { emitMutation } from '../mutation-events';
+import { stripTelegramProfilePhotoPrefix } from '../photos';
 import { dedupeRequest } from '../request-cache';
 import { isPreviewRoute, isTestRoute } from '../routes';
 import { getInitData, getSpecialistId, waitForInitData } from '../telegram';
@@ -127,5 +128,6 @@ export function getPhotoUrl(fileIdOrUrl?: string | null): string | null {
   query.set('initData', initData);
   const suffix = query.toString();
 
-  return `${API_BASE_URL}/api/photo/${encodeURIComponent(fileIdOrUrl)}${suffix ? `?${suffix}` : ''}`;
+  const fileId = stripTelegramProfilePhotoPrefix(fileIdOrUrl);
+  return `${API_BASE_URL}/api/photo/${encodeURIComponent(fileId)}${suffix ? `?${suffix}` : ''}`;
 }
