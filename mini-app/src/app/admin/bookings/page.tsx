@@ -15,6 +15,12 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { TopBar } from '@/components/TopBar';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useAdminBookingsPage, useAdminServices, useClients } from '@/hooks/queries';
+import {
+  ADMIN_BOOKING_STATUS_OPTIONS,
+  ADMIN_UPCOMING_BOOKING_STATUSES,
+  todayISO,
+  yesterdayISO,
+} from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { openTelegramUserChat } from '@/lib/telegram';
@@ -28,23 +34,6 @@ import type { ReactNode } from 'react';
 const PAGE_LIMIT = 20;
 
 type TBookingsTab = 'upcoming' | 'history';
-
-const upcomingStatuses: TBooking['status'][] = [
-  'pending',
-  'confirmed',
-  'cancel_requested',
-  'reschedule_pending',
-];
-
-const allStatusOptions: TBooking['status'][] = [
-  'pending',
-  'confirmed',
-  'cancel_requested',
-  'reschedule_pending',
-  'completed',
-  'cancelled',
-  'rejected',
-];
 
 const sortOptions: TAdminBookingsSort[] = [
   'created_desc',
@@ -77,21 +66,10 @@ function tabDefaultSort(tab: TBookingsTab): TAdminBookingsSort {
   return tab === 'history' ? 'starts_at_desc' : 'starts_at_asc';
 }
 
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function yesterdayISO(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 function parseFiltersFromParams(params: URLSearchParams): TBookingPageFilters {
   const rawStatuses = params.get('statuses')?.split(',').filter(Boolean) ?? [];
   const statuses = rawStatuses.filter((s): s is TBooking['status'] =>
-    (allStatusOptions as string[]).includes(s),
+    (ADMIN_BOOKING_STATUS_OPTIONS as string[]).includes(s),
   );
   const sortParam = params.get('sort');
   const sort =
@@ -210,11 +188,13 @@ export default function AdminAllBookingsPage(): ReactNode {
     if (filters.tab === 'upcoming') {
       effectiveDateFrom = filters.dateFrom && filters.dateFrom > today ? filters.dateFrom : today;
       if (effectiveStatuses.length === 0) {
-        effectiveStatuses = upcomingStatuses;
+        effectiveStatuses = ADMIN_UPCOMING_BOOKING_STATUSES;
       } else {
-        effectiveStatuses = effectiveStatuses.filter((s) => upcomingStatuses.includes(s));
+        effectiveStatuses = effectiveStatuses.filter((s) =>
+          ADMIN_UPCOMING_BOOKING_STATUSES.includes(s),
+        );
         if (effectiveStatuses.length === 0) {
-          effectiveStatuses = upcomingStatuses;
+          effectiveStatuses = ADMIN_UPCOMING_BOOKING_STATUSES;
         }
       }
     } else {
@@ -740,29 +720,30 @@ export default function AdminAllBookingsPage(): ReactNode {
                     />
                     <span className={'min-w-0 truncate'}>{t('allStatuses')}</span>
                   </label>
-                  {(draftFilters.tab === 'upcoming' ? upcomingStatuses : allStatusOptions).map(
-                    (status) => (
-                      <label
-                        key={status}
-                        className={'text-foreground flex items-center gap-3 text-sm'}
-                      >
-                        <input
-                          type={'checkbox'}
-                          checked={draftFilters.statuses.includes(status)}
-                          onChange={() =>
-                            setDraftFilters((value) => ({
-                              ...value,
-                              statuses: toggleFilterValue(value.statuses, status),
-                            }))
-                          }
-                          className={'accent-brand h-4 w-4 shrink-0'}
-                        />
-                        <span className={'min-w-0 truncate'}>
-                          {tst(statusTranslationKeys[status])}
-                        </span>
-                      </label>
-                    ),
-                  )}
+                  {(draftFilters.tab === 'upcoming'
+                    ? ADMIN_UPCOMING_BOOKING_STATUSES
+                    : ADMIN_BOOKING_STATUS_OPTIONS
+                  ).map((status) => (
+                    <label
+                      key={status}
+                      className={'text-foreground flex items-center gap-3 text-sm'}
+                    >
+                      <input
+                        type={'checkbox'}
+                        checked={draftFilters.statuses.includes(status)}
+                        onChange={() =>
+                          setDraftFilters((value) => ({
+                            ...value,
+                            statuses: toggleFilterValue(value.statuses, status),
+                          }))
+                        }
+                        className={'accent-brand h-4 w-4 shrink-0'}
+                      />
+                      <span className={'min-w-0 truncate'}>
+                        {tst(statusTranslationKeys[status])}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               )}
             </div>
