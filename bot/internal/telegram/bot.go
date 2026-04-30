@@ -908,7 +908,10 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 	}
 
 	/***************************************************************************************************
-	* Step 2: download the file.
+	* Step 2: download the file. The status code MUST be checked — Telegram's CDN can answer with
+	* 404/401/etc. for stale or restricted file paths, and io.ReadAll on those responses returns the
+	* error-page body. Without this guard the caller would happily forward HTML or JSON as if it
+	* were image bytes, which surfaces as "broken image" in the browser.
 	***************************************************************************************************/
 	fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.Token, result.Result.FilePath)
 	fileResp, err := http.Get(fileURL)
@@ -916,6 +919,10 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 		return nil, "", err
 	}
 	defer fileResp.Body.Close()
+
+	if fileResp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("getFile download returned status %d for file_path %q", fileResp.StatusCode, result.Result.FilePath)
+	}
 
 	data, err := io.ReadAll(fileResp.Body)
 	if err != nil {
