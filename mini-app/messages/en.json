@@ -742,6 +742,7 @@
     "saveFailed": "Failed to save",
     "saveSettingsFailed": "Failed to save settings",
     "photoUploadFailed": "Failed to upload photo",
+    "telegramPhotoUnavailable": "Telegram profile photo is not available",
     "addDayOffFailed": "Failed to add day off",
     "deleteDayOffFailed": "Failed to delete day off",
     "clientCreateFailed": "Failed to create client",

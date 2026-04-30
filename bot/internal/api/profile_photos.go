@@ -50,7 +50,8 @@ func resolveTelegramProfilePhotoForCurrent(r *http.Request, botToken string, tel
 	* t.me in the browser, bypassing the token-protected /api/photo proxy. fileIDs returned by
 	* getUserProfilePhotos are not always downloadable via getFile (a known Telegram API quirk),
 	* so the bot-API path is kept only as a fallback for inline-keyboard launches whose initData
-	* does not carry photo_url.
+	* does not carry photo_url. We verify the bot-API fileID is downloadable before returning it
+	* so callers do not persist a value the proxy would later fail to serve.
 	***************************************************************************************************/
 	user := GetTelegramUserFromContext(r)
 	if user != nil && user.ID == telegramUserID && user.PhotoURL != "" && currentPhotoURL != user.PhotoURL {
@@ -61,12 +62,44 @@ func resolveTelegramProfilePhotoForCurrent(r *http.Request, botToken string, tel
 		fileID, err := telegramProfilePhotoLookup(botToken, telegramUserID)
 		if err != nil {
 			log.Printf("GetUserProfilePhotos error for user %d: %v", telegramUserID, err)
-		} else if fileID != "" {
+		} else if fileID != "" && telegramProfilePhotoFileVerifier(botToken, fileID) {
 			return telegramProfilePhotoPrefix + fileID
 		}
 	}
 
 	return ""
+}
+
+/***************************************************************************************************
+* telegramProfilePhotoFileVerifier returns true when the bot can actually download the file_id via
+* getFile. Indirected through a package-level variable so tests can stub it without spinning up a
+* real Telegram API. Production implementation issues a single getFile round-trip and discards the
+* bytes — a few hundred ms once per restore is acceptable to avoid persisting an unloadable
+* reference.
+***************************************************************************************************/
+var telegramProfilePhotoFileVerifier = func(botToken, fileID string) bool {
+	bot := &telegram.Bot{Token: botToken}
+	if _, _, err := bot.GetFile(fileID); err != nil {
+		log.Printf("Telegram profile photo file verification failed for %s: %v", truncateForLog(fileID, 20), err)
+		return false
+	}
+	return true
+}
+
+/***************************************************************************************************
+* SetTelegramProfilePhotoFileVerifierForTest replaces the bot-API fileID verifier used by
+* resolveTelegramProfilePhotoForCurrent. Returns a function that restores the previous value.
+***************************************************************************************************/
+func SetTelegramProfilePhotoFileVerifierForTest(verifier func(botToken, fileID string) bool) func() {
+	previous := telegramProfilePhotoFileVerifier
+	if verifier == nil {
+		telegramProfilePhotoFileVerifier = func(string, string) bool { return true }
+	} else {
+		telegramProfilePhotoFileVerifier = verifier
+	}
+	return func() {
+		telegramProfilePhotoFileVerifier = previous
+	}
 }
 
 func isTelegramProfilePhotoValue(photoURL string) bool {

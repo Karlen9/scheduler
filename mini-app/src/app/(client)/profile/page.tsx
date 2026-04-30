@@ -314,7 +314,9 @@ export default function ClientProfilePage(): ReactNode {
       toast.success(ts('photoUpdated'));
     } catch (err) {
       console.error('Failed to restore Telegram photo:', err);
-      toast.error(te('saveFailed'));
+      const message = err instanceof Error ? err.message : '';
+      const isUnavailable = message.includes('TelegramPhotoUnavailable');
+      toast.error(isUnavailable ? te('telegramPhotoUnavailable') : te('saveFailed'));
     } finally {
       setIsDeletingPhoto(false);
     }

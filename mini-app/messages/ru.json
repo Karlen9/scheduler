@@ -742,6 +742,7 @@
     "saveFailed": "Ошибка сохранения",
     "saveSettingsFailed": "Ошибка сохранения настроек",
     "photoUploadFailed": "Ошибка загрузки фото",
+    "telegramPhotoUnavailable": "Фото профиля Telegram недоступно",
     "addDayOffFailed": "Ошибка добавления",
     "deleteDayOffFailed": "Ошибка удаления",
     "clientCreateFailed": "Не удалось создать клиента",

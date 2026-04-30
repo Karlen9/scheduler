@@ -712,6 +712,8 @@ func TestRestoreClientTelegramPhotoFallsBackToBotAPI(t *testing.T) {
 		return "telegram_file_id", nil
 	})
 	defer restore()
+	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return true })
+	defer restoreVerifier()
 
 	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, clientTelegramID)
 	if w.Code != http.StatusOK {
@@ -927,6 +929,33 @@ func TestRestoreAdminTelegramPhotoUsesInitDataURL(t *testing.T) {
 	}
 }
 
+func TestRestoreAdminTelegramPhotoFailsWhenBotAPIFileIDIsNotDownloadable(t *testing.T) {
+	restoreLookup := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) {
+		return "phantom_file_id", nil
+	})
+	defer restoreLookup()
+	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return false })
+	defer restoreVerifier()
+
+	if err := db.MarkSpecialistPhotoRemoved(testSpecialist.ID); err != nil {
+		t.Fatalf("failed to mark photo removed: %v", err)
+	}
+	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
+
+	w := doAdminRequest(t, http.MethodPost, "/api/admin/profile/restore-telegram-photo", nil)
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 when bot-API fileID is unloadable, got %d: %s", w.Code, w.Body.String())
+	}
+
+	specialist, err := db.GetSpecialistByID(testSpecialist.ID)
+	if err != nil || specialist == nil {
+		t.Fatalf("expected specialist after failed restore, err=%v", err)
+	}
+	if specialist.PhotoURL != "" {
+		t.Fatalf("expected photo_url to remain empty after failed restore, got %q", specialist.PhotoURL)
+	}
+}
+
 func TestRestoreAdminTelegramPhotoFallsBackToBotAPI(t *testing.T) {
 	restore := api.SetTelegramProfilePhotoLookupForTest(func(botToken string, userID int64) (string, error) {
 		if botToken != testSpecialist.BotToken {
@@ -938,6 +967,8 @@ func TestRestoreAdminTelegramPhotoFallsBackToBotAPI(t *testing.T) {
 		return "admin_telegram_file_id", nil
 	})
 	defer restore()
+	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return true })
+	defer restoreVerifier()
 
 	if err := db.MarkSpecialistPhotoRemoved(testSpecialist.ID); err != nil {
 		t.Fatalf("failed to mark photo removed: %v", err)
@@ -973,6 +1004,8 @@ func TestGetAdminProfileConvertsStoredTelegramPhotoURLWithBotAPI(t *testing.T) {
 		return "refreshed_admin_file_id", nil
 	})
 	defer restore()
+	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return true })
+	defer restoreVerifier()
 
 	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "https://t.me/i/userpic/320/old-admin.jpg"); err != nil {
 		t.Fatalf("failed to set old Telegram photo: %v", err)
