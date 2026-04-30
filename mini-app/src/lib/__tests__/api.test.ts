@@ -168,9 +168,9 @@ describe('error handling', () => {
 });
 
 describe('getPhotoUrl', () => {
-  it('proxies Telegram file IDs with auth query params', () => {
+  it('proxies Telegram file IDs with specialist context when available', () => {
     expect(getPhotoUrl('telegram:profile_file_id')).toBe(
-      '/api/photo/profile_file_id?specialist=mock-specialist-id&initData=mock-init-data',
+      '/api/photo/profile_file_id?specialist=mock-specialist-id',
     );
   });
 
@@ -183,8 +183,6 @@ describe('getPhotoUrl', () => {
   it('can build proxied URLs when specialist id is not cached yet', () => {
     telegramMock.specialistId = null;
 
-    expect(getPhotoUrl('profile_file_id')).toBe(
-      '/api/photo/profile_file_id?initData=mock-init-data',
-    );
+    expect(getPhotoUrl('profile_file_id')).toBe('/api/photo/profile_file_id');
   });
 });

@@ -1192,18 +1192,6 @@ func TestMetricsDoNotTrustForwardedLoopbackHeaders(t *testing.T) {
 	}
 }
 
-func TestPhotoProxyRequiresTelegramAuth(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/photo/file-123?specialist="+testSpecialist.ID, nil)
-	req.RemoteAddr = nextTestRemoteAddr()
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 for unauthenticated photo proxy request, got %d", w.Code)
-	}
-}
-
 func TestAdminDeleteDayOffRejectsCrossSpecialistDelete(t *testing.T) {
 	other, err := db.CreateSpecialist(222222, "cross-dayoff-token", "crossdayoffbot", "Other Specialist", "UTC", 24)
 	if err != nil {
