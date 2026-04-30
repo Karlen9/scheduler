@@ -94,13 +94,6 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if req.Bio != nil {
 		bio = *req.Bio
 	}
-	photoURL := specialist.PhotoURL
-	if req.PhotoURL != nil {
-		photoURL = *req.PhotoURL
-		if photoURL == "" {
-			photoURL = resolveTelegramProfilePhoto(r, specialist.BotToken, specialist.TelegramUserID)
-		}
-	}
 	locationLatitude := specialist.LocationLatitude
 	if req.LocationLatitude != nil {
 		locationLatitude = *req.LocationLatitude
@@ -114,7 +107,28 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		wallpaper = *req.Wallpaper
 	}
 
-	updated, err := db.UpdateSpecialistProfile(specialist.ID, telegramHandle, phone, specialization, bio, photoURL, locationLatitude, locationLongitude, wallpaper)
+	/***************************************************************************************************
+	* Photo updates are managed via dedicated helpers so the photo_removed flag stays in sync.
+	* Empty string means "user explicitly removed their photo" — we record the removal instead of
+	* silently restoring the Telegram avatar (the dedicated restore endpoint handles that case).
+	***************************************************************************************************/
+	if req.PhotoURL != nil {
+		if *req.PhotoURL == "" {
+			if err := db.MarkSpecialistPhotoRemoved(specialist.ID); err != nil {
+				log.Printf("Error marking specialist photo removed: %v", err)
+				httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			if err := db.UpdateSpecialistPhoto(specialist.ID, *req.PhotoURL); err != nil {
+				log.Printf("Error updating specialist photo: %v", err)
+				httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+
+	updated, err := db.UpdateSpecialistProfile(specialist.ID, telegramHandle, phone, specialization, bio, locationLatitude, locationLongitude, wallpaper)
 	if err != nil {
 		log.Printf("Error updating profile: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -123,6 +137,55 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if req.Language == "ru" || req.Language == "en" {
 		db.UpdateSpecialistLanguage(specialist.ID, req.Language)
 		updated.Language = req.Language
+	}
+
+	changes.Publish(specialist.ID, changes.GroupSpecialist)
+	writeJSON(w, SpecialistResponse{
+		ID:                updated.ID,
+		Name:              updated.Name,
+		Timezone:          updated.Timezone,
+		CancelCutoffHrs:   updated.CancelCutoffHrs,
+		TelegramHandle:    updated.TelegramHandle,
+		Phone:             updated.Phone,
+		Specialization:    updated.Specialization,
+		Bio:               updated.Bio,
+		PhotoURL:          updated.PhotoURL,
+		LocationLatitude:  updated.LocationLatitude,
+		LocationLongitude: updated.LocationLongitude,
+		Language:          updated.Language,
+		Wallpaper:         updated.Wallpaper,
+	})
+}
+
+/***************************************************************************************************
+* HandleRestoreSpecialistTelegramPhoto resolves the specialist's current Telegram profile photo
+* and writes it back to the specialists row, clearing any previous explicit-removal flag. This
+* powers the "Use Telegram photo" control on the admin profile page; it complements the regular
+* PUT /api/admin/profile flow which treats an empty photoUrl as deliberate removal.
+***************************************************************************************************/
+func HandleRestoreSpecialistTelegramPhoto(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	photoURL := resolveTelegramProfilePhoto(r, specialist.BotToken, specialist.TelegramUserID)
+	if photoURL == "" {
+		httpError(w, r, "Error.TelegramPhotoUnavailable", http.StatusUnprocessableEntity)
+		return
+	}
+
+	if err := db.UpdateSpecialistPhoto(specialist.ID, photoURL); err != nil {
+		log.Printf("Error restoring specialist Telegram photo: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	updated, err := db.GetSpecialistByID(specialist.ID)
+	if err != nil || updated == nil {
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
 	}
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)

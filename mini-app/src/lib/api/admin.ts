@@ -81,6 +81,12 @@ export const adminApi = {
     });
   },
 
+  async restoreTelegramPhoto(): Promise<TSpecialist> {
+    return fetchAPI<TSpecialist>('/api/admin/profile/restore-telegram-photo', {
+      method: 'POST',
+    });
+  },
+
   async getServices(): Promise<TSessionType[]> {
     return fetchAPI<TSessionType[]>('/api/admin/services');
   },

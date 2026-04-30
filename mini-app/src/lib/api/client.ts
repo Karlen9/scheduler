@@ -136,6 +136,12 @@ export const clientApi = {
     });
   },
 
+  async restoreTelegramPhoto(): Promise<TClientProfile> {
+    return fetchAPI<TClientProfile>('/api/profile/restore-telegram-photo', {
+      method: 'POST',
+    });
+  },
+
   async getProfile(): Promise<TClientProfile> {
     return fetchAPI<TClientProfile>('/api/profile');
   },

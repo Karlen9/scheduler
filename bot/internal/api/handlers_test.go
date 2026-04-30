@@ -628,7 +628,7 @@ func TestUpdateClientProfile(t *testing.T) {
 	}
 }
 
-func TestUpdateClientProfileRestoresTelegramPhotoWhenClearingPhoto(t *testing.T) {
+func TestUpdateClientProfileClearingPhotoMarksRemoved(t *testing.T) {
 	clientTelegramID := int64(555556)
 	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, clientTelegramID)
 	if w.Code != http.StatusOK {
@@ -643,26 +643,65 @@ func TestUpdateClientProfileRestoresTelegramPhotoWhenClearingPhoto(t *testing.T)
 		t.Fatalf("failed to set custom client photo: %v", err)
 	}
 
-	telegramPhotoURL := "https://t.me/i/userpic/320/client.jpg"
-	body := jsonBody(map[string]interface{}{
-		"photoUrl": "",
-	})
-
-	w = doClientRequestWithPhoto(t, http.MethodPut, "/api/profile", body, clientTelegramID, telegramPhotoURL)
+	body := jsonBody(map[string]interface{}{"photoUrl": ""})
+	w = doClientRequestWithPhoto(t, http.MethodPut, "/api/profile", body, clientTelegramID, "https://t.me/i/userpic/320/client.jpg")
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected clear photo update 200, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var profile map[string]interface{}
 	parseJSON(t, w, &profile)
+	if photoURL, _ := profile["photoUrl"].(string); photoURL != "" {
+		t.Fatalf("expected cleared photo url, got %q", photoURL)
+	}
 
-	if photoURL, _ := profile["photoUrl"].(string); photoURL != telegramPhotoURL {
-		t.Fatalf("expected telegram photo url %q, got %q", telegramPhotoURL, photoURL)
+	updated, err := db.GetClientByID(client.ID)
+	if err != nil || updated == nil {
+		t.Fatalf("expected client to exist after clear, err=%v", err)
+	}
+	if !updated.PhotoRemoved {
+		t.Fatalf("expected photo_removed=true after clearing photo")
 	}
 }
 
-func TestUpdateClientProfileRestoresBotAPITelegramPhotoWhenInitDataHasNoPhoto(t *testing.T) {
+func TestRestoreClientTelegramPhotoUsesInitDataURL(t *testing.T) {
 	clientTelegramID := int64(555557)
+	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, clientTelegramID)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected initial profile 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	client, err := db.GetClientByTelegramID(clientTelegramID, testSpecialist.ID)
+	if err != nil || client == nil {
+		t.Fatalf("expected client to exist, err=%v", err)
+	}
+	if err := db.MarkClientPhotoRemoved(client.ID); err != nil {
+		t.Fatalf("failed to mark client photo removed: %v", err)
+	}
+
+	telegramPhotoURL := "https://t.me/i/userpic/320/client.jpg"
+	w = doClientRequestWithPhoto(t, http.MethodPost, "/api/profile/restore-telegram-photo", nil, clientTelegramID, telegramPhotoURL)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected restore 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+	if photoURL, _ := profile["photoUrl"].(string); photoURL != telegramPhotoURL {
+		t.Fatalf("expected restored telegram photo url %q, got %q", telegramPhotoURL, photoURL)
+	}
+
+	updated, err := db.GetClientByID(client.ID)
+	if err != nil || updated == nil {
+		t.Fatalf("expected client to exist after restore, err=%v", err)
+	}
+	if updated.PhotoRemoved {
+		t.Fatalf("expected photo_removed=false after restore")
+	}
+}
+
+func TestRestoreClientTelegramPhotoFallsBackToBotAPI(t *testing.T) {
+	clientTelegramID := int64(555559)
 	restore := api.SetTelegramProfilePhotoLookupForTest(func(botToken string, userID int64) (string, error) {
 		if botToken != testSpecialist.BotToken {
 			t.Fatalf("expected bot token %q, got %q", testSpecialist.BotToken, botToken)
@@ -678,21 +717,17 @@ func TestUpdateClientProfileRestoresBotAPITelegramPhotoWhenInitDataHasNoPhoto(t 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected initial profile 200, got %d: %s", w.Code, w.Body.String())
 	}
-
 	client, err := db.GetClientByTelegramID(clientTelegramID, testSpecialist.ID)
 	if err != nil || client == nil {
 		t.Fatalf("expected client to exist, err=%v", err)
 	}
-	if err := db.UpdateClientPhoto(client.ID, "custom_file_id"); err != nil {
-		t.Fatalf("failed to set custom client photo: %v", err)
+	if err := db.MarkClientPhotoRemoved(client.ID); err != nil {
+		t.Fatalf("failed to mark client photo removed: %v", err)
 	}
 
-	body := jsonBody(map[string]interface{}{
-		"photoUrl": "",
-	})
-	w = doClientRequest(t, http.MethodPut, "/api/profile", body, clientTelegramID)
+	w = doClientRequest(t, http.MethodPost, "/api/profile/restore-telegram-photo", nil, clientTelegramID)
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected clear photo update 200, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("expected restore 200, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var profile map[string]interface{}
@@ -838,30 +873,61 @@ func TestUpdateAdminProfileAllowsClearingFields(t *testing.T) {
 * Side effects:
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
-func TestUpdateAdminProfileRestoresTelegramPhotoWhenClearingPhoto(t *testing.T) {
+func TestUpdateAdminProfileClearingPhotoMarksRemoved(t *testing.T) {
 	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "custom_file_id"); err != nil {
 		t.Fatalf("failed to set custom photo: %v", err)
 	}
+	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
 
-	telegramPhotoURL := "https://t.me/i/userpic/320/test.jpg"
-	body := jsonBody(map[string]interface{}{
-		"photoUrl": "",
-	})
-
-	w := doAdminRequestWithPhoto(t, http.MethodPut, "/api/admin/profile", body, telegramPhotoURL)
+	body := jsonBody(map[string]interface{}{"photoUrl": ""})
+	w := doAdminRequestWithPhoto(t, http.MethodPut, "/api/admin/profile", body, "https://t.me/i/userpic/320/test.jpg")
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected clear photo update 200, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var profile map[string]interface{}
 	parseJSON(t, w, &profile)
+	if photoURL, _ := profile["photoUrl"].(string); photoURL != "" {
+		t.Fatalf("expected cleared photo url, got %q", photoURL)
+	}
 
-	if photoURL, _ := profile["photoUrl"].(string); photoURL != telegramPhotoURL {
-		t.Fatalf("expected telegram photo url %q, got %q", telegramPhotoURL, photoURL)
+	updated, err := db.GetSpecialistByID(testSpecialist.ID)
+	if err != nil || updated == nil {
+		t.Fatalf("expected specialist after clear, err=%v", err)
+	}
+	if !updated.PhotoRemoved {
+		t.Fatalf("expected photo_removed=true after clearing")
 	}
 }
 
-func TestUpdateAdminProfileRestoresBotAPITelegramPhotoWhenInitDataHasNoPhoto(t *testing.T) {
+func TestRestoreAdminTelegramPhotoUsesInitDataURL(t *testing.T) {
+	if err := db.MarkSpecialistPhotoRemoved(testSpecialist.ID); err != nil {
+		t.Fatalf("failed to mark photo removed: %v", err)
+	}
+	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
+
+	telegramPhotoURL := "https://t.me/i/userpic/320/test.jpg"
+	w := doAdminRequestWithPhoto(t, http.MethodPost, "/api/admin/profile/restore-telegram-photo", nil, telegramPhotoURL)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected restore 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+	if photoURL, _ := profile["photoUrl"].(string); photoURL != telegramPhotoURL {
+		t.Fatalf("expected restored telegram photo url %q, got %q", telegramPhotoURL, photoURL)
+	}
+
+	updated, err := db.GetSpecialistByID(testSpecialist.ID)
+	if err != nil || updated == nil {
+		t.Fatalf("expected specialist after restore, err=%v", err)
+	}
+	if updated.PhotoRemoved {
+		t.Fatalf("expected photo_removed=false after restore")
+	}
+}
+
+func TestRestoreAdminTelegramPhotoFallsBackToBotAPI(t *testing.T) {
 	restore := api.SetTelegramProfilePhotoLookupForTest(func(botToken string, userID int64) (string, error) {
 		if botToken != testSpecialist.BotToken {
 			t.Fatalf("expected bot token %q, got %q", testSpecialist.BotToken, botToken)
@@ -873,16 +939,14 @@ func TestUpdateAdminProfileRestoresBotAPITelegramPhotoWhenInitDataHasNoPhoto(t *
 	})
 	defer restore()
 
-	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "custom_file_id"); err != nil {
-		t.Fatalf("failed to set custom photo: %v", err)
+	if err := db.MarkSpecialistPhotoRemoved(testSpecialist.ID); err != nil {
+		t.Fatalf("failed to mark photo removed: %v", err)
 	}
+	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
 
-	body := jsonBody(map[string]interface{}{
-		"photoUrl": "",
-	})
-	w := doAdminRequest(t, http.MethodPut, "/api/admin/profile", body)
+	w := doAdminRequest(t, http.MethodPost, "/api/admin/profile/restore-telegram-photo", nil)
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected clear photo update 200, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("expected restore 200, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var profile map[string]interface{}

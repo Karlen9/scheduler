@@ -30,9 +30,10 @@ func scanClient(row interface {
 	var preferredDuration sql.NullInt64
 	var isGhost sql.NullInt64
 	var isBlocked sql.NullInt64
+	var photoRemoved sql.NullInt64
 	var language, displayName, telegramUsername sql.NullString
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
-	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &preferredDuration,
+	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &photoRemoved, &preferredDuration,
 		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName, &telegramUsername)
 	if err != nil {
 		return nil, err
@@ -43,6 +44,7 @@ func scanClient(row interface {
 	if photoURL.Valid {
 		c.PhotoURL = photoURL.String
 	}
+	c.PhotoRemoved = photoRemoved.Valid && photoRemoved.Int64 == 1
 	if preferredDuration.Valid {
 		c.PreferredDuration = int(preferredDuration.Int64)
 	}
@@ -73,9 +75,10 @@ func scanClientWithRef(row interface {
 	var preferredDuration sql.NullInt64
 	var isGhost sql.NullInt64
 	var isBlocked sql.NullInt64
+	var photoRemoved sql.NullInt64
 	var language, displayName, referredViaCode, telegramUsername sql.NullString
 	var notifyBookingStatus, notifyReminders, notifyDaysOff, notifyCancellations sql.NullInt64
-	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &preferredDuration,
+	err := row.Scan(&c.ID, &c.TelegramUserID, &c.SpecialistID, &c.Name, &phone, &photoURL, &photoRemoved, &preferredDuration,
 		&isGhost, &isBlocked, &notifyBookingStatus, &notifyReminders, &notifyDaysOff, &notifyCancellations, &c.CreatedAt, &language, &displayName, &referredViaCode, &telegramUsername)
 	if err != nil {
 		return nil, err
@@ -86,6 +89,7 @@ func scanClientWithRef(row interface {
 	if photoURL.Valid {
 		c.PhotoURL = photoURL.String
 	}
+	c.PhotoRemoved = photoRemoved.Valid && photoRemoved.Int64 == 1
 	if preferredDuration.Valid {
 		c.PreferredDuration = int(preferredDuration.Int64)
 	}
@@ -120,7 +124,7 @@ func scanClientWithRef(row interface {
 ***************************************************************************************************/
 func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE telegram_user_id = ? AND specialist_id = ?
 	`), telegramUserID, specialistID)
@@ -149,7 +153,7 @@ func GetClientByTelegramID(telegramUserID int64, specialistID string) (*models.C
 ***************************************************************************************************/
 func GetClientByID(id string) (*models.Client, error) {
 	row := DB.QueryRow(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE id = ?
 	`), id)
@@ -347,7 +351,25 @@ func boolToInt(b bool) int {
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func UpdateClientPhoto(clientID, fileID string) error {
-	_, err := DB.Exec(Q(`UPDATE clients SET photo_url = ? WHERE id = ?`), fileID, clientID)
+	_, err := DB.Exec(Q(`UPDATE clients SET photo_url = ?, photo_removed = 0 WHERE id = ?`), fileID, clientID)
+	return err
+}
+
+/***************************************************************************************************
+* MarkClientPhotoRemoved clears the client's photo and records the explicit removal so the
+* TelegramAuthMiddleware does not silently restore a Telegram profile photo on the next request.
+*
+* Parameters:
+* - clientID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func MarkClientPhotoRemoved(clientID string) error {
+	_, err := DB.Exec(Q(`UPDATE clients SET photo_url = '', photo_removed = 1 WHERE id = ?`), clientID)
 	return err
 }
 
@@ -365,7 +387,25 @@ func UpdateClientPhoto(clientID, fileID string) error {
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func UpdateSpecialistPhoto(specialistID, fileID string) error {
-	_, err := DB.Exec(Q(`UPDATE specialists SET photo_url = ? WHERE id = ?`), fileID, specialistID)
+	_, err := DB.Exec(Q(`UPDATE specialists SET photo_url = ?, photo_removed = 0 WHERE id = ?`), fileID, specialistID)
+	return err
+}
+
+/***************************************************************************************************
+* MarkSpecialistPhotoRemoved clears the specialist's photo and records the explicit removal so the
+* middleware does not silently restore a Telegram profile photo on subsequent requests.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+*
+* Returns:
+* - An error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func MarkSpecialistPhotoRemoved(specialistID string) error {
+	_, err := DB.Exec(Q(`UPDATE specialists SET photo_url = '', photo_removed = 1 WHERE id = ?`), specialistID)
 	return err
 }
 
@@ -383,7 +423,7 @@ func UpdateSpecialistPhoto(specialistID, fileID string) error {
 ***************************************************************************************************/
 func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE specialist_id = ?
 		ORDER BY name ASC
@@ -428,7 +468,7 @@ func GetClientsBySpecialistIDPaged(specialistID, search string, limit, offset in
 	queryArgs = append(queryArgs, limit, offset)
 
 	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
+		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE `+whereClause+`
 		ORDER BY name ASC
