@@ -119,12 +119,14 @@ export function getPhotoUrl(fileIdOrUrl?: string | null): string | null {
 
   const specialistId = getSpecialistId();
   const initData = getInitData();
-  if (!specialistId || !initData) {
+  if (!initData) {
     return null;
   }
 
   const query = new URLSearchParams();
-  query.set('specialist', specialistId);
+  if (specialistId) {
+    query.set('specialist', specialistId);
+  }
   query.set('initData', initData);
   const suffix = query.toString();
 

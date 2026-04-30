@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api, getPhotoUrl } from '../api';
 
+const telegramMock = vi.hoisted(() => ({
+  initData: 'mock-init-data',
+  specialistId: 'mock-specialist-id' as string | null,
+}));
+
 vi.mock('../telegram', () => ({
-  getInitData: () => 'mock-init-data',
-  getSpecialistId: () => 'mock-specialist-id',
-  waitForInitData: async () => Promise.resolve('mock-init-data'),
+  getInitData: () => telegramMock.initData,
+  getSpecialistId: () => telegramMock.specialistId,
+  waitForInitData: async () => Promise.resolve(telegramMock.initData),
 }));
 
 /***************************************************************************************************
@@ -19,6 +24,8 @@ global.fetch = mockFetch;
 
 beforeEach(() => {
   mockFetch.mockReset();
+  telegramMock.initData = 'mock-init-data';
+  telegramMock.specialistId = 'mock-specialist-id';
 });
 
 describe('api.getSpecialist', () => {
@@ -171,5 +178,13 @@ describe('getPhotoUrl', () => {
     const url = 'https://t.me/i/userpic/320/user.jpg';
 
     expect(getPhotoUrl(url)).toBe(url);
+  });
+
+  it('can build proxied URLs when specialist id is not cached yet', () => {
+    telegramMock.specialistId = null;
+
+    expect(getPhotoUrl('profile_file_id')).toBe(
+      '/api/photo/profile_file_id?initData=mock-init-data',
+    );
   });
 });

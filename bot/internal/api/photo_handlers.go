@@ -64,17 +64,13 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	* requests cannot send custom headers reliably, so this endpoint accepts initData in the query
 	* string for the mini-app's same-origin image loads.
 	***************************************************************************************************/
-	specialistID := r.URL.Query().Get("specialist")
-	if specialistID == "" {
-		specialistID = r.URL.Query().Get("trainer") // legacy cached Telegram URLs
-	}
-	if specialistID == "" {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusBadRequest)
+	specialist, err := loadRequestSpecialist(requestSpecialistID(r))
+	if err != nil {
+		log.Printf("Error getting photo specialist: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-
-	specialist, err := db.GetSpecialistByID(specialistID)
-	if err != nil || specialist == nil {
+	if specialist == nil {
 		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
