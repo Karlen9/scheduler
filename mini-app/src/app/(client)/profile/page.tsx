@@ -280,7 +280,7 @@ export default function ClientProfilePage(): ReactNode {
         telegramPhotoUrl || getTelegramUserPhotoUrl() || (await waitForTelegramUserPhotoUrl());
       const updatedProfile = await api.updateProfile({ photoUrl: '' });
       if (isStoredTelegramProfilePhoto(updatedProfile.photoUrl)) {
-        setTelegramPhotoUrl(updatedProfile.photoUrl);
+        setTelegramPhotoUrl(updatedProfile.photoUrl ?? '');
         setTelegramPhotoVersion(String(Date.now()));
         setPhotoUrl('');
       } else if (fallbackTelegramPhotoUrl) {
