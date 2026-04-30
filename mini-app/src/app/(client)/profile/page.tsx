@@ -22,6 +22,39 @@ import { NotificationPreferences } from './NotificationPreferences';
 
 import type { ReactNode } from 'react';
 
+function isTelegramProfilePhotoUrl(photoUrl: string): boolean {
+  if (!photoUrl.startsWith('http')) {
+    return false;
+  }
+
+  try {
+    const { hostname } = new URL(photoUrl);
+    return (
+      hostname === 't.me' ||
+      hostname === 'telegram.org' ||
+      hostname.endsWith('.telegram.org') ||
+      hostname.endsWith('.telegram-cdn.org') ||
+      hostname.endsWith('.cdn-telegram.org')
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getTelegramPhotoDisplayUrl(photoUrl: string, version: string): string {
+  if (!isTelegramProfilePhotoUrl(photoUrl)) {
+    return photoUrl;
+  }
+
+  try {
+    const url = new URL(photoUrl);
+    url.searchParams.set('v', version);
+    return url.toString();
+  } catch {
+    return photoUrl;
+  }
+}
+
 /***************************************************************************************************
  * Renders the client profile page UI and related interactions.
  *
@@ -93,6 +126,7 @@ export default function ClientProfilePage(): ReactNode {
   const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [telegramPhotoUrl, setTelegramPhotoUrl] = useState('');
+  const [telegramPhotoVersion, setTelegramPhotoVersion] = useState(() => String(Date.now()));
   const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -114,7 +148,13 @@ export default function ClientProfilePage(): ReactNode {
     if (profile) {
       setName(profile.name || '');
       setPhone(profile.phone || '');
-      setPhotoUrl(profile.photoUrl || '');
+      if (profile.photoUrl && isTelegramProfilePhotoUrl(profile.photoUrl)) {
+        setTelegramPhotoUrl((current) => current || profile.photoUrl || '');
+        setTelegramPhotoVersion(String(Date.now()));
+        setPhotoUrl('');
+      } else {
+        setPhotoUrl(profile.photoUrl || '');
+      }
       setPhotoError(false);
       setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
       setNotifyReminders(profile.notifyReminders ?? true);
@@ -128,11 +168,13 @@ export default function ClientProfilePage(): ReactNode {
     const currentPhotoUrl = getTelegramUserPhotoUrl();
     if (currentPhotoUrl) {
       setTelegramPhotoUrl(currentPhotoUrl);
+      setTelegramPhotoVersion(String(Date.now()));
     }
 
     void waitForTelegramUserPhotoUrl().then((photo) => {
       if (active && photo) {
         setTelegramPhotoUrl(photo);
+        setTelegramPhotoVersion(String(Date.now()));
       }
     });
 
@@ -267,10 +309,17 @@ export default function ClientProfilePage(): ReactNode {
       const updatedProfile = await api.updateProfile({ photoUrl: '' });
       if (updatedProfile.photoUrl?.startsWith('http')) {
         setTelegramPhotoUrl(updatedProfile.photoUrl);
+        setTelegramPhotoVersion(String(Date.now()));
+        setPhotoUrl(
+          isTelegramProfilePhotoUrl(updatedProfile.photoUrl) ? '' : updatedProfile.photoUrl,
+        );
       } else if (fallbackTelegramPhotoUrl) {
         setTelegramPhotoUrl(fallbackTelegramPhotoUrl);
+        setTelegramPhotoVersion(String(Date.now()));
+        setPhotoUrl(updatedProfile.photoUrl || '');
+      } else {
+        setPhotoUrl(updatedProfile.photoUrl || '');
       }
-      setPhotoUrl(updatedProfile.photoUrl || '');
       setPhotoError(false);
 
       if (profile) {
@@ -391,12 +440,16 @@ export default function ClientProfilePage(): ReactNode {
     );
   }
 
-  const displayPhotoUrl = photoUrl || telegramPhotoUrl;
+  const customPhotoUrl = photoUrl && !isTelegramProfilePhotoUrl(photoUrl) ? photoUrl : '';
+  const storedTelegramPhotoUrl = photoUrl && isTelegramProfilePhotoUrl(photoUrl) ? photoUrl : '';
+  const rawTelegramPhotoUrl = telegramPhotoUrl || storedTelegramPhotoUrl;
+  const displayPhotoUrl =
+    customPhotoUrl ||
+    (rawTelegramPhotoUrl
+      ? getTelegramPhotoDisplayUrl(rawTelegramPhotoUrl, telegramPhotoVersion)
+      : '');
   const hasPhoto = Boolean(displayPhotoUrl);
-  const isTelegramPhotoActive = Boolean(
-    telegramPhotoUrl && (!photoUrl || photoUrl === telegramPhotoUrl),
-  );
-  const canDeletePhoto = Boolean(photoUrl && !isTelegramPhotoActive);
+  const canDeletePhoto = Boolean(customPhotoUrl);
 
   return (
     <div>

@@ -25,6 +25,39 @@ function isDirectPhotoUrl(photoUrl: string): boolean {
   );
 }
 
+function isTelegramProfilePhotoUrl(photoUrl: string): boolean {
+  if (!photoUrl.startsWith('http')) {
+    return false;
+  }
+
+  try {
+    const { hostname } = new URL(photoUrl);
+    return (
+      hostname === 't.me' ||
+      hostname === 'telegram.org' ||
+      hostname.endsWith('.telegram.org') ||
+      hostname.endsWith('.telegram-cdn.org') ||
+      hostname.endsWith('.cdn-telegram.org')
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getTelegramPhotoDisplayUrl(photoUrl: string, version: string): string {
+  if (!isTelegramProfilePhotoUrl(photoUrl)) {
+    return photoUrl;
+  }
+
+  try {
+    const url = new URL(photoUrl);
+    url.searchParams.set('v', version);
+    return url.toString();
+  } catch {
+    return photoUrl;
+  }
+}
+
 /***************************************************************************************************
  * Renders the profile page UI and related interactions.
  *
@@ -75,6 +108,7 @@ export default function ProfilePage(): ReactNode {
   const [initialized, setInitialized] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
   const [telegramPhotoUrl, setTelegramPhotoUrl] = useState('');
+  const [telegramPhotoVersion, setTelegramPhotoVersion] = useState(() => String(Date.now()));
   const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -99,7 +133,13 @@ export default function ProfilePage(): ReactNode {
     setBio(profile.bio || '');
     setPhone(profile.phone || '');
     setTelegram(profile.telegramHandle || '');
-    setPhotoUrl(profile.photoUrl || '');
+    if (profile.photoUrl && isTelegramProfilePhotoUrl(profile.photoUrl)) {
+      setTelegramPhotoUrl((current) => current || profile.photoUrl || '');
+      setTelegramPhotoVersion(String(Date.now()));
+      setPhotoUrl('');
+    } else {
+      setPhotoUrl(profile.photoUrl || '');
+    }
     setWallpaper((profile.wallpaper as TWallpaperId) || 'none');
     setInitialized(true);
   }, [profile, isLoading, initialized]);
@@ -109,11 +149,13 @@ export default function ProfilePage(): ReactNode {
     const currentPhotoUrl = getTelegramUserPhotoUrl();
     if (currentPhotoUrl) {
       setTelegramPhotoUrl(currentPhotoUrl);
+      setTelegramPhotoVersion(String(Date.now()));
     }
 
     void waitForTelegramUserPhotoUrl().then((photo) => {
       if (active && photo) {
         setTelegramPhotoUrl(photo);
+        setTelegramPhotoVersion(String(Date.now()));
       }
     });
 
@@ -202,10 +244,15 @@ export default function ProfilePage(): ReactNode {
       const updated = await api.admin.updateProfile({ photoUrl: '' });
       if (updated.photoUrl && isDirectPhotoUrl(updated.photoUrl)) {
         setTelegramPhotoUrl(updated.photoUrl);
+        setTelegramPhotoVersion(String(Date.now()));
+        setPhotoUrl(isTelegramProfilePhotoUrl(updated.photoUrl) ? '' : updated.photoUrl);
       } else if (fallbackTelegramPhotoUrl) {
         setTelegramPhotoUrl(fallbackTelegramPhotoUrl);
+        setTelegramPhotoVersion(String(Date.now()));
+        setPhotoUrl(updated.photoUrl || '');
+      } else {
+        setPhotoUrl(updated.photoUrl || '');
       }
-      setPhotoUrl(updated.photoUrl || '');
       setPhotoError(false);
       invalidateSpecialist();
       toast.success(ts('photoRemoved'));
@@ -266,13 +313,17 @@ export default function ProfilePage(): ReactNode {
     );
   }
 
-  const displayPhotoUrl = photoUrl || telegramPhotoUrl;
+  const customPhotoUrl = photoUrl && !isTelegramProfilePhotoUrl(photoUrl) ? photoUrl : '';
+  const storedTelegramPhotoUrl = photoUrl && isTelegramProfilePhotoUrl(photoUrl) ? photoUrl : '';
+  const rawTelegramPhotoUrl = telegramPhotoUrl || storedTelegramPhotoUrl;
+  const displayPhotoUrl =
+    customPhotoUrl ||
+    (rawTelegramPhotoUrl
+      ? getTelegramPhotoDisplayUrl(rawTelegramPhotoUrl, telegramPhotoVersion)
+      : '');
   const hasPhoto = Boolean(displayPhotoUrl);
   const photoSrc = hasPhoto && !photoError ? getPhotoUrl(displayPhotoUrl) : null;
-  const isTelegramPhotoActive = Boolean(
-    telegramPhotoUrl && (!photoUrl || photoUrl === telegramPhotoUrl),
-  );
-  const canDeletePhoto = Boolean(photoUrl && !isTelegramPhotoActive);
+  const canDeletePhoto = Boolean(customPhotoUrl);
 
   return (
     <div>
