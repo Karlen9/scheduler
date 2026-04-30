@@ -23,10 +23,11 @@ type ClientProfileResponse struct {
 }
 
 type UpdateClientProfileRequest struct {
-	Name              string `json:"name,omitempty"`
-	Phone             string `json:"phone,omitempty"`
-	PreferredDuration *int   `json:"preferredDuration,omitempty"`
-	Language          string `json:"language,omitempty"`
+	Name              string  `json:"name,omitempty"`
+	Phone             string  `json:"phone,omitempty"`
+	PhotoURL          *string `json:"photoUrl,omitempty"`
+	PreferredDuration *int    `json:"preferredDuration,omitempty"`
+	Language          string  `json:"language,omitempty"`
 }
 
 type UpdateClientNotificationPrefsRequest struct {
@@ -92,6 +93,20 @@ func HandleUpdateClientProfile(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error updating client profile: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
+	}
+	if req.PhotoURL != nil {
+		photoURL := *req.PhotoURL
+		if photoURL == "" {
+			user := GetTelegramUserFromContext(r)
+			if user != nil && user.ID == client.TelegramUserID && user.PhotoURL != "" {
+				photoURL = user.PhotoURL
+			}
+		}
+		if err := db.UpdateClientPhoto(client.ID, photoURL); err != nil {
+			log.Printf("Error updating client photo: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
 	}
 	if req.Language == "ru" || req.Language == "en" {
 		db.UpdateClientLanguage(client.ID, req.Language)

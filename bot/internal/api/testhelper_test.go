@@ -341,6 +341,29 @@ func doClientRequest(t *testing.T, method, path string, body *string, clientTele
 	return doRequest(t, method, path, body, clientTelegramID)
 }
 
+func doClientRequestWithPhoto(t *testing.T, method, path string, body *string, clientTelegramID int64, photoURL string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	var reqBody *strings.Reader
+	if body != nil {
+		reqBody = strings.NewReader(*body)
+	} else {
+		reqBody = strings.NewReader("")
+	}
+
+	req := httptest.NewRequest(method, path, reqBody)
+	req.RemoteAddr = nextTestRemoteAddr()
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Specialist-ID", testSpecialist.ID)
+
+	initData := buildInitDataAtWithPhoto(clientTelegramID, "Test User", testSpecialist.BotToken, time.Now().Unix(), photoURL)
+	req.Header.Set("X-Telegram-Init-Data", initData)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
 /***************************************************************************************************
 * jsonBody marshals v to a JSON string and returns a pointer to it.
 *

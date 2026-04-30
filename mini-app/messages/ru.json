@@ -313,6 +313,9 @@
     "notifyRemindersDesc": "За час до сеанса",
     "notifyDaysOff": "Выходные специалиста",
     "notifyDaysOffDesc": "Новые выходные дни",
+    "useTelegramPhoto": "Использовать фото Telegram",
+    "removePhoto": "Удалить фото",
+    "telegramPhotoActive": "Используется фото Telegram",
     "theme": "Тема"
   },
   "ServicesPage": {

@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
@@ -20,6 +20,13 @@ const sizeClasses = {
   md: 'w-10 h-10 text-base',
   lg: 'w-16 h-16 text-2xl',
 };
+
+function isDirectPhotoUrl(photoUrl?: string): boolean {
+  return Boolean(
+    photoUrl &&
+    (photoUrl.startsWith('http') || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')),
+  );
+}
 
 /***************************************************************************************************
  * Renders the client avatar UI and related interactions.
@@ -44,6 +51,10 @@ export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps
   const cls = sizeClasses[size];
   const photoSrc = !error ? getPhotoUrl(photoUrl) : null;
 
+  useEffect(() => {
+    setError(false);
+  }, [photoUrl]);
+
   /***************************************************************************************************
    * Implements the if logic used by this module.
    *
@@ -63,6 +74,7 @@ export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps
         height={32}
         src={photoSrc}
         alt={name}
+        unoptimized={isDirectPhotoUrl(photoUrl)}
         className={`${cls} shrink-0 rounded-full object-cover`}
         onError={() => setError(true)}
       />

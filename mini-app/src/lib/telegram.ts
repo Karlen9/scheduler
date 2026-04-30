@@ -414,7 +414,38 @@ export function getTelegramUserPhotoUrl(): string {
     return '';
   }
 
-  return window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url ?? '';
+  return (
+    window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url ||
+    getTelegramUserPhotoUrlFromInitData(getInitData())
+  );
+}
+
+function getTelegramUserPhotoUrlFromInitData(initData: string): string {
+  if (!initData) {
+    return '';
+  }
+
+  const rawUser = new URLSearchParams(initData).get('user');
+  if (!rawUser) {
+    return '';
+  }
+
+  try {
+    const user = JSON.parse(rawUser) as { photo_url?: unknown };
+    return typeof user.photo_url === 'string' ? user.photo_url : '';
+  } catch {
+    return '';
+  }
+}
+
+export async function waitForTelegramUserPhotoUrl(timeoutMs = 1500): Promise<string> {
+  const currentPhotoUrl = getTelegramUserPhotoUrl();
+  if (currentPhotoUrl) {
+    return currentPhotoUrl;
+  }
+
+  const initData = await waitForInitData(timeoutMs);
+  return getTelegramUserPhotoUrlFromInitData(initData) || getTelegramUserPhotoUrl();
 }
 
 /***************************************************************************************************

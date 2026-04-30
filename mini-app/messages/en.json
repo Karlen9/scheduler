@@ -313,6 +313,9 @@
     "notifyRemindersDesc": "One hour before the session",
     "notifyDaysOff": "Specialist days off",
     "notifyDaysOffDesc": "New days off",
+    "useTelegramPhoto": "Use Telegram photo",
+    "removePhoto": "Remove photo",
+    "telegramPhotoActive": "Telegram photo is active",
     "theme": "Theme"
   },
   "ServicesPage": {

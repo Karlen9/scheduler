@@ -1,5 +1,6 @@
 'use client';
 
+import { Trash2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,6 +15,7 @@ import { invalidateProfile } from '@/hooks/mutations';
 import { useProfile } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { isPreviewRoute } from '@/lib/routes';
+import { getTelegramUserPhotoUrl, waitForTelegramUserPhotoUrl } from '@/lib/telegram';
 
 import { AvatarSection } from './AvatarSection';
 import { NotificationPreferences } from './NotificationPreferences';
@@ -90,9 +92,11 @@ export default function ClientProfilePage(): ReactNode {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [telegramPhotoUrl, setTelegramPhotoUrl] = useState('');
   const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
   const [editorImage, setEditorImage] = useState<string | null>(null);
   /***************************************************************************************************
    * Defines the file input ref value used by the page layer.
@@ -111,12 +115,31 @@ export default function ClientProfilePage(): ReactNode {
       setName(profile.name || '');
       setPhone(profile.phone || '');
       setPhotoUrl(profile.photoUrl || '');
+      setPhotoError(false);
       setNotifyBookingStatus(profile.notifyBookingStatus ?? true);
       setNotifyReminders(profile.notifyReminders ?? true);
       setNotifyDaysOff(profile.notifyDaysOff ?? false);
       setNotifyCancellations(profile.notifyCancellations ?? true);
     }
   }, [profile]);
+
+  useEffect(() => {
+    let active = true;
+    const currentPhotoUrl = getTelegramUserPhotoUrl();
+    if (currentPhotoUrl) {
+      setTelegramPhotoUrl(currentPhotoUrl);
+    }
+
+    void waitForTelegramUserPhotoUrl().then((photo) => {
+      if (active && photo) {
+        setTelegramPhotoUrl(photo);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /***************************************************************************************************
    * Cross-device language sync.
@@ -235,6 +258,39 @@ export default function ClientProfilePage(): ReactNode {
     [mutate, profile, te, ts],
   );
 
+  const handleDeletePhoto = useCallback(async (): Promise<void> => {
+    setIsDeletingPhoto(true);
+
+    try {
+      const fallbackTelegramPhotoUrl =
+        telegramPhotoUrl || getTelegramUserPhotoUrl() || (await waitForTelegramUserPhotoUrl());
+      const updatedProfile = await api.updateProfile({ photoUrl: '' });
+      if (updatedProfile.photoUrl?.startsWith('http')) {
+        setTelegramPhotoUrl(updatedProfile.photoUrl);
+      } else if (fallbackTelegramPhotoUrl) {
+        setTelegramPhotoUrl(fallbackTelegramPhotoUrl);
+      }
+      setPhotoUrl(updatedProfile.photoUrl || '');
+      setPhotoError(false);
+
+      if (profile) {
+        await mutate(async () => updatedProfile, {
+          populateCache: true,
+          revalidate: false,
+        });
+      } else {
+        invalidateProfile();
+      }
+      invalidateProfile();
+      toast.success(ts('photoRemoved'));
+    } catch (err) {
+      console.error('Failed to delete photo:', err);
+      toast.error(te('saveFailed'));
+    } finally {
+      setIsDeletingPhoto(false);
+    }
+  }, [mutate, profile, te, telegramPhotoUrl, ts]);
+
   /***************************************************************************************************
    * Handles save.
    *
@@ -335,12 +391,19 @@ export default function ClientProfilePage(): ReactNode {
     );
   }
 
+  const displayPhotoUrl = photoUrl || telegramPhotoUrl;
+  const hasPhoto = Boolean(displayPhotoUrl);
+  const isTelegramPhotoActive = Boolean(
+    telegramPhotoUrl && (!photoUrl || photoUrl === telegramPhotoUrl),
+  );
+  const canDeletePhoto = Boolean(photoUrl && !isTelegramPhotoActive);
+
   return (
     <div>
       <div className={'space-y-6 p-4'}>
         <AvatarSection
           name={name}
-          photoUrl={photoUrl}
+          photoUrl={displayPhotoUrl}
           photoError={photoError}
           isUploading={isUploading}
           disabled={isPreview}
@@ -349,6 +412,36 @@ export default function ClientProfilePage(): ReactNode {
           fileInputRef={fileInputRef}
           onFileSelect={handleFileSelect}
         />
+
+        {!isPreview && hasPhoto && (
+          <div className={'-mt-4 flex justify-center'}>
+            {canDeletePhoto ? (
+              <button
+                type={'button'}
+                onClick={handleDeletePhoto}
+                disabled={isDeletingPhoto || isUploading}
+                className={
+                  'text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-50'
+                }
+              >
+                {isDeletingPhoto ? (
+                  <div
+                    className={
+                      'border-muted-foreground h-4 w-4 animate-spin rounded-full border-2 border-t-transparent'
+                    }
+                  />
+                ) : (
+                  <Trash2 className={'h-4 w-4'} />
+                )}
+                {telegramPhotoUrl ? t('useTelegramPhoto') : t('removePhoto')}
+              </button>
+            ) : (
+              <p className={'text-muted-foreground px-3 py-2 text-sm'}>
+                {t('telegramPhotoActive')}
+              </p>
+            )}
+          </div>
+        )}
 
         {isPreview && (
           <div className={'bg-card text-muted-foreground rounded-xl px-4 py-3 text-sm'}>
