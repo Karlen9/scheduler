@@ -4,7 +4,7 @@ import { emitMutation } from '../mutation-events';
 import { stripTelegramProfilePhotoPrefix } from '../photos';
 import { dedupeRequest } from '../request-cache';
 import { isPreviewRoute, isTestRoute } from '../routes';
-import { getInitData, getSpecialistId, waitForInitData } from '../telegram';
+import { getSpecialistId, waitForInitData } from '../telegram';
 
 import type { TWorkingHours } from '../types';
 
@@ -118,16 +118,11 @@ export function getPhotoUrl(fileIdOrUrl?: string | null): string | null {
   }
 
   const specialistId = getSpecialistId();
-  const initData = getInitData();
-  if (!initData) {
-    return null;
-  }
 
   const query = new URLSearchParams();
   if (specialistId) {
     query.set('specialist', specialistId);
   }
-  query.set('initData', initData);
   const suffix = query.toString();
 
   const fileId = stripTelegramProfilePhotoPrefix(fileIdOrUrl);

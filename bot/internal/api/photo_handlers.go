@@ -60,53 +60,55 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/***************************************************************************************************
-	* Determine which specialist's bot to use and authenticate the viewer against that bot. Image
-	* requests cannot send custom headers reliably, so this endpoint accepts initData in the query
-	* string for the mini-app's same-origin image loads.
+	* File IDs are unguessable Telegram tokens, and image tags cannot reliably attach auth headers.
+	* Prefer the specialist from the URL when present; otherwise try all active specialists because
+	* Telegram file IDs are bot-scoped.
 	***************************************************************************************************/
-	specialist, err := loadRequestSpecialist(requestSpecialistID(r))
-	if err != nil {
-		log.Printf("Error getting photo specialist: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-	if !specialist.IsActive || specialist.DeletedAt != nil {
-		httpError(w, r, "Error.BotDeleted", http.StatusGone)
+	specialistID := requestSpecialistID(r)
+	if specialistID != "" {
+		specialist, err := db.GetSpecialistByID(specialistID)
+		if err != nil || specialist == nil {
+			httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+			return
+		}
+		if !specialist.IsActive || specialist.DeletedAt != nil {
+			httpError(w, r, "Error.BotDeleted", http.StatusGone)
+			return
+		}
+		if proxyTelegramFile(w, specialist.BotToken, fileID) {
+			return
+		}
+		httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
 		return
 	}
 
-	initData := r.URL.Query().Get("initData")
-	if initData == "" {
-		initData = r.Header.Get("X-Telegram-Init-Data")
-	}
-	if LoadTestMode && r.Header.Get("X-Test-User-ID") != "" {
-		initData = "load-test"
-	}
-	if initData == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	specialists, err := db.GetAllActiveSpecialists()
+	if err != nil || len(specialists) == 0 {
+		httpError(w, r, "Error.SpecialistNotConfigured", http.StatusInternalServerError)
 		return
 	}
-	if initData != "load-test" {
-		if _, ok := validateInitData(initData, specialist.BotToken); !ok {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+
+	for _, specialist := range specialists {
+		if proxyTelegramFile(w, specialist.BotToken, fileID) {
 			return
 		}
 	}
 
-	bot := &telegram.Bot{Token: specialist.BotToken}
+	log.Printf("GetFile error: no specialist bot could resolve file_id %s", truncateForLog(fileID, 20))
+	httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
+}
+
+func proxyTelegramFile(w http.ResponseWriter, botToken string, fileID string) bool {
+	bot := &telegram.Bot{Token: botToken}
 	data, contentType, err := bot.GetFile(fileID)
 	if err != nil {
 		log.Printf("GetFile error: %v", err)
-		httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
-		return
+		return false
 	}
 	w.Header().Set("Content-Type", contentType)
-	setPrivateCache(w, 300, 600)
+	setPublicCache(w, 3600, true)
 	w.Write(data)
+	return true
 }
 
 /***************************************************************************************************
@@ -143,13 +145,12 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Always send to specialist's chat (used as CDN, not meant for the client to see).
 	***************************************************************************************************/
-	fileID, messageID, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
+	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
 		return
 	}
-	deleteUploadedPhotoMessage(bot, specialist.TelegramUserID, messageID)
 
 	if client != nil {
 		if err := db.UpdateClientPhoto(client.ID, fileID); err != nil {
@@ -199,13 +200,12 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	bot := &telegram.Bot{Token: specialist.BotToken}
 
-	fileID, messageID, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
+	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
 		return
 	}
-	deleteUploadedPhotoMessage(bot, specialist.TelegramUserID, messageID)
 
 	if err := db.UpdateSpecialistPhoto(specialist.ID, fileID); err != nil {
 		log.Printf("UpdateSpecialistPhoto error: %v", err)
@@ -215,29 +215,6 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	writeJSON(w, map[string]string{"fileId": fileID})
-}
-
-/***************************************************************************************************
-* deleteUploadedPhotoMessage removes the temporary Telegram chat message used to obtain a file_id.
-*
-* Parameters:
-* - bot: Bot used by the current operation.
-* - chatID: Identifier used to target the current record.
-* - messageID: Identifier used to target the current record.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - Calls Telegram APIs and logs non-fatal cleanup failures.
-***************************************************************************************************/
-func deleteUploadedPhotoMessage(bot *telegram.Bot, chatID int64, messageID int) {
-	if messageID == 0 {
-		return
-	}
-	if err := bot.DeleteMessage(chatID, messageID); err != nil {
-		log.Printf("Delete uploaded photo message error: %v", err)
-	}
 }
 
 /***************************************************************************************************
@@ -283,8 +260,7 @@ func readUploadedPhoto(w http.ResponseWriter, r *http.Request) ([]byte, string, 
 
 	/***************************************************************************************************
 	* Re-encode as JPEG to ensure unique bytes on every upload. This prevents Telegram from returning
-	* a stale cached file_id (which happens when the same image content is re-uploaded after a
-	* previous upload's message was deleted, invalidating the file_id).
+	* a stale cached file_id from an older deleted storage message.
 	***************************************************************************************************/
 	reencoded, err := reencodAsJPEG(photoData)
 	if err != nil {
