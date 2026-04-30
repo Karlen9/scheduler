@@ -627,6 +627,39 @@ func TestUpdateClientProfile(t *testing.T) {
 	}
 }
 
+func TestUpdateClientProfileRestoresTelegramPhotoWhenClearingPhoto(t *testing.T) {
+	clientTelegramID := int64(555556)
+	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, clientTelegramID)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected initial profile 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	client, err := db.GetClientByTelegramID(clientTelegramID, testSpecialist.ID)
+	if err != nil || client == nil {
+		t.Fatalf("expected client to exist, err=%v", err)
+	}
+	if err := db.UpdateClientPhoto(client.ID, "custom_file_id"); err != nil {
+		t.Fatalf("failed to set custom client photo: %v", err)
+	}
+
+	telegramPhotoURL := "https://t.me/i/userpic/320/client.jpg"
+	body := jsonBody(map[string]interface{}{
+		"photoUrl": "",
+	})
+
+	w = doClientRequestWithPhoto(t, http.MethodPut, "/api/profile", body, clientTelegramID, telegramPhotoURL)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected clear photo update 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+
+	if photoURL, _ := profile["photoUrl"].(string); photoURL != telegramPhotoURL {
+		t.Fatalf("expected telegram photo url %q, got %q", telegramPhotoURL, photoURL)
+	}
+}
+
 /***************************************************************************************************
 * Implements the test update admin profile logic used by this module.
 *

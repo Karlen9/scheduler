@@ -14,7 +14,7 @@ import { invalidateSpecialist } from '@/hooks/mutations';
 import { useAdminProfile } from '@/hooks/queries';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
-import { getTelegramUserPhotoUrl } from '@/lib/telegram';
+import { getTelegramUserPhotoUrl, waitForTelegramUserPhotoUrl } from '@/lib/telegram';
 
 import type { TWallpaperId } from '@/components/WallpaperPicker';
 import type { ReactNode } from 'react';
@@ -101,9 +101,26 @@ export default function ProfilePage(): ReactNode {
     setTelegram(profile.telegramHandle || '');
     setPhotoUrl(profile.photoUrl || '');
     setWallpaper((profile.wallpaper as TWallpaperId) || 'none');
-    setTelegramPhotoUrl(getTelegramUserPhotoUrl());
     setInitialized(true);
   }, [profile, isLoading, initialized]);
+
+  useEffect(() => {
+    let active = true;
+    const currentPhotoUrl = getTelegramUserPhotoUrl();
+    if (currentPhotoUrl) {
+      setTelegramPhotoUrl(currentPhotoUrl);
+    }
+
+    void waitForTelegramUserPhotoUrl().then((photo) => {
+      if (active && photo) {
+        setTelegramPhotoUrl(photo);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /***************************************************************************************************
    * Handles file select.
@@ -180,8 +197,15 @@ export default function ProfilePage(): ReactNode {
   const handleDeletePhoto = async (): Promise<void> => {
     setIsDeletingPhoto(true);
     try {
+      const fallbackTelegramPhotoUrl =
+        telegramPhotoUrl || getTelegramUserPhotoUrl() || (await waitForTelegramUserPhotoUrl());
       const updated = await api.admin.updateProfile({ photoUrl: '' });
-      setPhotoUrl(updated.photoUrl || telegramPhotoUrl);
+      if (updated.photoUrl && isDirectPhotoUrl(updated.photoUrl)) {
+        setTelegramPhotoUrl(updated.photoUrl);
+      } else if (fallbackTelegramPhotoUrl) {
+        setTelegramPhotoUrl(fallbackTelegramPhotoUrl);
+      }
+      setPhotoUrl(updated.photoUrl || '');
       setPhotoError(false);
       invalidateSpecialist();
       toast.success(ts('photoRemoved'));
@@ -242,10 +266,13 @@ export default function ProfilePage(): ReactNode {
     );
   }
 
-  const hasPhoto = Boolean(photoUrl);
-  const photoSrc = hasPhoto && !photoError ? getPhotoUrl(photoUrl) : null;
-  const isTelegramPhotoActive = Boolean(telegramPhotoUrl && photoUrl === telegramPhotoUrl);
-  const canDeletePhoto = hasPhoto && !isTelegramPhotoActive;
+  const displayPhotoUrl = photoUrl || telegramPhotoUrl;
+  const hasPhoto = Boolean(displayPhotoUrl);
+  const photoSrc = hasPhoto && !photoError ? getPhotoUrl(displayPhotoUrl) : null;
+  const isTelegramPhotoActive = Boolean(
+    telegramPhotoUrl && (!photoUrl || photoUrl === telegramPhotoUrl),
+  );
+  const canDeletePhoto = Boolean(photoUrl && !isTelegramPhotoActive);
 
   return (
     <div>
@@ -263,7 +290,7 @@ export default function ProfilePage(): ReactNode {
                 height={96}
                 src={photoSrc}
                 alt={name}
-                unoptimized={isDirectPhotoUrl(photoUrl)}
+                unoptimized={isDirectPhotoUrl(displayPhotoUrl)}
                 className={'h-24 w-24 rounded-full object-cover'}
                 onError={() => setPhotoError(true)}
               />

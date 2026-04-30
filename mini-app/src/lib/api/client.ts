@@ -143,6 +143,7 @@ export const clientApi = {
   async updateProfile(data: {
     name?: string;
     phone?: string;
+    photoUrl?: string;
     preferredDuration?: number;
     language?: string;
   }): Promise<TClientProfile> {
