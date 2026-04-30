@@ -145,7 +145,7 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	/***************************************************************************************************
 	* Always send to specialist's chat (used as CDN, not meant for the client to see).
 	***************************************************************************************************/
-	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
+	fileID, messageID, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
@@ -166,6 +166,8 @@ func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 			changes.GroupRecurring,
 		)
 	}
+
+	deleteUploadedPhotoMessage(bot, specialist.TelegramUserID, messageID)
 
 	writeJSON(w, map[string]string{"fileId": fileID})
 }
@@ -200,7 +202,7 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 
 	bot := &telegram.Bot{Token: specialist.BotToken}
 
-	fileID, _, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
+	fileID, messageID, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
 	if err != nil {
 		log.Printf("SendPhoto error: %v", err)
 		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
@@ -213,8 +215,26 @@ func HandleAdminUploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	deleteUploadedPhotoMessage(bot, specialist.TelegramUserID, messageID)
+
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	writeJSON(w, map[string]string{"fileId": fileID})
+}
+
+/***************************************************************************************************
+* deleteUploadedPhotoMessage removes the temporary Telegram chat message used to obtain a file_id.
+* The fileID stays valid after deletion because Telegram retains the underlying file, and the
+* LSB-flip re-encoding in readUploadedPhoto guarantees each upload yields a fresh fileID so we
+* never resurrect a stale one from a previously deleted message. Best-effort: cleanup failures
+* are logged but do not fail the upload (the fileID is already safely stored in the database).
+***************************************************************************************************/
+func deleteUploadedPhotoMessage(bot *telegram.Bot, chatID int64, messageID int) {
+	if messageID == 0 {
+		return
+	}
+	if err := bot.DeleteMessage(chatID, messageID); err != nil {
+		log.Printf("Delete uploaded photo message error: %v", err)
+	}
 }
 
 /***************************************************************************************************
