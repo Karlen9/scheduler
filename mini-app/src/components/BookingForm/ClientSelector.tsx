@@ -1,4 +1,4 @@
-import { AlertCircle, Search } from 'lucide-react';
+import { AlertCircle, Search, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -115,6 +115,21 @@ export function ClientSelector({
     );
   }, [clients, searchQuery]);
 
+  const canCreateGhostClient = !!onCreateGhostClient && !!searchQuery.trim();
+  const createGhostClientButton = canCreateGhostClient ? (
+    <button
+      type={'button'}
+      onClick={handleCreateGhostClient}
+      disabled={isCreatingGhost}
+      className={
+        'bg-brand flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition-opacity active:opacity-80 disabled:opacity-50'
+      }
+    >
+      <UserPlus className={'h-4 w-4'} />
+      <span>{isCreatingGhost ? tc('creating') : t('addClient', { name: searchQuery.trim() })}</span>
+    </button>
+  ) : null;
+
   /***************************************************************************************************
    * Defines the has client selector value used by the component layer.
    *
@@ -145,24 +160,14 @@ export function ClientSelector({
             />
           </div>
           {filteredClients.length === 0 ? (
-            <div className={'space-y-3'}>
-              {onCreateGhostClient && searchQuery.trim() && (
-                <button
-                  onClick={handleCreateGhostClient}
-                  disabled={isCreatingGhost}
-                  className={
-                    'border-border text-muted-foreground active:bg-card w-full rounded-xl border-2 border-dashed p-4 text-sm transition-colors disabled:opacity-50'
-                  }
-                >
-                  {isCreatingGhost ? tc('creating') : t('addClient', { name: searchQuery.trim() })}
-                </button>
-              )}
+            <div>
               <EmptyState
                 icon={<AlertCircle className={'h-16 w-16'} />}
                 title={t('clientsNotFound')}
                 description={
                   clients!.length === 0 ? t('noRegisteredClients') : t('changeSearchQuery')
                 }
+                action={createGhostClientButton}
               />
             </div>
           ) : (
@@ -201,19 +206,8 @@ export function ClientSelector({
                 searchQuery.trim() &&
                 !filteredClients.some(
                   (c) => c.name.toLowerCase() === searchQuery.trim().toLowerCase(),
-                ) && (
-                  <button
-                    onClick={handleCreateGhostClient}
-                    disabled={isCreatingGhost}
-                    className={
-                      'border-border text-muted-foreground active:bg-card w-full rounded-xl border-2 border-dashed p-4 text-sm transition-colors disabled:opacity-50'
-                    }
-                  >
-                    {isCreatingGhost
-                      ? tc('creating')
-                      : t('addClient', { name: searchQuery.trim() })}
-                  </button>
-                )}
+                ) &&
+                createGhostClientButton}
             </div>
           )}
         </div>
