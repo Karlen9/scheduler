@@ -45,6 +45,18 @@ func resolveTelegramProfilePhotoForCurrent(r *http.Request, botToken string, tel
 		return ""
 	}
 
+	/***************************************************************************************************
+	* Prefer the HTTP CDN URL from validated initData when present — it loads directly from
+	* t.me in the browser, bypassing the token-protected /api/photo proxy. fileIDs returned by
+	* getUserProfilePhotos are not always downloadable via getFile (a known Telegram API quirk),
+	* so the bot-API path is kept only as a fallback for inline-keyboard launches whose initData
+	* does not carry photo_url.
+	***************************************************************************************************/
+	user := GetTelegramUserFromContext(r)
+	if user != nil && user.ID == telegramUserID && user.PhotoURL != "" && currentPhotoURL != user.PhotoURL {
+		return user.PhotoURL
+	}
+
 	if botToken != "" && telegramUserID != 0 {
 		fileID, err := telegramProfilePhotoLookup(botToken, telegramUserID)
 		if err != nil {
@@ -54,10 +66,6 @@ func resolveTelegramProfilePhotoForCurrent(r *http.Request, botToken string, tel
 		}
 	}
 
-	user := GetTelegramUserFromContext(r)
-	if user != nil && user.ID == telegramUserID && user.PhotoURL != "" && currentPhotoURL != user.PhotoURL {
-		return user.PhotoURL
-	}
 	return ""
 }
 
