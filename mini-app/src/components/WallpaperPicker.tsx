@@ -5,7 +5,16 @@ import { useTranslations } from 'next-intl';
 
 import type { ReactNode } from 'react';
 
-export type TWallpaperId = 'none' | 'w1' | 'w2' | 'w3' | 'w4' | 'w5' | 'w6' | 'fitness';
+export type TWallpaperId =
+  | 'none'
+  | 'w1'
+  | 'w2'
+  | 'w3'
+  | 'w4'
+  | 'w5'
+  | 'w6'
+  | 'fitness'
+  | 'teaching';
 
 export const WALLPAPER_IDS: TWallpaperId[] = [
   'none',
@@ -16,6 +25,7 @@ export const WALLPAPER_IDS: TWallpaperId[] = [
   'w5',
   'w6',
   'fitness',
+  'teaching',
 ];
 
 function PatternW1(): ReactNode {
@@ -145,6 +155,15 @@ function PatternFitness(): ReactNode {
   );
 }
 
+function PatternTeaching(): ReactNode {
+  return (
+    <div
+      className={'h-full w-full bg-cover bg-center bg-no-repeat dark:invert'}
+      style={{ backgroundImage: "url('/teaching-transparent.svg')" }}
+    />
+  );
+}
+
 const WALLPAPER_COMPONENTS: Record<string, () => ReactNode> = {
   w1: PatternW1,
   w2: PatternW2,
@@ -153,6 +172,7 @@ const WALLPAPER_COMPONENTS: Record<string, () => ReactNode> = {
   w5: PatternW5,
   w6: PatternW6,
   fitness: PatternFitness,
+  teaching: PatternTeaching,
 };
 
 type TWallpaperPickerProps = {
@@ -178,7 +198,7 @@ export function WallpaperPicker({ value, onChange }: TWallpaperPickerProps): Rea
               onClick={() => onChange(id)}
               className={`relative h-[72px] overflow-hidden rounded-lg border-2 transition-all ${
                 isSelected ? 'border-brand ring-brand/30 ring-2' : 'border-surface-border'
-              } ${id === 'none' ? 'bg-card' : id === 'fitness' ? 'bg-card' : 'bg-brand/10 text-brand'}`}
+              } ${id === 'none' ? 'bg-card' : id === 'fitness' || id === 'teaching' ? 'bg-card' : 'bg-brand/10 text-brand'}`}
             >
               {Pattern && (
                 <div className={'absolute inset-0'}>
