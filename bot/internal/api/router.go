@@ -86,6 +86,13 @@ func NewRouter() http.Handler {
 		r.Use(SuperadminAuthMiddleware)
 		r.Get("/specialists", HandleListAllSpecialists)
 
+		/***************************************************************************************************
+		* Promo code management.
+		***************************************************************************************************/
+		r.Post("/promocodes", HandleSuperadminCreatePromoCode)
+		r.Get("/promocodes", HandleSuperadminListPromoCodes)
+		r.Delete("/promocodes/{id}", HandleSuperadminDeactivatePromoCode)
+
 		r.Route("/dashboard", func(r chi.Router) {
 			r.Use(DashboardAuditMiddleware)
 			r.Get("/overview", HandleDashboardOverview)
@@ -162,6 +169,12 @@ func NewRouter() http.Handler {
 	* Photo proxy (no auth — fileIds are unguessable Telegram tokens).
 	***************************************************************************************************/
 	r.Get("/api/photo/{fileId}", HandleGetPhoto)
+
+	/***************************************************************************************************
+	* ЮКасса payment webhook (no auth — server-to-server callback; verification is done by
+	* re-fetching the payment from the ЮКасса API inside the handler).
+	***************************************************************************************************/
+	r.Post("/api/payments/yookassa/webhook", HandleYooKassaWebhook)
 
 	/***************************************************************************************************
 	* API routes with Telegram auth.
@@ -311,6 +324,19 @@ func NewRouter() http.Handler {
 			* Referrals.
 			***************************************************************************************************/
 			r.Get("/referrals", HandleAdminGetReferrals)
+
+			/***************************************************************************************************
+			* Subscription status + checkout.
+			***************************************************************************************************/
+			r.Get("/subscription", HandleGetSubscriptionStatus)
+			r.Post("/subscription/checkout", HandleSubscriptionCheckout)
+			r.Post("/subscription/cancel", HandleCancelSubscription)
+			r.Post("/subscription/resume", HandleResumeSubscription)
+
+			/***************************************************************************************************
+			* Promo code validation.
+			***************************************************************************************************/
+			r.Post("/promocode/validate", HandleValidatePromoCode)
 
 			/***************************************************************************************************
 			* Soft-delete the entire bot (requires an exact confirmation phrase in the body).

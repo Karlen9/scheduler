@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -308,23 +309,29 @@ func HandleDashboardSpecialistSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dashEnt := specialist.Entitlement(time.Now())
 	setNoStore(w)
 	writeJSON(w, DashboardSpecialistSnapshot{
 		Profile: SpecialistResponse{
-			ID:                specialist.ID,
-			Name:              specialist.Name,
-			Timezone:          specialist.Timezone,
-			CancelCutoffHrs:   specialist.CancelCutoffHrs,
-			BotUsername:       specialist.BotUsername,
-			TelegramHandle:    specialist.TelegramHandle,
-			Phone:             specialist.Phone,
-			Specialization:    specialist.Specialization,
-			Bio:               specialist.Bio,
-			PhotoURL:          specialist.PhotoURL,
-			LocationLatitude:  specialist.LocationLatitude,
-			LocationLongitude: specialist.LocationLongitude,
-			Language:          specialist.Language,
-			Wallpaper:         specialist.Wallpaper,
+			ID:                 specialist.ID,
+			Name:               specialist.Name,
+			Timezone:           specialist.Timezone,
+			CancelCutoffHrs:    specialist.CancelCutoffHrs,
+			BotUsername:        specialist.BotUsername,
+			TelegramHandle:     specialist.TelegramHandle,
+			Phone:              specialist.Phone,
+			Specialization:     specialist.Specialization,
+			Bio:                specialist.Bio,
+			PhotoURL:           specialist.PhotoURL,
+			LocationLatitude:   specialist.LocationLatitude,
+			LocationLongitude:  specialist.LocationLongitude,
+			Language:           specialist.Language,
+			Wallpaper:          specialist.Wallpaper,
+			IsPro:              dashEnt.IsPro,
+			SubscriptionStatus: specialist.SubscriptionStatus,
+			TrialEndsAt:        specialist.TrialEndsAt,
+			CurrentPeriodEndAt: specialist.CurrentPeriodEndAt,
+			AutoRenew:          specialist.AutoRenew,
 		},
 		Stats:    stats,
 		Services: services,
