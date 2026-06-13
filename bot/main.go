@@ -20,6 +20,7 @@ import (
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
+	"scheduler-bot/internal/payments"
 	"scheduler-bot/internal/telegram"
 )
 
@@ -397,6 +398,8 @@ func main() {
 	if cfg.DatabaseURL != "" {
 		dbTarget = cfg.DatabaseURL
 	}
+	db.ExistingGraceDays = cfg.ExistingGraceDays
+	db.TrialDays = cfg.TrialDays
 	if err := db.Init(dbTarget); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -753,6 +756,16 @@ func main() {
 	api.MasterBotToken = cfg.MasterBotToken
 	api.AdminIDs = cfg.AdminIDs
 
+	/***************************************************************************************************
+	* Wire the ЮКасса payment client. When credentials are absent the package-level var stays nil
+	* and the checkout handler returns 503.
+	***************************************************************************************************/
+	if cfg.YooKassaShopID != "" && cfg.YooKassaSecretKey != "" {
+		api.YooKassaClient = payments.NewClient(cfg.YooKassaShopID, cfg.YooKassaSecretKey)
+	} else {
+		log.Println("Warning: YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY not set, subscription payments disabled")
+	}
+
 	api.LoadTestMode = os.Getenv("LOAD_TEST_MODE") == "true"
 	if api.LoadTestMode {
 		log.Println("WARNING: LOAD_TEST_MODE enabled — Telegram auth bypassed for X-Test-User-ID requests")
@@ -775,6 +788,19 @@ func main() {
 		// masterBot was created earlier (pre-specialist-sweep) so its username was already
 		// baked into every handler. This block only wires the webhook + request handler.
 		masterHandler = telegram.NewMasterHandler(masterBot, cfg.PublicBaseURL, cfg.WebAppURL, cfg.AdminIDs, cfg.SupportGroupID)
+
+		/***************************************************************************************************
+		* Wire subscription checkout + notification callbacks into the master bot (Step 6a).
+		* api imports telegram (photo handlers) so telegram cannot import api — we inject via func pointers
+		* here in main, which imports both.
+		***************************************************************************************************/
+		masterHandler.CreateCheckoutFunc = api.CreateSubscriptionCheckout
+		// FIX 1: wrap in a goroutine so a slow/unreachable Telegram DM cannot stall the
+		// ЮКасса webhook's 200-OK response (or block the renewal/expiry worker loop).
+		// Activation is persisted before this fires, so a dropped DM is acceptable.
+		api.NotifySubscriptionEventFunc = func(tgID int64, event string) {
+			go masterHandler.NotifySubscriptionEvent(tgID, event)
+		}
 
 		/***************************************************************************************************
 		* Use fixed webhook secret from env, or generate a random one.
@@ -931,6 +957,35 @@ func main() {
 	* heals them automatically without needing a container restart.
 	***************************************************************************************************/
 	go botManager.RunWebhookHealer(reminderCtx, 10*time.Minute, 5)
+
+	/***************************************************************************************************
+	* Start subscription background workers: renewal autopay + expiry sweep.
+	* Runs once shortly after startup, then every hour.
+	***************************************************************************************************/
+	go func() {
+		const subscriptionWorkerInterval = 1 * time.Hour
+
+		// Initial run after a short grace period.
+		select {
+		case <-reminderCtx.Done():
+			return
+		case <-time.After(30 * time.Second):
+		}
+		api.ProcessRenewals(reminderCtx)
+		api.ProcessExpirations(reminderCtx)
+
+		ticker := time.NewTicker(subscriptionWorkerInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-reminderCtx.Done():
+				return
+			case <-ticker.C:
+				api.ProcessRenewals(reminderCtx)
+				api.ProcessExpirations(reminderCtx)
+			}
+		}
+	}()
 
 	go func() {
 		log.Printf("Starting HTTP server on %s", server.Addr)
