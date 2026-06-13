@@ -218,6 +218,22 @@ type SetMyCommandsRequest struct {
 }
 
 /***************************************************************************************************
+* SetMyDescriptionRequest is the request body for setMyDescription.
+***************************************************************************************************/
+type SetMyDescriptionRequest struct {
+	Description  string `json:"description"`
+	LanguageCode string `json:"language_code,omitempty"`
+}
+
+/***************************************************************************************************
+* SetMyShortDescriptionRequest is the request body for setMyShortDescription.
+***************************************************************************************************/
+type SetMyShortDescriptionRequest struct {
+	ShortDescription string `json:"short_description"`
+	LanguageCode     string `json:"language_code,omitempty"`
+}
+
+/***************************************************************************************************
 * NewBot creates a new Bot instance.
 *
 * Parameters:
@@ -600,6 +616,98 @@ func (b *Bot) SetMyCommands(commands []BotCommand, scope *BotCommandScope, langu
 	}
 	if !result.Result {
 		return fmt.Errorf("setMyCommands returned false")
+	}
+
+	return nil
+}
+
+/***************************************************************************************************
+* SetMyDescription sets the bot's profile description for the given language. Pass an empty
+* languageCode to set the default/fallback description.
+***************************************************************************************************/
+func (b *Bot) SetMyDescription(description, languageCode string) error {
+	req := SetMyDescriptionRequest{
+		Description:  description,
+		LanguageCode: languageCode,
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/setMyDescription",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK          bool   `json:"ok"`
+		Result      bool   `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+	if !result.OK {
+		if result.Description != "" {
+			return fmt.Errorf("setMyDescription returned not OK: %s", result.Description)
+		}
+		return fmt.Errorf("setMyDescription returned not OK")
+	}
+	if !result.Result {
+		return fmt.Errorf("setMyDescription returned false")
+	}
+
+	return nil
+}
+
+/***************************************************************************************************
+* SetMyShortDescription sets the bot's short description (shown on the empty-chat screen) for the
+* given language. Pass an empty languageCode to set the default/fallback short description.
+***************************************************************************************************/
+func (b *Bot) SetMyShortDescription(shortDescription, languageCode string) error {
+	req := SetMyShortDescriptionRequest{
+		ShortDescription: shortDescription,
+		LanguageCode:     languageCode,
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(
+		telegramAPI+b.Token+"/setMyShortDescription",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK          bool   `json:"ok"`
+		Result      bool   `json:"result"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+	if !result.OK {
+		if result.Description != "" {
+			return fmt.Errorf("setMyShortDescription returned not OK: %s", result.Description)
+		}
+		return fmt.Errorf("setMyShortDescription returned not OK")
+	}
+	if !result.Result {
+		return fmt.Errorf("setMyShortDescription returned false")
 	}
 
 	return nil
