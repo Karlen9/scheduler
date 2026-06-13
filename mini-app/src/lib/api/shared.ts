@@ -13,6 +13,18 @@ export const DEFAULT_CLIENT_BOOKINGS_LIMIT = 50;
 export const DEFAULT_ADMIN_DASHBOARD_BOOKINGS_LIMIT = 100;
 export const DEFAULT_ADMIN_CLIENTS_LIMIT = 50;
 
+/***************************************************************************************************
+ * Thrown when the backend returns HTTP 402 with error code `Error.ProRequired`.
+ * Callers can use `instanceof ProRequiredError` to render Pro-specific UX.
+ ***************************************************************************************************/
+export class ProRequiredError extends Error {
+  readonly code = 'Error.ProRequired';
+  constructor() {
+    super('Error.ProRequired');
+    this.name = 'ProRequiredError';
+  }
+}
+
 const PREVIEW_READ_ONLY_ERROR = 'Preview is read-only';
 
 export function normalizeIncomingHours(hours: TWorkingHours[]): TWorkingHours[] {
@@ -78,6 +90,11 @@ export async function fetchAPI<T>(endpoint: string, options?: RequestInit): Prom
       }
 
       const errorText = await response.text();
+
+      if (response.status === 402) {
+        throw new ProRequiredError();
+      }
+
       throw new Error(errorText || `HTTP ${response.status}`);
     }
 
