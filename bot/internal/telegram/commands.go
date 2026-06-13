@@ -98,6 +98,41 @@ func RegisterMasterBotCommands(bot *Bot, adminIDs []int64) error {
 	return nil
 }
 
+/***************************************************************************************************
+* RegisterMasterBotProfile sets the bot profile description and short description for all supported
+* languages plus the default fallback (Russian). Safe to call at startup; logs and continues on
+* error — it does not affect bot functionality.
+***************************************************************************************************/
+func RegisterMasterBotProfile(bot *Bot) error {
+	// Set default fallback using Russian text so users with unsupported Telegram languages still
+	// see a description.
+	ruLoc := myI18n.NewLocalizer("ru")
+	ruDesc := myI18n.T(ruLoc, "Master.Description")
+	ruShort := myI18n.T(ruLoc, "Master.ShortDescription")
+
+	if err := bot.SetMyDescription(ruDesc, ""); err != nil {
+		return fmt.Errorf("set default description: %w", err)
+	}
+	if err := bot.SetMyShortDescription(ruShort, ""); err != nil {
+		return fmt.Errorf("set default short description: %w", err)
+	}
+
+	for _, languageCode := range supportedCommandLanguages {
+		loc := myI18n.NewLocalizer(languageCode)
+		desc := myI18n.T(loc, "Master.Description")
+		short := myI18n.T(loc, "Master.ShortDescription")
+
+		if err := bot.SetMyDescription(desc, languageCode); err != nil {
+			return fmt.Errorf("set description (%s): %w", languageCode, err)
+		}
+		if err := bot.SetMyShortDescription(short, languageCode); err != nil {
+			return fmt.Errorf("set short description (%s): %w", languageCode, err)
+		}
+	}
+
+	return nil
+}
+
 func localizeCommands(loc *i18n.Localizer, defs []commandDefinition) []BotCommand {
 	commands := make([]BotCommand, 0, len(defs))
 	for _, def := range defs {

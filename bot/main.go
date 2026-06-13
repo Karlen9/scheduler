@@ -431,6 +431,9 @@ func main() {
 		if err := telegram.RegisterMasterBotCommands(masterBot, cfg.AdminIDs); err != nil {
 			log.Printf("Warning: failed to register master-bot commands: %v", err)
 		}
+		if err := telegram.RegisterMasterBotProfile(masterBot); err != nil {
+			log.Printf("Warning: failed to register master-bot profile: %v", err)
+		}
 	}
 	api.SetMasterBotUsername(masterBotUsername)
 
