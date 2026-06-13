@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"scheduler-bot/internal/config"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -46,6 +48,15 @@ const (
 	// StateAwaitingReplacementToken is entered via /replacetoken or the profile menu when an
 	// already-registered specialist needs to swap their bot token (e.g. after BotFather /revoke).
 	StateAwaitingReplacementToken
+	// StateAwaitingPromoCode is entered when the user taps "I have a promo code" on the
+	// subscription screen. The pending plan code is stored in pendingPlanCodes keyed by userID.
+	StateAwaitingPromoCode
+
+	// Admin promo-code creation states (admin-only, stored under the same sessions map).
+	StateAwaitingPromoNewCode       // admin typed the code string
+	StateAwaitingPromoDiscountValue // admin typed the numeric discount
+	StateAwaitingPromoMaxRedempt    // admin typed max redemptions (or "skip")
+	StateAwaitingPromoDurationDays  // admin typed duration_days override (or "skip")
 )
 
 /***************************************************************************************************
@@ -81,6 +92,27 @@ type MasterHandler struct {
 	adminIDs       []int64
 	supportGroupID int64                // 0 = support relay disabled
 	pendingRefs    map[int64]pendingRef // telegramUserID -> pending referrer code + capture time
+	// pendingPlanCodes stores the plan code selected before entering the promo-code state.
+	pendingPlanCodes map[int64]string // telegramUserID -> planCode
+
+	// promoCreateDrafts holds in-progress admin promo-code creation state.
+	// Guarded by h.mu (same mutex as sessions / pendingRefs).
+	promoCreateDrafts map[int64]*promoCreateDraft // adminUserID -> draft
+
+	// CreateCheckoutFunc is injected by main.go to avoid an import cycle (api imports telegram
+	// for photo handlers; telegram must not import api). Nil until wired.
+	CreateCheckoutFunc func(ctx context.Context, specialist *models.Specialist, planCode, promoCode string) (confirmationURL string, granted bool, err error)
+}
+
+// promoCreateDraft tracks the state of an admin creating a new promo code step by step.
+// All access must be under h.mu.
+type promoCreateDraft struct {
+	Code         string // upper-cased code string
+	DiscountType string // "percent" | "amount" — set by inline button
+	// DiscountValue is filled in after the admin confirms the type and types the value.
+	DiscountValue  int
+	MaxRedemptions *int // nil = unlimited
+	DurationDays   int  // 0 = use plan's own duration
 }
 
 /***************************************************************************************************
@@ -100,13 +132,15 @@ type MasterHandler struct {
 ***************************************************************************************************/
 func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int64, supportGroupID int64) *MasterHandler {
 	return &MasterHandler{
-		bot:            bot,
-		sessions:       make(map[int64]*OnboardingSession),
-		publicBaseURL:  publicBaseURL,
-		webAppURL:      webAppURL,
-		adminIDs:       adminIDs,
-		supportGroupID: supportGroupID,
-		pendingRefs:    make(map[int64]pendingRef),
+		bot:               bot,
+		sessions:          make(map[int64]*OnboardingSession),
+		publicBaseURL:     publicBaseURL,
+		webAppURL:         webAppURL,
+		adminIDs:          adminIDs,
+		supportGroupID:    supportGroupID,
+		pendingRefs:       make(map[int64]pendingRef),
+		pendingPlanCodes:  make(map[int64]string),
+		promoCreateDrafts: make(map[int64]*promoCreateDraft),
 	}
 }
 
@@ -167,6 +201,62 @@ func (h *MasterHandler) evictStalePendingRefsLocked(now time.Time) {
 			delete(h.pendingRefs, uid)
 		}
 	}
+}
+
+// setPendingPlanCode stores the plan code for a user about to enter a promo code.
+func (h *MasterHandler) setPendingPlanCode(userID int64, planCode string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pendingPlanCodes[userID] = planCode
+}
+
+// clearPendingPlanCode drops the pending plan code for a user without returning it.
+// Used from /cancel so an abandoned promo-code entry doesn't leave an orphaned plan code.
+func (h *MasterHandler) clearPendingPlanCode(userID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.pendingPlanCodes, userID)
+}
+
+// --- promoCreateDraft helpers (all guarded by h.mu) ---
+
+// getPromoCreateDraft returns the in-progress promo-create draft for an admin, or nil.
+func (h *MasterHandler) getPromoCreateDraft(adminID int64) *promoCreateDraft {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.promoCreateDrafts[adminID]
+}
+
+// setPromoCreateDraft stores (or replaces) the in-progress draft for an admin.
+// Passing nil clears the draft.
+func (h *MasterHandler) setPromoCreateDraft(adminID int64, d *promoCreateDraft) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if d == nil {
+		delete(h.promoCreateDrafts, adminID)
+	} else {
+		h.promoCreateDrafts[adminID] = d
+	}
+}
+
+// clearPromoCreateDraft removes the in-progress draft for an admin.
+func (h *MasterHandler) clearPromoCreateDraft(adminID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.promoCreateDrafts, adminID)
+}
+
+// takePendingPlanCode returns and clears the stored plan code for the user.
+// Falls back to "pro_annual" if none was stored.
+func (h *MasterHandler) takePendingPlanCode(userID int64) string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	code, ok := h.pendingPlanCodes[userID]
+	delete(h.pendingPlanCodes, userID)
+	if !ok || code == "" {
+		return "pro_annual"
+	}
+	return code
 }
 
 /***************************************************************************************************
@@ -287,6 +377,17 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 			h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
 		case StateAwaitingReplacementToken:
 			h.handleReplacementTokenInput(chatID, userID, text, loc)
+		case StateAwaitingPromoCode:
+			h.handlePromoCodeInput(chatID, userID, text, loc)
+		// Admin promo-code creation states (admin-only).
+		case StateAwaitingPromoNewCode:
+			h.handleAdminPromoCodeInput(chatID, userID, text, loc)
+		case StateAwaitingPromoDiscountValue:
+			h.handleAdminPromoDiscountValueInput(chatID, userID, text, loc)
+		case StateAwaitingPromoMaxRedempt:
+			h.handleAdminPromoMaxRedemptInput(chatID, userID, text, loc)
+		case StateAwaitingPromoDurationDays:
+			h.handleAdminPromoDurationDaysInput(chatID, userID, text, loc)
 		}
 		return
 	}
@@ -561,6 +662,10 @@ func (h *MasterHandler) handleCancel(chatID, userID int64, loc *localizerType) {
 	h.setSession(userID, nil)
 	// Drop any referral code captured from a /start ref_<code> that the user is now abandoning.
 	h.clearPendingReferral(userID)
+	// Drop any pending plan code stored before entering the promo-code state.
+	h.clearPendingPlanCode(userID)
+	// Drop any in-progress admin promo-create draft.
+	h.clearPromoCreateDraft(userID)
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Cancelled"), nil)
 }
 
@@ -877,4 +982,33 @@ func (h *MasterHandler) handleReplacementTokenInput(chatID, userID int64, text s
 	h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "MasterReplace.Success"), refreshed.BotUsername), nil)
 	h.renderMainMenu(chatID, userID, 0, loc)
 	log.Printf("Specialist @%s token rotated by user %d", refreshed.BotUsername, userID)
+}
+
+// NotifySubscriptionEvent sends a DM to the specialist identified by their Telegram user ID
+// with a message describing the subscription event. Called by api.NotifySubscriptionEventFunc.
+func (h *MasterHandler) NotifySubscriptionEvent(tgID int64, event string) {
+	loc := h.localizerFor(tgID)
+	var text string
+	switch event {
+	case "subscription_activated":
+		text = myI18n.T(loc, "Subscription.EventActivated")
+	case "subscription_renewed":
+		text = myI18n.T(loc, "Subscription.EventRenewed")
+	case "subscription_payment_failed":
+		text = myI18n.T(loc, "Subscription.EventPaymentFailed")
+	case "trial_expired":
+		text = myI18n.T(loc, "Subscription.EventTrialExpired")
+	case "subscription_expired":
+		text = myI18n.T(loc, "Subscription.EventExpired")
+	case "referral_reward":
+		text = myI18n.Tf(loc, "Subscription.EventReferralReward", map[string]interface{}{
+			"Days": config.ReferralRewardDays(),
+		})
+	default:
+		log.Printf("master: NotifySubscriptionEvent: unknown event %q for tgID=%d", event, tgID)
+		return
+	}
+	if _, err := h.bot.SendMessage(tgID, text, nil); err != nil {
+		log.Printf("master: NotifySubscriptionEvent: send to %d failed: %v", tgID, err)
+	}
 }
