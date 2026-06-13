@@ -110,21 +110,26 @@ var UpdateClientMessageFunc func(booking *models.Booking) error
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
 
 type SpecialistResponse struct {
-	ID                string  `json:"id"`
-	Name              string  `json:"name"`
-	Timezone          string  `json:"timezone"`
-	CancelCutoffHrs   int     `json:"cancelCutoffHours"`
-	BotUsername       string  `json:"botUsername,omitempty"`
-	TelegramHandle    string  `json:"telegramHandle,omitempty"`
-	Phone             string  `json:"phone,omitempty"`
-	Specialization    string  `json:"specialization,omitempty"`
-	Bio               string  `json:"bio,omitempty"`
-	PhotoURL          string  `json:"photoUrl,omitempty"`
-	LocationLatitude  float64 `json:"locationLatitude,omitempty"`
-	LocationLongitude float64 `json:"locationLongitude,omitempty"`
-	IsOwner           bool    `json:"isOwner"`
-	Language          string  `json:"language,omitempty"`
-	Wallpaper         string  `json:"wallpaper,omitempty"`
+	ID                 string     `json:"id"`
+	Name               string     `json:"name"`
+	Timezone           string     `json:"timezone"`
+	CancelCutoffHrs    int        `json:"cancelCutoffHours"`
+	BotUsername        string     `json:"botUsername,omitempty"`
+	TelegramHandle     string     `json:"telegramHandle,omitempty"`
+	Phone              string     `json:"phone,omitempty"`
+	Specialization     string     `json:"specialization,omitempty"`
+	Bio                string     `json:"bio,omitempty"`
+	PhotoURL           string     `json:"photoUrl,omitempty"`
+	LocationLatitude   float64    `json:"locationLatitude,omitempty"`
+	LocationLongitude  float64    `json:"locationLongitude,omitempty"`
+	IsOwner            bool       `json:"isOwner"`
+	Language           string     `json:"language,omitempty"`
+	Wallpaper          string     `json:"wallpaper,omitempty"`
+	IsPro              bool       `json:"isPro"`
+	SubscriptionStatus string     `json:"subscriptionStatus,omitempty"`
+	TrialEndsAt        *time.Time `json:"trialEndsAt,omitempty"`
+	CurrentPeriodEndAt *time.Time `json:"currentPeriodEndAt,omitempty"`
+	AutoRenew          bool       `json:"autoRenew"`
 }
 
 func writeJSON(w http.ResponseWriter, data interface{}) {

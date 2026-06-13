@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 	"unicode/utf8"
 
 	"scheduler-bot/internal/changes"
@@ -31,20 +32,26 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	ensureSpecialistTelegramProfilePhoto(r, specialist)
 
+	ent := specialist.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
-		ID:                specialist.ID,
-		Name:              specialist.Name,
-		Timezone:          specialist.Timezone,
-		CancelCutoffHrs:   specialist.CancelCutoffHrs,
-		TelegramHandle:    specialist.TelegramHandle,
-		Phone:             specialist.Phone,
-		Specialization:    specialist.Specialization,
-		Bio:               specialist.Bio,
-		PhotoURL:          specialist.PhotoURL,
-		LocationLatitude:  specialist.LocationLatitude,
-		LocationLongitude: specialist.LocationLongitude,
-		Language:          specialist.Language,
-		Wallpaper:         specialist.Wallpaper,
+		ID:                 specialist.ID,
+		Name:               specialist.Name,
+		Timezone:           specialist.Timezone,
+		CancelCutoffHrs:    specialist.CancelCutoffHrs,
+		TelegramHandle:     specialist.TelegramHandle,
+		Phone:              specialist.Phone,
+		Specialization:     specialist.Specialization,
+		Bio:                specialist.Bio,
+		PhotoURL:           specialist.PhotoURL,
+		LocationLatitude:   specialist.LocationLatitude,
+		LocationLongitude:  specialist.LocationLongitude,
+		Language:           specialist.Language,
+		Wallpaper:          specialist.Wallpaper,
+		IsPro:              ent.IsPro,
+		SubscriptionStatus: specialist.SubscriptionStatus,
+		TrialEndsAt:        specialist.TrialEndsAt,
+		CurrentPeriodEndAt: specialist.CurrentPeriodEndAt,
+		AutoRenew:          specialist.AutoRenew,
 	})
 }
 
@@ -140,20 +147,26 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
+	updEnt := updated.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
-		ID:                updated.ID,
-		Name:              updated.Name,
-		Timezone:          updated.Timezone,
-		CancelCutoffHrs:   updated.CancelCutoffHrs,
-		TelegramHandle:    updated.TelegramHandle,
-		Phone:             updated.Phone,
-		Specialization:    updated.Specialization,
-		Bio:               updated.Bio,
-		PhotoURL:          updated.PhotoURL,
-		LocationLatitude:  updated.LocationLatitude,
-		LocationLongitude: updated.LocationLongitude,
-		Language:          updated.Language,
-		Wallpaper:         updated.Wallpaper,
+		ID:                 updated.ID,
+		Name:               updated.Name,
+		Timezone:           updated.Timezone,
+		CancelCutoffHrs:    updated.CancelCutoffHrs,
+		TelegramHandle:     updated.TelegramHandle,
+		Phone:              updated.Phone,
+		Specialization:     updated.Specialization,
+		Bio:                updated.Bio,
+		PhotoURL:           updated.PhotoURL,
+		LocationLatitude:   updated.LocationLatitude,
+		LocationLongitude:  updated.LocationLongitude,
+		Language:           updated.Language,
+		Wallpaper:          updated.Wallpaper,
+		IsPro:              updEnt.IsPro,
+		SubscriptionStatus: updated.SubscriptionStatus,
+		TrialEndsAt:        updated.TrialEndsAt,
+		CurrentPeriodEndAt: updated.CurrentPeriodEndAt,
+		AutoRenew:          updated.AutoRenew,
 	})
 }
 
@@ -189,19 +202,25 @@ func HandleRestoreSpecialistTelegramPhoto(w http.ResponseWriter, r *http.Request
 	}
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
+	restEnt := updated.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
-		ID:                updated.ID,
-		Name:              updated.Name,
-		Timezone:          updated.Timezone,
-		CancelCutoffHrs:   updated.CancelCutoffHrs,
-		TelegramHandle:    updated.TelegramHandle,
-		Phone:             updated.Phone,
-		Specialization:    updated.Specialization,
-		Bio:               updated.Bio,
-		PhotoURL:          updated.PhotoURL,
-		LocationLatitude:  updated.LocationLatitude,
-		LocationLongitude: updated.LocationLongitude,
-		Language:          updated.Language,
-		Wallpaper:         updated.Wallpaper,
+		ID:                 updated.ID,
+		Name:               updated.Name,
+		Timezone:           updated.Timezone,
+		CancelCutoffHrs:    updated.CancelCutoffHrs,
+		TelegramHandle:     updated.TelegramHandle,
+		Phone:              updated.Phone,
+		Specialization:     updated.Specialization,
+		Bio:                updated.Bio,
+		PhotoURL:           updated.PhotoURL,
+		LocationLatitude:   updated.LocationLatitude,
+		LocationLongitude:  updated.LocationLongitude,
+		Language:           updated.Language,
+		Wallpaper:          updated.Wallpaper,
+		IsPro:              restEnt.IsPro,
+		SubscriptionStatus: updated.SubscriptionStatus,
+		TrialEndsAt:        updated.TrialEndsAt,
+		CurrentPeriodEndAt: updated.CurrentPeriodEndAt,
+		AutoRenew:          updated.AutoRenew,
 	})
 }
