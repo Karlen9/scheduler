@@ -15,6 +15,37 @@ export type TSpecialist = {
   language?: string;
   wallpaper?: string;
   referralCode?: string;
+  isPro?: boolean;
+  subscriptionStatus?: string;
+  trialEndsAt?: string;
+  currentPeriodEndAt?: string;
+  autoRenew?: boolean;
+};
+
+export type TSubscriptionPlan = {
+  code: string;
+  priceKopecks: number;
+  durationDays: number;
+};
+
+export type TSubscription = {
+  status: string;
+  plan: string;
+  isPro: boolean;
+  trialEndsAt?: string;
+  currentPeriodEndAt?: string;
+  autoRenew: boolean;
+  cancelAtPeriodEnd: boolean;
+  plans: TSubscriptionPlan[];
+};
+
+export type TPromoValidation = {
+  valid: boolean;
+  discountType?: string;
+  discountValue?: number;
+  finalKopecks?: number;
+  discountKopecks?: number;
+  reason?: string;
 };
 
 export type TReferralClient = {

@@ -50,6 +50,7 @@ export type TTelegramWebApp = {
   };
   onEvent: (event: string, callback: TVoidFunction) => void;
   offEvent: (event: string, callback: TVoidFunction) => void;
+  openLink?: (url: string) => void;
   openTelegramLink?: (url: string) => void;
   HapticFeedback?: {
     impactOccurred?: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
