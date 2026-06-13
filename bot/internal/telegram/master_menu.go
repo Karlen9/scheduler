@@ -1,10 +1,13 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
+	"scheduler-bot/internal/config"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -34,6 +37,11 @@ const (
 	cbMenuAdmin      = "m:admin"
 	cbMenuLanguage   = "m:lang"
 	// "m:lang:ru" / "m:lang:en" carry the selected code; handled via HasPrefix.
+
+	// Subscription screen callbacks.
+	cbMenuSubscription = "m:sub"
+	cbSubPromo         = "m:sub:promo"
+	// "m:sub:buy:<planCode>" handled via HasPrefix("m:sub:buy:").
 )
 
 // renderMainMenu edits (or sends) the master bot's root menu for the given user.
@@ -43,6 +51,7 @@ func (h *MasterHandler) renderMainMenu(chatID, userID int64, messageID int, loc 
 
 	rows := [][]InlineKeyboardButton{
 		{{Text: myI18n.T(loc, "MasterMenu.BtnCreateBot"), CallbackData: cbMenuCreateBot}},
+		{{Text: myI18n.T(loc, "Btn.Subscription"), CallbackData: cbMenuSubscription}},
 		{{Text: myI18n.T(loc, "MasterMenu.BtnFAQ"), CallbackData: cbMenuFAQ}},
 		{{Text: myI18n.T(loc, "MasterMenu.BtnOperator"), CallbackData: cbMenuOperator}},
 		{{Text: myI18n.T(loc, "Btn.Language"), CallbackData: cbMenuLanguage}},
@@ -154,6 +163,12 @@ func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
 		h.renderLanguagePicker(chatID, messageID, loc)
 	case strings.HasPrefix(data, "m:lang:"):
 		h.handleLanguageSelection(chatID, userID, messageID, strings.TrimPrefix(data, "m:lang:"), q.ID)
+	case data == cbMenuSubscription:
+		h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+	case strings.HasPrefix(data, "m:sub:buy:"):
+		h.handleSubscriptionBuy(chatID, userID, messageID, strings.TrimPrefix(data, "m:sub:buy:"), loc)
+	case data == cbSubPromo:
+		h.handleSubscriptionPromoEntry(chatID, userID, messageID, loc)
 	case strings.HasPrefix(data, "adm:"):
 		h.dispatchAdminCallback(chatID, userID, messageID, data, loc)
 	case strings.HasPrefix(data, "sup:"):
@@ -200,6 +215,209 @@ func (h *MasterHandler) handleLanguageSelection(chatID, userID int64, messageID 
 	h.bot.AnswerCallbackQuery(callbackQueryID, myI18n.T(newLoc, "Lang.Saved"))
 	h.renderMainMenu(chatID, userID, messageID, newLoc)
 }
+
+// ---------------------------------------------------------------------------
+// Subscription screen
+// ---------------------------------------------------------------------------
+
+// renderSubscriptionScreen shows the specialist's current subscription state and available plans.
+func (h *MasterHandler) renderSubscriptionScreen(chatID, userID int64, messageID int, loc *localizerType) {
+	sp, err := masterLoadSpecialist(userID)
+	if err != nil {
+		h.editOrSend(chatID, messageID, myI18n.T(loc, "Master.Error"), &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
+			},
+		})
+		return
+	}
+	if sp == nil || !sp.IsActive {
+		h.editOrSend(chatID, messageID,
+			myI18n.T(loc, "Subscription.NoBotYet"),
+			&InlineKeyboardMarkup{
+				InlineKeyboard: [][]InlineKeyboardButton{
+					{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
+				},
+			},
+		)
+		return
+	}
+
+	now := time.Now()
+	ent := sp.Entitlement(now)
+
+	var statusLine string
+	switch {
+	case ent.IsPro && ent.Reason == "trial":
+		daysLeft := int(time.Until(ent.Until).Hours()/24) + 1
+		statusLine = myI18n.Tf(loc, "Subscription.StatusTrial", map[string]interface{}{
+			"Days":  daysLeft,
+			"Until": ent.Until.Format("02.01.2006"),
+		})
+	case ent.IsPro:
+		statusLine = myI18n.Tf(loc, "Subscription.StatusActive", map[string]interface{}{
+			"Until": ent.Until.Format("02.01.2006"),
+		})
+	default:
+		statusLine = myI18n.T(loc, "Subscription.StatusInactive")
+	}
+
+	plans := config.SubscriptionPlans()
+	// Sort by DurationDays descending (annual → quarterly → monthly) without
+	// mutating the config's backing slice — copy first.
+	sortedPlans := make([]config.SubscriptionPlan, len(plans))
+	copy(sortedPlans, plans)
+	for i := 0; i < len(sortedPlans)-1; i++ {
+		for j := i + 1; j < len(sortedPlans); j++ {
+			if sortedPlans[j].DurationDays > sortedPlans[i].DurationDays {
+				sortedPlans[i], sortedPlans[j] = sortedPlans[j], sortedPlans[i]
+			}
+		}
+	}
+
+	text := myI18n.Tf(loc, "Subscription.Title", map[string]interface{}{
+		"StatusLine": statusLine,
+	})
+
+	var planRows [][]InlineKeyboardButton
+	for _, p := range sortedPlans {
+		rubles := p.PriceKopecks / 100
+		label := planLabel(loc, p)
+		highlight := ""
+		if p.Code == "pro_annual" {
+			highlight = " ⭐"
+		}
+		btnText := fmt.Sprintf("%s%s — %d ₽", label, highlight, rubles)
+		planRows = append(planRows, []InlineKeyboardButton{
+			{Text: btnText, CallbackData: "m:sub:buy:" + p.Code},
+		})
+	}
+	planRows = append(planRows,
+		[]InlineKeyboardButton{{Text: myI18n.T(loc, "Btn.PromoCode"), CallbackData: cbSubPromo}},
+		[]InlineKeyboardButton{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
+	)
+
+	h.editOrSend(chatID, messageID, text, &InlineKeyboardMarkup{InlineKeyboard: planRows})
+}
+
+// planLabel returns a localised human-readable plan name.
+func planLabel(loc *localizerType, p config.SubscriptionPlan) string {
+	switch p.Code {
+	case "pro_monthly":
+		return myI18n.T(loc, "Subscription.PlanMonthly")
+	case "pro_quarterly":
+		return myI18n.T(loc, "Subscription.PlanQuarterly")
+	case "pro_annual":
+		return myI18n.T(loc, "Subscription.PlanAnnual")
+	default:
+		return p.Code
+	}
+}
+
+// handleSubscriptionBuy processes a plan-buy callback. Calls the injected checkout func.
+func (h *MasterHandler) handleSubscriptionBuy(chatID, userID int64, messageID int, planCode string, loc *localizerType) {
+	if h.CreateCheckoutFunc == nil {
+		h.editOrSend(chatID, messageID,
+			myI18n.T(loc, "Subscription.PaymentUnavailable"),
+			&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuSubscription}},
+			}},
+		)
+		return
+	}
+
+	sp, err := masterLoadSpecialist(userID)
+	if err != nil || sp == nil {
+		h.editOrSend(chatID, messageID, myI18n.T(loc, "Master.Error"), nil)
+		return
+	}
+
+	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, "")
+	if err != nil {
+		log.Printf("master: subscription buy error (user=%d plan=%s): %v", userID, planCode, err)
+		h.editOrSend(chatID, messageID,
+			myI18n.T(loc, "Subscription.PaymentFailed"),
+			&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuSubscription}},
+			}},
+		)
+		return
+	}
+
+	if granted {
+		h.editOrSend(chatID, messageID,
+			myI18n.T(loc, "Subscription.Activated"),
+			&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
+			}},
+		)
+		return
+	}
+
+	// Payment URL returned — show a pay button.
+	h.editOrSend(chatID, messageID,
+		myI18n.T(loc, "Subscription.PayPrompt"),
+		&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: myI18n.T(loc, "Btn.Pay"), URL: confirmURL}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuSubscription}},
+		}},
+	)
+}
+
+// handleSubscriptionPromoEntry stores the annual plan (default) and switches the user into
+// the promo-code entry state.
+func (h *MasterHandler) handleSubscriptionPromoEntry(chatID, userID int64, messageID int, loc *localizerType) {
+	_ = messageID
+	h.setPendingPlanCode(userID, "pro_annual")
+	h.setSession(userID, &OnboardingSession{State: StateAwaitingPromoCode})
+	h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.EnterPromoCode"), nil)
+}
+
+// handlePromoCodeInput is called from HandleUpdate when the user is in StateAwaitingPromoCode.
+func (h *MasterHandler) handlePromoCodeInput(chatID, userID int64, code string, loc *localizerType) {
+	planCode := h.takePendingPlanCode(userID)
+	h.setSession(userID, nil)
+
+	if h.CreateCheckoutFunc == nil {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoUnavailable"), nil)
+		return
+	}
+
+	sp, err := masterLoadSpecialist(userID)
+	if err != nil || sp == nil {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+		return
+	}
+
+	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, strings.TrimSpace(code))
+	if err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "invalid promo code") {
+			h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoInvalid"), nil)
+			return
+		}
+		log.Printf("master: promo checkout error (user=%d plan=%s code=%s): %v", userID, planCode, code, err)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoApplyFailed"), nil)
+		return
+	}
+
+	if granted {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.Activated"), nil)
+		return
+	}
+
+	// Discounted payment URL.
+	h.bot.SendMessageHTML(chatID,
+		myI18n.T(loc, "Subscription.PromoApplied"),
+		&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: myI18n.T(loc, "Btn.Pay"), URL: confirmURL}},
+		}},
+	)
+}
+
+// ---------------------------------------------------------------------------
+// startCreateBotFlow (existing, kept below subscription block)
+// ---------------------------------------------------------------------------
 
 // startCreateBotFlow kicks off the onboarding state machine from the main menu.
 // - Already-active specialist: re-register their bot handler and confirm.
