@@ -92,6 +92,21 @@ func TestMain(m *testing.M) {
 	}
 
 	/***************************************************************************************************
+	* Grant the test specialist an active Pro subscription so gated endpoints don't return 402.
+	* Tests that specifically verify the 402 gate should create a separate non-Pro specialist.
+	***************************************************************************************************/
+	if err := db.ActivateSubscription(testSpecialist.ID, "monthly", time.Now().Add(30*24*time.Hour), ""); err != nil {
+		fmt.Fprintf(os.Stderr, "db.ActivateSubscription: %v\n", err)
+		os.Exit(1)
+	}
+	// Reload to pick up subscription fields.
+	testSpecialist, err = db.GetSpecialistByID(testSpecialist.ID)
+	if err != nil || testSpecialist == nil {
+		fmt.Fprintf(os.Stderr, "db.GetSpecialistByID after activate: %v\n", err)
+		os.Exit(1)
+	}
+
+	/***************************************************************************************************
 	* Set all notification callbacks to no-ops.
 	***************************************************************************************************/
 	api.NotifyBookingFunc = func(booking *models.Booking) error { return nil }

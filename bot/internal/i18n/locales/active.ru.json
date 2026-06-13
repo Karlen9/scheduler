@@ -697,5 +697,156 @@
   },
   "Error.DateTooFar": {
     "other": "Нельзя записаться более чем на 3 месяца вперёд"
+  },
+  "Error.ProRequired": {
+    "other": "Эта функция доступна в Pro-подписке"
+  },
+
+  "Btn.Subscription": {
+    "other": "💳 Подписка"
+  },
+  "Btn.Pay": {
+    "other": "💳 Оплатить"
+  },
+  "Btn.PromoCode": {
+    "other": "🎟 У меня есть промокод"
+  },
+
+  "Subscription.NoBotYet": {
+    "other": "Сначала создайте своего бота через кнопку «Создать бота»."
+  },
+  "Subscription.Title": {
+    "other": "<b>💳 Подписка Pro</b>\n\n{{.StatusLine}}\n\nВыберите план:"
+  },
+  "Subscription.StatusTrial": {
+    "other": "Пробный период — осталось {{.Days}} дн. (до {{.Until}})"
+  },
+  "Subscription.StatusActive": {
+    "other": "✅ Pro активна до {{.Until}}"
+  },
+  "Subscription.StatusInactive": {
+    "other": "❌ Подписка не активна"
+  },
+  "Subscription.PlanMonthly": {
+    "other": "1 месяц"
+  },
+  "Subscription.PlanQuarterly": {
+    "other": "3 месяца"
+  },
+  "Subscription.PlanAnnual": {
+    "other": "12 месяцев"
+  },
+  "Subscription.PaymentUnavailable": {
+    "other": "⚠️ Оплата временно недоступна. Попробуйте позже."
+  },
+  "Subscription.PaymentFailed": {
+    "other": "⚠️ Не удалось создать платёж. Попробуйте позже."
+  },
+  "Subscription.Activated": {
+    "other": "✅ Подписка Pro активирована!"
+  },
+  "Subscription.PayPrompt": {
+    "other": "Для оплаты нажмите кнопку ниже. После оплаты подписка активируется автоматически."
+  },
+  "Subscription.EnterPromoCode": {
+    "other": "Введите промокод:"
+  },
+  "Subscription.PromoUnavailable": {
+    "other": "⚠️ Оплата временно недоступна. Попробуйте позже."
+  },
+  "Subscription.PromoInvalid": {
+    "other": "Промокод недействителен."
+  },
+  "Subscription.PromoApplyFailed": {
+    "other": "⚠️ Не удалось применить промокод. Попробуйте позже."
+  },
+  "Subscription.PromoApplied": {
+    "other": "Промокод применён. Для оплаты нажмите кнопку ниже:"
+  },
+
+  "Subscription.EventActivated": {
+    "other": "✅ Ваша подписка Pro активирована! Теперь вам доступны все возможности планировщика."
+  },
+  "Subscription.EventRenewed": {
+    "other": "🔄 Ваша подписка Pro продлена. Спасибо, что остаётесь с нами!"
+  },
+  "Subscription.EventPaymentFailed": {
+    "other": "⚠️ Не удалось продлить подписку Pro — платёж отклонён. Пожалуйста, проверьте платёжные данные."
+  },
+  "Subscription.EventTrialExpired": {
+    "other": "⏰ Ваш пробный период закончился. Оформите подписку Pro, чтобы продолжить пользоваться всеми функциями."
+  },
+  "Subscription.EventExpired": {
+    "other": "🔔 Ваша подписка Pro истекла. Оформите подписку, чтобы восстановить доступ ко всем функциям."
+  },
+  "Subscription.EventReferralReward": {
+    "other": "🎁 Специалист, которого вы пригласили, оформил подписку Pro! Вам начислено {{.Days}} бонусных дней Pro."
+  },
+
+  "Promo.AdminListTitle": {
+    "other": "<b>🎟 Промокоды</b>\n\n"
+  },
+  "Promo.AdminListEmpty": {
+    "other": "<i>Промокодов пока нет.</i>"
+  },
+  "Promo.AdminBtnCreate": {
+    "other": "➕ Создать промокод"
+  },
+  "Promo.AdminBtnDeactivate": {
+    "other": "🚫 Деакт: {{.Code}}"
+  },
+  "Promo.AdminBtnPromoCodes": {
+    "other": "🎟 Промокоды"
+  },
+  "Promo.AdminCreatePrompt": {
+    "other": "Введите код промокода (латинские буквы и цифры). /cancel для отмены:"
+  },
+  "Promo.AdminCodeInvalid": {
+    "other": "Код должен быть непустой строкой до 32 символов. Попробуйте ещё раз:"
+  },
+  "Promo.AdminCodeExists": {
+    "other": "Промокод <code>{{.Code}}</code> уже существует. Введите другой код:"
+  },
+  "Promo.AdminChooseDiscountType": {
+    "other": "Код: <code>{{.Code}}</code>\n\nВыберите тип скидки:"
+  },
+  "Promo.AdminBtnTypePercent": {
+    "other": "% Процент"
+  },
+  "Promo.AdminBtnTypeAmount": {
+    "other": "₽ Сумма"
+  },
+  "Promo.AdminSelectTypeFirst": {
+    "other": "Сначала выберите тип скидки:"
+  },
+  "Promo.AdminEnterPercent": {
+    "other": "Введите размер скидки в процентах (1–100):"
+  },
+  "Promo.AdminEnterAmount": {
+    "other": "Введите размер скидки в рублях (целое число > 0):"
+  },
+  "Promo.AdminEnterPositiveInt": {
+    "other": "Введите целое положительное число:"
+  },
+  "Promo.AdminPercentRange": {
+    "other": "Процент должен быть от 1 до 100:"
+  },
+  "Promo.AdminEnterMaxRedempt": {
+    "other": "Максимальное число использований (целое число > 0) или «0»/«skip» для неограниченного:"
+  },
+  "Promo.AdminEnterPositiveIntOrSkip": {
+    "other": "Введите целое положительное число или «skip»:"
+  },
+  "Promo.AdminEnterDurationDays": {
+    "other": "Количество дней подписки (переопределяет длительность плана) или «skip» для использования длительности плана:"
+  },
+  "Promo.AdminCreatedSummary": {
+    "other": "✅ Промокод создан!\n\nКод: <code>{{.Code}}</code>\nСкидка: {{.Discount}}\nМакс. использований: {{.MaxRedemptions}}\nДлительность: {{.Duration}}"
+  },
+  "Promo.AdminDurationPlan": {
+    "other": "по плану"
+  },
+  "Promo.AdminDurationDays": {
+    "other": "{{.Days}} дн."
   }
 }
