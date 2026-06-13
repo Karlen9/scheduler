@@ -79,3 +79,17 @@ func DateNow() string {
 	}
 	return "date('now')"
 }
+
+// isUniqueConstraintError returns true when err represents a UNIQUE constraint violation
+// from either the modernc SQLite driver or the pgx/v5 Postgres driver.
+func isUniqueConstraintError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	// modernc/sqlite: "constraint failed: UNIQUE constraint failed: ..."
+	// pgx/pgconn: "ERROR: duplicate key value violates unique constraint ..." (SQLSTATE 23505)
+	return strings.Contains(msg, "unique constraint") ||
+		strings.Contains(msg, "duplicate key value") ||
+		strings.Contains(msg, "23505")
+}

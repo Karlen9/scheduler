@@ -23,6 +23,15 @@ import (
 ***************************************************************************************************/
 var DB *sql.DB
 
+// ExistingGraceDays controls how many days of Pro access pre-existing specialists receive
+// during the one-time subscription grace backfill. Set this before calling Init.
+// Defaults to 30.
+var ExistingGraceDays = 30
+
+// TrialDays controls how many days of Pro trial new specialists receive at signup.
+// Set this before calling Init. Defaults to 14.
+var TrialDays = 14
+
 /***************************************************************************************************
 * Init initializes the database connection. If databaseURL starts with "postgres", it connects to
 * PostgreSQL; otherwise it treats the value as a SQLite file path.
@@ -302,6 +311,56 @@ func migrateSQLite() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_created_at ON dashboard_audit_log(created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_specialist_id ON dashboard_audit_log(specialist_id)`,
+		`CREATE TABLE IF NOT EXISTS app_meta (
+			key TEXT PRIMARY KEY,
+			value TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS subscription_payments (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			yookassa_payment_id TEXT NOT NULL,
+			amount_kopecks INTEGER NOT NULL,
+			currency TEXT NOT NULL DEFAULT 'RUB',
+			status TEXT NOT NULL DEFAULT 'pending',
+			plan_code TEXT NOT NULL,
+			promo_code TEXT DEFAULT '',
+			discount_kopecks INTEGER DEFAULT 0,
+			period_start DATETIME NOT NULL,
+			period_end DATETIME NOT NULL,
+			is_renewal INTEGER DEFAULT 0,
+			payment_method_id TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			paid_at DATETIME,
+			raw_payload TEXT DEFAULT ''
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_subscription_payments_yookassa_id ON subscription_payments(yookassa_payment_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_subscription_payments_specialist_id ON subscription_payments(specialist_id)`,
+		`CREATE TABLE IF NOT EXISTS promo_codes (
+			id TEXT PRIMARY KEY,
+			code TEXT UNIQUE NOT NULL,
+			discount_type TEXT NOT NULL,
+			discount_value INTEGER NOT NULL,
+			duration_days INTEGER DEFAULT 0,
+			max_redemptions INTEGER,
+			redemptions_count INTEGER DEFAULT 0,
+			valid_from DATETIME,
+			valid_until DATETIME,
+			applies_to_plan TEXT DEFAULT '',
+			referral_specialist_id TEXT DEFAULT '',
+			is_active INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_promo_codes_code ON promo_codes(code)`,
+		`CREATE TABLE IF NOT EXISTS promo_redemptions (
+			id TEXT PRIMARY KEY,
+			promo_code_id TEXT NOT NULL,
+			specialist_id TEXT NOT NULL,
+			payment_id TEXT DEFAULT '',
+			discount_kopecks INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_promo_redemptions_code_specialist ON promo_redemptions(promo_code_id, specialist_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_promo_redemptions_specialist ON promo_redemptions(specialist_id)`,
 	}
 
 	for _, migration := range migrations {
@@ -333,6 +392,14 @@ func migrateSQLite() error {
 		`ALTER TABLE specialists ADD COLUMN referred_via_code TEXT`,
 		`ALTER TABLE specialists ADD COLUMN first_payment_at DATETIME`,
 		`ALTER TABLE specialists ADD COLUMN deleted_at DATETIME`,
+		`ALTER TABLE specialists ADD COLUMN subscription_status TEXT DEFAULT 'trialing'`,
+		`ALTER TABLE specialists ADD COLUMN subscription_plan TEXT DEFAULT 'pro'`,
+		`ALTER TABLE specialists ADD COLUMN trial_ends_at DATETIME`,
+		`ALTER TABLE specialists ADD COLUMN subscription_started_at DATETIME`,
+		`ALTER TABLE specialists ADD COLUMN current_period_end_at DATETIME`,
+		`ALTER TABLE specialists ADD COLUMN auto_renew INTEGER DEFAULT 1`,
+		`ALTER TABLE specialists ADD COLUMN cancel_at_period_end INTEGER DEFAULT 0`,
+		`ALTER TABLE specialists ADD COLUMN yookassa_payment_method_id TEXT`,
 		`ALTER TABLE clients ADD COLUMN phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN notify_booking_status INTEGER DEFAULT 1`,
@@ -382,6 +449,7 @@ func migrateSQLite() error {
 
 	migrateTrainerEnumSQLite()
 	backfillSpecialistReferralCodes()
+	backfillSubscriptionGrace()
 
 	return nil
 }
@@ -581,6 +649,56 @@ func migratePostgres() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_created_at ON dashboard_audit_log(created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_dashboard_audit_specialist_id ON dashboard_audit_log(specialist_id)`,
+		`CREATE TABLE IF NOT EXISTS app_meta (
+			key TEXT PRIMARY KEY,
+			value TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS subscription_payments (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			yookassa_payment_id TEXT NOT NULL,
+			amount_kopecks INTEGER NOT NULL,
+			currency TEXT NOT NULL DEFAULT 'RUB',
+			status TEXT NOT NULL DEFAULT 'pending',
+			plan_code TEXT NOT NULL,
+			promo_code TEXT DEFAULT '',
+			discount_kopecks INTEGER DEFAULT 0,
+			period_start TIMESTAMPTZ NOT NULL,
+			period_end TIMESTAMPTZ NOT NULL,
+			is_renewal INTEGER DEFAULT 0,
+			payment_method_id TEXT DEFAULT '',
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			paid_at TIMESTAMPTZ,
+			raw_payload TEXT DEFAULT ''
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_subscription_payments_yookassa_id ON subscription_payments(yookassa_payment_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_subscription_payments_specialist_id ON subscription_payments(specialist_id)`,
+		`CREATE TABLE IF NOT EXISTS promo_codes (
+			id TEXT PRIMARY KEY,
+			code TEXT UNIQUE NOT NULL,
+			discount_type TEXT NOT NULL,
+			discount_value INTEGER NOT NULL,
+			duration_days INTEGER DEFAULT 0,
+			max_redemptions INTEGER,
+			redemptions_count INTEGER DEFAULT 0,
+			valid_from TIMESTAMPTZ,
+			valid_until TIMESTAMPTZ,
+			applies_to_plan TEXT DEFAULT '',
+			referral_specialist_id TEXT DEFAULT '',
+			is_active INTEGER DEFAULT 1,
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_promo_codes_code ON promo_codes(code)`,
+		`CREATE TABLE IF NOT EXISTS promo_redemptions (
+			id TEXT PRIMARY KEY,
+			promo_code_id TEXT NOT NULL,
+			specialist_id TEXT NOT NULL,
+			payment_id TEXT DEFAULT '',
+			discount_kopecks INTEGER DEFAULT 0,
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_promo_redemptions_code_specialist ON promo_redemptions(promo_code_id, specialist_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_promo_redemptions_specialist ON promo_redemptions(specialist_id)`,
 	}
 
 	for _, migration := range migrations {
@@ -612,6 +730,14 @@ func migratePostgres() error {
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS referred_via_code TEXT`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS first_payment_at TIMESTAMPTZ`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'trialing'`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS subscription_plan TEXT DEFAULT 'pro'`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMPTZ`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS current_period_end_at TIMESTAMPTZ`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS auto_renew INTEGER DEFAULT 1`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS cancel_at_period_end INTEGER DEFAULT 0`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS yookassa_payment_method_id TEXT`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS notify_booking_status INTEGER DEFAULT 1`,
@@ -663,6 +789,7 @@ func migratePostgres() error {
 
 	migrateTrainerEnumPostgres()
 	backfillSpecialistReferralCodes()
+	backfillSubscriptionGrace()
 
 	return nil
 }
@@ -1239,5 +1366,45 @@ func backfillSpecialistReferralCodes() {
 				break
 			}
 		}
+	}
+}
+
+/***************************************************************************************************
+* backfillSubscriptionGrace runs exactly once (guarded by app_meta key
+* 'subscription_grace_applied'). It gives all pre-existing, non-deleted specialists a
+* 30-day (or ExistingGraceDays-day) Pro grace period by setting their subscription to
+* 'active' with current_period_end_at = now + grace. Timestamps are computed in Go and
+* passed as params (no SQL date math) for portability across SQLite and Postgres.
+***************************************************************************************************/
+func backfillSubscriptionGrace() {
+	var dummy string
+	err := DB.QueryRow(Q(`SELECT value FROM app_meta WHERE key = ?`), "subscription_grace_applied").Scan(&dummy)
+	if err == nil {
+		// Already applied.
+		return
+	}
+	if err != sql.ErrNoRows {
+		log.Printf("backfill subscription grace: check failed: %v", err)
+		return
+	}
+
+	now := time.Now().UTC()
+	periodEnd := now.Add(time.Duration(ExistingGraceDays) * 24 * time.Hour)
+
+	if _, err := DB.Exec(Q(`
+		UPDATE specialists
+		SET subscription_status = 'active',
+		    subscription_started_at = ?,
+		    current_period_end_at = ?,
+		    auto_renew = 1
+		WHERE deleted_at IS NULL
+		  AND subscription_started_at IS NULL
+	`), now, periodEnd); err != nil {
+		log.Printf("backfill subscription grace: update failed: %v", err)
+		return
+	}
+
+	if _, err := DB.Exec(Q(`INSERT INTO app_meta (key, value) VALUES (?, ?)`), "subscription_grace_applied", "1"); err != nil {
+		log.Printf("backfill subscription grace: mark failed: %v", err)
 	}
 }
