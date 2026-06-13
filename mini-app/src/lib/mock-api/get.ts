@@ -153,6 +153,9 @@ export function handleGet<T>(state: TMockState, endpoint: string, path: string):
   if (path === '/api/admin/notifications') {
     return clone(state.adminNotifications) as T;
   }
+  if (path === '/api/admin/subscription') {
+    return clone(state.subscription) as T;
+  }
 
   const clientRecurringDetailMatch = path.match(/^\/api\/recurring\/([^/]+)$/);
   if (clientRecurringDetailMatch) {

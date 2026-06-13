@@ -9,10 +9,13 @@ import type {
   TClientBatch,
   TClientInfo,
   TDayOff,
+  TPromoValidation,
   TRecurringPreviewResponse,
   TSessionType,
 } from '../types';
 import type { TMockState } from './types';
+
+const MOCK_PROMO_CODE = 'MOCK100';
 
 export function handlePost<T>(
   state: TMockState,
@@ -117,6 +120,61 @@ export function handlePost<T>(
   }
   if (path === '/api/upload/photo' || path === '/api/admin/upload/photo') {
     return clone({ fileId: mockPhotoDataUrl }) as T;
+  }
+  if (path === '/api/admin/subscription/checkout') {
+    const plan = getString(body.plan, '');
+    const promoCode = getOptionalString(body.promoCode);
+    if (promoCode?.toUpperCase() === MOCK_PROMO_CODE) {
+      const now = new Date();
+      const periodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+      state.subscription = {
+        ...state.subscription,
+        status: 'active',
+        plan,
+        isPro: true,
+        currentPeriodEndAt: periodEnd.toISOString(),
+        autoRenew: true,
+        cancelAtPeriodEnd: false,
+        trialEndsAt: undefined,
+      };
+      return clone({ granted: true }) as T;
+    }
+    return clone({ confirmationUrl: 'https://mock.yookassa.ru/pay?mock=1' }) as T;
+  }
+  if (path === '/api/admin/promocode/validate') {
+    const code = getString(body.code, '');
+    const plan = getString(body.plan, '');
+    const planData = state.subscription.plans.find((p) => p.code === plan);
+    if (code.toUpperCase() === MOCK_PROMO_CODE && planData) {
+      const discountKopecks = planData.priceKopecks;
+      return clone({
+        valid: true,
+        discountType: 'percent',
+        discountValue: 100,
+        finalKopecks: 0,
+        discountKopecks,
+      } satisfies TPromoValidation) as T;
+    }
+    return clone({
+      valid: false,
+      reason: 'Промокод не найден или уже использован',
+    } satisfies TPromoValidation) as T;
+  }
+  if (path === '/api/admin/subscription/cancel') {
+    state.subscription = {
+      ...state.subscription,
+      autoRenew: false,
+      cancelAtPeriodEnd: true,
+    };
+    return clone(state.subscription) as T;
+  }
+  if (path === '/api/admin/subscription/resume') {
+    state.subscription = {
+      ...state.subscription,
+      autoRenew: true,
+      cancelAtPeriodEnd: false,
+    };
+    return clone(state.subscription) as T;
   }
 
   const moveMatch = path.match(/^\/api\/recurring\/([^/]+)\/bookings\/([^/]+)\/move$/);

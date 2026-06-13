@@ -8,6 +8,7 @@ import type {
   TRecurringSchedule,
   TSessionType,
   TSpecialist,
+  TSubscription,
   TWorkingHours,
 } from '../types';
 import type { TMockState } from './types';
@@ -272,6 +273,22 @@ export function createMockState(): TMockState {
     },
   ];
 
+  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const mockSubscription: TSubscription = {
+    status: 'trialing',
+    plan: '',
+    isPro: true,
+    trialEndsAt,
+    autoRenew: false,
+    cancelAtPeriodEnd: false,
+    plans: [
+      { code: 'pro_monthly', priceKopecks: 59000, durationDays: 30 },
+      { code: 'pro_quarterly', priceKopecks: 149000, durationDays: 90 },
+      { code: 'pro_annual', priceKopecks: 499000, durationDays: 365 },
+    ],
+  };
+
   const specialistBase: TSpecialist = {
     id: 'mock-specialist',
     name: 'Карлен Мисакян',
@@ -283,6 +300,9 @@ export function createMockState(): TMockState {
     specialization: 'Strength and mobility coach',
     bio: 'Focused strength work, posture, mobility, and habit-based progress for busy clients.',
     wallpaper: 'fitness',
+    isPro: true,
+    subscriptionStatus: 'trialing',
+    trialEndsAt,
   };
 
   const clientBatches: TClientBatch[] = [
@@ -318,6 +338,7 @@ export function createMockState(): TMockState {
       notifyNewBookings: true,
       notifyCancellations: true,
     },
+    subscription: mockSubscription,
     adminProfile: {
       ...specialistBase,
       isOwner: true,
