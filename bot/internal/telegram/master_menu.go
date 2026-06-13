@@ -232,10 +232,15 @@ func (h *MasterHandler) renderSubscriptionScreen(chatID, userID int64, messageID
 		return
 	}
 	if sp == nil || !sp.IsActive {
-		h.editOrSend(chatID, messageID,
-			myI18n.T(loc, "Subscription.NoBotYet"),
+		text := myI18n.T(loc, "Subscription.PricingTitle") +
+			"\n\n" + myI18n.T(loc, "Subscription.ProBenefits") +
+			"\n\n" + myI18n.T(loc, "Subscription.TrialNote") +
+			"\n\n" + subscriptionPlanLines(loc) +
+			"\n\n" + myI18n.T(loc, "Subscription.NoBotYet")
+		h.editOrSend(chatID, messageID, text,
 			&InlineKeyboardMarkup{
 				InlineKeyboard: [][]InlineKeyboardButton{
+					{{Text: myI18n.T(loc, "MasterMenu.BtnCreateBot"), CallbackData: cbMenuCreateBot}},
 					{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
 				},
 			},
@@ -277,7 +282,10 @@ func (h *MasterHandler) renderSubscriptionScreen(chatID, userID int64, messageID
 
 	text := myI18n.Tf(loc, "Subscription.Title", map[string]interface{}{
 		"StatusLine": statusLine,
-	})
+	}) +
+		"\n\n" + myI18n.T(loc, "Subscription.ProBenefits") +
+		"\n\n" + myI18n.T(loc, "Subscription.TrialNote") +
+		"\n\n" + subscriptionPlanLines(loc)
 
 	var planRows [][]InlineKeyboardButton
 	for _, p := range sortedPlans {
@@ -298,6 +306,67 @@ func (h *MasterHandler) renderSubscriptionScreen(chatID, userID int64, messageID
 	)
 
 	h.editOrSend(chatID, messageID, text, &InlineKeyboardMarkup{InlineKeyboard: planRows})
+}
+
+// subscriptionPlanLines returns a formatted multi-line string of available plans,
+// sorted annual-first (descending DurationDays), for display-only use.
+// Each line shows the per-month equivalent and the savings vs the monthly plan.
+func subscriptionPlanLines(loc *localizerType) string {
+	plans := config.SubscriptionPlans()
+	sortedPlans := make([]config.SubscriptionPlan, len(plans))
+	copy(sortedPlans, plans)
+	for i := 0; i < len(sortedPlans)-1; i++ {
+		for j := i + 1; j < len(sortedPlans); j++ {
+			if sortedPlans[j].DurationDays > sortedPlans[i].DurationDays {
+				sortedPlans[i], sortedPlans[j] = sortedPlans[j], sortedPlans[i]
+			}
+		}
+	}
+
+	// Find the monthly plan's per-month kopeck price as the savings baseline.
+	basePerMonthKopecks := 0
+	for _, p := range plans {
+		if p.Code == "pro_monthly" {
+			basePerMonthKopecks = p.PriceKopecks
+			break
+		}
+	}
+
+	var lines []string
+	for _, p := range sortedPlans {
+		months := (p.DurationDays + 15) / 30
+		if months < 1 {
+			months = 1
+		}
+		label := planLabel(loc, p)
+		price := p.PriceKopecks / 100
+
+		if months == 1 {
+			lines = append(lines, myI18n.Tf(loc, "Subscription.PlanLineMonthly", map[string]interface{}{
+				"Label": label,
+				"Price": price,
+			}))
+		} else {
+			perMonthKopecks := p.PriceKopecks / months
+			perMonth := perMonthKopecks / 100
+			star := ""
+			if p.Code == "pro_annual" {
+				star = " ⭐"
+			}
+			savePct := 0
+			if basePerMonthKopecks > 0 {
+				savePct = (basePerMonthKopecks - perMonthKopecks) * 100 / basePerMonthKopecks
+			}
+			lines = append(lines, myI18n.Tf(loc, "Subscription.PlanLineMulti", map[string]interface{}{
+				"Label":    label,
+				"Star":     star,
+				"Price":    price,
+				"PerMonth": perMonth,
+				"Save":     savePct,
+			}))
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // planLabel returns a localised human-readable plan name.
