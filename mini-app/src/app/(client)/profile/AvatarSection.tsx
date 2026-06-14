@@ -1,6 +1,5 @@
 'use client';
 
-import { Camera } from 'lucide-react';
 import Image from 'next/image';
 
 import { getPhotoUrl } from '@/lib/api';
@@ -25,21 +24,13 @@ export function AvatarSection({
   name,
   photoUrl,
   photoError,
-  isUploading,
-  disabled = false,
   onPhotoError,
-  onClickUpload,
-  fileInputRef,
-  onFileSelect,
 }: TAvatarSectionProps): ReactNode {
   const photoSrc = !photoError ? getPhotoUrl(photoUrl) : null;
 
   return (
     <div className={'flex justify-center pt-2'}>
-      <div
-        className={`relative ${disabled ? '' : 'cursor-pointer'}`}
-        onClick={disabled ? undefined : onClickUpload}
-      >
+      <div className={'relative'}>
         {photoSrc ? (
           <Image
             width={96}
@@ -57,31 +48,6 @@ export function AvatarSection({
             {name.charAt(0) || '?'}
           </div>
         )}
-        {!disabled && (
-          <div
-            className={
-              'bg-brand absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full shadow-lg'
-            }
-          >
-            {isUploading ? (
-              <div
-                className={
-                  'h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent'
-                }
-              />
-            ) : (
-              <Camera className={'h-4 w-4 text-white'} />
-            )}
-          </div>
-        )}
-        <input
-          ref={fileInputRef}
-          type={'file'}
-          accept={'image/jpeg,image/png,image/webp'}
-          className={'hidden'}
-          disabled={disabled}
-          onChange={onFileSelect}
-        />
       </div>
     </div>
   );

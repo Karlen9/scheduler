@@ -1,6 +1,5 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -8,19 +7,13 @@ import { toast } from 'sonner';
 
 import { setLocale } from '@/actions/locale';
 import { LanguageSelector } from '@/components/LanguageSelector';
-import { PhotoEditor } from '@/components/PhotoEditor';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { invalidateProfile } from '@/hooks/mutations';
 import { useProfile } from '@/hooks/queries';
 import { api } from '@/lib/api';
-import {
-  getTelegramPhotoDisplayUrl,
-  isCustomProfilePhoto,
-  isStoredTelegramProfilePhoto,
-} from '@/lib/photos';
+import { getTelegramPhotoDisplayUrl, isStoredTelegramProfilePhoto } from '@/lib/photos';
 import { isPreviewRoute } from '@/lib/routes';
-import { getTelegramUserPhotoUrl, waitForTelegramUserPhotoUrl } from '@/lib/telegram';
 
 import { AvatarSection } from './AvatarSection';
 import { NotificationPreferences } from './NotificationPreferences';
@@ -97,20 +90,9 @@ export default function ClientProfilePage(): ReactNode {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
-  const [telegramPhotoUrl, setTelegramPhotoUrl] = useState('');
   const [telegramPhotoVersion, setTelegramPhotoVersion] = useState(() => String(Date.now()));
   const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
-  const [editorImage, setEditorImage] = useState<string | null>(null);
-  /***************************************************************************************************
-   * Defines the file input ref value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [notifyBookingStatus, setNotifyBookingStatus] = useState(true);
   const [notifyReminders, setNotifyReminders] = useState(true);
   const [notifyDaysOff, setNotifyDaysOff] = useState(false);
@@ -131,26 +113,6 @@ export default function ClientProfilePage(): ReactNode {
       setNotifyCancellations(profile.notifyCancellations ?? true);
     }
   }, [profile]);
-
-  useEffect(() => {
-    let active = true;
-    const currentPhotoUrl = getTelegramUserPhotoUrl();
-    if (currentPhotoUrl) {
-      setTelegramPhotoUrl(currentPhotoUrl);
-      setTelegramPhotoVersion(String(Date.now()));
-    }
-
-    void waitForTelegramUserPhotoUrl().then((photo) => {
-      if (active && photo) {
-        setTelegramPhotoUrl(photo);
-        setTelegramPhotoVersion(String(Date.now()));
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   /***************************************************************************************************
    * Cross-device language sync.
@@ -193,134 +155,6 @@ export default function ClientProfilePage(): ReactNode {
       active = false;
     };
   }, [profile?.language, locale, router]);
-
-  /***************************************************************************************************
-   * Handles file select.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
-    /***************************************************************************************************
-     * Defines the file value used by the page layer.
-     *
-     * Usage context:
-     * - Reused by the page layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const file = e.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    /***************************************************************************************************
-     * Defines the url value used by the page layer.
-     *
-     * Usage context:
-     * - Reused by the page layer to keep shared values centralized.
-     ***************************************************************************************************/
-    const url = URL.createObjectURL(file);
-    setEditorImage(url);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, []);
-
-  /***************************************************************************************************
-   * Handles editor confirm.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const handleEditorConfirm = useCallback(
-    async (blob: Blob): Promise<void> => {
-      setEditorImage(null);
-      setIsUploading(true);
-      try {
-        /***************************************************************************************************
-         * Defines the file value used by the page layer.
-         *
-         * Usage context:
-         * - Reused by the page layer to keep shared values centralized.
-         ***************************************************************************************************/
-        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-        /***************************************************************************************************
-         * Defines the result value used by the page layer.
-         *
-         * Usage context:
-         * - Reused by the page layer to keep shared values centralized.
-         ***************************************************************************************************/
-        const result = await api.uploadPhoto(file);
-        setPhotoUrl(result.fileId);
-        setPhotoError(false);
-        if (profile) {
-          await mutate(async () => ({ ...profile, photoUrl: result.fileId }), {
-            revalidate: false,
-            populateCache: true,
-          });
-        }
-        invalidateProfile();
-        toast.success(ts('photoUpdated'));
-      } catch (err) {
-        console.error('Failed to upload photo:', err);
-        toast.error(te('photoUploadFailed'));
-      } finally {
-        setIsUploading(false);
-      }
-    },
-    [mutate, profile, te, ts],
-  );
-
-  const handleDeletePhoto = useCallback(async (): Promise<void> => {
-    setIsDeletingPhoto(true);
-
-    try {
-      const updatedProfile = await api.updateProfile({ photoUrl: '' });
-      setPhotoUrl(updatedProfile.photoUrl ?? '');
-      setPhotoError(false);
-
-      if (profile) {
-        await mutate(async () => updatedProfile, {
-          populateCache: true,
-          revalidate: false,
-        });
-      } else {
-        invalidateProfile();
-      }
-      invalidateProfile();
-      toast.success(ts('photoRemoved'));
-    } catch (err) {
-      console.error('Failed to delete photo:', err);
-      toast.error(te('saveFailed'));
-    } finally {
-      setIsDeletingPhoto(false);
-    }
-  }, [mutate, profile, te, ts]);
-
-  const handleUseTelegramPhoto = useCallback(async (): Promise<void> => {
-    setIsDeletingPhoto(true);
-    try {
-      const updatedProfile = await api.restoreTelegramPhoto();
-      setPhotoUrl(updatedProfile.photoUrl ?? '');
-      setTelegramPhotoVersion(String(Date.now()));
-      setPhotoError(false);
-      if (profile) {
-        await mutate(async () => updatedProfile, {
-          populateCache: true,
-          revalidate: false,
-        });
-      } else {
-        invalidateProfile();
-      }
-      invalidateProfile();
-      toast.success(ts('photoUpdated'));
-    } catch (err) {
-      console.error('Failed to restore Telegram photo:', err);
-      const message = err instanceof Error ? err.message : '';
-      const isUnavailable = message.includes('TelegramPhotoUnavailable');
-      toast.error(isUnavailable ? te('telegramPhotoUnavailable') : te('saveFailed'));
-    } finally {
-      setIsDeletingPhoto(false);
-    }
-  }, [mutate, profile, te, ts]);
 
   /***************************************************************************************************
    * Handles save.
@@ -423,13 +257,9 @@ export default function ClientProfilePage(): ReactNode {
   }
 
   const isCurrentTelegramPhoto = isStoredTelegramProfilePhoto(photoUrl);
-  const isCurrentCustomPhoto = isCustomProfilePhoto(photoUrl);
-  const hasPhoto = Boolean(photoUrl);
   const displayPhotoUrl = isCurrentTelegramPhoto
     ? getTelegramPhotoDisplayUrl(photoUrl, telegramPhotoVersion)
     : photoUrl;
-  const canRestoreTelegramPhoto =
-    !isCurrentTelegramPhoto && (isCurrentCustomPhoto || !hasPhoto || Boolean(telegramPhotoUrl));
 
   return (
     <div>
@@ -438,51 +268,8 @@ export default function ClientProfilePage(): ReactNode {
           name={name}
           photoUrl={displayPhotoUrl}
           photoError={photoError}
-          isUploading={isUploading}
-          disabled={isPreview}
           onPhotoError={() => setPhotoError(true)}
-          onClickUpload={() => fileInputRef.current?.click()}
-          fileInputRef={fileInputRef}
-          onFileSelect={handleFileSelect}
         />
-
-        {!isPreview && (hasPhoto || canRestoreTelegramPhoto) && (
-          <div className={'-mt-4 flex flex-wrap items-center justify-center gap-2'}>
-            {hasPhoto && (
-              <button
-                type={'button'}
-                onClick={handleDeletePhoto}
-                disabled={isDeletingPhoto || isUploading}
-                className={
-                  'text-muted-foreground hover:text-foreground flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-50'
-                }
-              >
-                {isDeletingPhoto ? (
-                  <div
-                    className={
-                      'border-muted-foreground h-4 w-4 animate-spin rounded-full border-2 border-t-transparent'
-                    }
-                  />
-                ) : (
-                  <Trash2 className={'h-4 w-4'} />
-                )}
-                {t('removePhoto')}
-              </button>
-            )}
-            {canRestoreTelegramPhoto && (
-              <button
-                type={'button'}
-                onClick={handleUseTelegramPhoto}
-                disabled={isDeletingPhoto || isUploading}
-                className={
-                  'text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-50'
-                }
-              >
-                {t('useTelegramPhoto')}
-              </button>
-            )}
-          </div>
-        )}
 
         {isPreview && (
           <div className={'bg-card text-muted-foreground rounded-xl px-4 py-3 text-sm'}>
@@ -551,14 +338,6 @@ export default function ClientProfilePage(): ReactNode {
               <LanguageSelector />
             </div>
           </>
-        )}
-
-        {editorImage && (
-          <PhotoEditor
-            imageSrc={editorImage}
-            onConfirm={handleEditorConfirm}
-            onCancel={() => setEditorImage(null)}
-          />
         )}
       </div>
     </div>

@@ -118,7 +118,7 @@ export function handlePost<T>(
     bumpChangeVersions(state, ['clients']);
     return clone(client) as T;
   }
-  if (path === '/api/upload/photo' || path === '/api/admin/upload/photo') {
+  if (path === '/api/admin/upload/photo') {
     return clone({ fileId: mockPhotoDataUrl }) as T;
   }
   if (path === '/api/admin/subscription/checkout') {

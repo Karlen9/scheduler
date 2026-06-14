@@ -115,7 +115,7 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
   if (path === '/api/profile/notifications') {
     return ['clientProfile'];
   }
-  if (path === '/api/profile' || path === '/api/upload/photo') {
+  if (path === '/api/profile') {
     return ['clientProfile', 'clients', 'bookings', 'recurring'];
   }
 
