@@ -203,17 +203,11 @@ func NewRouter() http.Handler {
 		r.Put("/bookings/{id}/decline-reschedule", HandleClientDeclineReschedule)
 
 		/***************************************************************************************************
-		* Photo upload (client).
-		***************************************************************************************************/
-		r.Post("/upload/photo", HandleUploadPhoto)
-
-		/***************************************************************************************************
 		* Client profile.
 		***************************************************************************************************/
 		r.Get("/profile", HandleGetClientProfile)
 		r.Put("/profile", HandleUpdateClientProfile)
 		r.Put("/profile/notifications", HandleUpdateClientNotificationPrefs)
-		r.Post("/profile/restore-telegram-photo", HandleRestoreClientTelegramPhoto)
 
 		/***************************************************************************************************
 		* Client recurring schedules.

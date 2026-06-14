@@ -214,10 +214,10 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 
 			/***************************************************************************************************
-			* Auto-set Telegram profile photo only when the user has not explicitly removed it. The
-			* photo_removed flag persists deliberate clears so they survive subsequent web-app loads.
+			* Clients always adopt their Telegram profile photo when one is available; custom client
+			* avatars are not supported.
 			***************************************************************************************************/
-			if client.PhotoURL == "" && !client.PhotoRemoved && user.PhotoURL != "" {
+			if client.PhotoURL == "" && user.PhotoURL != "" {
 				if err := db.UpdateClientPhoto(client.ID, user.PhotoURL); err == nil {
 					client.PhotoURL = user.PhotoURL
 				}

@@ -356,24 +356,6 @@ func UpdateClientPhoto(clientID, fileID string) error {
 }
 
 /***************************************************************************************************
-* MarkClientPhotoRemoved clears the client's photo and records the explicit removal so the
-* TelegramAuthMiddleware does not silently restore a Telegram profile photo on the next request.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-*
-* Returns:
-* - An error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func MarkClientPhotoRemoved(clientID string) error {
-	_, err := DB.Exec(Q(`UPDATE clients SET photo_url = '', photo_removed = 1 WHERE id = ?`), clientID)
-	return err
-}
-
-/***************************************************************************************************
 * Updates specialist photo.
 *
 * Parameters:

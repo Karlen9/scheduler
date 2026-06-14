@@ -437,6 +437,12 @@ func migrateSQLite() error {
 		DB.Exec(migration)
 	}
 
+	// Clients no longer support custom avatars — clear legacy custom uploads (bare Telegram
+	// fileIDs) so they fall back to the client's Telegram profile photo. Telegram avatars are
+	// stored with a "telegram:" prefix or as http URLs and are left intact.
+	DB.Exec(`UPDATE clients SET photo_url = '' WHERE photo_url <> '' AND photo_url NOT LIKE 'telegram:%' AND photo_url NOT LIKE 'http%'`)
+	DB.Exec(`UPDATE clients SET photo_removed = 0 WHERE photo_removed <> 0`)
+
 	if err := migrateWorkingHoursMultiIntervalSQLite(); err != nil {
 		return err
 	}
@@ -775,6 +781,15 @@ func migratePostgres() error {
 		if _, err := DB.Exec(migration); err != nil {
 			return err
 		}
+	}
+
+	// Clients no longer support custom avatars — clear legacy custom uploads (bare Telegram
+	// fileIDs) so they fall back to the client's Telegram profile photo. Best-effort.
+	if _, err := DB.Exec(`UPDATE clients SET photo_url = '' WHERE photo_url <> '' AND photo_url NOT LIKE 'telegram:%' AND photo_url NOT LIKE 'http%'`); err != nil {
+		log.Printf("client custom-photo cleanup (postgres) failed: %v", err)
+	}
+	if _, err := DB.Exec(`UPDATE clients SET photo_removed = 0 WHERE photo_removed <> 0`); err != nil {
+		log.Printf("client photo_removed reset (postgres) failed: %v", err)
 	}
 
 	if err := migrateWorkingHoursMultiIntervalPostgres(); err != nil {
