@@ -14,6 +14,7 @@ import { useProfile } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { getTelegramPhotoDisplayUrl, isStoredTelegramProfilePhoto } from '@/lib/photos';
 import { isPreviewRoute } from '@/lib/routes';
+import { getTelegramUserPhotoUrl, waitForTelegramUserPhotoUrl } from '@/lib/telegram';
 
 import { AvatarSection } from './AvatarSection';
 import { NotificationPreferences } from './NotificationPreferences';
@@ -90,6 +91,7 @@ export default function ClientProfilePage(): ReactNode {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [telegramPhotoUrl, setTelegramPhotoUrl] = useState('');
   const [telegramPhotoVersion, setTelegramPhotoVersion] = useState(() => String(Date.now()));
   const [photoError, setPhotoError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -113,6 +115,29 @@ export default function ClientProfilePage(): ReactNode {
       setNotifyCancellations(profile.notifyCancellations ?? true);
     }
   }, [profile]);
+
+  /***************************************************************************************************
+   * The client's own avatar always mirrors their Telegram profile photo, which the WebApp SDK
+   * exposes immediately on open. Prefer it so the avatar renders without waiting on the backend to
+   * resolve and persist the photo (avoids a placeholder letter on first open).
+   ***************************************************************************************************/
+  useEffect(() => {
+    let active = true;
+    const current = getTelegramUserPhotoUrl();
+    if (current) {
+      setTelegramPhotoUrl(current);
+      setPhotoError(false);
+    }
+    void waitForTelegramUserPhotoUrl().then((photo) => {
+      if (active && photo) {
+        setTelegramPhotoUrl(photo);
+        setPhotoError(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /***************************************************************************************************
    * Cross-device language sync.
@@ -257,9 +282,10 @@ export default function ClientProfilePage(): ReactNode {
   }
 
   const isCurrentTelegramPhoto = isStoredTelegramProfilePhoto(photoUrl);
-  const displayPhotoUrl = isCurrentTelegramPhoto
+  const storedPhotoUrl = isCurrentTelegramPhoto
     ? getTelegramPhotoDisplayUrl(photoUrl, telegramPhotoVersion)
     : photoUrl;
+  const displayPhotoUrl = telegramPhotoUrl || storedPhotoUrl;
 
   return (
     <div>
