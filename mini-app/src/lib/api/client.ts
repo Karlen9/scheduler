@@ -127,21 +127,6 @@ export const clientApi = {
     });
   },
 
-  async uploadPhoto(file: File): Promise<{ fileId: string }> {
-    const formData = new FormData();
-    formData.append('photo', file);
-    return fetchAPI<{ fileId: string }>('/api/upload/photo', {
-      method: 'POST',
-      body: formData,
-    });
-  },
-
-  async restoreTelegramPhoto(): Promise<TClientProfile> {
-    return fetchAPI<TClientProfile>('/api/profile/restore-telegram-photo', {
-      method: 'POST',
-    });
-  },
-
   async getProfile(): Promise<TClientProfile> {
     return fetchAPI<TClientProfile>('/api/profile');
   },

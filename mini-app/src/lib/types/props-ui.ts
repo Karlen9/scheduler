@@ -1,7 +1,7 @@
 import type { TSessionType } from './domain';
 import type { TVoidFunction } from './shared';
 import type { LucideIcon } from 'lucide-react';
-import type { ChangeEvent, ReactNode, RefObject } from 'react';
+import type { ReactNode } from 'react';
 
 export type TServiceFormData = {
   type: string;
@@ -24,12 +24,7 @@ export type TAvatarSectionProps = {
   name: string;
   photoUrl: string;
   photoError: boolean;
-  isUploading: boolean;
-  disabled?: boolean;
   onPhotoError: TVoidFunction;
-  onClickUpload: TVoidFunction;
-  fileInputRef: RefObject<HTMLInputElement | null>;
-  onFileSelect: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
 export type TBottomSheetProps = {
