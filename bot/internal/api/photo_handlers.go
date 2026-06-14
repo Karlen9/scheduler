@@ -112,67 +112,6 @@ func proxyTelegramFile(w http.ResponseWriter, botToken string, fileID string) bo
 }
 
 /***************************************************************************************************
-* HandleUploadPhoto handles photo upload for clients. POST /api/upload/photo. notification
-* helpers.
-*
-* Parameters:
-* - w: HTTP response writer used to send the reply.
-* - r: HTTP request carrying headers, params, query values, and body data.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
-*
-***************************************************************************************************/
-func HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
-	client := GetClientFromContext(r)
-	specialist := GetSpecialistFromContext(r)
-	if specialist == nil {
-		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-
-	photoData, filename, errMsgID := readUploadedPhoto(w, r)
-	if errMsgID != "" {
-		httpError(w, r, errMsgID, http.StatusBadRequest)
-		return
-	}
-
-	bot := &telegram.Bot{Token: specialist.BotToken}
-
-	/***************************************************************************************************
-	* Always send to specialist's chat (used as CDN, not meant for the client to see).
-	***************************************************************************************************/
-	fileID, messageID, err := bot.SendPhoto(specialist.TelegramUserID, photoData, filename)
-	if err != nil {
-		log.Printf("SendPhoto error: %v", err)
-		httpError(w, r, "Error.PhotoUploadFailed", http.StatusInternalServerError)
-		return
-	}
-
-	if client != nil {
-		if err := db.UpdateClientPhoto(client.ID, fileID); err != nil {
-			log.Printf("UpdateClientPhoto error: %v", err)
-			httpError(w, r, "Error.PhotoSaveFailed", http.StatusInternalServerError)
-			return
-		}
-		changes.Publish(
-			client.SpecialistID,
-			changes.GroupClientProfile,
-			changes.GroupClients,
-			changes.GroupBookings,
-			changes.GroupRecurring,
-		)
-	}
-
-	deleteUploadedPhotoMessage(bot, specialist.TelegramUserID, messageID)
-
-	writeJSON(w, map[string]string{"fileId": fileID})
-}
-
-/***************************************************************************************************
 * HandleAdminUploadPhoto handles photo upload for specialists. POST /api/admin/upload/photo.
 *
 *
