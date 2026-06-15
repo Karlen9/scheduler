@@ -773,9 +773,14 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 		return
 	}
 	if existing != nil {
-		if existing.TelegramUserID == userID {
+		if existing.TelegramUserID != userID {
+			// Token belongs to a different user — reject outright.
+			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.TokenAlreadyUsed"), nil)
+			return
+		}
+		if existing.IsActive {
 			/***************************************************************************************************
-			* Same user's bot — re-register handler and confirm.
+			* Same user's active bot — re-register handler and confirm.
 			***************************************************************************************************/
 			log.Printf("Token for @%s already exists for same user, re-registering", existing.BotUsername)
 			if OnSpecialistCreated != nil {
@@ -789,10 +794,10 @@ func (h *MasterHandler) handleTokenInput(chatID, userID int64, text string, sess
 			msg := fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername)
 			h.bot.SendMessage(chatID, msg, nil)
 			h.setSession(userID, nil)
-		} else {
-			h.bot.SendMessage(chatID, myI18n.T(loc, "Master.TokenAlreadyUsed"), nil)
+			return
 		}
-		return
+		// Same user, soft-deleted row — fall through to Telegram validation and name prompt so
+		// CreateSpecialist (now an upsert) can reactivate the row.
 	}
 
 	/***************************************************************************************************
