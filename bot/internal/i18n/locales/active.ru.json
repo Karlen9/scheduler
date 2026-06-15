@@ -914,5 +914,27 @@
   },
   "Promo.AdminDurationDays": {
     "other": "{{.Days}} дн."
+  },
+
+  "Subscription.PromoPrompt": {
+    "other": "Вы выбрали тариф «{{.Plan}}» — {{.Price}} ₽.\n\nУ вас есть промокод?"
+  },
+  "Subscription.BtnHavePromo": {
+    "other": "🎟 У меня есть промокод"
+  },
+  "Subscription.BtnNoPromo": {
+    "other": "Без промокода"
+  },
+  "Subscription.FinalPriceNoPromo": {
+    "other": "Тариф: {{.Plan}}\nК оплате: {{.Final}} ₽"
+  },
+  "Subscription.FinalPriceWithPromo": {
+    "other": "Тариф: {{.Plan}}\nЦена: {{.Base}} ₽\nПромокод {{.Code}}: −{{.Discount}} ₽\nИтого к оплате: {{.Final}} ₽"
+  },
+  "Subscription.BtnPayAmount": {
+    "other": "💳 Оплатить {{.Price}} ₽"
+  },
+  "Subscription.BtnActivateFree": {
+    "other": "✅ Активировать Pro"
   }
 }

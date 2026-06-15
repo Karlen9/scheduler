@@ -801,6 +801,10 @@ func main() {
 		* here in main, which imports both.
 		***************************************************************************************************/
 		masterHandler.CreateCheckoutFunc = api.CreateSubscriptionCheckout
+		masterHandler.ValidatePromoFunc = func(code, planCode, specialistID string) (int, int, string, bool) {
+			_, final, discount, reason, ok := api.ValidatePromoForSpecialist(code, planCode, specialistID)
+			return final, discount, reason, ok
+		}
 		// FIX 1: wrap in a goroutine so a slow/unreachable Telegram DM cannot stall the
 		// ЮКасса webhook's 200-OK response (or block the renewal/expiry worker loop).
 		// Activation is persisted before this fires, so a dropped DM is acceptable.
