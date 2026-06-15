@@ -26,6 +26,10 @@ const (
 	cbAdminDurations = "adm:durations"
 	cbAdminList      = "adm:list"
 
+	// Recurring-payments toggle callbacks.
+	cbAdminRecurringPay       = "adm:recpay"        // settings screen
+	cbAdminRecurringPayToggle = "adm:recpay:toggle" // flip the flag
+
 	// Promo code management callbacks.
 	cbAdminPromo       = "adm:promo"        // list screen
 	cbAdminPromoCreate = "adm:promo:create" // start creation flow
@@ -54,6 +58,7 @@ func (h *MasterHandler) renderAdminMenu(chatID, userID int64, messageID int, loc
 			{{Text: myI18n.T(loc, "MasterAdmin.BtnTop"), CallbackData: cbAdminTopSpecs}},
 			{{Text: myI18n.T(loc, "MasterAdmin.BtnDurations"), CallbackData: cbAdminDurations}},
 			{{Text: myI18n.T(loc, "MasterAdmin.BtnList"), CallbackData: cbAdminList}},
+			{{Text: myI18n.T(loc, "MasterAdmin.BtnRecurringPay"), CallbackData: cbAdminRecurringPay}},
 			{{Text: myI18n.T(loc, "Promo.AdminBtnPromoCodes"), CallbackData: cbAdminPromo}},
 			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
 		},
@@ -86,6 +91,12 @@ func (h *MasterHandler) dispatchAdminCallback(chatID, userID int64, messageID in
 		h.renderAdminDurations(chatID, messageID, loc)
 	case data == cbAdminList:
 		h.renderAdminSpecialistList(chatID, messageID, loc)
+
+	// --- Recurring-payments toggle ---
+	case data == cbAdminRecurringPay:
+		h.renderAdminRecurringPay(chatID, messageID, loc)
+	case data == cbAdminRecurringPayToggle:
+		h.handleAdminRecurringPayToggle(chatID, userID, messageID, loc)
 
 	// --- Promo code management ---
 	case data == cbAdminPromo:
@@ -611,6 +622,53 @@ func (h *MasterHandler) handleAdminPromoDurationDaysInput(chatID, userID int64, 
 
 	// Return to promo list.
 	h.renderAdminPromoList(chatID, 0, loc)
+}
+
+func (h *MasterHandler) renderAdminRecurringPay(chatID int64, messageID int, loc *localizerType) {
+	enabled, err := db.GetRecurringPaymentsEnabled()
+	if err != nil {
+		log.Printf("admin recurring pay: read flag: %v", err)
+		h.editOrSend(chatID, messageID, myI18n.T(loc, "Master.Error"), backToAdmin(loc))
+		return
+	}
+
+	var statusLine string
+	var toggleLabel string
+	if enabled {
+		statusLine = myI18n.T(loc, "MasterAdmin.RecurringPayStatusOn")
+		toggleLabel = myI18n.T(loc, "MasterAdmin.BtnRecurringPayDisable")
+	} else {
+		statusLine = myI18n.T(loc, "MasterAdmin.RecurringPayStatusOff")
+		toggleLabel = myI18n.T(loc, "MasterAdmin.BtnRecurringPayEnable")
+	}
+
+	body := myI18n.T(loc, "MasterAdmin.RecurringPayTitle") + "\n" + statusLine
+
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: toggleLabel, CallbackData: cbAdminRecurringPayToggle}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbAdminHome}},
+		},
+	}
+	h.editOrSend(chatID, messageID, body, kb)
+}
+
+func (h *MasterHandler) handleAdminRecurringPayToggle(chatID, userID int64, messageID int, loc *localizerType) {
+	if !h.isAdmin(userID) {
+		return
+	}
+	current, err := db.GetRecurringPaymentsEnabled()
+	if err != nil {
+		log.Printf("admin recurring pay toggle: read flag: %v", err)
+		h.editOrSend(chatID, messageID, myI18n.T(loc, "Master.Error"), backToAdmin(loc))
+		return
+	}
+	if err := db.SetRecurringPaymentsEnabled(!current); err != nil {
+		log.Printf("admin recurring pay toggle: set flag: %v", err)
+		h.editOrSend(chatID, messageID, myI18n.T(loc, "Master.Error"), backToAdmin(loc))
+		return
+	}
+	h.renderAdminRecurringPay(chatID, messageID, loc)
 }
 
 func backToAdmin(loc *localizerType) *InlineKeyboardMarkup {

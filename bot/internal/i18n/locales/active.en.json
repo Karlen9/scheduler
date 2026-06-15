@@ -672,6 +672,24 @@
   "MasterAdmin.BtnList": {
     "other": "📋 Specialist list"
   },
+  "MasterAdmin.BtnRecurringPay": {
+    "other": "💳 Recurring payments"
+  },
+  "MasterAdmin.RecurringPayTitle": {
+    "other": "<b>💳 Recurring payments</b>\n\nWhen enabled — the payment method is saved for automatic subscription renewal (requires recurring/autopayments to be enabled on the YooKassa shop). When disabled — one-time payments only, no auto-renewal."
+  },
+  "MasterAdmin.RecurringPayStatusOn": {
+    "other": "Status: <b>ON</b>"
+  },
+  "MasterAdmin.RecurringPayStatusOff": {
+    "other": "Status: <b>OFF</b>"
+  },
+  "MasterAdmin.BtnRecurringPayEnable": {
+    "other": "Turn on"
+  },
+  "MasterAdmin.BtnRecurringPayDisable": {
+    "other": "Turn off"
+  },
   "MasterReplace.Prompt": {
     "other": "🔑 Replace token for @%s\n\n⚠️ Use this only if you know what you are doing. This is an advanced recovery action for a bot you already own.\n\nOpen @BotFather → /mybots → pick your bot → API Token → /revoke if needed, then send me the new long token.\n\nSend /cancel to abort."
   },
