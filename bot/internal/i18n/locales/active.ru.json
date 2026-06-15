@@ -671,26 +671,11 @@
   "MasterAdmin.Home": {
     "other": "<b>📊 Админ-панель</b>\n\nВыберите раздел:"
   },
-  "MasterAdmin.BtnPlatform": {
-    "other": "🏢 Платформа"
-  },
-  "MasterAdmin.BtnBookings": {
-    "other": "📅 Записи"
-  },
-  "MasterAdmin.BtnClients": {
-    "other": "👥 Клиенты"
-  },
-  "MasterAdmin.BtnRecurring": {
-    "other": "🔄 Регулярные"
-  },
   "MasterAdmin.BtnReferrals": {
     "other": "🎁 Рефералы"
   },
   "MasterAdmin.BtnTop": {
     "other": "🏆 Топ специалистов"
-  },
-  "MasterAdmin.BtnDurations": {
-    "other": "⏱ Длительности"
   },
   "MasterAdmin.BtnList": {
     "other": "📋 Список специалистов"
