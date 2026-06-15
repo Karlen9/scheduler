@@ -669,26 +669,11 @@
   "MasterAdmin.Home": {
     "other": "<b>📊 Admin panel</b>\n\nPick a section:"
   },
-  "MasterAdmin.BtnPlatform": {
-    "other": "🏢 Platform"
-  },
-  "MasterAdmin.BtnBookings": {
-    "other": "📅 Bookings"
-  },
-  "MasterAdmin.BtnClients": {
-    "other": "👥 Clients"
-  },
-  "MasterAdmin.BtnRecurring": {
-    "other": "🔄 Recurring"
-  },
   "MasterAdmin.BtnReferrals": {
     "other": "🎁 Referrals"
   },
   "MasterAdmin.BtnTop": {
     "other": "🏆 Top specialists"
-  },
-  "MasterAdmin.BtnDurations": {
-    "other": "⏱ Durations"
   },
   "MasterAdmin.BtnList": {
     "other": "📋 Specialist list"
