@@ -564,6 +564,12 @@
   "Master.NameTooShort": {
     "other": "❌ Name is too short. Enter your full name:"
   },
+  "Master.AskEmail": {
+    "other": "📧 Enter an email for payment receipts:"
+  },
+  "Master.InvalidEmail": {
+    "other": "That doesn't look like an email. Please enter a valid address, e.g. name@example.com"
+  },
   "Master.Success": {
     "other": "🎉 Congratulations, %s!\n\nYour bot @%s is ready.\n\n🚀 What to do next:\n\n1️⃣ Open @%s → send /start\n2️⃣ Set up services and schedule\n3️⃣ Send the link t.me/%s to your clients\n\nClients will be able to choose a time and book, and you'll receive a notification with \"Confirm\" or \"Reject\" buttons.\n\nGood luck! 💪"
   },
