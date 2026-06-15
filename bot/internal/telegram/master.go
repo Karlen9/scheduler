@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -45,6 +46,10 @@ const (
 	* - Reused by the telegram bot layer to keep shared values centralized.
 	***************************************************************************************************/
 	StateAwaitingName
+	// StateAwaitingEmail is entered after StateAwaitingName; the user provides a contact email
+	// that will be used for YooKassa fiscal receipts. Name is held in the session until this step
+	// completes and the specialist row is created.
+	StateAwaitingEmail
 	// StateAwaitingReplacementToken is entered via /replacetoken or the profile menu when an
 	// already-registered specialist needs to swap their bot token (e.g. after BotFather /revoke).
 	StateAwaitingReplacementToken
@@ -66,6 +71,7 @@ type OnboardingSession struct {
 	State       OnboardingState
 	BotToken    string
 	BotUsername string
+	Name        string // set in handleNameInput; carried into handleEmailInput for specialist creation
 }
 
 // pendingRef is a referral code captured from "/start ref_<code>" that is waiting for the user
@@ -400,6 +406,8 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 			h.handleTokenInput(chatID, userID, text, session, loc)
 		case StateAwaitingName:
 			h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
+		case StateAwaitingEmail:
+			h.handleEmailInput(chatID, userID, text, session, msg.From.Username, loc)
 		case StateAwaitingReplacementToken:
 			h.handleReplacementTokenInput(chatID, userID, text, loc)
 		case StateAwaitingPromoCode:
@@ -798,6 +806,54 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	}
 
 	/***************************************************************************************************
+	* Store the name in the session and advance to the email step.
+	***************************************************************************************************/
+	session.Name = name
+	session.State = StateAwaitingEmail
+	h.setSession(userID, session)
+
+	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.AskEmail"), nil)
+}
+
+// emailRegexp is a simple sanity-check pattern compiled once at package scope. It requires at
+// least one non-whitespace character before the @, at least one after, and a dot in the domain
+// part. Full RFC 5321 validation is deliberately avoided — we just want to reject obvious typos.
+var emailRegexp = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
+
+// isValidEmail returns true when s looks like a plausible email address.
+func isValidEmail(s string) bool {
+	return emailRegexp.MatchString(s)
+}
+
+/***************************************************************************************************
+* Handles email input. Validates the address, creates the specialist row, persists the email, and
+* completes onboarding. This is called after handleNameInput stores the name in the session and
+* advances to StateAwaitingEmail.
+*
+* Parameters:
+* - chatID: Identifier used to target the current record.
+* - userID: Identifier used to target the current record.
+* - text: Text used by the current operation.
+* - session: Session used by the current operation.
+* - username: Username used by the current operation.
+* - loc: Loc used by the current operation.
+*
+* Returns:
+* - No direct return value; work is exposed through side effects.
+*
+* Side effects:
+* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
+***************************************************************************************************/
+func (h *MasterHandler) handleEmailInput(chatID, userID int64, text string, session *OnboardingSession, username string, loc *localizerType) {
+	email := strings.TrimSpace(text)
+	if !isValidEmail(email) {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.InvalidEmail"), nil)
+		return
+	}
+
+	name := session.Name
+
+	/***************************************************************************************************
 	* Create specialist.
 	***************************************************************************************************/
 	specialist, err := db.CreateSpecialist(
@@ -812,6 +868,13 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		log.Printf("Error creating specialist: %v", err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
+	}
+
+	/***************************************************************************************************
+	* Persist the email address (log-only on failure; do not abort registration).
+	***************************************************************************************************/
+	if err := db.SetSpecialistEmail(specialist.ID, email); err != nil {
+		log.Printf("master: save specialist email failed (%s): %v", specialist.ID, err)
 	}
 
 	/***************************************************************************************************

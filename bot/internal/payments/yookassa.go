@@ -40,6 +40,24 @@ func (c *Client) Configured() bool {
 	return c.shopID != "" && c.secretKey != ""
 }
 
+// Receipt is the optional 54-ФЗ fiscal receipt attached to a payment.
+type Receipt struct {
+	CustomerEmail string
+	CustomerPhone string
+	TaxSystemCode int // omitted when 0
+	Items         []ReceiptItem
+}
+
+// ReceiptItem is a single line on the fiscal receipt.
+type ReceiptItem struct {
+	Description    string
+	AmountKopecks  int
+	Quantity       string // e.g. "1.00"
+	VATCode        int
+	PaymentSubject string // e.g. "service"
+	PaymentMode    string // e.g. "full_payment"
+}
+
 // CreatePaymentParams holds all inputs for CreatePayment.
 type CreatePaymentParams struct {
 	// AmountKopecks is the price in kopecks (e.g. 59000 = 590.00 RUB).
@@ -63,6 +81,9 @@ type CreatePaymentParams struct {
 	// IdempotenceKey, when non-empty, is sent as the Idempotence-Key header verbatim.
 	// When empty a fresh random UUID is used (preserves existing checkout behavior).
 	IdempotenceKey string
+	// Receipt is the optional 54-ФЗ fiscal receipt. When nil, no receipt is included
+	// (preserves existing behavior for shops without fiscalization).
+	Receipt *Receipt
 }
 
 // PaymentResult is the parsed subset of a ЮКасса payment object we care about.
@@ -90,11 +111,35 @@ type yookassaPaymentRequest struct {
 	Confirmation      *ykConfirmation   `json:"confirmation,omitempty"`
 	SavePaymentMethod bool              `json:"save_payment_method,omitempty"`
 	PaymentMethodID   string            `json:"payment_method_id,omitempty"`
+	Receipt           *ykReceipt        `json:"receipt,omitempty"`
 }
 
 type ykConfirmation struct {
 	Type      string `json:"type"`
 	ReturnURL string `json:"return_url"`
+}
+
+type ykReceipt struct {
+	Customer      ykReceiptCustomer `json:"customer"`
+	Items         []ykReceiptItem   `json:"items"`
+	TaxSystemCode int               `json:"tax_system_code,omitempty"`
+}
+
+type ykReceiptCustomer struct {
+	Email string `json:"email,omitempty"`
+	Phone string `json:"phone,omitempty"`
+}
+
+type ykReceiptItem struct {
+	Description string `json:"description"`
+	Quantity    string `json:"quantity"`
+	Amount      struct {
+		Value    string `json:"value"`
+		Currency string `json:"currency"`
+	} `json:"amount"`
+	VATCode        int    `json:"vat_code"`
+	PaymentSubject string `json:"payment_subject,omitempty"`
+	PaymentMode    string `json:"payment_mode,omitempty"`
 }
 
 // yookassaPaymentResponse is the relevant subset of the ЮКасса payment JSON response.
@@ -151,6 +196,35 @@ func (c *Client) CreatePayment(ctx context.Context, params CreatePaymentParams) 
 			ReturnURL: params.ReturnURL,
 		}
 		req.SavePaymentMethod = params.SavePaymentMethod
+	}
+
+	if params.Receipt != nil {
+		r := params.Receipt
+		ykr := &ykReceipt{
+			Customer: ykReceiptCustomer{
+				Email: r.CustomerEmail,
+				Phone: r.CustomerPhone,
+			},
+			TaxSystemCode: r.TaxSystemCode,
+		}
+		ykr.Items = make([]ykReceiptItem, 0, len(r.Items))
+		for _, item := range r.Items {
+			qty := item.Quantity
+			if qty == "" {
+				qty = "1.00"
+			}
+			ri := ykReceiptItem{
+				Description:    item.Description,
+				Quantity:       qty,
+				VATCode:        item.VATCode,
+				PaymentSubject: item.PaymentSubject,
+				PaymentMode:    item.PaymentMode,
+			}
+			ri.Amount.Value = formatKopecks(item.AmountKopecks)
+			ri.Amount.Currency = "RUB"
+			ykr.Items = append(ykr.Items, ri)
+		}
+		req.Receipt = ykr
 	}
 
 	body, err := json.Marshal(req)
