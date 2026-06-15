@@ -109,9 +109,18 @@ type MasterHandler struct {
 	// Absent entry means default ON. Guarded by h.mu.
 	subAutoRenew map[int64]bool // telegramUserID -> auto-renew choice for master-bot checkout (absent = default ON)
 
+	// pendingPromoCodes stores the validated promo code for a user who has passed validation and is
+	// about to tap "Pay". Guarded by h.mu.
+	pendingPromoCodes map[int64]string // telegramUserID -> validated promo code awaiting payment
+
 	// CreateCheckoutFunc is injected by main.go to avoid an import cycle (api imports telegram
 	// for photo handlers; telegram must not import api). Nil until wired.
 	CreateCheckoutFunc func(ctx context.Context, specialist *models.Specialist, planCode, promoCode string, autoRenew bool) (confirmationURL string, granted bool, err error)
+
+	// ValidatePromoFunc is injected by main.go to avoid the api→telegram import cycle.
+	// It validates a promo code for a given plan and specialist WITHOUT creating a checkout.
+	// Returns (finalKopecks, discountKopecks, reason, ok).
+	ValidatePromoFunc func(code, planCode, specialistID string) (finalKopecks, discountKopecks int, reason string, ok bool)
 }
 
 // promoCreateDraft tracks the state of an admin creating a new promo code step by step.
@@ -152,6 +161,7 @@ func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int6
 		pendingPlanCodes:  make(map[int64]string),
 		promoCreateDrafts: make(map[int64]*promoCreateDraft),
 		subAutoRenew:      make(map[int64]bool),
+		pendingPromoCodes: make(map[int64]string),
 	}
 }
 
@@ -277,17 +287,41 @@ func (h *MasterHandler) clearPromoCreateDraft(adminID int64) {
 	delete(h.promoCreateDrafts, adminID)
 }
 
-// takePendingPlanCode returns and clears the stored plan code for the user.
-// Falls back to "pro_annual" if none was stored.
-func (h *MasterHandler) takePendingPlanCode(userID int64) string {
+// peekPendingPlanCode reads the pending plan code WITHOUT deleting it.
+// ok=false when absent or empty (does NOT default to pro_annual).
+func (h *MasterHandler) peekPendingPlanCode(userID int64) (string, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	code, ok := h.pendingPlanCodes[userID]
+	if !ok || code == "" {
+		return "", false
+	}
+	return code, true
+}
+
+// setPendingPromo stores the validated promo code for the user awaiting final payment.
+func (h *MasterHandler) setPendingPromo(userID int64, code string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	code, ok := h.pendingPlanCodes[userID]
-	delete(h.pendingPlanCodes, userID)
+	h.pendingPromoCodes[userID] = code
+}
+
+// peekPendingPromo reads the pending promo code without deleting it.
+func (h *MasterHandler) peekPendingPromo(userID int64) (string, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	code, ok := h.pendingPromoCodes[userID]
 	if !ok || code == "" {
-		return "pro_annual"
+		return "", false
 	}
-	return code
+	return code, true
+}
+
+// clearPendingPromo removes the pending promo code for the user.
+func (h *MasterHandler) clearPendingPromo(userID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.pendingPromoCodes, userID)
 }
 
 /***************************************************************************************************
@@ -697,6 +731,8 @@ func (h *MasterHandler) handleCancel(chatID, userID int64, loc *localizerType) {
 	h.clearPendingReferral(userID)
 	// Drop any pending plan code stored before entering the promo-code state.
 	h.clearPendingPlanCode(userID)
+	// Drop any validated promo code stored before the final pay step.
+	h.clearPendingPromo(userID)
 	// Drop any in-progress admin promo-create draft.
 	h.clearPromoCreateDraft(userID)
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Cancelled"), nil)

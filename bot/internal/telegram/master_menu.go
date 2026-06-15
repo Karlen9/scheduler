@@ -45,6 +45,8 @@ const (
 	// Subscription screen callbacks.
 	cbMenuSubscription = "m:sub"
 	cbSubPromo         = "m:sub:promo"
+	cbSubConfirm       = "m:sub:confirm"
+	cbSubPay           = "m:sub:pay"
 	// "m:sub:buy:<planCode>" handled via HasPrefix("m:sub:buy:").
 	// cbSubAutoRenew is an exact-match callback (NOT under the m:sub:buy: prefix).
 	cbSubAutoRenew = "m:sub:autorenew"
@@ -175,9 +177,13 @@ func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
 	case data == cbMenuInvite:
 		h.renderInviteScreen(chatID, userID, messageID, loc)
 	case strings.HasPrefix(data, "m:sub:buy:"):
-		h.handleSubscriptionBuy(chatID, userID, messageID, strings.TrimPrefix(data, "m:sub:buy:"), loc)
+		h.handleSelectPlan(chatID, userID, messageID, strings.TrimPrefix(data, "m:sub:buy:"), loc)
 	case data == cbSubPromo:
 		h.handleSubscriptionPromoEntry(chatID, userID, messageID, loc)
+	case data == cbSubConfirm:
+		h.handleSubscriptionConfirm(chatID, userID, messageID, loc)
+	case data == cbSubPay:
+		h.handleSubscriptionPay(chatID, userID, messageID, loc)
 	case data == cbSubAutoRenew:
 		h.handleSubscriptionAutoRenewToggle(chatID, userID, messageID, loc)
 	case strings.HasPrefix(data, "adm:"):
@@ -322,7 +328,6 @@ func (h *MasterHandler) renderSubscriptionScreen(chatID, userID int64, messageID
 		})
 	}
 	planRows = append(planRows,
-		[]InlineKeyboardButton{{Text: myI18n.T(loc, "Btn.PromoCode"), CallbackData: cbSubPromo}},
 		[]InlineKeyboardButton{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
 	)
 
@@ -404,8 +409,168 @@ func planLabel(loc *localizerType, p config.SubscriptionPlan) string {
 	}
 }
 
-// handleSubscriptionBuy processes a plan-buy callback. Calls the injected checkout func.
-func (h *MasterHandler) handleSubscriptionBuy(chatID, userID int64, messageID int, planCode string, loc *localizerType) {
+// handleSelectPlan is called when a specialist taps a plan button (m:sub:buy:<planCode>).
+// It stores the chosen plan and shows a "Do you have a promo code?" prompt.
+func (h *MasterHandler) handleSelectPlan(chatID, userID int64, messageID int, planCode string, loc *localizerType) {
+	plan, ok := config.SubscriptionPlanByCode(planCode)
+	if !ok {
+		h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+		return
+	}
+	h.setPendingPlanCode(userID, planCode)
+	h.clearPendingPromo(userID)
+	h.renderPromoPrompt(chatID, userID, messageID, plan, loc)
+}
+
+// renderPromoPrompt shows "Do you have a promo code?" for the chosen plan.
+func (h *MasterHandler) renderPromoPrompt(chatID, userID int64, messageID int, plan config.SubscriptionPlan, loc *localizerType) {
+	text := myI18n.Tf(loc, "Subscription.PromoPrompt", map[string]interface{}{
+		"Plan":  planLabel(loc, plan),
+		"Price": plan.PriceKopecks / 100,
+	})
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: myI18n.T(loc, "Subscription.BtnHavePromo"), CallbackData: cbSubPromo}},
+			{{Text: myI18n.T(loc, "Subscription.BtnNoPromo"), CallbackData: cbSubConfirm}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuSubscription}},
+		},
+	}
+	h.editOrSend(chatID, messageID, text, kb)
+}
+
+// handleSubscriptionAutoRenewToggle flips the in-memory auto-renew choice and re-renders
+// the subscription screen so the toggle button reflects the new state.
+func (h *MasterHandler) handleSubscriptionAutoRenewToggle(chatID, userID int64, messageID int, loc *localizerType) {
+	h.setSubAutoRenew(userID, !h.getSubAutoRenew(userID))
+	h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+}
+
+// handleSubscriptionPromoEntry is called when the user taps "I have a promo code".
+// It requires a pending plan to already be set by handleSelectPlan.
+func (h *MasterHandler) handleSubscriptionPromoEntry(chatID, userID int64, messageID int, loc *localizerType) {
+	if _, ok := h.peekPendingPlanCode(userID); !ok {
+		h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+		return
+	}
+	h.setSession(userID, &OnboardingSession{State: StateAwaitingPromoCode})
+	h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.EnterPromoCode"), nil)
+}
+
+// handlePromoCodeInput is called from HandleUpdate when the user is in StateAwaitingPromoCode.
+// It validates the code and shows the final price — no checkout yet.
+func (h *MasterHandler) handlePromoCodeInput(chatID, userID int64, code string, loc *localizerType) {
+	h.setSession(userID, nil)
+
+	planCode, ok := h.peekPendingPlanCode(userID)
+	if !ok {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+		return
+	}
+
+	if h.ValidatePromoFunc == nil {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoUnavailable"), nil)
+		return
+	}
+
+	sp, err := masterLoadSpecialist(userID)
+	if err != nil || sp == nil {
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
+		return
+	}
+
+	trimmedCode := strings.TrimSpace(code)
+	_, _, _, ok2 := h.ValidatePromoFunc(trimmedCode, planCode, sp.ID)
+	if !ok2 {
+		h.clearPendingPromo(userID)
+		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoInvalid"), nil)
+		// Re-show the promo prompt as a fresh message so the user can retry or skip.
+		if plan, planOk := config.SubscriptionPlanByCode(planCode); planOk {
+			h.renderPromoPrompt(chatID, userID, 0, plan, loc)
+		}
+		return
+	}
+	h.setPendingPromo(userID, trimmedCode)
+	h.renderFinalPrice(chatID, userID, 0, loc)
+}
+
+// handleSubscriptionConfirm is called when the user taps "No promo code".
+func (h *MasterHandler) handleSubscriptionConfirm(chatID, userID int64, messageID int, loc *localizerType) {
+	h.clearPendingPromo(userID)
+	h.renderFinalPrice(chatID, userID, messageID, loc)
+}
+
+// renderFinalPrice shows the full or discounted price for the chosen plan and a Pay button.
+func (h *MasterHandler) renderFinalPrice(chatID, userID int64, messageID int, loc *localizerType) {
+	planCode, ok := h.peekPendingPlanCode(userID)
+	if !ok {
+		h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+		return
+	}
+	plan, ok := config.SubscriptionPlanByCode(planCode)
+	if !ok {
+		h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+		return
+	}
+
+	base := plan.PriceKopecks
+	final := base
+	discount := 0
+
+	promoCode, hasPromo := h.peekPendingPromo(userID)
+
+	if hasPromo && h.ValidatePromoFunc != nil {
+		sp, err := masterLoadSpecialist(userID)
+		if err != nil || sp == nil {
+			h.editOrSend(chatID, messageID, myI18n.T(loc, "Master.Error"), nil)
+			return
+		}
+		f, d, _, vok := h.ValidatePromoFunc(promoCode, planCode, sp.ID)
+		if vok {
+			final = f
+			discount = d
+		} else {
+			h.clearPendingPromo(userID)
+			hasPromo = false
+		}
+	}
+
+	var text string
+	if hasPromo {
+		text = myI18n.Tf(loc, "Subscription.FinalPriceWithPromo", map[string]interface{}{
+			"Plan":     planLabel(loc, plan),
+			"Base":     base / 100,
+			"Code":     promoCode,
+			"Discount": discount / 100,
+			"Final":    final / 100,
+		})
+	} else {
+		text = myI18n.Tf(loc, "Subscription.FinalPriceNoPromo", map[string]interface{}{
+			"Plan":  planLabel(loc, plan),
+			"Final": final / 100,
+		})
+	}
+
+	var payBtnText string
+	if final == 0 {
+		payBtnText = myI18n.T(loc, "Subscription.BtnActivateFree")
+	} else {
+		payBtnText = myI18n.Tf(loc, "Subscription.BtnPayAmount", map[string]interface{}{
+			"Price": final / 100,
+		})
+	}
+
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: payBtnText, CallbackData: cbSubPay}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuSubscription}},
+		},
+	}
+	h.editOrSend(chatID, messageID, text, kb)
+}
+
+// handleSubscriptionPay is called when the user taps the Pay button on the final-price screen.
+// It creates the actual checkout using the pending plan and promo.
+func (h *MasterHandler) handleSubscriptionPay(chatID, userID int64, messageID int, loc *localizerType) {
 	if h.CreateCheckoutFunc == nil {
 		h.editOrSend(chatID, messageID,
 			myI18n.T(loc, "Subscription.PaymentUnavailable"),
@@ -416,23 +581,36 @@ func (h *MasterHandler) handleSubscriptionBuy(chatID, userID int64, messageID in
 		return
 	}
 
+	planCode, ok := h.peekPendingPlanCode(userID)
+	if !ok {
+		h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+		return
+	}
+
+	promoCode, _ := h.peekPendingPromo(userID) // empty string when none
+
 	sp, err := masterLoadSpecialist(userID)
 	if err != nil || sp == nil {
 		h.editOrSend(chatID, messageID, myI18n.T(loc, "Master.Error"), nil)
 		return
 	}
 
-	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, "", h.getSubAutoRenew(userID))
+	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, promoCode, h.getSubAutoRenew(userID))
 	if err != nil {
-		log.Printf("master: subscription buy error (user=%d plan=%s): %v", userID, planCode, err)
+		log.Printf("master: subscription pay error (user=%d plan=%s): %v", userID, planCode, err)
 		h.editOrSend(chatID, messageID,
 			myI18n.T(loc, "Subscription.PaymentFailed"),
 			&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
 				{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuSubscription}},
 			}},
 		)
+		// Leave pending state so they can retry.
 		return
 	}
+
+	// Clear pending on success.
+	h.clearPendingPlanCode(userID)
+	h.clearPendingPromo(userID)
 
 	if granted {
 		h.editOrSend(chatID, messageID,
@@ -450,64 +628,6 @@ func (h *MasterHandler) handleSubscriptionBuy(chatID, userID int64, messageID in
 		&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
 			{{Text: myI18n.T(loc, "Btn.Pay"), URL: confirmURL}},
 			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuSubscription}},
-		}},
-	)
-}
-
-// handleSubscriptionAutoRenewToggle flips the in-memory auto-renew choice and re-renders
-// the subscription screen so the toggle button reflects the new state.
-func (h *MasterHandler) handleSubscriptionAutoRenewToggle(chatID, userID int64, messageID int, loc *localizerType) {
-	h.setSubAutoRenew(userID, !h.getSubAutoRenew(userID))
-	h.renderSubscriptionScreen(chatID, userID, messageID, loc)
-}
-
-// handleSubscriptionPromoEntry stores the annual plan (default) and switches the user into
-// the promo-code entry state.
-func (h *MasterHandler) handleSubscriptionPromoEntry(chatID, userID int64, messageID int, loc *localizerType) {
-	_ = messageID
-	h.setPendingPlanCode(userID, "pro_annual")
-	h.setSession(userID, &OnboardingSession{State: StateAwaitingPromoCode})
-	h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.EnterPromoCode"), nil)
-}
-
-// handlePromoCodeInput is called from HandleUpdate when the user is in StateAwaitingPromoCode.
-func (h *MasterHandler) handlePromoCodeInput(chatID, userID int64, code string, loc *localizerType) {
-	planCode := h.takePendingPlanCode(userID)
-	h.setSession(userID, nil)
-
-	if h.CreateCheckoutFunc == nil {
-		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoUnavailable"), nil)
-		return
-	}
-
-	sp, err := masterLoadSpecialist(userID)
-	if err != nil || sp == nil {
-		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
-		return
-	}
-
-	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, strings.TrimSpace(code), h.getSubAutoRenew(userID))
-	if err != nil {
-		errMsg := err.Error()
-		if strings.Contains(errMsg, "invalid promo code") {
-			h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoInvalid"), nil)
-			return
-		}
-		log.Printf("master: promo checkout error (user=%d plan=%s code=%s): %v", userID, planCode, code, err)
-		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.PromoApplyFailed"), nil)
-		return
-	}
-
-	if granted {
-		h.bot.SendMessage(chatID, myI18n.T(loc, "Subscription.Activated"), nil)
-		return
-	}
-
-	// Discounted payment URL.
-	h.bot.SendMessageHTML(chatID,
-		myI18n.T(loc, "Subscription.PromoApplied"),
-		&InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
-			{{Text: myI18n.T(loc, "Btn.Pay"), URL: confirmURL}},
 		}},
 	)
 }
