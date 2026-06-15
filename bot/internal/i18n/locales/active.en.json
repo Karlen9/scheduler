@@ -912,5 +912,27 @@
   },
   "Promo.AdminDurationDays": {
     "other": "{{.Days}} days"
+  },
+
+  "Subscription.PromoPrompt": {
+    "other": "You chose the «{{.Plan}}» plan — {{.Price}} ₽.\n\nDo you have a promo code?"
+  },
+  "Subscription.BtnHavePromo": {
+    "other": "🎟 I have a promo code"
+  },
+  "Subscription.BtnNoPromo": {
+    "other": "No promo code"
+  },
+  "Subscription.FinalPriceNoPromo": {
+    "other": "Plan: {{.Plan}}\nTotal: {{.Final}} ₽"
+  },
+  "Subscription.FinalPriceWithPromo": {
+    "other": "Plan: {{.Plan}}\nPrice: {{.Base}} ₽\nPromo {{.Code}}: −{{.Discount}} ₽\nTotal: {{.Final}} ₽"
+  },
+  "Subscription.BtnPayAmount": {
+    "other": "💳 Pay {{.Price}} ₽"
+  },
+  "Subscription.BtnActivateFree": {
+    "other": "✅ Activate Pro"
   }
 }
