@@ -630,6 +630,21 @@
   "MasterMenu.BtnFAQPricing": {
     "other": "💳 Pricing & terms"
   },
+  "MasterMenu.BtnInvite": {
+    "other": "🤝 Invite a colleague"
+  },
+  "MasterInvite.Body": {
+    "other": "Invite fellow specialists to the platform.\n\nYour invite link:\n{{.Link}}\n\nWhen an invited specialist pays for their first subscription, you get {{.Days}} free Pro days — for every one who pays."
+  },
+  "MasterInvite.ShareBtn": {
+    "other": "Share link"
+  },
+  "MasterInvite.ShareText": {
+    "other": "Hey! I take client bookings through Telegram — a handy mini-app for specialists. Create your own bot:"
+  },
+  "MasterInvite.NotRegistered": {
+    "other": "To get your invite link, create your own bot first."
+  },
   "MasterFAQ.BotHow": {
     "other": "<b>🤖 How to create a bot via BotFather</b>\n\nDon't worry — it takes 2 minutes and our operator can help at any step.\n\n1. Open @BotFather in Telegram\n2. Send /newbot\n3. Pick a <b>name</b> for the bot (e.g. \"Ivan — massage\")\n4. Pick a <b>username</b> ending in <i>bot</i> (e.g. ivan_massage_bot)\n5. Copy the long token BotFather sends you\n6. Come back here, tap \"🤖 Create my bot\" and paste the token\n\nStuck? Tap \"💬 Talk to operator\" and we'll walk you through it."
   },
