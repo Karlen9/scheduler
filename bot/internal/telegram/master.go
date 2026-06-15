@@ -689,8 +689,6 @@ func (h *MasterHandler) handleStart(chatID, userID int64, loc *localizerType) {
 		}
 		if reregisterFailed {
 			h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.RegistrationFailed"), existing.BotUsername), nil)
-		} else {
-			h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), existing.BotUsername), nil)
 		}
 		h.renderMainMenu(chatID, userID, 0, loc)
 		return
