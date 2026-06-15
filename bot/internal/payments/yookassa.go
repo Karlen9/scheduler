@@ -52,8 +52,14 @@ type CreatePaymentParams struct {
 	// Required for new purchases (PaymentMethodID == "").
 	ReturnURL string
 	// PaymentMethodID — if non-empty this is an autopay/renewal: no user interaction, no
-	// confirmation object. If empty this is a new purchase: save_payment_method=true is set.
+	// confirmation object. If empty this is a new purchase and SavePaymentMethod controls
+	// whether save_payment_method is sent.
 	PaymentMethodID string
+	// SavePaymentMethod, when true, instructs ЮКасса to store the payment method for future
+	// autopay/renewal. Only applies to new purchases (PaymentMethodID == ""). Requires the
+	// YooKassa shop to have recurring/autopayments enabled; shops without it return HTTP 403.
+	// Defaults to false (one-time payment).
+	SavePaymentMethod bool
 	// IdempotenceKey, when non-empty, is sent as the Idempotence-Key header verbatim.
 	// When empty a fresh random UUID is used (preserves existing checkout behavior).
 	IdempotenceKey string
@@ -120,7 +126,8 @@ func formatKopecks(kopecks int) string {
 // CreatePayment sends POST /v3/payments and returns the parsed result.
 //
 // If params.PaymentMethodID is empty (new purchase):
-//   - confirmation.return_url and save_payment_method=true are included.
+//   - confirmation.return_url is included.
+//   - save_payment_method is set to params.SavePaymentMethod (caller-controlled).
 //   - The response will contain a confirmation_url the user must visit.
 //
 // If params.PaymentMethodID is non-empty (autopay/renewal):
@@ -138,12 +145,12 @@ func (c *Client) CreatePayment(ctx context.Context, params CreatePaymentParams) 
 		// Autopay / renewal — no confirmation step, no save.
 		req.PaymentMethodID = params.PaymentMethodID
 	} else {
-		// New purchase — redirect flow, save payment method for future autopay.
+		// New purchase — redirect flow; save payment method only if the caller opted in.
 		req.Confirmation = &ykConfirmation{
 			Type:      "redirect",
 			ReturnURL: params.ReturnURL,
 		}
-		req.SavePaymentMethod = true
+		req.SavePaymentMethod = params.SavePaymentMethod
 	}
 
 	body, err := json.Marshal(req)

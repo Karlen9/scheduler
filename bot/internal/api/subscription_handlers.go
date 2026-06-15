@@ -195,6 +195,12 @@ func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Speciali
 
 	returnURL := strings.TrimRight(WebAppURL, "/") + "/admin/settings/subscription"
 
+	saveMethod, err := db.GetRecurringPaymentsEnabled()
+	if err != nil {
+		log.Printf("subscription checkout: read recurring-payments flag failed (specialist=%s): %v", specialist.ID, err)
+		saveMethod = false // fail safe: one-time payment
+	}
+
 	createParams := payments.CreatePaymentParams{
 		AmountKopecks: finalKopecks,
 		Description:   "Подписка Pro — " + plan.Code,
@@ -202,8 +208,9 @@ func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Speciali
 			"specialist_id": specialist.ID,
 			"plan_code":     plan.Code,
 		},
-		ReturnURL: returnURL,
-		// PaymentMethodID is empty → new purchase flow (save_payment_method=true).
+		ReturnURL:         returnURL,
+		SavePaymentMethod: saveMethod,
+		// PaymentMethodID is empty → new purchase flow.
 	}
 
 	ykPayment, err := YooKassaClient.CreatePayment(ctx, createParams)
