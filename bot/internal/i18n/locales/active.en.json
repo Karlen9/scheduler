@@ -601,7 +601,10 @@
     "other": "A platform for specialists: launch your own Telegram bot for online client bookings. Each specialist gets a dedicated bot with a Mini App — clients book themselves, reminders are sent automatically, and visit history is tracked. Tap Start to create your bot in just a couple of minutes."
   },
   "MasterMenu.Home": {
-    "other": "👋 Hi! I'll help you launch your own Telegram bot for client bookings.\n\nWhat your bot does:\n• 📅 Accepts online bookings 24/7 via a Mini App\n• 🔔 Sends automatic reminders to clients and notifications to you\n• 🔁 Handles recurring sessions and repeating schedules\n• 👥 Keeps a client base with visit history and notes\n• 📊 Shows revenue and workload analytics\n• 🎁 Referral program — invite other specialists and earn bonuses\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nAlready have a bot and need to rotate its token? Use /replacetoken only if you know exactly what you are doing.\n\n💬 If you run into questions or issues during setup, FAQ, or token recovery — contact an operator.\n\nPick an option:"
+    "other": "👋 Hi! I'll help you launch your own Telegram bot for online client bookings.\n\nWhat your bot does:\n• 📅 Accepts bookings 24/7 via a Mini App\n• 🔔 Sends reminders to clients and notifications to you\n• 👥 Keeps a client base with visit history\n• 📊 Shows revenue and workload analytics\n\n🚀 Pro (first 14 days free):\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nPick an option:"
+  },
+  "MasterMenu.HomeRegistered": {
+    "other": "👋 Welcome back! Your bot is up and running.\n\nHere you can:\n• 💳 Manage your Pro subscription — clients book themselves, recurring bookings and subscriptions\n• 🎁 Invite colleagues and earn bonuses\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
@@ -768,7 +771,7 @@
     "other": "12 months"
   },
   "Subscription.ProBenefits": {
-    "other": "What Pro unlocks:\n• Clients book themselves through your bot\n• Recurring appointments (repeating schedules)\n• Bulk schedule tools\n\nWithout Pro: you can still book clients manually."
+    "other": "What Pro unlocks:\n• Clients book themselves through your bot\n• Recurring appointments\n• Prepaid passes (session packages)\n• Bulk schedule tools\n\nWithout Pro: you can still book clients manually."
   },
   "Subscription.TrialNote": {
     "other": "🎁 First 14 days free."
