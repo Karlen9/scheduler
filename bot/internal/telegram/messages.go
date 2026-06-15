@@ -285,39 +285,14 @@ func BtnAccept(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Accept") 
 func BtnDecline(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Decline") }
 
 /***************************************************************************************************
-* BtnProfile returns the localized profile entry button text.
+* BtnBack returns the localized back button text.
 ***************************************************************************************************/
-func BtnProfile(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Profile") }
-
-/***************************************************************************************************
-* BtnInviteFriend returns the localized "Invite friend" button text.
-***************************************************************************************************/
-func BtnInviteFriend(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.InviteFriend") }
-
-/***************************************************************************************************
-* BtnInviteShare returns the localized "Share in Telegram" button text.
-***************************************************************************************************/
-func BtnInviteShare(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.InviteShare") }
-
-/***************************************************************************************************
-* BtnProfileBack returns the localized back button text for the profile submenu.
-***************************************************************************************************/
-func BtnProfileBack(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Back") }
-
-/***************************************************************************************************
-* BtnLanguage returns the localized language menu button text.
-***************************************************************************************************/
-func BtnLanguage(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Language") }
+func BtnBack(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Back") }
 
 /***************************************************************************************************
 * BtnHelp returns the localized help entry button text.
 ***************************************************************************************************/
 func BtnHelp(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Help") }
-
-/***************************************************************************************************
-* BtnInfo returns the localized info button text (persistent reply keyboard).
-***************************************************************************************************/
-func BtnInfo(loc *i18n.Localizer) string { return myI18n.T(loc, "Btn.Info") }
 
 /***************************************************************************************************
 * FormatWelcome creates a client welcome message.
@@ -337,24 +312,6 @@ func FormatWelcome(loc *i18n.Localizer, _ string) string {
 }
 
 /***************************************************************************************************
-* FormatWelcomeSpecialist creates a specialist welcome message with version and changelog.
-*
-* Parameters:
-* - version: Version used by the current operation.
-* - loc: Loc used by the current operation.
-* - miniAppURL: Mini app url used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func FormatWelcomeSpecialist(loc *i18n.Localizer, _, _ string) string {
-	return myI18n.T(loc, "Welcome.Specialist")
-}
-
-/***************************************************************************************************
 * FormatHelpSpecialist creates the help message for specialists.
 *
 * Parameters:
@@ -367,12 +324,8 @@ func FormatWelcomeSpecialist(loc *i18n.Localizer, _, _ string) string {
 * Side effects:
 * - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
 ***************************************************************************************************/
-func FormatHelpSpecialist(loc *i18n.Localizer, clientURL, masterBotUsername string) string {
-	msg := fmt.Sprintf(myI18n.T(loc, "Help.Specialist"), clientURL)
-	if masterBotUsername != "" {
-		msg += "\n\n" + fmt.Sprintf(myI18n.T(loc, "Help.SpecialistSupport"), masterBotUsername)
-	}
-	return msg
+func FormatHelpSpecialist(loc *i18n.Localizer, clientURL string) string {
+	return fmt.Sprintf(myI18n.T(loc, "Help.Specialist"), clientURL)
 }
 
 /***************************************************************************************************

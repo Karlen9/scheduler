@@ -29,7 +29,7 @@ const messages = {
   AdminReferrals: {
     title: 'Приглашения',
     heroHeading: 'Пригласите коллег',
-    heroBody: 'Альфа-этап — активируется после первой оплаты.',
+    heroBody: 'Активируется после первой оплаты.',
     yourLink: 'Ваша ссылка',
     copyLink: 'Скопировать',
     linkCopied: 'Ок',
