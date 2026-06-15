@@ -37,14 +37,15 @@ var YooKassaClient *payments.Client
 
 // subscriptionStatusResponse is the shape returned to the billing UI.
 type subscriptionStatusResponse struct {
-	Status            string                `json:"status"`
-	Plan              string                `json:"plan"`
-	IsPro             bool                  `json:"isPro"`
-	TrialEndsAt       *string               `json:"trialEndsAt,omitempty"`
-	CurrentPeriodEnd  *string               `json:"currentPeriodEndAt,omitempty"`
-	AutoRenew         bool                  `json:"autoRenew"`
-	CancelAtPeriodEnd bool                  `json:"cancelAtPeriodEnd"`
-	Plans             []subscriptionPlanDTO `json:"plans"`
+	Status             string                `json:"status"`
+	Plan               string                `json:"plan"`
+	IsPro              bool                  `json:"isPro"`
+	TrialEndsAt        *string               `json:"trialEndsAt,omitempty"`
+	CurrentPeriodEnd   *string               `json:"currentPeriodEndAt,omitempty"`
+	AutoRenew          bool                  `json:"autoRenew"`
+	CancelAtPeriodEnd  bool                  `json:"cancelAtPeriodEnd"`
+	RecurringAvailable bool                  `json:"recurringAvailable"`
+	Plans              []subscriptionPlanDTO `json:"plans"`
 }
 
 type subscriptionPlanDTO struct {
@@ -69,12 +70,19 @@ func HandleGetSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 func buildSubscriptionStatusResponse(s *models.Specialist) subscriptionStatusResponse {
 	ent := s.Entitlement(time.Now())
 
+	recurringAvailable, err := db.GetRecurringPaymentsEnabled()
+	if err != nil {
+		log.Printf("subscription status: read recurring-payments flag failed (specialist=%s): %v", s.ID, err)
+		recurringAvailable = false
+	}
+
 	resp := subscriptionStatusResponse{
-		Status:            s.SubscriptionStatus,
-		Plan:              s.SubscriptionPlan,
-		IsPro:             ent.IsPro,
-		AutoRenew:         s.AutoRenew,
-		CancelAtPeriodEnd: s.CancelAtPeriodEnd,
+		Status:             s.SubscriptionStatus,
+		Plan:               s.SubscriptionPlan,
+		IsPro:              ent.IsPro,
+		AutoRenew:          s.AutoRenew,
+		CancelAtPeriodEnd:  s.CancelAtPeriodEnd,
+		RecurringAvailable: recurringAvailable,
 	}
 
 	if s.TrialEndsAt != nil {
@@ -106,6 +114,7 @@ func buildSubscriptionStatusResponse(s *models.Specialist) subscriptionStatusRes
 type checkoutRequest struct {
 	Plan      string `json:"plan"`
 	PromoCode string `json:"promoCode,omitempty"` // Step 3 seam — ignored for now
+	AutoRenew bool   `json:"autoRenew"`
 }
 
 type checkoutResponse struct {
@@ -117,9 +126,12 @@ type checkoutResponse struct {
 // subscription immediately (100%-off → granted=true, empty url) or creates a ЮКасса
 // payment and returns its confirmation URL. Used by both the HTTP handler and the master bot.
 //
+// autoRenew expresses the caller's preference to save the payment method for auto-renewal.
+// The method is saved only when the global recurring-payments flag is also enabled.
+//
 // Sentinel errors: ErrInvalidPromo (bad promo code), ErrPaymentNotConfigured (YooKassa absent).
 // Any other error is an internal failure.
-func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Specialist, planCode, promoCode string) (confirmationURL string, granted bool, err error) {
+func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Specialist, planCode, promoCode string, autoRenew bool) (confirmationURL string, granted bool, err error) {
 	plan, ok := config.SubscriptionPlanByCode(planCode)
 	if !ok {
 		return "", false, errors.New("unknown plan: " + planCode)
@@ -195,11 +207,12 @@ func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Speciali
 
 	returnURL := strings.TrimRight(WebAppURL, "/") + "/admin/settings/subscription"
 
-	saveMethod, err := db.GetRecurringPaymentsEnabled()
+	recurringEnabled, err := db.GetRecurringPaymentsEnabled()
 	if err != nil {
 		log.Printf("subscription checkout: read recurring-payments flag failed (specialist=%s): %v", specialist.ID, err)
-		saveMethod = false // fail safe: one-time payment
+		recurringEnabled = false
 	}
+	saveMethod := recurringEnabled && autoRenew
 
 	createParams := payments.CreatePaymentParams{
 		AmountKopecks: finalKopecks,
@@ -267,7 +280,7 @@ func HandleSubscriptionCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	confirmationURL, granted, err := CreateSubscriptionCheckout(r.Context(), specialist, req.Plan, req.PromoCode)
+	confirmationURL, granted, err := CreateSubscriptionCheckout(r.Context(), specialist, req.Plan, req.PromoCode, req.AutoRenew)
 	if err != nil {
 		if errors.Is(err, ErrInvalidPromo) {
 			// Strip the sentinel prefix; the reason string follows after ": ".
