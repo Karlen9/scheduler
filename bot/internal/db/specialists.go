@@ -314,8 +314,11 @@ func GetAllActiveSpecialists() ([]models.Specialist, error) {
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
+// CreateSpecialist creates a new specialist row, OR reactivates a soft-deleted row for the same
+// Telegram user (upsert). The 14-day Pro trial is granted only once per Telegram user: new rows
+// receive the trial immediately; reactivated rows receive it only if has_trialed is 0. If the
+// user already trialed (has_trialed = 1) their prior subscription state is preserved unchanged.
 func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezone string, cancelCutoffHrs int) (*models.Specialist, error) {
-	id := uuid.New().String()
 	webhookSecret := generateWebhookSecret()
 	referralCode := generateReferralCode()
 
@@ -325,17 +328,54 @@ func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezon
 	}
 	tokenHash := crypto.HashToken(botToken)
 
-	trialEndsAt := time.Now().UTC().Add(time.Duration(TrialDays) * 24 * time.Hour)
+	// Check whether this Telegram user already has a row (active or soft-deleted).
+	var existingID string
+	var hasTrialed int
+	err = DB.QueryRow(Q(`SELECT id, has_trialed FROM specialists WHERE telegram_user_id = ?`), telegramUserID).Scan(&existingID, &hasTrialed)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("failed to check existing specialist: %w", err)
+	}
 
-	_, err = DB.Exec(Q(`
-		INSERT INTO specialists (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, referral_code, subscription_status, trial_ends_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'trialing', ?)
-	`), id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, trialEndsAt)
+	if err == sql.ErrNoRows {
+		// Brand-new user: INSERT a fresh row with trial.
+		id := uuid.New().String()
+		trialEndsAt := time.Now().UTC().Add(time.Duration(TrialDays) * 24 * time.Hour)
+		_, err = DB.Exec(Q(`
+			INSERT INTO specialists (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, referral_code, subscription_status, trial_ends_at, has_trialed)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'trialing', ?, 1)
+		`), id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, trialEndsAt)
+		if err != nil {
+			return nil, err
+		}
+		return GetSpecialistByID(id)
+	}
+
+	// Returning/soft-deleted user: REACTIVATE the existing row.
+	if hasTrialed == 0 {
+		// Never trialed before — grant trial now.
+		trialEndsAt := time.Now().UTC().Add(time.Duration(TrialDays) * 24 * time.Hour)
+		_, err = DB.Exec(Q(`
+			UPDATE specialists
+			SET bot_token = ?, bot_token_hash = ?, bot_username = ?, webhook_secret = ?,
+			    name = ?, timezone = ?, cancel_cutoff_hrs = ?, referral_code = ?,
+			    is_active = 1, deleted_at = NULL,
+			    subscription_status = 'trialing', trial_ends_at = ?, has_trialed = 1
+			WHERE id = ?
+		`), encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, trialEndsAt, existingID)
+	} else {
+		// Already trialed — preserve prior subscription state, do not touch trial columns.
+		_, err = DB.Exec(Q(`
+			UPDATE specialists
+			SET bot_token = ?, bot_token_hash = ?, bot_username = ?, webhook_secret = ?,
+			    name = ?, timezone = ?, cancel_cutoff_hrs = ?, referral_code = ?,
+			    is_active = 1, deleted_at = NULL
+			WHERE id = ?
+		`), encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, existingID)
+	}
 	if err != nil {
 		return nil, err
 	}
-
-	return GetSpecialistByID(id)
+	return GetSpecialistByID(existingID)
 }
 
 // SetSpecialistReferredViaCode records which existing specialist's referral code brought this
