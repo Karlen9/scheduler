@@ -819,6 +819,12 @@
   "Subscription.EventReferralReward": {
     "other": "🎁 The specialist you referred has subscribed to Pro! You've been credited {{.Days}} bonus Pro days."
   },
+  "Subscription.BtnAutoRenewOn": {
+    "other": "🔄 Auto-renewal: on"
+  },
+  "Subscription.BtnAutoRenewOff": {
+    "other": "🔄 Auto-renewal: off"
+  },
 
   "Promo.AdminListTitle": {
     "other": "<b>🎟 Promo codes</b>\n\n"
