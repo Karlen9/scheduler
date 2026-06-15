@@ -225,6 +225,9 @@ func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Speciali
 	if receiptEmail == "" {
 		receiptEmail = ReceiptEmail // configured fallback
 	}
+	if receiptEmail == "" && specialist.Phone == "" {
+		log.Printf("subscription checkout: WARNING receipt customer is empty (specialist=%s) — set YOOKASSA_RECEIPT_EMAIL or the specialist's email, otherwise YooKassa will reject the receipt", specialist.ID)
+	}
 
 	createParams := payments.CreatePaymentParams{
 		AmountKopecks: finalKopecks,
