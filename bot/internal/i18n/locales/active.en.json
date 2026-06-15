@@ -3,16 +3,13 @@
     "other": "Welcome! Press the button below to open the booking app."
   },
   "Welcome.Specialist": {
-    "other": "👋 Welcome back!\n\nYour bot accepts online bookings from clients and helps you run your practice:\n• 📅 Clients can book through the app any time — all you need to do is confirm\n• 🔔 Automatic reminders to clients and notifications to you\n• 🔁 Recurring sessions and repeating schedules\n• 👥 Client base with visit history and notes\n• 📊 Revenue and workload analytics\n\nUse the buttons below:\n• \"Manage\" opens the admin mini app\n• \"Preview\" shows the client-facing page\n• \"App\" / \"Preview\" / \"Help\" stay pinned in the keyboard\n• /profile opens your profile menu and referrals\n\n✨ This is the alpha version — all features are free for everyone. Some features will become paid over time."
+    "other": "👋 <b>Your dashboard</b>\n\nYour bot accepts online bookings and helps you run your practice:\n• 📅 Clients book themselves — you just confirm\n• 🔔 Reminders for clients, notifications for you\n• 🔁 Recurring bookings\n• 👥 Client base with history\n• 📊 Revenue and workload analytics\n\n💳 Subscription, partner program and support — in the \"Specialist master bot\" bot."
   },
   "Help.Client": {
     "other": "This is a bot for online booking with a specialist.\n\nWhat you can do:\n• Choose a convenient date and time\n• Book a session\n• View and cancel your bookings\n• Create a recurring schedule\n\nPress the \"Book\" button below or /start to open the app."
   },
   "Help.Specialist": {
-    "other": "You are the owner of this bot.\n\nHow to set up:\n1. Open \"Manage\" — Profile — fill in name, photo, description\n2. Services and prices — add session types\n3. Schedule — set working hours\n4. Days off — mark non-working dates\n\nQuick access:\n• \"App\" opens the admin mini app\n• \"Preview\" opens your client-facing page\n• \"Help\" opens this guide\n• /profile opens your profile menu and referrals\n\nHow booking works:\n• A client books — you get a notification\n• Confirm or decline right in the chat\n• All bookings are visible in the admin panel\n\nLink for clients (send it to them):\n<code>%s</code>\n\nCommands:\n/start — Main menu\n/admin — Open admin mini app\n/profile — Open profile menu\n/help — This help\n/language — Change language"
-  },
-  "Help.SpecialistSupport": {
-    "other": "💬 Need help? Contact an operator at @%s — tap \"Operator support\" in the menu."
+    "other": "ℹ️ <b>How it works</b>\n\n<b>Setup.</b> Open \"📲 Open\" → Profile (name, photo, description), Services and prices, Schedule, Days off.\n\n<b>Bookings.</b> A client books — you get a notification and confirm or decline right in the chat. All bookings are visible in the admin panel.\n\n<b>Link for clients</b> (send it to them):\n<code>%s</code>\n\n<b>Buttons:</b>\n• \"📲 Open\" — admin panel\n• \"👁 Preview\" — your client-facing page\n\n💳 Subscription, partner program and support — in the \"Specialist master bot\" bot."
   },
   "Btn.App": {
     "other": "App"
@@ -21,7 +18,7 @@
     "other": "Book"
   },
   "Btn.OpenAdmin": {
-    "other": "Manage"
+    "other": "Open"
   },
   "Btn.OpenPreview": {
     "other": "Preview"
@@ -41,38 +38,26 @@
   "Btn.Decline": {
     "other": "❌ Decline"
   },
-  "Btn.Profile": {
-    "other": "🏠 Profile"
-  },
-  "Btn.Info": {
-    "other": "ℹ️ Info"
-  },
-  "Menu.Ready": {
-    "other": "⬇️ Menu"
-  },
-  "Btn.InviteFriend": {
-    "other": "🤝 Partner program"
-  },
-  "Btn.InviteShare": {
-    "other": "📤 Share on Telegram"
-  },
   "Btn.Back": {
     "other": "← Back"
   },
   "Btn.Language": {
     "other": "🌐 Language"
   },
+  "SpecialistMenu.BtnOpen": {
+    "other": "📲 Open"
+  },
+  "SpecialistMenu.BtnPreview": {
+    "other": "👁 Preview"
+  },
+  "SpecialistMenu.BtnHelp": {
+    "other": "ℹ️ Help"
+  },
+  "SpecialistMenu.BtnMaster": {
+    "other": "🤖 Specialist master bot"
+  },
   "Lang.Saved": {
     "other": "✅ Language updated"
-  },
-  "Referral.ProfileMenu": {
-    "other": "👤 Profile\n\nChoose an action:"
-  },
-  "Referral.InviteMessage": {
-    "other": "🤝 <b>Partner program</b>\n\nInvite fellow specialists to the platform and earn rewards when they subscribe.\n\n📌 <b>How it works</b>\n• Send the link below to a specialist who wants to accept bookings via Telegram.\n• They onboard and get the core features free.\n• Some of the current features will move to a paid tier, and we're rolling out advanced tools for power users.\n• When the invited specialist pays their first subscription, the referral becomes <b>active</b> and you earn a reward.\n\n🧪 The platform is free during alpha. Rewards start accruing once the paid version launches — invites made now will be kept.\n\n🔗 Your link:\n<code>{{.Link}}</code>\n\nStats live in the admin panel → Settings → Referrals (active / pending)."
-  },
-  "Referral.ShareText": {
-    "other": "Hey! I'm taking client bookings through Telegram — a handy mini-app for specialists.\n\n• 📅 Clients book 24/7, one-tap confirm\n• 🔔 Reminders for clients, notifications for me\n• 🔁 Recurring sessions\n• 👥 Client base with history\n• 📊 Revenue and workload analytics\n\nFree right now — alpha version. Setting up your own bot takes a couple of minutes."
   },
   "Booking.New": {
     "other": "📅 New booking request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}"
@@ -227,9 +212,6 @@
   },
   "Command.Admin": {
     "other": "Open the admin mini app"
-  },
-  "Command.Profile": {
-    "other": "Open profile menu"
   },
   "Command.Menu": {
     "other": "Open the main menu"

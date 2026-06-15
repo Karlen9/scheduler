@@ -24,7 +24,6 @@ var bookingClientCommandDefinitions = []commandDefinition{
 var bookingSpecialistCommandDefinitions = []commandDefinition{
 	{Command: "start", DescriptionKey: "Command.Start"},
 	{Command: "admin", DescriptionKey: "Command.Admin"},
-	{Command: "profile", DescriptionKey: "Command.Profile"},
 	{Command: "help", DescriptionKey: "Command.Help"},
 	{Command: "language", DescriptionKey: "Command.Language"},
 }
