@@ -407,6 +407,8 @@
     "promoApplied": "Промокод применён — скидка {discount} ₽",
     "promoInvalid": "Промокод недействителен",
     "promoChecking": "Проверка…",
+    "autoRenewToggleLabel": "Автопродление",
+    "autoRenewToggleHint": "Сохранить карту и продлевать подписку автоматически",
     "autoRenewOn": "Автопродление включено",
     "autoRenewOff": "Автопродление отключено",
     "cancelAutoRenew": "Отключить автопродление",

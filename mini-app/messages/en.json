@@ -407,6 +407,8 @@
     "promoApplied": "Promo applied — {discount} ₽ off",
     "promoInvalid": "Invalid promo code",
     "promoChecking": "Checking…",
+    "autoRenewToggleLabel": "Auto-renewal",
+    "autoRenewToggleHint": "Save card and renew the subscription automatically",
     "autoRenewOn": "Auto-renewal is on",
     "autoRenewOff": "Auto-renewal is off",
     "cancelAutoRenew": "Disable auto-renewal",
