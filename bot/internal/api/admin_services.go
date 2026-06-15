@@ -88,6 +88,9 @@ func HandleCreateService(w http.ResponseWriter, r *http.Request) {
 	if !validateServiceTypeConfig(w, r, req.Type, req.SessionsCount) {
 		return
 	}
+	if req.Type == "batch" && !requirePro(w, r, specialist) {
+		return
+	}
 	if !isAllowedServiceDuration(req.DurationMinutes) {
 		httpError(w, r, "Error.InvalidDuration", http.StatusBadRequest)
 		return
@@ -184,6 +187,9 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		sessionsCount = 0
 	}
 	if !validateServiceTypeConfig(w, r, sessionType, sessionsCount) {
+		return
+	}
+	if sessionType == "batch" && existing.Type != "batch" && !requirePro(w, r, specialist) {
 		return
 	}
 	isActive := existing.IsActive

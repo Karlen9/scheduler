@@ -54,16 +54,35 @@ const (
 
 // renderMainMenu edits (or sends) the master bot's root menu for the given user.
 // Callback paths land here with messageID != 0; fresh /start uses messageID == 0.
+// Registered specialists get a "welcome back" hub with no create-bot copy/button;
+// everyone else gets the new-user pitch with the create-bot entry.
 func (h *MasterHandler) renderMainMenu(chatID, userID int64, messageID int, loc *localizerType) {
-	text := myI18n.T(loc, "MasterMenu.Home")
+	registered := false
+	if sp, err := masterLoadSpecialist(userID); err == nil && sp != nil && sp.IsActive {
+		registered = true
+	}
 
-	rows := [][]InlineKeyboardButton{
-		{{Text: myI18n.T(loc, "MasterMenu.BtnCreateBot"), CallbackData: cbMenuCreateBot}},
-		{{Text: myI18n.T(loc, "Btn.Subscription"), CallbackData: cbMenuSubscription}},
-		{{Text: myI18n.T(loc, "MasterMenu.BtnInvite"), CallbackData: cbMenuInvite}},
-		{{Text: myI18n.T(loc, "MasterMenu.BtnFAQ"), CallbackData: cbMenuFAQ}},
-		{{Text: myI18n.T(loc, "MasterMenu.BtnOperator"), CallbackData: cbMenuOperator}},
-		{{Text: myI18n.T(loc, "Btn.Language"), CallbackData: cbMenuLanguage}},
+	var text string
+	var rows [][]InlineKeyboardButton
+	if registered {
+		text = myI18n.T(loc, "MasterMenu.HomeRegistered")
+		rows = [][]InlineKeyboardButton{
+			{{Text: myI18n.T(loc, "Btn.Subscription"), CallbackData: cbMenuSubscription}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnInvite"), CallbackData: cbMenuInvite}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQ"), CallbackData: cbMenuFAQ}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnOperator"), CallbackData: cbMenuOperator}},
+			{{Text: myI18n.T(loc, "Btn.Language"), CallbackData: cbMenuLanguage}},
+		}
+	} else {
+		text = myI18n.T(loc, "MasterMenu.Home")
+		rows = [][]InlineKeyboardButton{
+			{{Text: myI18n.T(loc, "MasterMenu.BtnCreateBot"), CallbackData: cbMenuCreateBot}},
+			{{Text: myI18n.T(loc, "Btn.Subscription"), CallbackData: cbMenuSubscription}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnInvite"), CallbackData: cbMenuInvite}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQ"), CallbackData: cbMenuFAQ}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnOperator"), CallbackData: cbMenuOperator}},
+			{{Text: myI18n.T(loc, "Btn.Language"), CallbackData: cbMenuLanguage}},
+		}
 	}
 	if h.isAdmin(userID) {
 		rows = append(rows, []InlineKeyboardButton{

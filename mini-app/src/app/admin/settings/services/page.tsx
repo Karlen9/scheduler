@@ -10,7 +10,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { ServiceCard } from '@/components/ServiceCard';
 import { TopBar } from '@/components/TopBar';
 import { invalidateServices } from '@/hooks/mutations';
-import { useAdminServices } from '@/hooks/queries';
+import { useAdminServices, useSpecialist } from '@/hooks/queries';
 import { api } from '@/lib/api';
 
 import type { TServiceFormData, TSessionType } from '@/lib/types';
@@ -60,6 +60,8 @@ export default function ServicesPage(): ReactNode {
    ***************************************************************************************************/
   const tsp = useTranslations('ServicesPage');
   const { data: services, isLoading, mutate } = useAdminServices();
+  const { data: specialist } = useSpecialist();
+  const isPro = specialist?.isPro ?? true;
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<TSessionType | null>(null);
   const [saving, setSaving] = useState(false);
@@ -209,7 +211,10 @@ export default function ServicesPage(): ReactNode {
               }
             >
               <option value={'common'}>{t('typeCommon')}</option>
-              <option value={'batch'}>{t('typeBatch')}</option>
+              <option value={'batch'} disabled={!isPro && formData.type !== 'batch'}>
+                {t('typeBatch')}
+                {!isPro && formData.type !== 'batch' ? ' · Pro' : ''}
+              </option>
             </select>
           </div>
 
