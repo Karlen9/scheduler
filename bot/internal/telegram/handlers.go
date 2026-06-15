@@ -3,7 +3,6 @@ package telegram
 import (
 	"fmt"
 	"log"
-	"net/url"
 	"strings"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -115,8 +114,6 @@ func (h *Handler) handleMessage(msg *Message) {
 	switch msg.Text {
 	case "/admin":
 		h.handleAdmin(msg)
-	case "/profile":
-		h.handleProfile(msg)
 	case "/help":
 		h.handleHelp(msg)
 	case "/language", "/lang":
@@ -125,8 +122,7 @@ func (h *Handler) handleMessage(msg *Message) {
 }
 
 // handleClientLanguageCommand shows the ru/en picker to a client or specialist from /language.
-// For specialists, the existing profile submenu also exposes this, but the command works from
-// anywhere and is easy to remember.
+// For specialists, the command works from anywhere and is easy to remember.
 func (h *Handler) handleClientLanguageCommand(msg *Message) {
 	if msg.From == nil {
 		return
@@ -145,8 +141,7 @@ func (h *Handler) handleClientLanguageCommand(msg *Message) {
 	}
 	loc := myI18n.NewLocalizer(lang)
 
-	// Clients use "clientlang:<code>" to distinguish from the specialist's profile:lang path.
-	// Specialist taps still flow through the existing profile menu.
+	// Both clients and specialists go through the "clientlang:<code>" callback path.
 	keyboard := &InlineKeyboardMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
 			{
@@ -190,11 +185,8 @@ func (h *Handler) handleSpecialistKeyboardTap(msg *Message) bool {
 	case BtnOpenPreview(loc):
 		h.handlePreview(msg)
 		return true
-	case BtnHelp(loc), BtnInfo(loc):
+	case BtnHelp(loc):
 		h.handleHelp(msg)
-		return true
-	case BtnProfile(loc):
-		h.handleProfile(msg)
 		return true
 	}
 	return false
@@ -261,8 +253,6 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 		}
 		loc := myI18n.NewLocalizer(lang)
 		adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
-		clientURL := h.WebAppURL + "?specialist=" + specialist.ID + "&lang=" + lang
-		previewURL := h.WebAppURL + "/preview/client?specialist=" + specialist.ID + "&lang=" + lang
 
 		/***************************************************************************************************
 		* Set persistent menu button for specialist (opens admin panel).
@@ -271,38 +261,7 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 			log.Printf("Error setting specialist menu button: %v", err)
 		}
 
-		/***************************************************************************************************
-		* Welcome message keeps "Управление" as an inline web-app button. Inline web-app buttons always
-		* deliver initData; reply-keyboard web-app buttons only do so when the URL is registered as the
-		* bot's Web App in @BotFather, which is not guaranteed across the fleet.
-		***************************************************************************************************/
-		inlineKeyboard := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{
-					{Text: BtnOpenAdmin(loc), WebApp: &WebAppInfo{URL: adminURL}},
-					{Text: BtnOpenPreview(loc), WebApp: &WebAppInfo{URL: previewURL}},
-				},
-			},
-		}
-		if _, err := h.Bot.SendMessageHTML(msg.Chat.ID, FormatWelcomeSpecialist(loc, h.Version, clientURL), inlineKeyboard); err != nil {
-			log.Printf("Error sending specialist welcome message: %v", err)
-		}
-
-		/***************************************************************************************************
-		* Second message installs the persistent reply keyboard with text-only buttons. Taps on these
-		* are dispatched via handleSpecialistKeyboardTap — no web_app involvement so initData never comes
-		* into play here.
-		***************************************************************************************************/
-		replyKeyboard := &ReplyKeyboardMarkup{
-			Keyboard: [][]KeyboardButton{
-				{{Text: BtnApp(loc)}, {Text: BtnOpenPreview(loc)}, {Text: BtnHelp(loc)}},
-			},
-			ResizeKeyboard: true,
-			IsPersistent:   true,
-		}
-		if _, err := h.Bot.SendMessageHTMLWithReplyKeyboard(msg.Chat.ID, myI18n.T(loc, "Menu.Ready"), replyKeyboard); err != nil {
-			log.Printf("Error sending specialist menu keyboard: %v", err)
-		}
+		h.renderOwnerMenu(msg.Chat.ID, 0, specialist, loc)
 		return
 	}
 
@@ -417,20 +376,6 @@ func (h *Handler) handlePreview(msg *Message) {
 }
 
 /***************************************************************************************************
-* handleProfile opens the specialist profile submenu from the /profile command.
-***************************************************************************************************/
-func (h *Handler) handleProfile(msg *Message) {
-	_, loc, ok := h.specialistOwnerContext(msg)
-	if !ok {
-		return
-	}
-
-	if _, err := h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Referral.ProfileMenu"), profileHomeKeyboard(loc)); err != nil {
-		log.Printf("Error sending profile menu: %v", err)
-	}
-}
-
-/***************************************************************************************************
 * Handles help.
 *
 * Parameters:
@@ -452,17 +397,16 @@ func (h *Handler) handleHelp(msg *Message) {
 
 	if specialist.TelegramUserID == msg.From.ID {
 		loc := myI18n.NewLocalizer(specialist.Language)
-		clientURL := "https://t.me/" + h.Bot.Username
-		_, err = h.Bot.SendMessageHTML(msg.Chat.ID, FormatHelpSpecialist(loc, clientURL, h.MasterBotUsername), nil)
-	} else {
-		loc := myI18n.Default()
-		client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
-		if client != nil {
-			loc = myI18n.NewLocalizer(client.Language)
-		}
-		_, err = h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Help.Client"), nil)
+		h.renderOwnerHelp(msg.Chat.ID, 0, specialist, loc)
+		return
 	}
-	if err != nil {
+
+	loc := myI18n.Default()
+	client, _ := db.GetClientByTelegramID(msg.From.ID, specialist.ID)
+	if client != nil {
+		loc = myI18n.NewLocalizer(client.Language)
+	}
+	if _, err = h.Bot.SendMessage(msg.Chat.ID, myI18n.T(loc, "Help.Client"), nil); err != nil {
 		log.Printf("Error sending help message: %v", err)
 	}
 }
@@ -528,10 +472,10 @@ func (h *Handler) handleCallbackQuery(update Update) {
 	}
 
 	/***************************************************************************************************
-	* Handle specialist profile menu callbacks.
+	* Handle specialist owner inline menu callbacks.
 	***************************************************************************************************/
-	if strings.HasPrefix(data, "profile:") {
-		h.handleProfileCallback(update)
+	if strings.HasPrefix(data, "sp:") {
+		h.handleOwnerMenuCallback(update)
 		return
 	}
 
@@ -1373,23 +1317,66 @@ func validateReferralForIncomingUser(specialist *models.Specialist, incomingTele
 	return code
 }
 
-/***************************************************************************************************
-* handleProfileCallback implements the Profile submenu accessible from the specialist's /start
-* message. Only the specialist (owner of the bot) may use it. Menu entries:
-*   profile:home    → render the profile menu (currently only "Invite friend")
-*   profile:invite  → show the invite message + copyable link + native share button
-*   profile:back    → return to the home menu
-***************************************************************************************************/
-func (h *Handler) handleProfileCallback(update Update) {
-	cq := update.CallbackQuery
-	data := cq.Data
+// renderOwnerMenu sends or edits (messageID>0) the specialist owner's root inline menu.
+func (h *Handler) renderOwnerMenu(chatID int64, messageID int, specialist *models.Specialist, loc *i18n.Localizer) {
+	lang := specialist.Language
+	if lang == "" {
+		lang = "ru"
+	}
+	adminURL := h.WebAppURL + "/admin?specialist=" + specialist.ID + "&lang=" + lang
+	previewURL := h.WebAppURL + "/preview/client?specialist=" + specialist.ID + "&lang=" + lang
 
+	rows := [][]InlineKeyboardButton{
+		{{Text: myI18n.T(loc, "SpecialistMenu.BtnOpen"), WebApp: &WebAppInfo{URL: adminURL}}},
+		{{Text: myI18n.T(loc, "SpecialistMenu.BtnPreview"), WebApp: &WebAppInfo{URL: previewURL}}},
+		{{Text: myI18n.T(loc, "SpecialistMenu.BtnHelp"), CallbackData: "sp:help"}},
+	}
+	if h.MasterBotUsername != "" {
+		rows = append(rows, []InlineKeyboardButton{
+			{Text: myI18n.T(loc, "SpecialistMenu.BtnMaster"), URL: "https://t.me/" + h.MasterBotUsername},
+		})
+	}
+	kb := &InlineKeyboardMarkup{InlineKeyboard: rows}
+	text := myI18n.T(loc, "Welcome.Specialist")
+	h.ownerEditOrSend(chatID, messageID, text, kb)
+}
+
+// renderOwnerHelp sends or edits the owner help screen.
+func (h *Handler) renderOwnerHelp(chatID int64, messageID int, specialist *models.Specialist, loc *i18n.Localizer) {
+	clientURL := "https://t.me/" + h.Bot.Username
+	text := FormatHelpSpecialist(loc, clientURL)
+	var rows [][]InlineKeyboardButton
+	if h.MasterBotUsername != "" {
+		rows = append(rows, []InlineKeyboardButton{
+			{Text: myI18n.T(loc, "SpecialistMenu.BtnMaster"), URL: "https://t.me/" + h.MasterBotUsername},
+		})
+	}
+	rows = append(rows, []InlineKeyboardButton{
+		{Text: BtnBack(loc), CallbackData: "sp:home"},
+	})
+	h.ownerEditOrSend(chatID, messageID, text, &InlineKeyboardMarkup{InlineKeyboard: rows})
+}
+
+// ownerEditOrSend tries to edit an existing message, falling back to a fresh send (HTML parse mode).
+func (h *Handler) ownerEditOrSend(chatID int64, messageID int, text string, kb *InlineKeyboardMarkup) {
+	if messageID > 0 {
+		if err := h.Bot.EditMessageTextHTML(chatID, messageID, text, kb); err == nil {
+			return
+		}
+	}
+	if _, err := h.Bot.SendMessageHTML(chatID, text, kb); err != nil {
+		log.Printf("Error rendering owner menu: %v", err)
+	}
+}
+
+// handleOwnerMenuCallback routes sp:* callbacks for the specialist owner's inline menu.
+func (h *Handler) handleOwnerMenuCallback(update Update) {
+	cq := update.CallbackQuery
 	specialist, err := db.GetSpecialistByBotToken(h.Bot.Token)
 	if err != nil || specialist == nil {
 		h.Bot.AnswerCallbackQuery(cq.ID, "")
 		return
 	}
-
 	if specialist.TelegramUserID != cq.From.ID {
 		loc := myI18n.Default()
 		if client, _ := db.GetClientByTelegramID(cq.From.ID, specialist.ID); client != nil {
@@ -1398,126 +1385,22 @@ func (h *Handler) handleProfileCallback(update Update) {
 		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Handler.SpecialistOnly"))
 		return
 	}
-
+	if cq.Message == nil {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
 	lang := specialist.Language
 	if lang == "" {
 		lang = "ru"
 	}
 	loc := myI18n.NewLocalizer(lang)
-
-	action := strings.TrimPrefix(data, "profile:")
-
-	switch action {
-	case "invite":
-		h.Bot.AnswerCallbackQuery(cq.ID, "")
-
-		code, err := db.EnsureSpecialistReferralCode(specialist.ID)
-		if err != nil || code == "" {
-			log.Printf("Error ensuring referral code: %v", err)
-			_, _ = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Handler.ConfigError"), nil)
-			return
-		}
-		// Link points at the master (recruitment) bot, not the specialist's personal bot — the
-		// goal is to bring new specialists onto the platform, not to hand out yet another client
-		// link.
-		link := referralLink(h.MasterBotUsername, code)
-		shareText := myI18n.T(loc, "Referral.ShareText")
-
-		inviteText := myI18n.Tf(loc, "Referral.InviteMessage", map[string]interface{}{"Link": link})
-		keyboard := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{{Text: BtnInviteShare(loc), URL: shareURL(link, shareText)}},
-				{{Text: BtnProfileBack(loc), CallbackData: "profile:home"}},
-			},
-		}
-		_, err = h.Bot.SendMessageHTML(cq.From.ID, inviteText, keyboard)
-		if err != nil {
-			log.Printf("Error sending invite message: %v", err)
-		}
+	chatID := cq.Message.Chat.ID
+	messageID := cq.Message.MessageID
+	h.Bot.AnswerCallbackQuery(cq.ID, "")
+	switch strings.TrimPrefix(cq.Data, "sp:") {
 	case "home", "":
-		h.Bot.AnswerCallbackQuery(cq.ID, "")
-		_, err = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Referral.ProfileMenu"), profileHomeKeyboard(loc))
-		if err != nil {
-			log.Printf("Error sending profile menu: %v", err)
-		}
-	case "language":
-		h.Bot.AnswerCallbackQuery(cq.ID, "")
-		keyboard := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{
-					{Text: myI18n.T(loc, "Lang.Russian"), CallbackData: "profile:lang:ru"},
-					{Text: myI18n.T(loc, "Lang.English"), CallbackData: "profile:lang:en"},
-				},
-				{{Text: BtnProfileBack(loc), CallbackData: "profile:home"}},
-			},
-		}
-		_, err = h.Bot.SendMessage(cq.From.ID, myI18n.T(loc, "Lang.Choose"), keyboard)
-		if err != nil {
-			log.Printf("Error sending language picker: %v", err)
-		}
-	default:
-		/***************************************************************************************************
-		* profile:lang:<code> — specialist switched their bot language.
-		***************************************************************************************************/
-		if strings.HasPrefix(action, "lang:") {
-			newLang := strings.TrimPrefix(action, "lang:")
-			if newLang != "ru" && newLang != "en" {
-				h.Bot.AnswerCallbackQuery(cq.ID, "")
-				return
-			}
-			if err := db.UpdateSpecialistLanguage(specialist.ID, newLang); err != nil {
-				log.Printf("Error updating specialist language: %v", err)
-				h.Bot.AnswerCallbackQuery(cq.ID, "")
-				return
-			}
-			newLoc := myI18n.NewLocalizer(newLang)
-			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(newLoc, "Lang.Saved"))
-			_, err := h.Bot.SendMessage(cq.From.ID, myI18n.T(newLoc, "Referral.ProfileMenu"), profileHomeKeyboard(newLoc))
-			if err != nil {
-				log.Printf("Error sending profile menu after language switch: %v", err)
-			}
-			return
-		}
-		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		h.renderOwnerMenu(chatID, messageID, specialist, loc)
+	case "help":
+		h.renderOwnerHelp(chatID, messageID, specialist, loc)
 	}
-}
-
-/***************************************************************************************************
-* profileHomeKeyboard renders the main profile submenu. Extracted so the `home` and post-language-
-* switch paths don't drift apart.
-***************************************************************************************************/
-func profileHomeKeyboard(loc *i18n.Localizer) *InlineKeyboardMarkup {
-	return &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{{Text: BtnInviteFriend(loc), CallbackData: "profile:invite"}},
-			{{Text: BtnLanguage(loc), CallbackData: "profile:language"}},
-		},
-	}
-}
-
-/***************************************************************************************************
-* referralLink builds the shareable t.me link that carries the specialist's referral code.
-***************************************************************************************************/
-func referralLink(botUsername, code string) string {
-	if botUsername == "" {
-		return "https://t.me/?start=ref_" + code
-	}
-	return "https://t.me/" + botUsername + "?start=ref_" + code
-}
-
-/***************************************************************************************************
-* shareURL builds a Telegram share-picker URL: `url` is the referral link and `text` is the
-* caption body. Keep the link out of `text`; Telegram renders the `url` value in the final message.
-***************************************************************************************************/
-func shareURL(link, text string) string {
-	return "https://t.me/share/url?url=" + urlEncode(link) + "&text=" + urlEncode(text)
-}
-
-/***************************************************************************************************
-* urlEncode escapes a string for safe embedding in Telegram share query strings. QueryEscape uses
-* `+` for spaces, but Telegram can surface those plus signs literally in share text, so spaces stay
-* percent-encoded.
-***************************************************************************************************/
-func urlEncode(s string) string {
-	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }

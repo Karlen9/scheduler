@@ -6,22 +6,26 @@ import (
 	myI18n "scheduler-bot/internal/i18n"
 )
 
-func TestBookingSpecialistCommandsIncludeProfile(t *testing.T) {
+func TestBookingSpecialistCommandsExcludeProfile(t *testing.T) {
 	loc := myI18n.NewLocalizer("en")
 	commands := localizeCommands(loc, bookingSpecialistCommandDefinitions)
 
-	foundProfile := false
+	want := map[string]bool{"start": false, "admin": false, "help": false, "language": false}
 	for _, cmd := range commands {
 		if cmd.Command == "profile" {
-			foundProfile = true
+			t.Fatalf("specialist commands should no longer include /profile")
+		}
+		if _, ok := want[cmd.Command]; ok {
+			want[cmd.Command] = true
 			if cmd.Description == "" {
-				t.Fatalf("profile command description should not be empty")
+				t.Fatalf("command %q description should not be empty", cmd.Command)
 			}
 		}
 	}
-
-	if !foundProfile {
-		t.Fatalf("expected specialist commands to include /profile")
+	for cmd, found := range want {
+		if !found {
+			t.Fatalf("expected specialist commands to include /%s", cmd)
+		}
 	}
 }
 
