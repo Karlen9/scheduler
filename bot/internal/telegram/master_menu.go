@@ -28,15 +28,18 @@ func formatAlreadyRegistered(loc *localizerType, botUsername string) string {
 // Callback data values. Keep them short (Telegram limit: 64 bytes) and namespaced by a single prefix
 // so the master dispatcher can route them with a prefix switch.
 const (
-	cbMenuHome       = "m:home"
-	cbMenuCreateBot  = "m:create"
-	cbMenuFAQ        = "m:faq"
-	cbMenuFAQBotHow  = "m:faq:bot"
-	cbMenuFAQUsage   = "m:faq:use"
-	cbMenuFAQPricing = "m:faq:price"
-	cbMenuOperator   = "m:op"
-	cbMenuAdmin      = "m:admin"
-	cbMenuLanguage   = "m:lang"
+	cbMenuHome        = "m:home"
+	cbMenuCreateBot   = "m:create"
+	cbMenuFAQ         = "m:faq"
+	cbMenuFAQBotHow   = "m:faq:bot"
+	cbMenuFAQUsage    = "m:faq:use"
+	cbMenuFAQPricing  = "m:faq:price"
+	cbMenuFAQPro      = "m:faq:pro"
+	cbMenuFAQReferral = "m:faq:ref"
+	cbMenuFAQToken    = "m:faq:token"
+	cbMenuOperator    = "m:op"
+	cbMenuAdmin       = "m:admin"
+	cbMenuLanguage    = "m:lang"
 	// "m:lang:ru" / "m:lang:en" carry the selected code; handled via HasPrefix.
 
 	// Invite-a-colleague screen callback.
@@ -109,7 +112,10 @@ func (h *MasterHandler) renderFAQIndex(chatID int64, messageID int, loc *localiz
 		InlineKeyboard: [][]InlineKeyboardButton{
 			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQBotHow"), CallbackData: cbMenuFAQBotHow}},
 			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQUsage"), CallbackData: cbMenuFAQUsage}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQPro"), CallbackData: cbMenuFAQPro}},
 			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQPricing"), CallbackData: cbMenuFAQPricing}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQReferral"), CallbackData: cbMenuFAQReferral}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQToken"), CallbackData: cbMenuFAQToken}},
 			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
 		},
 	}
@@ -183,6 +189,12 @@ func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
 		h.renderFAQPage(chatID, messageID, "MasterFAQ.Usage", loc)
 	case data == cbMenuFAQPricing:
 		h.renderFAQPage(chatID, messageID, "MasterFAQ.Pricing", loc)
+	case data == cbMenuFAQPro:
+		h.renderFAQPage(chatID, messageID, "MasterFAQ.Pro", loc)
+	case data == cbMenuFAQReferral:
+		h.renderFAQPage(chatID, messageID, "MasterFAQ.Referral", loc)
+	case data == cbMenuFAQToken:
+		h.renderFAQPage(chatID, messageID, "MasterFAQ.Token", loc)
 	case data == cbMenuOperator:
 		h.startOperatorSupport(chatID, userID, messageID, q.From, loc)
 	case data == cbMenuAdmin:
