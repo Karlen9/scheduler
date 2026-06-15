@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 
+	"scheduler-bot/internal/config"
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
 )
@@ -73,6 +74,7 @@ type ReferralsResponse struct {
 	ActiveCount     int                  `json:"activeCount"`
 	PassiveCount    int                  `json:"passiveCount"`
 	Specialists     []ReferredSpecialist `json:"specialists"`
+	RewardDays      int                  `json:"rewardDays"`
 }
 
 /***************************************************************************************************
@@ -132,6 +134,7 @@ func buildReferralsResponse(specialist *models.Specialist) (ReferralsResponse, e
 		Referrals:       make([]ReferralClient, 0, len(referred)),
 		SpecialistCount: len(referredSpecialists),
 		Specialists:     make([]ReferredSpecialist, 0, len(referredSpecialists)),
+		RewardDays:      config.ReferralRewardDays(),
 	}
 	for _, c := range referred {
 		resp.Referrals = append(resp.Referrals, toReferralClient(c))

@@ -57,6 +57,8 @@ type ReceiptItem struct {
 	VATCode        int
 	PaymentSubject string // e.g. "service"
 	PaymentMode    string // e.g. "full_payment"
+	// Measure is the FFD 1.2 unit of measure (e.g. "piece"). Defaults to "piece" when empty.
+	Measure string
 }
 
 // CreatePaymentParams holds all inputs for CreatePayment.
@@ -141,6 +143,7 @@ type ykReceiptItem struct {
 	VATCode        int    `json:"vat_code"`
 	PaymentSubject string `json:"payment_subject,omitempty"`
 	PaymentMode    string `json:"payment_mode,omitempty"`
+	Measure        string `json:"measure,omitempty"`
 }
 
 // yookassaPaymentResponse is the relevant subset of the ЮКасса payment JSON response.
@@ -214,12 +217,17 @@ func (c *Client) CreatePayment(ctx context.Context, params CreatePaymentParams) 
 			if qty == "" {
 				qty = "1.00"
 			}
+			measure := item.Measure
+			if measure == "" {
+				measure = "piece"
+			}
 			ri := ykReceiptItem{
 				Description:    item.Description,
 				Quantity:       qty,
 				VATCode:        item.VATCode,
 				PaymentSubject: item.PaymentSubject,
 				PaymentMode:    item.PaymentMode,
+				Measure:        measure,
 			}
 			ri.Amount.Value = formatKopecks(item.AmountKopecks)
 			ri.Amount.Currency = "RUB"

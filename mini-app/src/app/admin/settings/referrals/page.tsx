@@ -21,6 +21,7 @@ export default function ReferralsPage(): ReactNode {
   const specialists = data?.specialists ?? [];
   const activeCount = data?.activeCount ?? 0;
   const pendingCount = data?.passiveCount ?? 0;
+  const rewardDays = data?.rewardDays ?? 30;
 
   const active = specialists
     .filter((s) => s.isActive)
@@ -97,6 +98,28 @@ export default function ReferralsPage(): ReactNode {
                 {t('heroBody')}
               </p>
             </div>
+          </div>
+        </div>
+
+        <div className={'bg-card rounded-xl p-4'}>
+          <h3 className={'text-foreground mb-3 text-[15px] font-medium'}>
+            {t('howItWorksHeading')}
+          </h3>
+          <div className={'space-y-3'}>
+            {([t('step1'), t('step2'), t('step3', { days: rewardDays })] as string[]).map(
+              (step, i) => (
+                <div key={i} className={'flex items-start gap-3'}>
+                  <div
+                    className={
+                      'bg-brand/15 text-brand flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold'
+                    }
+                  >
+                    {i + 1}
+                  </div>
+                  <div className={'text-foreground text-sm'}>{step}</div>
+                </div>
+              ),
+            )}
           </div>
         </div>
 
