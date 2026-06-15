@@ -601,7 +601,10 @@
     "other": "A platform for specialists: launch your own Telegram bot for online client bookings. Each specialist gets a dedicated bot with a Mini App — clients book themselves, reminders are sent automatically, and visit history is tracked. Tap Start to create your bot in just a couple of minutes."
   },
   "MasterMenu.Home": {
-    "other": "👋 Hi! I'll help you launch your own Telegram bot for client bookings.\n\nWhat your bot does:\n• 📅 Accepts online bookings 24/7 via a Mini App\n• 🔔 Sends automatic reminders to clients and notifications to you\n• 🔁 Handles recurring sessions and repeating schedules\n• 👥 Keeps a client base with visit history and notes\n• 📊 Shows revenue and workload analytics\n• 🎁 Referral program — invite other specialists and earn bonuses\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nAlready have a bot and need to rotate its token? Use /replacetoken only if you know exactly what you are doing.\n\n💬 If you run into questions or issues during setup, FAQ, or token recovery — contact an operator.\n\nPick an option:"
+    "other": "👋 Hi! I'll help you launch your own Telegram bot for online client bookings.\n\nWhat your bot does:\n• 📅 Accepts bookings 24/7 via a Mini App\n• 🔔 Sends reminders to clients and notifications to you\n• 👥 Keeps a client base with visit history\n• 📊 Shows revenue and workload analytics\n\n🚀 Pro (first 14 days free):\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nPick an option:"
+  },
+  "MasterMenu.HomeRegistered": {
+    "other": "👋 Welcome back! Your bot is up and running.\n\nHere you can:\n• 💳 Manage your Pro subscription — clients book themselves, recurring bookings and subscriptions\n• 🎁 Invite colleagues and earn bonuses\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
@@ -628,7 +631,16 @@
     "other": "📱 How to use the service"
   },
   "MasterMenu.BtnFAQPricing": {
-    "other": "💳 Pricing & terms"
+    "other": "💳 Pricing & payment"
+  },
+  "MasterMenu.BtnFAQPro": {
+    "other": "⭐ Free vs Pro"
+  },
+  "MasterMenu.BtnFAQReferral": {
+    "other": "🤝 Referral program"
+  },
+  "MasterMenu.BtnFAQToken": {
+    "other": "🔑 Replace token & help"
   },
   "MasterMenu.BtnInvite": {
     "other": "🤝 Invite a colleague"
@@ -649,10 +661,19 @@
     "other": "<b>🤖 How to create a bot via BotFather</b>\n\nDon't worry — it takes 2 minutes and our operator can help at any step.\n\n1. Open @BotFather in Telegram\n2. Send /newbot\n3. Pick a <b>name</b> for the bot (e.g. \"Ivan — massage\")\n4. Pick a <b>username</b> ending in <i>bot</i> (e.g. ivan_massage_bot)\n5. Copy the long token BotFather sends you\n6. Come back here, tap \"🤖 Create my bot\" and paste the token\n\nStuck? Tap \"💬 Talk to operator\" and we'll walk you through it."
   },
   "MasterFAQ.Usage": {
-    "other": "<b>📱 How to use the service</b>\n\n• After registration you get your own bot — share its link with clients.\n• Clients book themselves inside Telegram: pick date, duration, time.\n• You get a notification and confirm/decline with a single button.\n• Calendar, services, prices, recurring bookings and analytics live inside the mini-app.\n• Everything configurable from inside Telegram."
+    "other": "<b>📱 How to use the service</b>\n\n• After registration you get your own bot — share its link with clients.\n• Set up your services, prices and schedule in the mini-app.\n• Clients open the bot and book themselves: date, duration, time.\n• You get a notification and confirm or decline with a single button.\n• Inside: calendar, client base, visit history, reminders and analytics."
   },
   "MasterFAQ.Pricing": {
-    "other": "<b>💳 Pricing & terms</b>\n\nThe service is free during the beta. If paid features appear later we'll announce them ahead of time and keep your current setup working.\n\nQuestions about terms? Tap \"💬 Talk to operator\"."
+    "other": "<b>💳 Pricing & payment</b>\n\n🎁 14 days of Pro free when you sign up.\n\nAfter that Pro is a subscription — 1, 3 or 12 months (the longer the term, the better the rate). Current prices are in the «💳 Subscription» section.\n\nPayment by card via YooKassa, with an electronic receipt. Got a promo code? Enter it at checkout."
+  },
+  "MasterFAQ.Pro": {
+    "other": "<b>⭐ Free vs Pro</b>\n\n<b>Free</b> — keep your client base and book clients manually.\n\n<b>Pro</b> adds:\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n\n🎁 First 14 days of Pro are free, no card required. After the trial, manual booking stays available."
+  },
+  "MasterFAQ.Referral": {
+    "other": "<b>🤝 Referral program</b>\n\nInvite fellow specialists with your personal link — the «🤝 Invite a colleague» button in the menu.\n\nWhen an invited specialist pays for their first subscription, you get free Pro days — for every one who pays."
+  },
+  "MasterFAQ.Token": {
+    "other": "<b>🔑 Replace token & help</b>\n\nIf your bot token stopped working or you recreated the bot in BotFather — send /replacetoken and follow the steps.\n\nFor anything else, tap «💬 Talk to operator» — we're here."
   },
   "MasterSupport.Welcome": {
     "other": "💬 <b>You're connected to an operator</b>\n\nDescribe your question — we'll reply right here. Text, photos, voice messages and documents all work.\n\nTo end the chat, just stop replying — you can come back any time."
@@ -768,7 +789,7 @@
     "other": "12 months"
   },
   "Subscription.ProBenefits": {
-    "other": "What Pro unlocks:\n• Clients book themselves through your bot\n• Recurring appointments (repeating schedules)\n• Bulk schedule tools\n\nWithout Pro: you can still book clients manually."
+    "other": "What Pro unlocks:\n• Clients book themselves through your bot\n• Recurring appointments\n• Prepaid passes (session packages)\n• Bulk schedule tools\n\nWithout Pro: you can still book clients manually."
   },
   "Subscription.TrialNote": {
     "other": "🎁 First 14 days free."

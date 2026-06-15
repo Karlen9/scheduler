@@ -401,6 +401,7 @@ func migrateSQLite() error {
 		`ALTER TABLE specialists ADD COLUMN cancel_at_period_end INTEGER DEFAULT 0`,
 		`ALTER TABLE specialists ADD COLUMN yookassa_payment_method_id TEXT`,
 		`ALTER TABLE specialists ADD COLUMN email TEXT`,
+		`ALTER TABLE specialists ADD COLUMN has_trialed INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE clients ADD COLUMN phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN notify_booking_status INTEGER DEFAULT 1`,
@@ -457,6 +458,7 @@ func migrateSQLite() error {
 	migrateTrainerEnumSQLite()
 	backfillSpecialistReferralCodes()
 	backfillSubscriptionGrace()
+	backfillHasTrialed()
 
 	return nil
 }
@@ -746,6 +748,7 @@ func migratePostgres() error {
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS cancel_at_period_end INTEGER DEFAULT 0`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS yookassa_payment_method_id TEXT`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS email TEXT`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS has_trialed INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS notify_booking_status INTEGER DEFAULT 1`,
@@ -807,6 +810,7 @@ func migratePostgres() error {
 	migrateTrainerEnumPostgres()
 	backfillSpecialistReferralCodes()
 	backfillSubscriptionGrace()
+	backfillHasTrialed()
 
 	return nil
 }
@@ -1423,5 +1427,35 @@ func backfillSubscriptionGrace() {
 
 	if _, err := DB.Exec(Q(`INSERT INTO app_meta (key, value) VALUES (?, ?)`), "subscription_grace_applied", "1"); err != nil {
 		log.Printf("backfill subscription grace: mark failed: %v", err)
+	}
+}
+
+/***************************************************************************************************
+* backfillHasTrialed runs exactly once (guarded by app_meta key 'has_trialed_backfilled'). It
+* marks every pre-existing specialist who has ever had a trial or a subscription/grace period
+* (identified by a non-NULL trial_ends_at OR a non-NULL subscription_started_at) so that they
+* cannot receive a fresh trial upon reactivation.
+***************************************************************************************************/
+func backfillHasTrialed() {
+	var dummy string
+	err := DB.QueryRow(Q(`SELECT value FROM app_meta WHERE key = ?`), "has_trialed_backfilled").Scan(&dummy)
+	if err == nil {
+		// Already applied.
+		return
+	}
+	if err != sql.ErrNoRows {
+		log.Printf("backfill has_trialed: check failed: %v", err)
+		return
+	}
+
+	if _, err := DB.Exec(Q(`
+		UPDATE specialists SET has_trialed = 1 WHERE trial_ends_at IS NOT NULL OR subscription_started_at IS NOT NULL
+	`)); err != nil {
+		log.Printf("backfill has_trialed: update failed: %v", err)
+		return
+	}
+
+	if _, err := DB.Exec(Q(`INSERT INTO app_meta (key, value) VALUES (?, ?)`), "has_trialed_backfilled", "1"); err != nil {
+		log.Printf("backfill has_trialed: mark failed: %v", err)
 	}
 }
