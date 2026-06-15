@@ -99,9 +99,13 @@ type MasterHandler struct {
 	// Guarded by h.mu (same mutex as sessions / pendingRefs).
 	promoCreateDrafts map[int64]*promoCreateDraft // adminUserID -> draft
 
+	// subAutoRenew stores the specialist's auto-renewal toggle choice on the subscription screen.
+	// Absent entry means default ON. Guarded by h.mu.
+	subAutoRenew map[int64]bool // telegramUserID -> auto-renew choice for master-bot checkout (absent = default ON)
+
 	// CreateCheckoutFunc is injected by main.go to avoid an import cycle (api imports telegram
 	// for photo handlers; telegram must not import api). Nil until wired.
-	CreateCheckoutFunc func(ctx context.Context, specialist *models.Specialist, planCode, promoCode string) (confirmationURL string, granted bool, err error)
+	CreateCheckoutFunc func(ctx context.Context, specialist *models.Specialist, planCode, promoCode string, autoRenew bool) (confirmationURL string, granted bool, err error)
 }
 
 // promoCreateDraft tracks the state of an admin creating a new promo code step by step.
@@ -141,6 +145,7 @@ func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int6
 		pendingRefs:       make(map[int64]pendingRef),
 		pendingPlanCodes:  make(map[int64]string),
 		promoCreateDrafts: make(map[int64]*promoCreateDraft),
+		subAutoRenew:      make(map[int64]bool),
 	}
 }
 
@@ -216,6 +221,26 @@ func (h *MasterHandler) clearPendingPlanCode(userID int64) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.pendingPlanCodes, userID)
+}
+
+// --- subAutoRenew helpers (guarded by h.mu) ---
+
+// getSubAutoRenew returns the auto-renew preference for a user. Absent entry defaults to true (ON).
+func (h *MasterHandler) getSubAutoRenew(userID int64) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	v, ok := h.subAutoRenew[userID]
+	if !ok {
+		return true
+	}
+	return v
+}
+
+// setSubAutoRenew stores the auto-renew preference for a user.
+func (h *MasterHandler) setSubAutoRenew(userID int64, v bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.subAutoRenew[userID] = v
 }
 
 // --- promoCreateDraft helpers (all guarded by h.mu) ---

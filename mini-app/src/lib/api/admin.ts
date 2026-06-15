@@ -379,12 +379,13 @@ export const adminApi = {
   async checkoutSubscription(
     plan: string,
     promoCode?: string,
+    autoRenew?: boolean,
   ): Promise<{ confirmationUrl?: string; granted?: boolean }> {
     return fetchAPI<{ confirmationUrl?: string; granted?: boolean }>(
       '/api/admin/subscription/checkout',
       {
         method: 'POST',
-        body: JSON.stringify({ plan, promoCode }),
+        body: JSON.stringify({ plan, promoCode, autoRenew }),
       },
     );
   },
