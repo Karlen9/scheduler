@@ -564,6 +564,12 @@
   "Master.NameTooShort": {
     "other": "❌ Name is too short. Enter your full name:"
   },
+  "Master.AskEmail": {
+    "other": "📧 Enter an email for payment receipts:"
+  },
+  "Master.InvalidEmail": {
+    "other": "That doesn't look like an email. Please enter a valid address, e.g. name@example.com"
+  },
   "Master.Success": {
     "other": "🎉 Congratulations, %s!\n\nYour bot @%s is ready.\n\n🚀 What to do next:\n\n1️⃣ Open @%s → send /start\n2️⃣ Set up services and schedule\n3️⃣ Send the link t.me/%s to your clients\n\nClients will be able to choose a time and book, and you'll receive a notification with \"Confirm\" or \"Reject\" buttons.\n\nGood luck! 💪"
   },
@@ -623,6 +629,21 @@
   },
   "MasterMenu.BtnFAQPricing": {
     "other": "💳 Pricing & terms"
+  },
+  "MasterMenu.BtnInvite": {
+    "other": "🤝 Invite a colleague"
+  },
+  "MasterInvite.Body": {
+    "other": "Invite fellow specialists to the platform.\n\nYour invite link:\n{{.Link}}\n\nWhen an invited specialist pays for their first subscription, you get {{.Days}} free Pro days — for every one who pays."
+  },
+  "MasterInvite.ShareBtn": {
+    "other": "Share link"
+  },
+  "MasterInvite.ShareText": {
+    "other": "Hey! I take client bookings through Telegram — a handy mini-app for specialists. Create your own bot:"
+  },
+  "MasterInvite.NotRegistered": {
+    "other": "To get your invite link, create your own bot first."
   },
   "MasterFAQ.BotHow": {
     "other": "<b>🤖 How to create a bot via BotFather</b>\n\nDon't worry — it takes 2 minutes and our operator can help at any step.\n\n1. Open @BotFather in Telegram\n2. Send /newbot\n3. Pick a <b>name</b> for the bot (e.g. \"Ivan — massage\")\n4. Pick a <b>username</b> ending in <i>bot</i> (e.g. ivan_massage_bot)\n5. Copy the long token BotFather sends you\n6. Come back here, tap \"🤖 Create my bot\" and paste the token\n\nStuck? Tap \"💬 Talk to operator\" and we'll walk you through it."

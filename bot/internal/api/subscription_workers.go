@@ -136,6 +136,13 @@ func processOneRenewal(ctx context.Context, s *models.Specialist) {
 
 	// Now charge, embedding the row ID so the webhook can locate our row even if the
 	// yookassa_payment_id update below hasn't run yet.
+	renewalReceiptEmail := s.Email
+	if renewalReceiptEmail == "" {
+		renewalReceiptEmail = ReceiptEmail // configured fallback
+	}
+	if renewalReceiptEmail == "" && s.Phone == "" {
+		log.Printf("ProcessRenewals: WARNING receipt customer is empty (specialist=%s) — set YOOKASSA_RECEIPT_EMAIL or the specialist's email", s.ID)
+	}
 	ykPayment, err := YooKassaClient.CreatePayment(ctx, payments.CreatePaymentParams{
 		AmountKopecks:   plan.PriceKopecks,
 		Description:     "Продление подписки Pro — " + plan.Code,
@@ -146,6 +153,19 @@ func processOneRenewal(ctx context.Context, s *models.Specialist) {
 			"plan_code":      plan.Code,
 			"renewal":        "1",
 			"payment_row_id": rowID,
+		},
+		Receipt: &payments.Receipt{
+			CustomerEmail: renewalReceiptEmail,
+			CustomerPhone: s.Phone,
+			TaxSystemCode: ReceiptTaxSystemCode,
+			Items: []payments.ReceiptItem{{
+				Description:    "Продление подписки Pro — " + plan.Code,
+				AmountKopecks:  plan.PriceKopecks,
+				Quantity:       "1.00",
+				VATCode:        ReceiptVATCode,
+				PaymentSubject: "service",
+				PaymentMode:    "full_payment",
+			}},
 		},
 	})
 	if err != nil {
