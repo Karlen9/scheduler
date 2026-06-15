@@ -768,6 +768,9 @@ func main() {
 	} else {
 		log.Println("Warning: YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY not set, subscription payments disabled")
 	}
+	api.ReceiptEmail = cfg.YooKassaReceiptEmail
+	api.ReceiptVATCode = cfg.YooKassaVATCode
+	api.ReceiptTaxSystemCode = cfg.YooKassaTaxSystemCode
 
 	api.LoadTestMode = os.Getenv("LOAD_TEST_MODE") == "true"
 	if api.LoadTestMode {

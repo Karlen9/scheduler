@@ -59,6 +59,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	var notifyNewBookings, notifyCancellations, photoRemoved sql.NullInt64
 	var deletedAt, firstPaymentAt sql.NullTime
 	var subscriptionStatus, subscriptionPlan, yookassaPaymentMethodID sql.NullString
+	var email sql.NullString
 	var trialEndsAt, subscriptionStartedAt, currentPeriodEndAt sql.NullTime
 	var autoRenew, cancelAtPeriodEnd sql.NullInt64
 	err := row.Scan(
@@ -83,6 +84,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&autoRenew,
 		&cancelAtPeriodEnd,
 		&yookassaPaymentMethodID,
+		&email,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -131,6 +133,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	t.AutoRenew = autoRenew.Valid && autoRenew.Int64 == 1
 	t.CancelAtPeriodEnd = cancelAtPeriodEnd.Valid && cancelAtPeriodEnd.Int64 == 1
 	t.YooKassaPaymentMethodID = yookassaPaymentMethodID.String
+	t.Email = email.String
 
 	/***************************************************************************************************
 	* Decrypt bot token (passthrough for plain text).
@@ -149,7 +152,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at, subscription_status, subscription_plan, trial_ends_at, subscription_started_at, current_period_end_at, auto_renew, cancel_at_period_end, yookassa_payment_method_id`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at, subscription_status, subscription_plan, trial_ends_at, subscription_started_at, current_period_end_at, auto_renew, cancel_at_period_end, yookassa_payment_method_id, email`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -344,6 +347,12 @@ func SetSpecialistReferredViaCode(specialistID, code string) error {
 		SET referred_via_code = ?
 		WHERE id = ? AND (referred_via_code IS NULL OR referred_via_code = '')
 	`), code, specialistID)
+	return err
+}
+
+// SetSpecialistEmail stores the specialist's contact email (used for payment receipts).
+func SetSpecialistEmail(specialistID, email string) error {
+	_, err := DB.Exec(Q(`UPDATE specialists SET email = ? WHERE id = ?`), email, specialistID)
 	return err
 }
 

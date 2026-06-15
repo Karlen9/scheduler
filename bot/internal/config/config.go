@@ -94,11 +94,14 @@ type Config struct {
 	/***************************************************************************************************
 	* Subscription / YooKassa.
 	***************************************************************************************************/
-	YooKassaShopID     string
-	YooKassaSecretKey  string
-	TrialDays          int
-	ExistingGraceDays  int
-	ReferralRewardDays int
+	YooKassaShopID        string
+	YooKassaSecretKey     string
+	TrialDays             int
+	ExistingGraceDays     int
+	ReferralRewardDays    int
+	YooKassaVATCode       int    // vat_code for receipt items (default 1)
+	YooKassaTaxSystemCode int    // tax_system_code (0 = omit)
+	YooKassaReceiptEmail  string // fallback receipt email when specialist has none
 
 	/***************************************************************************************************
 	* Optional - for initial single-bot setup (legacy).
@@ -188,6 +191,14 @@ func Load() *Config {
 	if v, err := strconv.Atoi(os.Getenv("REFERRAL_REWARD_DAYS")); err == nil && v > 0 {
 		referralRewardDays = v
 	}
+	yooKassaVATCode := 1
+	if v, err := strconv.Atoi(os.Getenv("YOOKASSA_VAT_CODE")); err == nil {
+		yooKassaVATCode = v
+	}
+	yooKassaTaxSystemCode := 0
+	if v, err := strconv.Atoi(os.Getenv("YOOKASSA_TAX_SYSTEM_CODE")); err == nil {
+		yooKassaTaxSystemCode = v
+	}
 
 	cfg := &Config{
 		WebAppURL:           os.Getenv("WEB_APP_URL"),
@@ -205,11 +216,14 @@ func Load() *Config {
 		/***************************************************************************************************
 		* Subscription / YooKassa.
 		***************************************************************************************************/
-		YooKassaShopID:     os.Getenv("YOOKASSA_SHOP_ID"),
-		YooKassaSecretKey:  os.Getenv("YOOKASSA_SECRET_KEY"),
-		TrialDays:          trialDays,
-		ExistingGraceDays:  existingGraceDays,
-		ReferralRewardDays: referralRewardDays,
+		YooKassaShopID:        os.Getenv("YOOKASSA_SHOP_ID"),
+		YooKassaSecretKey:     os.Getenv("YOOKASSA_SECRET_KEY"),
+		TrialDays:             trialDays,
+		ExistingGraceDays:     existingGraceDays,
+		ReferralRewardDays:    referralRewardDays,
+		YooKassaVATCode:       yooKassaVATCode,
+		YooKassaTaxSystemCode: yooKassaTaxSystemCode,
+		YooKassaReceiptEmail:  os.Getenv("YOOKASSA_RECEIPT_EMAIL"),
 
 		/***************************************************************************************************
 		* Legacy single-bot setup.

@@ -77,6 +77,7 @@ export type TReferralsResponse = {
   activeCount: number;
   passiveCount: number;
   specialists: TReferredSpecialist[];
+  rewardDays?: number;
 };
 
 export type TSessionType = {

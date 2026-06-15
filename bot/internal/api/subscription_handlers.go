@@ -31,6 +31,13 @@ var ErrPaymentNotConfigured = errors.New("payment provider not configured")
 // When nil or unconfigured, checkout returns 503.
 var YooKassaClient *payments.Client
 
+// Receipt configuration, wired from main.go.
+var (
+	ReceiptEmail         string
+	ReceiptVATCode       int
+	ReceiptTaxSystemCode int
+)
+
 // ---------------------------------------------------------------------------
 // GET /api/admin/subscription
 // ---------------------------------------------------------------------------
@@ -214,6 +221,14 @@ func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Speciali
 	}
 	saveMethod := recurringEnabled && autoRenew
 
+	receiptEmail := specialist.Email
+	if receiptEmail == "" {
+		receiptEmail = ReceiptEmail // configured fallback
+	}
+	if receiptEmail == "" && specialist.Phone == "" {
+		log.Printf("subscription checkout: WARNING receipt customer is empty (specialist=%s) — set YOOKASSA_RECEIPT_EMAIL or the specialist's email, otherwise YooKassa will reject the receipt", specialist.ID)
+	}
+
 	createParams := payments.CreatePaymentParams{
 		AmountKopecks: finalKopecks,
 		Description:   "Подписка Pro — " + plan.Code,
@@ -224,6 +239,19 @@ func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Speciali
 		ReturnURL:         returnURL,
 		SavePaymentMethod: saveMethod,
 		// PaymentMethodID is empty → new purchase flow.
+		Receipt: &payments.Receipt{
+			CustomerEmail: receiptEmail,
+			CustomerPhone: specialist.Phone,
+			TaxSystemCode: ReceiptTaxSystemCode,
+			Items: []payments.ReceiptItem{{
+				Description:    "Подписка Pro — " + plan.Code,
+				AmountKopecks:  finalKopecks,
+				Quantity:       "1.00",
+				VATCode:        ReceiptVATCode,
+				PaymentSubject: "service",
+				PaymentMode:    "full_payment",
+			}},
+		},
 	}
 
 	ykPayment, err := YooKassaClient.CreatePayment(ctx, createParams)

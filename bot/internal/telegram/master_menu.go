@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 	"time"
 
@@ -38,6 +39,9 @@ const (
 	cbMenuLanguage   = "m:lang"
 	// "m:lang:ru" / "m:lang:en" carry the selected code; handled via HasPrefix.
 
+	// Invite-a-colleague screen callback.
+	cbMenuInvite = "m:invite"
+
 	// Subscription screen callbacks.
 	cbMenuSubscription = "m:sub"
 	cbSubPromo         = "m:sub:promo"
@@ -54,6 +58,7 @@ func (h *MasterHandler) renderMainMenu(chatID, userID int64, messageID int, loc 
 	rows := [][]InlineKeyboardButton{
 		{{Text: myI18n.T(loc, "MasterMenu.BtnCreateBot"), CallbackData: cbMenuCreateBot}},
 		{{Text: myI18n.T(loc, "Btn.Subscription"), CallbackData: cbMenuSubscription}},
+		{{Text: myI18n.T(loc, "MasterMenu.BtnInvite"), CallbackData: cbMenuInvite}},
 		{{Text: myI18n.T(loc, "MasterMenu.BtnFAQ"), CallbackData: cbMenuFAQ}},
 		{{Text: myI18n.T(loc, "MasterMenu.BtnOperator"), CallbackData: cbMenuOperator}},
 		{{Text: myI18n.T(loc, "Btn.Language"), CallbackData: cbMenuLanguage}},
@@ -167,6 +172,8 @@ func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
 		h.handleLanguageSelection(chatID, userID, messageID, strings.TrimPrefix(data, "m:lang:"), q.ID)
 	case data == cbMenuSubscription:
 		h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+	case data == cbMenuInvite:
+		h.renderInviteScreen(chatID, userID, messageID, loc)
 	case strings.HasPrefix(data, "m:sub:buy:"):
 		h.handleSubscriptionBuy(chatID, userID, messageID, strings.TrimPrefix(data, "m:sub:buy:"), loc)
 	case data == cbSubPromo:
@@ -529,4 +536,60 @@ func (h *MasterHandler) startCreateBotFlow(chatID, userID int64, messageID int, 
 		return
 	}
 	h.beginTokenEntry(chatID, userID, loc)
+}
+
+// ---------------------------------------------------------------------------
+// Invite-a-colleague screen
+// ---------------------------------------------------------------------------
+
+// renderInviteScreen shows the specialist's master-bot referral link and a native share button.
+// If the user hasn't created a bot yet they see a prompt to do so first.
+func (h *MasterHandler) renderInviteScreen(chatID, userID int64, messageID int, loc *localizerType) {
+	notRegisteredKb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: myI18n.T(loc, "MasterMenu.BtnCreateBot"), CallbackData: cbMenuCreateBot}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
+		},
+	}
+
+	sp, err := masterLoadSpecialist(userID)
+	if err != nil || sp == nil {
+		h.editOrSend(chatID, messageID, myI18n.T(loc, "MasterInvite.NotRegistered"), notRegisteredKb)
+		return
+	}
+
+	code := sp.ReferralCode
+	if code == "" {
+		ensured, ensureErr := db.EnsureSpecialistReferralCode(sp.ID)
+		if ensureErr != nil {
+			log.Printf("master: invite screen: ensure referral code for %s: %v", sp.ID, ensureErr)
+			h.editOrSend(chatID, messageID, myI18n.T(loc, "MasterInvite.NotRegistered"), notRegisteredKb)
+			return
+		}
+		code = ensured
+	}
+
+	botUsername := h.bot.Username
+	var link string
+	if botUsername != "" {
+		link = "https://t.me/" + botUsername + "?start=ref_" + code
+	} else {
+		link = "https://t.me/?start=ref_" + code
+	}
+
+	body := myI18n.Tf(loc, "MasterInvite.Body", map[string]interface{}{
+		"Link": link,
+		"Days": config.ReferralRewardDays(),
+	})
+
+	shareURL := "https://t.me/share/url?url=" + url.QueryEscape(link) +
+		"&text=" + url.QueryEscape(myI18n.T(loc, "MasterInvite.ShareText"))
+
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: myI18n.T(loc, "MasterInvite.ShareBtn"), URL: shareURL}},
+			{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
+		},
+	}
+	h.editOrSend(chatID, messageID, body, kb)
 }
