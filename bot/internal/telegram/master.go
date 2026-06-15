@@ -101,7 +101,7 @@ type MasterHandler struct {
 
 	// CreateCheckoutFunc is injected by main.go to avoid an import cycle (api imports telegram
 	// for photo handlers; telegram must not import api). Nil until wired.
-	CreateCheckoutFunc func(ctx context.Context, specialist *models.Specialist, planCode, promoCode string) (confirmationURL string, granted bool, err error)
+	CreateCheckoutFunc func(ctx context.Context, specialist *models.Specialist, planCode, promoCode string, autoRenew bool) (confirmationURL string, granted bool, err error)
 }
 
 // promoCreateDraft tracks the state of an admin creating a new promo code step by step.

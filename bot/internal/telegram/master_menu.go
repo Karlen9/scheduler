@@ -401,7 +401,7 @@ func (h *MasterHandler) handleSubscriptionBuy(chatID, userID int64, messageID in
 		return
 	}
 
-	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, "")
+	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, "", true)
 	if err != nil {
 		log.Printf("master: subscription buy error (user=%d plan=%s): %v", userID, planCode, err)
 		h.editOrSend(chatID, messageID,
@@ -458,7 +458,7 @@ func (h *MasterHandler) handlePromoCodeInput(chatID, userID int64, code string, 
 		return
 	}
 
-	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, strings.TrimSpace(code))
+	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, strings.TrimSpace(code), true)
 	if err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "invalid promo code") {

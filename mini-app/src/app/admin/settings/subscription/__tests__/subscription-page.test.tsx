@@ -46,6 +46,26 @@ vi.mock('@/components/ConfirmDialog', () => ({
     ) : null,
 }));
 
+vi.mock('@/components/Switch', () => ({
+  Switch: ({
+    checked,
+    onChange,
+    ariaLabel,
+  }: {
+    checked: boolean;
+    onChange: (v: boolean) => void;
+    ariaLabel?: string;
+  }): React.ReactNode => (
+    <button
+      type={'button'}
+      role={'switch'}
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      onClick={() => onChange(!checked)}
+    />
+  ),
+}));
+
 vi.mock('@/lib/telegram', () => ({
   getTelegramWebApp: () => null,
 }));
@@ -112,6 +132,8 @@ const messages = {
     promoApplied: 'Промокод применён — скидка {discount} ₽',
     promoInvalid: 'Промокод недействителен',
     promoChecking: 'Проверка…',
+    autoRenewToggleLabel: 'Автопродление',
+    autoRenewToggleHint: 'Сохранить карту и продлевать подписку автоматически',
     autoRenewOn: 'Автопродление включено',
     autoRenewOff: 'Автопродление отключено',
     cancelAutoRenew: 'Отключить автопродление',
@@ -234,7 +256,11 @@ describe('SubscriptionPage checkout flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Оформить' }));
 
     await waitFor(() => {
-      expect(apiMock.admin.checkoutSubscription).toHaveBeenCalledWith('pro_annual', undefined);
+      expect(apiMock.admin.checkoutSubscription).toHaveBeenCalledWith(
+        'pro_annual',
+        undefined,
+        true,
+      );
     });
   });
 
@@ -260,7 +286,11 @@ describe('SubscriptionPage checkout flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Оформить' }));
 
     await waitFor(() => {
-      expect(apiMock.admin.checkoutSubscription).toHaveBeenCalledWith('pro_annual', 'MOCK100');
+      expect(apiMock.admin.checkoutSubscription).toHaveBeenCalledWith(
+        'pro_annual',
+        'MOCK100',
+        true,
+      );
     });
   });
 });

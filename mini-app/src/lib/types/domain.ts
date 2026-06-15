@@ -36,6 +36,7 @@ export type TSubscription = {
   currentPeriodEndAt?: string;
   autoRenew: boolean;
   cancelAtPeriodEnd: boolean;
+  recurringAvailable?: boolean;
   plans: TSubscriptionPlan[];
 };
 

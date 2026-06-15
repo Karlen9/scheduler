@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Switch } from '@/components/Switch';
 import { TopBar } from '@/components/TopBar';
 import { CACHE_KEYS } from '@/hooks/cache-keys';
 import { useSubscription } from '@/hooks/queries';
@@ -29,6 +30,7 @@ export default function SubscriptionPage(): ReactNode {
   const [promoFinalKopecks, setPromoFinalKopecks] = useState<number | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [autoRenew, setAutoRenew] = useState(true);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [actioning, setActioning] = useState(false);
 
@@ -128,7 +130,11 @@ export default function SubscriptionPage(): ReactNode {
     }
     setCheckingOut(true);
     try {
-      const result = await api.admin.checkoutSubscription(effectivePlan, promoApplied || undefined);
+      const result = await api.admin.checkoutSubscription(
+        effectivePlan,
+        promoApplied || undefined,
+        autoRenew,
+      );
       if (result.granted) {
         toast.success(t('checkoutSuccess'));
         await mutate();
@@ -147,7 +153,7 @@ export default function SubscriptionPage(): ReactNode {
     } finally {
       setCheckingOut(false);
     }
-  }, [effectivePlan, promoApplied, checkingOut, mutate, globalMutate, t]);
+  }, [effectivePlan, promoApplied, autoRenew, checkingOut, mutate, globalMutate, t]);
 
   const handleCancelAutoRenew = useCallback(async (): Promise<void> => {
     setActioning(true);
@@ -365,6 +371,24 @@ export default function SubscriptionPage(): ReactNode {
             </p>
           )}
         </div>
+
+        {data?.recurringAvailable && (
+          <div className={'bg-card rounded-xl p-4'}>
+            <div className={'flex items-center justify-between gap-3'}>
+              <div>
+                <div className={'text-foreground text-[15px] font-medium'}>
+                  {t('autoRenewToggleLabel')}
+                </div>
+                <div className={'text-muted-foreground text-sm'}>{t('autoRenewToggleHint')}</div>
+              </div>
+              <Switch
+                checked={autoRenew}
+                onChange={setAutoRenew}
+                ariaLabel={t('autoRenewToggleLabel')}
+              />
+            </div>
+          </div>
+        )}
 
         <button
           type={'button'}
