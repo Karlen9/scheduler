@@ -212,7 +212,14 @@ func CreateSubscriptionCheckout(ctx context.Context, specialist *models.Speciali
 		return "", false, ErrPaymentNotConfigured
 	}
 
-	returnURL := strings.TrimRight(WebAppURL, "/") + "/admin/settings/subscription"
+	var returnURL string
+	if specialist.BotUsername != "" {
+		returnURL = "https://t.me/" + specialist.BotUsername
+	} else if mu := getMasterBotUsername(); mu != "" {
+		returnURL = "https://t.me/" + mu
+	} else {
+		returnURL = strings.TrimRight(WebAppURL, "/") + "/admin/settings/subscription"
+	}
 
 	recurringEnabled, err := db.GetRecurringPaymentsEnabled()
 	if err != nil {
