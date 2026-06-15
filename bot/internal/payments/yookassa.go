@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -251,7 +252,11 @@ func (c *Client) CreatePayment(ctx context.Context, params CreatePaymentParams) 
 	}
 	defer resp.Body.Close()
 
-	return parsePaymentResponse(resp)
+	result, err := parsePaymentResponse(resp)
+	if err != nil {
+		log.Printf("yookassa: request that failed: %s", string(body))
+	}
+	return result, err
 }
 
 // GetPayment fetches a single payment by ID via GET /v3/payments/{id}.

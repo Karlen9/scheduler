@@ -140,6 +140,9 @@ func processOneRenewal(ctx context.Context, s *models.Specialist) {
 	if renewalReceiptEmail == "" {
 		renewalReceiptEmail = ReceiptEmail // configured fallback
 	}
+	if renewalReceiptEmail == "" && s.Phone == "" {
+		log.Printf("ProcessRenewals: WARNING receipt customer is empty (specialist=%s) — set YOOKASSA_RECEIPT_EMAIL or the specialist's email", s.ID)
+	}
 	ykPayment, err := YooKassaClient.CreatePayment(ctx, payments.CreatePaymentParams{
 		AmountKopecks:   plan.PriceKopecks,
 		Description:     "Продление подписки Pro — " + plan.Code,
