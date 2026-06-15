@@ -821,6 +821,12 @@
   "Subscription.EventReferralReward": {
     "other": "🎁 Специалист, которого вы пригласили, оформил подписку Pro! Вам начислено {{.Days}} бонусных дней Pro."
   },
+  "Subscription.BtnAutoRenewOn": {
+    "other": "🔄 Автопродление: вкл"
+  },
+  "Subscription.BtnAutoRenewOff": {
+    "other": "🔄 Автопродление: выкл"
+  },
 
   "Promo.AdminListTitle": {
     "other": "<b>🎟 Промокоды</b>\n\n"

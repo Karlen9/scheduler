@@ -42,6 +42,8 @@ const (
 	cbMenuSubscription = "m:sub"
 	cbSubPromo         = "m:sub:promo"
 	// "m:sub:buy:<planCode>" handled via HasPrefix("m:sub:buy:").
+	// cbSubAutoRenew is an exact-match callback (NOT under the m:sub:buy: prefix).
+	cbSubAutoRenew = "m:sub:autorenew"
 )
 
 // renderMainMenu edits (or sends) the master bot's root menu for the given user.
@@ -169,6 +171,8 @@ func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
 		h.handleSubscriptionBuy(chatID, userID, messageID, strings.TrimPrefix(data, "m:sub:buy:"), loc)
 	case data == cbSubPromo:
 		h.handleSubscriptionPromoEntry(chatID, userID, messageID, loc)
+	case data == cbSubAutoRenew:
+		h.handleSubscriptionAutoRenewToggle(chatID, userID, messageID, loc)
 	case strings.HasPrefix(data, "adm:"):
 		h.dispatchAdminCallback(chatID, userID, messageID, data, loc)
 	case strings.HasPrefix(data, "sup:"):
@@ -300,6 +304,16 @@ func (h *MasterHandler) renderSubscriptionScreen(chatID, userID int64, messageID
 			{Text: btnText, CallbackData: "m:sub:buy:" + p.Code},
 		})
 	}
+	// Show the auto-renewal toggle only when the platform has recurring payments enabled.
+	if enabled, err := db.GetRecurringPaymentsEnabled(); err == nil && enabled {
+		key := "Subscription.BtnAutoRenewOff"
+		if h.getSubAutoRenew(userID) {
+			key = "Subscription.BtnAutoRenewOn"
+		}
+		planRows = append(planRows, []InlineKeyboardButton{
+			{Text: myI18n.T(loc, key), CallbackData: cbSubAutoRenew},
+		})
+	}
 	planRows = append(planRows,
 		[]InlineKeyboardButton{{Text: myI18n.T(loc, "Btn.PromoCode"), CallbackData: cbSubPromo}},
 		[]InlineKeyboardButton{{Text: myI18n.T(loc, "MasterMenu.BtnBack"), CallbackData: cbMenuHome}},
@@ -401,7 +415,7 @@ func (h *MasterHandler) handleSubscriptionBuy(chatID, userID int64, messageID in
 		return
 	}
 
-	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, "", true)
+	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, "", h.getSubAutoRenew(userID))
 	if err != nil {
 		log.Printf("master: subscription buy error (user=%d plan=%s): %v", userID, planCode, err)
 		h.editOrSend(chatID, messageID,
@@ -433,6 +447,13 @@ func (h *MasterHandler) handleSubscriptionBuy(chatID, userID int64, messageID in
 	)
 }
 
+// handleSubscriptionAutoRenewToggle flips the in-memory auto-renew choice and re-renders
+// the subscription screen so the toggle button reflects the new state.
+func (h *MasterHandler) handleSubscriptionAutoRenewToggle(chatID, userID int64, messageID int, loc *localizerType) {
+	h.setSubAutoRenew(userID, !h.getSubAutoRenew(userID))
+	h.renderSubscriptionScreen(chatID, userID, messageID, loc)
+}
+
 // handleSubscriptionPromoEntry stores the annual plan (default) and switches the user into
 // the promo-code entry state.
 func (h *MasterHandler) handleSubscriptionPromoEntry(chatID, userID int64, messageID int, loc *localizerType) {
@@ -458,7 +479,7 @@ func (h *MasterHandler) handlePromoCodeInput(chatID, userID int64, code string, 
 		return
 	}
 
-	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, strings.TrimSpace(code), true)
+	confirmURL, granted, err := h.CreateCheckoutFunc(context.Background(), sp, planCode, strings.TrimSpace(code), h.getSubAutoRenew(userID))
 	if err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "invalid promo code") {
