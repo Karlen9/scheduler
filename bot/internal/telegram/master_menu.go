@@ -42,6 +42,9 @@ const (
 	cbMenuLanguage    = "m:lang"
 	// "m:lang:ru" / "m:lang:en" carry the selected code; handled via HasPrefix.
 
+	// Consent acceptance callback — fired when the user taps "I accept" on the consent prompt.
+	cbMenuConsent = "m:consent"
+
 	// Invite-a-colleague screen callback.
 	cbMenuInvite = "m:invite"
 
@@ -179,6 +182,8 @@ func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
 	switch {
 	case data == cbMenuHome:
 		h.renderMainMenu(chatID, userID, messageID, loc)
+	case data == cbMenuConsent:
+		h.handleConsentAccept(chatID, userID, q.From.Username, loc)
 	case data == cbMenuCreateBot:
 		h.startCreateBotFlow(chatID, userID, messageID, loc)
 	case data == cbMenuFAQ:

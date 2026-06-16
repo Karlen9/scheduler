@@ -316,7 +316,9 @@
     "useTelegramPhoto": "Использовать фото Telegram",
     "removePhoto": "Удалить фото",
     "telegramPhotoActive": "Используется фото Telegram",
-    "theme": "Тема"
+    "theme": "Тема",
+    "termsOfUse": "Пользовательское соглашение",
+    "privacyPolicy": "Политика конфиденциальности"
   },
   "ServicesPage": {
     "title": "Услуги и цены",
@@ -358,7 +360,10 @@
     "other": "Прочее",
     "notifications": "Уведомления",
     "help": "Помощь",
-    "theme": "Тема"
+    "theme": "Тема",
+    "legal": "Документы",
+    "termsOfUse": "Пользовательское соглашение",
+    "privacyPolicy": "Политика конфиденциальности"
   },
   "DeleteBot": {
     "zoneTitle": "Опасная зона",

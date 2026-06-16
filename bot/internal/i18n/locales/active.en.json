@@ -552,6 +552,9 @@
   "Master.InvalidEmail": {
     "other": "That doesn't look like an email. Please enter a valid address, e.g. name@example.com"
   },
+  "Master.ConsentPrompt": {
+    "other": "Last step. By creating a bot you accept the Terms of Use and the Privacy Policy. Review the documents using the buttons below and tap \"I accept\" to continue."
+  },
   "Master.Success": {
     "other": "🎉 Congratulations, %s!\n\nYour bot @%s is ready.\n\n🚀 What to do next:\n\n1️⃣ Open @%s → send /start\n2️⃣ Set up services and schedule\n3️⃣ Send the link t.me/%s to your clients\n\nClients will be able to choose a time and book, and you'll receive a notification with \"Confirm\" or \"Reject\" buttons.\n\nGood luck! 💪"
   },
@@ -731,6 +734,16 @@
   },
   "Error.ProRequired": {
     "other": "This feature requires a Pro subscription"
+  },
+
+  "Btn.Terms": {
+    "other": "📄 Terms of Use"
+  },
+  "Btn.Privacy": {
+    "other": "🔒 Privacy Policy"
+  },
+  "Btn.AcceptConsent": {
+    "other": "✅ I accept"
   },
 
   "Btn.Subscription": {
