@@ -1,12 +1,14 @@
 'use client';
 
 import { CalendarDays, Check, RussianRuble, Users, Wallet } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 
 import { EmptyState } from '@/components/EmptyState';
 import { StatBar } from '@/components/StatBar';
 import { StatCard } from '@/components/StatCard';
-import { useAdminStats } from '@/hooks/queries';
+import { useAdminStats, useSubscription } from '@/hooks/queries';
 
 import type { ReactNode } from 'react';
 
@@ -50,9 +52,18 @@ function formatDelta(current: number, previous: number, locale: string): string 
 export default function AdminAnalyticsPage(): ReactNode {
   const locale = useLocale();
   const t = useTranslations('AdminAnalytics');
+  const { data: subscription, isLoading: subLoading } = useSubscription();
+  const isPro = subscription?.isPro ?? true;
+  const router = useRouter();
   const { data: stats, isLoading, error } = useAdminStats();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!subLoading && !isPro) {
+      router.replace('/admin/settings/subscription');
+    }
+  }, [subLoading, isPro, router]);
+
+  if (subLoading || !isPro || isLoading) {
     return (
       <div className={'space-y-6 p-4'}>
         <div className={'animate-pulse space-y-3'}>
