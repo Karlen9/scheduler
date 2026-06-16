@@ -1,5 +1,6 @@
 'use client';
 
+import { Crown } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -70,6 +71,7 @@ function TabButton({
   icon: Icon,
   activeColor = 'text-brand',
   tabKey,
+  locked,
 }: {
   href: string;
   isActive: boolean;
@@ -77,17 +79,25 @@ function TabButton({
   icon: LucideIcon;
   activeColor?: string;
   tabKey?: string;
+  locked?: boolean;
 }): ReactNode {
   return (
     <Link
       href={href}
       prefetch
       data-tab-key={tabKey}
-      className={`z-10 flex max-h-[46px]! min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-1 transition-colors active:scale-90 ${
-        isActive ? activeColor : 'text-muted-foreground'
+      className={`relative z-10 flex max-h-[46px]! min-w-0 flex-col items-center justify-center gap-0.5 rounded-full px-1 transition-colors active:scale-90 ${
+        locked ? 'text-muted-foreground' : isActive ? activeColor : 'text-muted-foreground'
       }`}
     >
-      <Icon className={`h-[18px] w-[18px] shrink-0 ${bouncing ? 'tab-bounce' : ''}`} />
+      <Icon
+        className={`h-[18px] w-[18px] shrink-0 ${bouncing ? 'tab-bounce' : ''} ${locked ? 'opacity-60' : ''}`}
+      />
+      {locked && (
+        <span className={'absolute -top-0.5 -right-0.5'}>
+          <Crown className={'text-warning h-3 w-3'} />
+        </span>
+      )}
     </Link>
   );
 }
@@ -293,6 +303,7 @@ function BottomTabBarComponent({ tabs, subTabs }: TBottomTabBarProps): ReactNode
                     bouncing={bouncing}
                     icon={Icon}
                     tabKey={tab.key}
+                    locked={tab.locked}
                   />
                 );
               })}

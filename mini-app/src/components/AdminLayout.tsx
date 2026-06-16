@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
+import { useSubscription } from '@/hooks/queries';
 import { resolveTestAwareHref } from '@/lib/routes';
 
 import { BottomTabBar } from './BottomTabBar';
@@ -47,12 +48,15 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const tn = useTranslations('Navigation');
+  const { data: subscription } = useSubscription();
+  const isPro = subscription?.isPro ?? true;
   const adminHref = resolveTestAwareHref(pathname, '/admin');
   const adminBookHref = resolveTestAwareHref(pathname, '/admin/choose-client');
   const adminAnalyticsHref = resolveTestAwareHref(pathname, '/admin/analytics');
   const adminBookingsHref = resolveTestAwareHref(pathname, '/admin/bookings');
   const adminRecurringHref = resolveTestAwareHref(pathname, '/admin/recurring');
   const adminSettingsHref = resolveTestAwareHref(pathname, '/admin/settings');
+  const adminSubscriptionHref = resolveTestAwareHref(pathname, '/admin/settings/subscription');
   /***************************************************************************************************
    * Defines the is home value used by the component layer.
    *
@@ -101,7 +105,8 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         key: 'analytics',
         label: tn('analytics'),
         icon: ChartColumn,
-        href: adminAnalyticsHref,
+        href: isPro ? adminAnalyticsHref : adminSubscriptionHref,
+        locked: !isPro,
       },
       {
         key: 'profile',
@@ -118,6 +123,8 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
       adminHref,
       adminRecurringHref,
       adminSettingsHref,
+      adminSubscriptionHref,
+      isPro,
       tn,
     ],
   );
