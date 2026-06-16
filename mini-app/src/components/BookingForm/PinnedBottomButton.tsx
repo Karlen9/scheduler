@@ -1,3 +1,6 @@
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+
 import { addMinutesToTime, formatDateISO } from '@/lib/helpers';
 
 import { DateChip } from './DateChip';
@@ -30,7 +33,9 @@ export function PinnedBottomButton({
   onetimeButtonText,
   readOnly = false,
   readOnlyActionLabel,
+  showConsentNote = false,
 }: TPinnedBottomButtonProps): ReactNode {
+  const t = useTranslations('BookingForm');
   return (
     <div
       className={'bg-background/80 fixed right-0 bottom-0 left-0 space-y-3 p-4 backdrop-blur-sm'}
@@ -75,6 +80,15 @@ export function PinnedBottomButton({
             );
           })}
         </div>
+      )}
+      {showConsentNote && (
+        <p className={'text-muted-foreground text-center text-xs'}>
+          {t('consentNote')}
+          {' · '}
+          <Link href={'/privacy'} className={'underline'}>
+            {t('privacyPolicy')}
+          </Link>
+        </p>
       )}
       <PrimaryButton onClick={handleOnetimeSubmit} disabled={onetimeButtonDisabled || readOnly}>
         {readOnly ? (readOnlyActionLabel ?? onetimeButtonText) : onetimeButtonText}

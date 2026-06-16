@@ -155,6 +155,7 @@ export type TPinnedBottomButtonProps = {
   onetimeButtonText: string;
   readOnly?: boolean;
   readOnlyActionLabel?: string;
+  showConsentNote?: boolean;
 };
 
 export type TServiceCardProps = {

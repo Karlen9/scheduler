@@ -48,6 +48,7 @@ export function BookingForm({
   initialTime,
   initialComment,
   initialSelectedClient,
+  showConsentNote = false,
 }: TBookingFormProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -214,6 +215,7 @@ export function BookingForm({
                 initialService={initialService}
                 initialTime={initialTime}
                 initialComment={initialComment}
+                showConsentNote={showConsentNote}
               />
             ) : (
               <RecurringBookingFlow

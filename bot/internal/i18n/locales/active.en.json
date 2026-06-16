@@ -553,7 +553,7 @@
     "other": "That doesn't look like an email. Please enter a valid address, e.g. name@example.com"
   },
   "Master.ConsentPrompt": {
-    "other": "Last step. By creating a bot you accept the Terms of Use and the Privacy Policy. Review the documents using the buttons below and tap \"I accept\" to continue."
+    "other": "Last step. By creating a bot you accept the Terms of Use and the Privacy Policy and consent to the processing of your personal data in accordance with Russian Federal Law No. 152-FZ “On Personal Data”. Review the documents using the buttons below and tap “I accept” to continue."
   },
   "Master.Success": {
     "other": "🎉 Congratulations, %s!\n\nYour bot @%s is ready.\n\n🚀 What to do next:\n\n1️⃣ Open @%s → send /start\n2️⃣ Set up services and schedule\n3️⃣ Send the link t.me/%s to your clients\n\nClients will be able to choose a time and book, and you'll receive a notification with \"Confirm\" or \"Reject\" buttons.\n\nGood luck! 💪"
