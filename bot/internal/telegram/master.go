@@ -53,6 +53,9 @@ const (
 	// StateAwaitingReplacementToken is entered via /replacetoken or the profile menu when an
 	// already-registered specialist needs to swap their bot token (e.g. after BotFather /revoke).
 	StateAwaitingReplacementToken
+	// StateAwaitingConsent is entered after StateAwaitingEmail; the validated email is held in
+	// the session while we wait for the user to tap the "I accept" consent button.
+	StateAwaitingConsent
 	// StateAwaitingPromoCode is entered when the user taps "I have a promo code" on the
 	// subscription screen. The pending plan code is stored in pendingPlanCodes keyed by userID.
 	StateAwaitingPromoCode
@@ -72,6 +75,7 @@ type OnboardingSession struct {
 	BotToken    string
 	BotUsername string
 	Name        string // set in handleNameInput; carried into handleEmailInput for specialist creation
+	Email       string // set in handleEmailInput; carried into finalizeOnboarding after consent
 }
 
 // pendingRef is a referral code captured from "/start ref_<code>" that is waiting for the user
@@ -442,6 +446,9 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 			h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
 		case StateAwaitingEmail:
 			h.handleEmailInput(chatID, userID, text, session, msg.From.Username, loc)
+		case StateAwaitingConsent:
+			// User typed text instead of tapping the button — re-send the consent prompt.
+			h.sendConsentPrompt(chatID, loc)
 		case StateAwaitingReplacementToken:
 			h.handleReplacementTokenInput(chatID, userID, text, loc)
 		case StateAwaitingPromoCode:
@@ -864,10 +871,14 @@ func isValidEmail(s string) bool {
 	return emailRegexp.MatchString(s)
 }
 
+// ConsentVersion identifies the current revision of the Terms / Privacy documents.
+// Increment this string whenever the documents materially change so that re-consent can be
+// requested from existing specialists if needed.
+const ConsentVersion = "1.0"
+
 /***************************************************************************************************
-* Handles email input. Validates the address, creates the specialist row, persists the email, and
-* completes onboarding. This is called after handleNameInput stores the name in the session and
-* advances to StateAwaitingEmail.
+* Handles email input. Validates the address, stores it in the session, and prompts the user to
+* accept the Terms of Use and Privacy Policy before creating the specialist row.
 *
 * Parameters:
 * - chatID: Identifier used to target the current record.
@@ -890,7 +901,48 @@ func (h *MasterHandler) handleEmailInput(chatID, userID int64, text string, sess
 		return
 	}
 
+	session.Email = email
+	session.State = StateAwaitingConsent
+	h.setSession(userID, session)
+
+	h.sendConsentPrompt(chatID, loc)
+}
+
+// sendConsentPrompt sends the consent message with Terms / Privacy URL buttons and the accept
+// callback button. Extracted so both handleEmailInput and the StateAwaitingConsent text fallback
+// can call it without duplication.
+func (h *MasterHandler) sendConsentPrompt(chatID int64, loc *localizerType) {
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: myI18n.T(loc, "Btn.Terms"), URL: h.webAppURL + "/terms"},
+				{Text: myI18n.T(loc, "Btn.Privacy"), URL: h.webAppURL + "/privacy"},
+			},
+			{
+				{Text: myI18n.T(loc, "Btn.AcceptConsent"), CallbackData: cbMenuConsent},
+			},
+		},
+	}
+	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.ConsentPrompt"), kb)
+}
+
+// handleConsentAccept is invoked when the user taps the "I accept" consent button.
+// It loads the current session and, if it is in StateAwaitingConsent, finalises onboarding.
+func (h *MasterHandler) handleConsentAccept(chatID, userID int64, username string, loc *localizerType) {
+	session := h.getSession(userID)
+	if session == nil || session.State != StateAwaitingConsent {
+		// Guard: button tapped out of order or session expired — silently ignore.
+		return
+	}
+	h.finalizeOnboarding(chatID, userID, username, session, loc)
+}
+
+// finalizeOnboarding creates the specialist row, persists supplementary data, seeds defaults, and
+// registers the bot webhook. It reads the validated email from session.Email so the original text
+// input is no longer needed at this point.
+func (h *MasterHandler) finalizeOnboarding(chatID, userID int64, username string, session *OnboardingSession, loc *localizerType) {
 	name := session.Name
+	email := session.Email
 
 	/***************************************************************************************************
 	* Create specialist.
@@ -914,6 +966,13 @@ func (h *MasterHandler) handleEmailInput(chatID, userID int64, text string, sess
 	***************************************************************************************************/
 	if err := db.SetSpecialistEmail(specialist.ID, email); err != nil {
 		log.Printf("master: save specialist email failed (%s): %v", specialist.ID, err)
+	}
+
+	/***************************************************************************************************
+	* Record consent acceptance (log-only on failure; do not abort registration).
+	***************************************************************************************************/
+	if err := db.SetSpecialistConsent(specialist.ID, ConsentVersion); err != nil {
+		log.Printf("master: record consent failed (%s): %v", specialist.ID, err)
 	}
 
 	/***************************************************************************************************

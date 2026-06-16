@@ -316,7 +316,9 @@
     "useTelegramPhoto": "Use Telegram photo",
     "removePhoto": "Remove photo",
     "telegramPhotoActive": "Telegram photo is active",
-    "theme": "Theme"
+    "theme": "Theme",
+    "termsOfUse": "Terms of Use",
+    "privacyPolicy": "Privacy Policy"
   },
   "ServicesPage": {
     "title": "Services & Prices",
@@ -358,7 +360,10 @@
     "other": "Other",
     "notifications": "Notifications",
     "help": "Help",
-    "theme": "Theme"
+    "theme": "Theme",
+    "legal": "Legal",
+    "termsOfUse": "Terms of Use",
+    "privacyPolicy": "Privacy Policy"
   },
   "DeleteBot": {
     "zoneTitle": "Danger zone",

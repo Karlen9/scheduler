@@ -396,6 +396,16 @@ func SetSpecialistEmail(specialistID, email string) error {
 	return err
 }
 
+// SetSpecialistConsent records that the specialist accepted the terms/privacy docs.
+// The timestamp is set to the current time; version identifies the document revision accepted.
+func SetSpecialistConsent(specialistID, version string) error {
+	_, err := DB.Exec(
+		Q(`UPDATE specialists SET consent_accepted_at = ?, consent_version = ? WHERE id = ?`),
+		time.Now().UTC(), version, specialistID,
+	)
+	return err
+}
+
 // ReferredSpecialistStat is a row in the specialist-referral listing.
 type ReferredSpecialistStat struct {
 	ID             string
