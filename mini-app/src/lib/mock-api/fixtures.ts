@@ -283,6 +283,7 @@ export function createMockState(): TMockState {
     autoRenew: false,
     cancelAtPeriodEnd: false,
     recurringAvailable: true,
+    masterBotUsername: 'masterbot',
     plans: [
       { code: 'pro_monthly', priceKopecks: 59000, durationDays: 30 },
       { code: 'pro_quarterly', priceKopecks: 149000, durationDays: 90 },

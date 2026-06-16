@@ -436,7 +436,9 @@
     "benefitBulkDaysOff": "Выходные периодами",
     "benefitBulkDaysOffHint": "Отмечайте нерабочие дни сразу диапазоном",
     "benefitAnalytics": "Расширенная аналитика",
-    "benefitAnalyticsHint": "Подробная статистика и экспорт данных"
+    "benefitAnalyticsHint": "Подробная статистика и экспорт данных",
+    "manageInBotTitle": "Управление подпиской в боте",
+    "manageInBotHint": "Оплата и продление — в мастер-боте"
   },
   "AdminReferrals": {
     "title": "Приглашения",

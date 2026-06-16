@@ -52,6 +52,7 @@ type subscriptionStatusResponse struct {
 	AutoRenew          bool                  `json:"autoRenew"`
 	CancelAtPeriodEnd  bool                  `json:"cancelAtPeriodEnd"`
 	RecurringAvailable bool                  `json:"recurringAvailable"`
+	MasterBotUsername  string                `json:"masterBotUsername,omitempty"`
 	Plans              []subscriptionPlanDTO `json:"plans"`
 }
 
@@ -91,6 +92,7 @@ func buildSubscriptionStatusResponse(s *models.Specialist) subscriptionStatusRes
 		CancelAtPeriodEnd:  s.CancelAtPeriodEnd,
 		RecurringAvailable: recurringAvailable,
 	}
+	resp.MasterBotUsername = getMasterBotUsername()
 
 	if s.TrialEndsAt != nil {
 		ts := s.TrialEndsAt.Format(time.RFC3339)

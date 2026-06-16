@@ -37,6 +37,7 @@ export type TSubscription = {
   autoRenew: boolean;
   cancelAtPeriodEnd: boolean;
   recurringAvailable?: boolean;
+  masterBotUsername?: string;
   plans: TSubscriptionPlan[];
 };
 

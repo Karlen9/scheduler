@@ -436,7 +436,9 @@
     "benefitBulkDaysOff": "Bulk days off",
     "benefitBulkDaysOffHint": "Mark non-working periods as a range",
     "benefitAnalytics": "Advanced analytics",
-    "benefitAnalyticsHint": "Detailed stats and data export"
+    "benefitAnalyticsHint": "Detailed stats and data export",
+    "manageInBotTitle": "Manage subscription in the bot",
+    "manageInBotHint": "Payment and renewal happen in the master bot"
   },
   "AdminReferrals": {
     "title": "Referrals",

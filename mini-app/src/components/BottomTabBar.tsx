@@ -94,7 +94,7 @@ function TabButton({
         className={`h-[18px] w-[18px] shrink-0 ${bouncing ? 'tab-bounce' : ''} ${locked ? 'opacity-60' : ''}`}
       />
       {locked && (
-        <span className={'absolute -top-0.5 -right-0.5'}>
+        <span className={'absolute -top-0.5 right-[3px]'}>
           <Crown className={'text-warning h-3 w-3'} />
         </span>
       )}
