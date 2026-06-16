@@ -45,6 +45,7 @@ export function OnetimeBookingFlow({
   initialService,
   initialTime,
   initialComment,
+  showConsentNote = false,
 }: TOnetimeBookingFlowProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -361,6 +362,7 @@ export function OnetimeBookingFlow({
         timeAssignments={timeAssignments}
         readOnly={readOnly}
         readOnlyActionLabel={readOnlyActionLabel}
+        showConsentNote={showConsentNote}
       />
     </>
   );

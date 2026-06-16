@@ -78,6 +78,7 @@ export type TBookingFormProps = {
   initialTime?: string;
   initialComment?: string;
   initialSelectedClient?: TClientInfo;
+  showConsentNote?: boolean;
 };
 
 export type TBookingRowProps = {
@@ -198,6 +199,7 @@ export type TOnetimeBookingFlowProps = {
   initialService?: TSessionType;
   initialTime?: string;
   initialComment?: string;
+  showConsentNote?: boolean;
 };
 
 export type TRecurringScheduleCardProps = {

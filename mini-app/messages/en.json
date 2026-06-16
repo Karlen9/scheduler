@@ -250,7 +250,9 @@
     "successRecurringTitle": "Schedule Submitted",
     "successRecurringForClient": "Schedule for {name} has been submitted for confirmation.",
     "successRecurringForSpecialist": "Schedule has been submitted for specialist's confirmation.",
-    "bookedDateWarning": "You already have a booking on this day. Cancel it to book a new time."
+    "bookedDateWarning": "You already have a booking on this day. Cancel it to book a new time.",
+    "consentNote": "By booking, you consent to the processing of your personal data under Federal Law No. 152-FZ",
+    "privacyPolicy": "Privacy Policy"
   },
   "BookingsPage": {
     "title": "My Bookings",
