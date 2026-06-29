@@ -12,16 +12,18 @@ import (
 )
 
 type UpdateProfileRequest struct {
-	Name              *string  `json:"name,omitempty"`
-	TelegramHandle    *string  `json:"telegramHandle,omitempty"`
-	Phone             *string  `json:"phone,omitempty"`
-	Specialization    *string  `json:"specialization,omitempty"`
-	Bio               *string  `json:"bio,omitempty"`
-	PhotoURL          *string  `json:"photoUrl,omitempty"`
-	LocationLatitude  *float64 `json:"locationLatitude,omitempty"`
-	LocationLongitude *float64 `json:"locationLongitude,omitempty"`
-	Language          string   `json:"language,omitempty"`
-	Wallpaper         *string  `json:"wallpaper,omitempty"`
+	Name                *string  `json:"name,omitempty"`
+	TelegramHandle      *string  `json:"telegramHandle,omitempty"`
+	Phone               *string  `json:"phone,omitempty"`
+	Specialization      *string  `json:"specialization,omitempty"`
+	Bio                 *string  `json:"bio,omitempty"`
+	PhotoURL            *string  `json:"photoUrl,omitempty"`
+	LocationLatitude    *float64 `json:"locationLatitude,omitempty"`
+	LocationLongitude   *float64 `json:"locationLongitude,omitempty"`
+	Language            string   `json:"language,omitempty"`
+	Wallpaper           *string  `json:"wallpaper,omitempty"`
+	CancelCutoffHrs     *int     `json:"cancelCutoffHours,omitempty"`
+	CancelCutoffEnabled *bool    `json:"cancelCutoffEnabled,omitempty"`
 }
 
 func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
@@ -34,24 +36,25 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 
 	ent := specialist.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
-		ID:                 specialist.ID,
-		Name:               specialist.Name,
-		Timezone:           specialist.Timezone,
-		CancelCutoffHrs:    specialist.CancelCutoffHrs,
-		TelegramHandle:     specialist.TelegramHandle,
-		Phone:              specialist.Phone,
-		Specialization:     specialist.Specialization,
-		Bio:                specialist.Bio,
-		PhotoURL:           specialist.PhotoURL,
-		LocationLatitude:   specialist.LocationLatitude,
-		LocationLongitude:  specialist.LocationLongitude,
-		Language:           specialist.Language,
-		Wallpaper:          specialist.Wallpaper,
-		IsPro:              ent.IsPro,
-		SubscriptionStatus: specialist.SubscriptionStatus,
-		TrialEndsAt:        specialist.TrialEndsAt,
-		CurrentPeriodEndAt: specialist.CurrentPeriodEndAt,
-		AutoRenew:          specialist.AutoRenew,
+		ID:                  specialist.ID,
+		Name:                specialist.Name,
+		Timezone:            specialist.Timezone,
+		CancelCutoffHrs:     specialist.CancelCutoffHrs,
+		CancelCutoffEnabled: specialist.CancelCutoffEnabled,
+		TelegramHandle:      specialist.TelegramHandle,
+		Phone:               specialist.Phone,
+		Specialization:      specialist.Specialization,
+		Bio:                 specialist.Bio,
+		PhotoURL:            specialist.PhotoURL,
+		LocationLatitude:    specialist.LocationLatitude,
+		LocationLongitude:   specialist.LocationLongitude,
+		Language:            specialist.Language,
+		Wallpaper:           specialist.Wallpaper,
+		IsPro:               ent.IsPro,
+		SubscriptionStatus:  specialist.SubscriptionStatus,
+		TrialEndsAt:         specialist.TrialEndsAt,
+		CurrentPeriodEndAt:  specialist.CurrentPeriodEndAt,
+		AutoRenew:           specialist.AutoRenew,
 	})
 }
 
@@ -76,10 +79,26 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name != nil {
-		specialist.Name = *req.Name
-		if _, err := db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs); err != nil {
-			log.Printf("Error updating specialist name: %v", err)
+	if req.Name != nil || req.CancelCutoffHrs != nil || req.CancelCutoffEnabled != nil {
+		if req.Name != nil {
+			specialist.Name = *req.Name
+		}
+		cutoffHrs := specialist.CancelCutoffHrs
+		if req.CancelCutoffHrs != nil {
+			cutoffHrs = *req.CancelCutoffHrs
+			if cutoffHrs < 1 {
+				cutoffHrs = 1
+			}
+			if cutoffHrs > 720 {
+				cutoffHrs = 720
+			}
+		}
+		cutoffEnabled := specialist.CancelCutoffEnabled
+		if req.CancelCutoffEnabled != nil {
+			cutoffEnabled = *req.CancelCutoffEnabled
+		}
+		if _, err := db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, cutoffHrs, cutoffEnabled); err != nil {
+			log.Printf("Error updating specialist: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
 		}
@@ -149,24 +168,25 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	updEnt := updated.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
-		ID:                 updated.ID,
-		Name:               updated.Name,
-		Timezone:           updated.Timezone,
-		CancelCutoffHrs:    updated.CancelCutoffHrs,
-		TelegramHandle:     updated.TelegramHandle,
-		Phone:              updated.Phone,
-		Specialization:     updated.Specialization,
-		Bio:                updated.Bio,
-		PhotoURL:           updated.PhotoURL,
-		LocationLatitude:   updated.LocationLatitude,
-		LocationLongitude:  updated.LocationLongitude,
-		Language:           updated.Language,
-		Wallpaper:          updated.Wallpaper,
-		IsPro:              updEnt.IsPro,
-		SubscriptionStatus: updated.SubscriptionStatus,
-		TrialEndsAt:        updated.TrialEndsAt,
-		CurrentPeriodEndAt: updated.CurrentPeriodEndAt,
-		AutoRenew:          updated.AutoRenew,
+		ID:                  updated.ID,
+		Name:                updated.Name,
+		Timezone:            updated.Timezone,
+		CancelCutoffHrs:     updated.CancelCutoffHrs,
+		CancelCutoffEnabled: updated.CancelCutoffEnabled,
+		TelegramHandle:      updated.TelegramHandle,
+		Phone:               updated.Phone,
+		Specialization:      updated.Specialization,
+		Bio:                 updated.Bio,
+		PhotoURL:            updated.PhotoURL,
+		LocationLatitude:    updated.LocationLatitude,
+		LocationLongitude:   updated.LocationLongitude,
+		Language:            updated.Language,
+		Wallpaper:           updated.Wallpaper,
+		IsPro:               updEnt.IsPro,
+		SubscriptionStatus:  updated.SubscriptionStatus,
+		TrialEndsAt:         updated.TrialEndsAt,
+		CurrentPeriodEndAt:  updated.CurrentPeriodEndAt,
+		AutoRenew:           updated.AutoRenew,
 	})
 }
 
@@ -204,23 +224,24 @@ func HandleRestoreSpecialistTelegramPhoto(w http.ResponseWriter, r *http.Request
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
 	restEnt := updated.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
-		ID:                 updated.ID,
-		Name:               updated.Name,
-		Timezone:           updated.Timezone,
-		CancelCutoffHrs:    updated.CancelCutoffHrs,
-		TelegramHandle:     updated.TelegramHandle,
-		Phone:              updated.Phone,
-		Specialization:     updated.Specialization,
-		Bio:                updated.Bio,
-		PhotoURL:           updated.PhotoURL,
-		LocationLatitude:   updated.LocationLatitude,
-		LocationLongitude:  updated.LocationLongitude,
-		Language:           updated.Language,
-		Wallpaper:          updated.Wallpaper,
-		IsPro:              restEnt.IsPro,
-		SubscriptionStatus: updated.SubscriptionStatus,
-		TrialEndsAt:        updated.TrialEndsAt,
-		CurrentPeriodEndAt: updated.CurrentPeriodEndAt,
-		AutoRenew:          updated.AutoRenew,
+		ID:                  updated.ID,
+		Name:                updated.Name,
+		Timezone:            updated.Timezone,
+		CancelCutoffHrs:     updated.CancelCutoffHrs,
+		CancelCutoffEnabled: updated.CancelCutoffEnabled,
+		TelegramHandle:      updated.TelegramHandle,
+		Phone:               updated.Phone,
+		Specialization:      updated.Specialization,
+		Bio:                 updated.Bio,
+		PhotoURL:            updated.PhotoURL,
+		LocationLatitude:    updated.LocationLatitude,
+		LocationLongitude:   updated.LocationLongitude,
+		Language:            updated.Language,
+		Wallpaper:           updated.Wallpaper,
+		IsPro:               restEnt.IsPro,
+		SubscriptionStatus:  updated.SubscriptionStatus,
+		TrialEndsAt:         updated.TrialEndsAt,
+		CurrentPeriodEndAt:  updated.CurrentPeriodEndAt,
+		AutoRenew:           updated.AutoRenew,
 	})
 }

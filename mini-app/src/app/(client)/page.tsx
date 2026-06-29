@@ -29,6 +29,7 @@ import { getAvatarColor } from '@/lib/colors';
 import {
   collapseReschedulePending,
   formatDateISO,
+  isWithinCutoff,
   nextDateForWeekday,
   wallClockNow,
 } from '@/lib/helpers';
@@ -895,6 +896,7 @@ export default function HomePage(): ReactNode {
             onClose={() => setRescheduleBooking(null)}
             onSuccess={handleRescheduleSuccess}
             mode={'client'}
+            withinCutoff={rescheduleBooking ? isWithinCutoff(rescheduleBooking, specialist) : false}
           />
 
           <ConfirmDialog
@@ -905,7 +907,11 @@ export default function HomePage(): ReactNode {
             }}
             onConfirm={handleCancelBooking}
             title={t('cancelDialog')}
-            description={t('cancelConfirmMessage')}
+            description={
+              cancelBookingTarget && isWithinCutoff(cancelBookingTarget, specialist)
+                ? `${t('cancelConfirmMessage')} ${t('lateCancelWarning')}`
+                : t('cancelConfirmMessage')
+            }
             confirmText={tc('yes')}
             cancelText={tc('no')}
             destructive

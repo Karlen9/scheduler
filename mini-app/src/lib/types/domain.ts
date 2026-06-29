@@ -3,6 +3,7 @@ export type TSpecialist = {
   name: string;
   timezone: string;
   cancelCutoffHours: number;
+  cancelCutoffEnabled?: boolean;
   botUsername?: string;
   telegramHandle?: string;
   phone?: string;

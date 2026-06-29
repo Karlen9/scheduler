@@ -196,7 +196,8 @@
     "servicesTitle": "Services:",
     "servicesEmpty": "The specialist has not added services yet",
     "bookService": "Book service",
-    "startsIn": "In {time}"
+    "startsIn": "In {time}",
+    "lateCancelWarning": "This session will be counted as completed."
   },
   "BookingForm": {
     "title": "Book a Session",
@@ -278,7 +279,8 @@
     "rescheduleOldLabel": "was",
     "awaitingRescheduleConfirmation": "Awaiting specialist confirmation",
     "loadMore": "Load more",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "lateCancelWarning": "This session will be counted as completed."
   },
   "RecurringPage": {
     "emptyTitle": "No recurring schedules",
@@ -499,7 +501,12 @@
     "invalidRange": "End time must be later than start time",
     "overlapIntervals": "Time ranges cannot overlap",
     "invalidIntervals": "Fix highlighted days before saving",
-    "saveReminder": "Changes only take effect after you save."
+    "saveReminder": "Changes only take effect after you save.",
+    "cancellationPolicyTitle": "Cancellation policy",
+    "cancellationPolicyHint": "If a client cancels or reschedules too late, the session is counted as completed.",
+    "cancellationPolicyToggle": "Count late cancellations as completed",
+    "cancellationPolicyHours": "Minimum notice period",
+    "cancellationPolicyUnit": "h."
   },
   "AdminServices": {
     "title": "Services & Prices",
@@ -845,7 +852,8 @@
     "sessionCancelled": "Session cancelled",
     "moveConfirmed": "Reschedule confirmed",
     "moveDeclined": "Reschedule declined",
-    "clientDeleted": "Client {name} deleted"
+    "clientDeleted": "Client {name} deleted",
+    "saved": "Saved"
   },
   "ActivityTabs": {
     "bookings": "Bookings",

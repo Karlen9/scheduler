@@ -11,10 +11,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { BookingCardSkeleton } from '@/components/LoadingSkeleton';
 import { invalidateBookings } from '@/hooks/mutations';
-import { useBookingsPage } from '@/hooks/queries';
+import { useBookingsPage, useSpecialist } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
-import { collapseReschedulePending, wallClockNow } from '@/lib/helpers';
+import { collapseReschedulePending, isWithinCutoff, wallClockNow } from '@/lib/helpers';
 import { isPreviewRoute } from '@/lib/routes';
 
 import type { TBooking } from '@/lib/types';
@@ -69,6 +69,7 @@ export default function BookingsPage(): ReactNode {
    ***************************************************************************************************/
   const ts = useTranslations('Success');
   const pathname = usePathname();
+  const { data: specialist } = useSpecialist();
   const [page, setPage] = useState(1);
   const [allBookings, setAllBookings] = useState<TBooking[]>([]);
   const { data, isLoading, error } = useBookingsPage({ page, limit: BOOKINGS_PAGE_LIMIT });
@@ -345,7 +346,11 @@ export default function BookingsPage(): ReactNode {
           }}
           onConfirm={handleCancelBooking}
           title={t('cancelDialog')}
-          description={t('cancelConfirmMessage')}
+          description={
+            cancelBookingTarget && isWithinCutoff(cancelBookingTarget, specialist)
+              ? `${t('cancelConfirmMessage')} ${t('lateCancelWarning')}`
+              : t('cancelConfirmMessage')
+          }
           confirmText={tc('yes')}
           cancelText={tc('no')}
           destructive

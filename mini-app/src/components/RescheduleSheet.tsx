@@ -32,6 +32,7 @@ export function RescheduleSheet({
   onClose,
   onSuccess,
   mode = 'admin',
+  withinCutoff = false,
 }: TRescheduleSheetProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -40,6 +41,13 @@ export function RescheduleSheet({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const t = useTranslations('RescheduleSheet');
+  /***************************************************************************************************
+   * Defines the tb value used by the component layer.
+   *
+   * Usage context:
+   * - Reused by the component layer to keep shared values centralized.
+   ***************************************************************************************************/
+  const tb = useTranslations('BookingsPage');
   /***************************************************************************************************
    * Defines the tc value used by the component layer.
    *
@@ -237,6 +245,13 @@ export function RescheduleSheet({
       title={t('title')}
       className={'max-h-[85vh] overflow-y-auto'}
     >
+      {withinCutoff && (
+        <div
+          className={'bg-destructive/10 text-destructive mx-4 mb-3 rounded-lg px-4 py-3 text-sm'}
+        >
+          {tb('lateCancelWarning')}
+        </div>
+      )}
       <div className={'space-y-4'}>
         <CalendarView
           selectedDate={selectedDate}

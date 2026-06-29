@@ -107,6 +107,7 @@ export type TRescheduleSheetProps = {
   onClose: TVoidFunction;
   onSuccess: TVoidFunction;
   mode?: 'admin' | 'client';
+  withinCutoff?: boolean;
 };
 
 export type TUseOnetimeBookingParams = {

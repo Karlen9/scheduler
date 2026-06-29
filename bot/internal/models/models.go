@@ -17,6 +17,7 @@ type Specialist struct {
 	Name                    string     `json:"name"`
 	Timezone                string     `json:"timezone"`
 	CancelCutoffHrs         int        `json:"cancelCutoffHours"`
+	CancelCutoffEnabled     bool       `json:"cancelCutoffEnabled"`
 	TelegramHandle          string     `json:"telegramHandle"`
 	Phone                   string     `json:"phone"`
 	Email                   string     `json:"email"`

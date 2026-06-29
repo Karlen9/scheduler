@@ -196,7 +196,8 @@
     "servicesTitle": "Услуги:",
     "servicesEmpty": "Специалист пока не добавил услуги",
     "bookService": "Записаться на услугу",
-    "startsIn": "Через {time}"
+    "startsIn": "Через {time}",
+    "lateCancelWarning": "Эта запись будет засчитана как выполненная."
   },
   "BookingForm": {
     "title": "Онлайн запись",
@@ -278,7 +279,8 @@
     "rescheduleOldLabel": "было",
     "awaitingRescheduleConfirmation": "Ожидает подтверждения специалиста",
     "loadMore": "Загрузить ещё",
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "lateCancelWarning": "Эта запись будет засчитана как выполненная."
   },
   "RecurringPage": {
     "emptyTitle": "Нет регулярных записей",
@@ -499,7 +501,12 @@
     "invalidRange": "Конец должен быть позже начала",
     "overlapIntervals": "Промежутки не должны пересекаться",
     "invalidIntervals": "Исправьте выделенные дни перед сохранением",
-    "saveReminder": "Изменения вступят в силу только после сохранения."
+    "saveReminder": "Изменения вступят в силу только после сохранения.",
+    "cancellationPolicyTitle": "Политика отмены",
+    "cancellationPolicyHint": "Если клиент отменяет или переносит запись слишком поздно, она засчитывается как выполненная.",
+    "cancellationPolicyToggle": "Считать поздние отмены выполненными",
+    "cancellationPolicyHours": "Минимальное время уведомления",
+    "cancellationPolicyUnit": "ч."
   },
   "AdminServices": {
     "title": "Услуги и цены",
@@ -845,7 +852,8 @@
     "sessionCancelled": "Сеанс отменён",
     "moveConfirmed": "Перенос подтвержден",
     "moveDeclined": "Перенос отклонен",
-    "clientDeleted": "Клиент {name} удалён"
+    "clientDeleted": "Клиент {name} удалён",
+    "saved": "Сохранено"
   },
   "ActivityTabs": {
     "bookings": "Записи",

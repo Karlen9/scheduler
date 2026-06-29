@@ -61,7 +61,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	var subscriptionStatus, subscriptionPlan, yookassaPaymentMethodID sql.NullString
 	var email sql.NullString
 	var trialEndsAt, subscriptionStartedAt, currentPeriodEndAt sql.NullTime
-	var autoRenew, cancelAtPeriodEnd sql.NullInt64
+	var autoRenew, cancelAtPeriodEnd, cancelCutoffEnabled sql.NullInt64
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
@@ -85,6 +85,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&cancelAtPeriodEnd,
 		&yookassaPaymentMethodID,
 		&email,
+		&cancelCutoffEnabled,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -134,6 +135,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	t.CancelAtPeriodEnd = cancelAtPeriodEnd.Valid && cancelAtPeriodEnd.Int64 == 1
 	t.YooKassaPaymentMethodID = yookassaPaymentMethodID.String
 	t.Email = email.String
+	t.CancelCutoffEnabled = cancelCutoffEnabled.Valid && cancelCutoffEnabled.Int64 == 1
 
 	/***************************************************************************************************
 	* Decrypt bot token (passthrough for plain text).
@@ -152,7 +154,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at, subscription_status, subscription_plan, trial_ends_at, subscription_started_at, current_period_end_at, auto_renew, cancel_at_period_end, yookassa_payment_method_id, email`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at, subscription_status, subscription_plan, trial_ends_at, subscription_started_at, current_period_end_at, auto_renew, cancel_at_period_end, yookassa_payment_method_id, email, cancel_cutoff_enabled`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -579,12 +581,16 @@ func GetReferredClientsBySpecialist(specialistID, referralCode string) ([]models
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
-func UpdateSpecialist(id, name, timezone string, cancelCutoffHrs int) (*models.Specialist, error) {
+func UpdateSpecialist(id, name, timezone string, cancelCutoffHrs int, cancelCutoffEnabled bool) (*models.Specialist, error) {
+	enabled := 0
+	if cancelCutoffEnabled {
+		enabled = 1
+	}
 	_, err := DB.Exec(Q(`
 		UPDATE specialists
-		SET name = ?, timezone = ?, cancel_cutoff_hrs = ?
+		SET name = ?, timezone = ?, cancel_cutoff_hrs = ?, cancel_cutoff_enabled = ?
 		WHERE id = ?
-	`), name, timezone, cancelCutoffHrs, id)
+	`), name, timezone, cancelCutoffHrs, enabled, id)
 	if err != nil {
 		return nil, err
 	}
