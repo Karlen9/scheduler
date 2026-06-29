@@ -5,7 +5,7 @@ import type { TTimelineEmptySlotProps } from '@/lib/types';
 import type { KeyboardEvent, ReactNode } from 'react';
 
 const AVAILABLE_SLOT_CHROME =
-  'border-border/50 bg-black/[0.03] dark:border-brand/20 dark:bg-background';
+  'border-border/50 bg-black/[0.03] dark:border-brand/30 dark:bg-brand/5';
 const BREAK_SLOT_CHROME =
   'border-red-500/20 bg-red-500/[0.08] dark:border-red-400/25 dark:bg-red-500/[0.12]';
 const SLOT_TITLE_CLASS = 'text-foreground/70 dark:text-foreground';
