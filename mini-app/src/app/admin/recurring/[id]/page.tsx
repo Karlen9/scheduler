@@ -11,7 +11,7 @@ import { invalidateRecurring } from '@/hooks/mutations';
 import { useAdminRecurringDetail } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { scheduleStatusColors } from '@/lib/colors';
-import { formatDuration, formatTime, parseDayTimes } from '@/lib/helpers';
+import { clientEntityLabel, formatDuration, formatTime, parseDayTimes } from '@/lib/helpers';
 import { dayKeys, monthGenKeys, scheduleStatusKeys } from '@/lib/mappings';
 
 import { BookingRow } from './BookingRow';
@@ -459,7 +459,7 @@ export default function AdminRecurringDetailPage(): ReactNode {
         title={t('cancelSessionDialog')}
         description={
           cancelTarget
-            ? `${formatDate(cancelTarget.startsAt)} — ${cancelTarget.clientDisplayName || cancelTarget.clientName}`
+            ? `${formatDate(cancelTarget.startsAt)} — ${clientEntityLabel(cancelTarget, tc('self'))}`
             : undefined
         }
         confirmText={tc('cancelVerb')}

@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { StatusBadge, statusBorders } from '@/components/StatusBadge';
-import { formatDuration } from '@/lib/helpers';
+import { clientEntityLabel, formatDuration } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { TRecurringSchedule, TRecurringScheduleCardProps, TSessionType } from '@/lib/types';
@@ -355,9 +355,7 @@ export function RecurringScheduleCard({
                 isSelf={schedule.clientIsSelf}
               />
               <span className={'text-foreground text-sm font-medium'}>
-                {schedule.clientIsSelf
-                  ? tc('self')
-                  : schedule.clientDisplayName || schedule.clientName}
+                {clientEntityLabel(schedule, tc('self'))}
               </span>
             </div>
           )}

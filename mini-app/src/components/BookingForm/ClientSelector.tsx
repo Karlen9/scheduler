@@ -1,4 +1,4 @@
-import { AlertCircle, Bookmark, Search, UserPlus } from 'lucide-react';
+import { AlertCircle, Search, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -183,20 +183,11 @@ export function ClientSelector({
                     'bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left transition-colors'
                   }
                 >
-                  {client.isSelf ? (
-                    <div
-                      className={
-                        'bg-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full'
-                      }
-                    >
-                      <Bookmark className={'h-5 w-5 fill-white text-white'} />
-                    </div>
-                  ) : (
-                    <ClientAvatar
-                      name={client.displayName || client.name}
-                      photoUrl={client.photoUrl}
-                    />
-                  )}
+                  <ClientAvatar
+                    name={client.displayName || client.name}
+                    photoUrl={client.photoUrl}
+                    isSelf={client.isSelf}
+                  />
                   <div className={'min-w-0 flex-1'}>
                     <div className={'text-foreground truncate font-medium'}>
                       {client.isSelf ? (

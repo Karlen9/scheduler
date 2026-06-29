@@ -7,6 +7,7 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { dayFullLowerKeysJS } from '@/lib/constants';
+import { clientEntityLabel } from '@/lib/helpers';
 import { monthGenKeys } from '@/lib/mappings';
 
 import type { TBookingDetailModalProps } from '@/lib/types';
@@ -162,9 +163,7 @@ export function BookingDetailModal({
         />
         <div>
           <h3 className={'text-foreground text-xl font-medium'}>
-            {displayBooking.clientIsSelf
-              ? tc('self')
-              : displayBooking.clientDisplayName || displayBooking.clientName}
+            {clientEntityLabel(displayBooking, tc('self'))}
           </h3>
           <StatusBadge status={displayBooking.status} className={'inline-block px-2 py-0.5'} />
         </div>

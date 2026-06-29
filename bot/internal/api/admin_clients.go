@@ -15,7 +15,7 @@ import (
 )
 
 func isSelfClient(c *models.Client, s *models.Specialist) bool {
-	return c != nil && s != nil && c.TelegramUserID == s.TelegramUserID
+	return s != nil && c.IsSelfOf(s.TelegramUserID)
 }
 
 type AssignClientBatchRequest struct {

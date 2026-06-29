@@ -257,3 +257,10 @@ export function nextDateForWeekday(targetDay: number, today: Date): Date {
 export function wallClockNow(): number {
   return Date.now() - new Date().getTimezoneOffset() * 60000;
 }
+
+export function clientEntityLabel(
+  entity: { clientIsSelf?: boolean; clientDisplayName?: string; clientName?: string },
+  selfLabel: string,
+): string {
+  return entity.clientIsSelf ? selfLabel : entity.clientDisplayName || entity.clientName || '';
+}

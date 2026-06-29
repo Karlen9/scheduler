@@ -20,7 +20,7 @@ import {
 } from '@/hooks/queries';
 import { ADMIN_UPCOMING_BOOKING_STATUSES, todayISO } from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
-import { getNonWorkingDays, wallClockNow } from '@/lib/helpers';
+import { clientEntityLabel, getNonWorkingDays, wallClockNow } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { openTelegramUserChat } from '@/lib/telegram';
 
@@ -73,6 +73,7 @@ export default function AdminHomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
+  const tc = useTranslations('Common');
   const [isPageVisible, setIsPageVisible] = useState(true);
   const activeBookingsCountQuery = useMemo<TAdminBookingsQuery>(
     () => ({
@@ -417,7 +418,7 @@ export default function AdminHomePage(): ReactNode {
        ***************************************************************************************************/}
       <RejectDialog
         isOpen={showRejectDialog}
-        targetName={rejectTarget?.clientDisplayName || rejectTarget?.clientName || ''}
+        targetName={rejectTarget ? clientEntityLabel(rejectTarget, tc('self')) : ''}
         reason={rejectReason}
         onReasonChange={setRejectReason}
         onConfirm={handleConfirmReject}
