@@ -226,8 +226,8 @@
 
   /* Accent colors */
   --warning: #f59e0b;
-  --success: var(--tg-theme-link-color);
-  --error: var(--tg-theme-destructive-text-color);
+  --success: #4ade80;
+  --error: #f87171;
   --destructive-foreground: var(--tg-theme-button-text-color);
   --chart-1: var(--tg-theme-button-color);
   --chart-2: var(--tg-theme-link-color);
