@@ -143,14 +143,11 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
      ***************************************************************************************************/
     const hours = Math.floor(minutes / 60);
     if (hours < 24) {
-      /***************************************************************************************************
-       * Defines the word value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const word = hourWord(hours);
-      return tu('inHours', { count: hours, word });
+      const remainingMins = minutes % 60;
+      if (remainingMins === 0) {
+        return tu('inHours', { count: hours, word: hourWord(hours) });
+      }
+      return tu('inHoursAndMinutes', { hours, hoursWord: hourWord(hours), mins: remainingMins });
     }
     /***************************************************************************************************
      * Defines the days value used by the component layer.

@@ -160,6 +160,7 @@
     "inMinutes": "in {count} {word}",
     "inHours": "in {count} {word}",
     "inDays": "in {count} {word}",
+    "inHoursAndMinutes": "in {hours}h {mins}m",
     "minute1": "minute",
     "minute234": "minutes",
     "minute5": "minutes",
