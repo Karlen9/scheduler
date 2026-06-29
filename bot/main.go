@@ -525,7 +525,7 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
-		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
+		if client.IsGhost || client.IsSelfOf(specialist.TelegramUserID) {
 			return nil
 		}
 		if !client.NotifyBookingStatus {
@@ -571,7 +571,7 @@ func main() {
 		if err != nil || specialist == nil {
 			return err
 		}
-		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
+		if client.IsGhost || client.IsSelfOf(specialist.TelegramUserID) {
 			return nil
 		}
 		if !client.NotifyBookingStatus {
@@ -656,7 +656,7 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
-		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
+		if client.IsGhost || client.IsSelfOf(specialist.TelegramUserID) {
 			return nil
 		}
 		if !client.NotifyBookingStatus {
@@ -696,7 +696,7 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
-		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
+		if client.IsGhost || client.IsSelfOf(specialist.TelegramUserID) {
 			return nil
 		}
 		if !client.NotifyCancellations {

@@ -1,6 +1,5 @@
 'use client';
 
-import { Bookmark } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -129,20 +128,11 @@ export function BookingForm({
          ***************************************************************************************************/}
         {hasClientSelector && selectedClient && (
           <div className={'bg-card flex items-center gap-3 rounded-xl p-3'}>
-            {selectedClient.isSelf ? (
-              <div
-                className={
-                  'bg-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full'
-                }
-              >
-                <Bookmark className={'h-5 w-5 fill-white text-white'} />
-              </div>
-            ) : (
-              <ClientAvatar
-                name={selectedClient.displayName || selectedClient.name}
-                photoUrl={selectedClient.photoUrl}
-              />
-            )}
+            <ClientAvatar
+              name={selectedClient.displayName || selectedClient.name}
+              photoUrl={selectedClient.photoUrl}
+              isSelf={selectedClient.isSelf}
+            />
             <div className={'min-w-0 flex-1'}>
               <p className={'text-foreground truncate text-sm font-medium'}>
                 {selectedClient.isSelf ? (

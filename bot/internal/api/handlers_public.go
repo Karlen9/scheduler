@@ -17,7 +17,7 @@ func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := GetClientFromContext(r)
-	isOwner := client != nil && client.TelegramUserID == specialist.TelegramUserID
+	isOwner := client.IsSelfOf(specialist.TelegramUserID)
 	if isOwner {
 		ensureSpecialistTelegramProfilePhoto(r, specialist)
 	}

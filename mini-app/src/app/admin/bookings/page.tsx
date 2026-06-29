@@ -22,6 +22,7 @@ import {
   yesterdayISO,
 } from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
+import { clientEntityLabel } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { openTelegramUserChat } from '@/lib/telegram';
 
@@ -564,7 +565,7 @@ export default function AdminAllBookingsPage(): ReactNode {
                 <div className={'min-w-0 flex-1'}>
                   <div className={'mb-1 flex items-center gap-2'}>
                     <span className={'text-foreground truncate font-medium'}>
-                      {booking.clientIsSelf ? tc('self') : bookingDisplayName(booking)}
+                      {clientEntityLabel(booking, tc('self'))}
                     </span>
                     {booking.clientIsGhost && (
                       <span className={'text-muted-foreground shrink-0 text-xs'}>

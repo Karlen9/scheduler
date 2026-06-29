@@ -28,6 +28,8 @@ const iconSizeClasses = {
   lg: 'h-8 w-8',
 };
 
+const circleSizeClasses = { sm: 'w-8 h-8', md: 'w-10 h-10', lg: 'w-16 h-16' };
+
 /***************************************************************************************************
  * Renders the client avatar UI and related interactions.
  *
@@ -62,7 +64,9 @@ export function ClientAvatar({
 
   if (isSelf) {
     return (
-      <div className={`${cls} bg-brand flex shrink-0 items-center justify-center rounded-full`}>
+      <div
+        className={`${circleSizeClasses[size]} bg-brand flex shrink-0 items-center justify-center rounded-full`}
+      >
         <Bookmark className={`${iconSizeClasses[size]} fill-white text-white`} />
       </div>
     );

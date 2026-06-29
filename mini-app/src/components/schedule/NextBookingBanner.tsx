@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
-import { wallClockNow } from '@/lib/helpers';
+import { clientEntityLabel, wallClockNow } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { TNextBookingBannerProps } from '@/lib/types';
@@ -268,7 +268,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
         <div className={'flex items-center gap-3'}>
           <div className={'min-w-0 flex-1'}>
             <p className={'text-foreground truncate font-medium'}>
-              {booking.clientIsSelf ? tc('self') : booking.clientDisplayName || booking.clientName}
+              {clientEntityLabel(booking, tc('self'))}
             </p>
             <p className={'text-muted-foreground text-sm'}>
               {tc('workout')}

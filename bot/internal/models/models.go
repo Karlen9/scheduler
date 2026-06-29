@@ -73,6 +73,12 @@ type Client struct {
 	CreatedAt           time.Time `json:"createdAt"`
 }
 
+// IsSelfOf reports whether this client is the owning specialist's own ("self") client,
+// i.e. the client row whose Telegram user matches the specialist's Telegram user id.
+func (c *Client) IsSelfOf(specialistTelegramID int64) bool {
+	return c != nil && c.TelegramUserID == specialistTelegramID
+}
+
 /***************************************************************************************************
 * Defines the session type type used by the shared model layer.
 ***************************************************************************************************/

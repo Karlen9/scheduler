@@ -2,6 +2,7 @@ import { Calendar, CalendarCheck, Clock, Repeat } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { clientEntityLabel } from '@/lib/helpers';
 
 import type { TAdminScheduleInfoCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -48,7 +49,7 @@ export function ScheduleInfoCard({
             isSelf={schedule.clientIsSelf}
           />
           <span className={'text-foreground text-sm'}>
-            {schedule.clientIsSelf ? tc('self') : schedule.clientDisplayName || schedule.clientName}
+            {clientEntityLabel(schedule, tc('self'))}
           </span>
         </div>
 

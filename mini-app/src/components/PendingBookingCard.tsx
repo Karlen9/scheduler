@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { memo } from 'react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { clientEntityLabel } from '@/lib/helpers';
 
 import type { TPendingBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -159,7 +160,7 @@ function PendingBookingCardComponent({
         />
         <div className={'min-w-0 flex-1'}>
           <p className={'text-foreground truncate font-medium'}>
-            {booking.clientIsSelf ? tc('self') : booking.clientDisplayName || booking.clientName}
+            {clientEntityLabel(booking, tc('self'))}
           </p>
           <p className={'text-muted-foreground text-sm'}>
             {booking.sessionType?.name || tc('workout')}
