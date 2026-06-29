@@ -160,6 +160,7 @@
     "inMinutes": "через {count} {word}",
     "inHours": "через {count} {word}",
     "inDays": "через {count} {word}",
+    "inHoursAndMinutes": "через {hours} ч. {mins} мин.",
     "minute1": "минуту",
     "minute234": "минуты",
     "minute5": "минут",
