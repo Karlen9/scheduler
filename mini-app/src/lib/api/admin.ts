@@ -204,6 +204,18 @@ export const adminApi = {
     });
   },
 
+  async approveReschedule(bookingId: string): Promise<TBooking> {
+    return fetchAPI<TBooking>(`/api/admin/bookings/${bookingId}/approve-reschedule`, {
+      method: 'PUT',
+    });
+  },
+
+  async declineReschedule(bookingId: string): Promise<void> {
+    await fetchAPI<void>(`/api/admin/bookings/${bookingId}/decline-reschedule`, {
+      method: 'PUT',
+    });
+  },
+
   async getClients(): Promise<TClientInfo[]> {
     const response = await getClientsPage({
       page: 1,

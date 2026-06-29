@@ -1151,6 +1151,19 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-apply for ghost/self clients — update in place without approval.
+	if bookingAutoApplies(booking) {
+		updated, err := applyMoveInPlace(r, booking, req)
+		if err != nil {
+			handleValidationError(w, r, err)
+			return
+		}
+		log.Printf("MOVE AUTO-APPLY (CLIENT) booking %s", booking.ID[:8])
+		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+		writeJSON(w, updated)
+		return
+	}
+
 	newBooking, err := createMoveBooking(r, booking, scheduleID, "client", "", req)
 	if err != nil {
 		handleValidationError(w, r, err)
@@ -1265,6 +1278,19 @@ func HandleAdminBookingMoveRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-apply for ghost/self clients — update in place without approval.
+	if bookingAutoApplies(booking) {
+		updated, err := applyMoveInPlace(r, booking, req)
+		if err != nil {
+			handleValidationError(w, r, err)
+			return
+		}
+		log.Printf("MOVE AUTO-APPLY (ADMIN) booking %s", booking.ID[:8])
+		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+		writeJSON(w, updated)
+		return
+	}
+
 	newBooking, err := createMoveBooking(r, booking, scheduleID, "specialist", "", req)
 	if err != nil {
 		handleValidationError(w, r, err)
@@ -1317,6 +1343,11 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var oldBooking *models.Booking
+	if booking.ReplacesBookingID != "" {
+		oldBooking, _ = db.GetBookingByID(booking.ReplacesBookingID)
+	}
+
 	if err := db.ApproveRescheduleBooking(booking.ID); err != nil {
 		log.Printf("Error approving move: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1327,6 +1358,11 @@ func HandleAdminApproveMoveBooking(w http.ResponseWriter, r *http.Request) {
 	updated, _ := db.GetBookingByID(booking.ID)
 	if updated != nil {
 		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	}
+	if NotifyRescheduleResponseFunc != nil && updated != nil {
+		if err := NotifyRescheduleResponseFunc(updated, oldBooking, true, "specialist"); err != nil {
+			log.Printf("Error notifying client about approved move: %v", err)
+		}
 	}
 	writeJSON(w, updated)
 }
@@ -1365,6 +1401,11 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var oldBooking *models.Booking
+	if booking.ReplacesBookingID != "" {
+		oldBooking, _ = db.GetBookingByID(booking.ReplacesBookingID)
+	}
+
 	if err := db.DeclineRescheduleBooking(booking.ID); err != nil {
 		log.Printf("Error declining move: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -1373,6 +1414,11 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("MOVE DECLINED booking %s", booking.ID[:8])
 	changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	if NotifyRescheduleResponseFunc != nil {
+		if err := NotifyRescheduleResponseFunc(booking, oldBooking, false, "specialist"); err != nil {
+			log.Printf("Error notifying client about declined move: %v", err)
+		}
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1393,6 +1439,43 @@ func HandleAdminDeclineMoveBooking(w http.ResponseWriter, r *http.Request) {
 * - Reads request-scoped context, writes HTTP responses, and may call downstream database or notification helpers.
 *
 ***************************************************************************************************/
+// applyMoveInPlace updates a booking's date/time in place (no shadow). Used when the client is a
+// ghost or the specialist themselves, where no approval step is needed.
+func applyMoveInPlace(r *http.Request, booking *models.Booking, req MoveBookingRequest) (*models.Booking, error) {
+	if req.Date == "" || req.Time == "" {
+		return nil, fmt.Errorf("Error.MissingDateTime")
+	}
+	newDate, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		return nil, fmt.Errorf("Error.InvalidDate")
+	}
+	hour, minute, err := parseTime(req.Time)
+	if err != nil {
+		return nil, fmt.Errorf("Error.SelectTime")
+	}
+	startsAt := time.Date(newDate.Year(), newDate.Month(), newDate.Day(), hour, minute, 0, 0, time.UTC)
+	endsAt := startsAt.Add(time.Duration(booking.DurationMinutes) * time.Minute)
+
+	specialist, _ := db.GetSpecialistByID(booking.SpecialistID)
+	tz := "UTC"
+	if specialist != nil && specialist.Timezone != "" {
+		tz = specialist.Timezone
+	}
+	if errMsg := validateRescheduleTime(newDate, startsAt, tz); errMsg != "" {
+		return nil, fmt.Errorf("%s", errMsg)
+	}
+
+	hasConflict, _ := db.HasConflictingBooking(booking.SpecialistID, startsAt, endsAt, booking.ID)
+	if hasConflict {
+		return nil, fmt.Errorf("Error.TimeSlotTaken")
+	}
+	if err := db.UpdateBookingDateTime(booking.ID, startsAt, endsAt, booking.DurationMinutes); err != nil {
+		return nil, fmt.Errorf("Error.Internal")
+	}
+	updated, _ := db.GetBookingByID(booking.ID)
+	return updated, nil
+}
+
 func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID, createdBy, message string, req MoveBookingRequest) (*models.Booking, error) {
 	if req.Date == "" || req.Time == "" {
 		return nil, fmt.Errorf("Error.MissingDateTime")
@@ -1409,6 +1492,18 @@ func createMoveBooking(r *http.Request, booking *models.Booking, scheduleID, cre
 	}
 	startsAt := time.Date(newDate.Year(), newDate.Month(), newDate.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(booking.DurationMinutes) * time.Minute)
+
+	/***************************************************************************************************
+	* Validate future-only: check date and start time against the specialist's timezone.
+	***************************************************************************************************/
+	specialist, _ := db.GetSpecialistByID(booking.SpecialistID)
+	tz := "UTC"
+	if specialist != nil && specialist.Timezone != "" {
+		tz = specialist.Timezone
+	}
+	if errMsg := validateRescheduleTime(newDate, startsAt, tz); errMsg != "" {
+		return nil, fmt.Errorf("%s", errMsg)
+	}
 
 	/***************************************************************************************************
 	* Check conflicts.

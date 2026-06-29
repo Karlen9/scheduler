@@ -276,6 +276,7 @@
     "approveRescheduleButton": "Accept new time",
     "declineRescheduleButton": "Decline",
     "rescheduleOldLabel": "was",
+    "awaitingRescheduleConfirmation": "Awaiting specialist confirmation",
     "loadMore": "Load more",
     "loading": "Loading..."
   },
@@ -631,7 +632,8 @@
     "emptyFilteredDescription": "Change filters to see more bookings",
     "loadMore": "Load more",
     "loading": "Loading...",
-    "dmUnavailable": "This client cannot be messaged"
+    "dmUnavailable": "This client cannot be messaged",
+    "rescheduleFromLabel": "was"
   },
   "AdminHelp": {
     "title": "Help",
@@ -691,7 +693,8 @@
     "waitingForClient": "Waiting for client response",
     "approveRescheduleButton": "Accept new time",
     "declineRescheduleButton": "Decline",
-    "specialistNote": "Note from specialist"
+    "specialistNote": "Note from specialist",
+    "awaitingRescheduleConfirmation": "Awaiting specialist confirmation"
   },
   "RescheduleSheet": {
     "title": "Reschedule Booking",

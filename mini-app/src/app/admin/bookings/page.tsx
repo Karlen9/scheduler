@@ -15,6 +15,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { TopBar } from '@/components/TopBar';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useAdminBookingsPage, useAdminServices, useClients } from '@/hooks/queries';
+import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import {
   ADMIN_BOOKING_STATUS_OPTIONS,
   ADMIN_UPCOMING_BOOKING_STATUSES,
@@ -22,7 +23,7 @@ import {
   yesterdayISO,
 } from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
-import { clientEntityLabel } from '@/lib/helpers';
+import { clientEntityLabel, collapseReschedulePending } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { openTelegramUserChat } from '@/lib/telegram';
 
@@ -156,6 +157,8 @@ export default function AdminAllBookingsPage(): ReactNode {
     [searchParamsString],
   );
 
+  const adminReschedule = useRescheduleActions('admin');
+
   const [page, setPage] = useState(1);
   const [allBookings, setAllBookings] = useState<TBooking[]>([]);
   const [draftFilters, setDraftFilters] = useState<TBookingPageFilters>(filters);
@@ -279,6 +282,16 @@ export default function AdminAllBookingsPage(): ReactNode {
       setPage((p) => p + 1);
     }
   }, [hasMore, isLoading]);
+
+  /***************************************************************************************************
+   * Collapse reschedule_pending shadows over their originals in the displayed list. Only
+   * client-initiated reschedule shadows are actionable for the admin; specialist-initiated
+   * ones are awaiting the client and should still be visible in the list.
+   ***************************************************************************************************/
+  const { visibleBookings, replacedBookingLookup } = useMemo(() => {
+    const { visible, replacedLookup } = collapseReschedulePending(allBookings);
+    return { visibleBookings: visible, replacedBookingLookup: replacedLookup };
+  }, [allBookings]);
 
   const activeFiltersCount = [
     filters.statuses.length > 0,
@@ -547,45 +560,59 @@ export default function AdminAllBookingsPage(): ReactNode {
           </div>
         ) : (
           <div className={'space-y-3'}>
-            {allBookings.map((booking) => (
-              <button
-                key={booking.id}
-                type={'button'}
-                onClick={() => setSelectedBooking(booking)}
-                className={
-                  'bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left active:opacity-80'
-                }
-              >
-                <ClientAvatar
-                  name={bookingDisplayName(booking)}
-                  photoUrl={booking.clientPhotoUrl}
-                  size={'md'}
-                  isSelf={booking.clientIsSelf}
-                />
-                <div className={'min-w-0 flex-1'}>
-                  <div className={'mb-1 flex items-center gap-2'}>
-                    <span className={'text-foreground truncate font-medium'}>
-                      {clientEntityLabel(booking, tc('self'))}
-                    </span>
-                    {booking.clientIsGhost && (
-                      <span className={'text-muted-foreground shrink-0 text-xs'}>
-                        {tc('ghost')}
+            {visibleBookings.map((booking) => {
+              const replaced =
+                booking.status === 'reschedule_pending' && booking.replacesBookingId
+                  ? replacedBookingLookup.get(booking.replacesBookingId)
+                  : undefined;
+              return (
+                <button
+                  key={booking.id}
+                  type={'button'}
+                  onClick={() => setSelectedBooking(booking)}
+                  className={
+                    'bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left active:opacity-80'
+                  }
+                >
+                  <ClientAvatar
+                    name={bookingDisplayName(booking)}
+                    photoUrl={booking.clientPhotoUrl}
+                    size={'md'}
+                    isSelf={booking.clientIsSelf}
+                  />
+                  <div className={'min-w-0 flex-1'}>
+                    <div className={'mb-1 flex items-center gap-2'}>
+                      <span className={'text-foreground truncate font-medium'}>
+                        {clientEntityLabel(booking, tc('self'))}
                       </span>
+                      {booking.clientIsGhost && (
+                        <span className={'text-muted-foreground shrink-0 text-xs'}>
+                          {tc('ghost')}
+                        </span>
+                      )}
+                    </div>
+                    <div className={'text-muted-foreground text-sm'}>
+                      {formatDate(booking.startsAt)} {formatTimeRange(booking)}
+                    </div>
+                    {replaced && (
+                      <div className={'text-muted-foreground mt-0.5 text-xs'}>
+                        {t('rescheduleFromLabel')}{' '}
+                        <span className={'line-through'}>
+                          {formatDate(replaced.startsAt)} {formatTimeRange(replaced)}
+                        </span>
+                      </div>
                     )}
+                    <div className={'mt-2 flex items-center justify-between gap-2'}>
+                      <span className={'text-muted-foreground min-w-0 truncate text-xs'}>
+                        {booking.sessionType?.name || tc('workout')}
+                      </span>
+                      <StatusBadge status={booking.status} className={'shrink-0 px-2 py-0.5'} />
+                    </div>
                   </div>
-                  <div className={'text-muted-foreground text-sm'}>
-                    {formatDate(booking.startsAt)} {formatTimeRange(booking)}
-                  </div>
-                  <div className={'mt-2 flex items-center justify-between gap-2'}>
-                    <span className={'text-muted-foreground min-w-0 truncate text-xs'}>
-                      {booking.sessionType?.name || tc('workout')}
-                    </span>
-                    <StatusBadge status={booking.status} className={'shrink-0 px-2 py-0.5'} />
-                  </div>
-                </div>
-                <ChevronRight className={'text-muted-foreground h-5 w-5 shrink-0'} />
-              </button>
-            ))}
+                  <ChevronRight className={'text-muted-foreground h-5 w-5 shrink-0'} />
+                </button>
+              );
+            })}
 
             {hasMore && (
               <button
@@ -904,6 +931,22 @@ export default function AdminAllBookingsPage(): ReactNode {
         onAccept={handleAccept}
         onReject={handleRejectClick}
         onMessageClient={handleMessageClient}
+        onApproveReschedule={
+          selectedBooking?.status === 'reschedule_pending' && selectedBooking.createdBy === 'client'
+            ? async (b) => {
+                await adminReschedule.approve(b);
+                setSelectedBooking(null);
+              }
+            : undefined
+        }
+        onDeclineReschedule={
+          selectedBooking?.status === 'reschedule_pending' && selectedBooking.createdBy === 'client'
+            ? async (b) => {
+                await adminReschedule.decline(b);
+                setSelectedBooking(null);
+              }
+            : undefined
+        }
       />
 
       <RescheduleSheet

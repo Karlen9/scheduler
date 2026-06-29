@@ -14,7 +14,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import { useBookingsPage } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
-import { wallClockNow } from '@/lib/helpers';
+import { collapseReschedulePending, wallClockNow } from '@/lib/helpers';
 import { isPreviewRoute } from '@/lib/routes';
 
 import type { TBooking } from '@/lib/types';
@@ -101,38 +101,28 @@ export default function BookingsPage(): ReactNode {
   }, []);
 
   /***************************************************************************************************
-   * Defines the active bookings value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
+   * Build the active list with shadow bookings superseding their originals. Uses the shared
+   * collapseReschedulePending helper which hides originals that have a pending shadow and
+   * returns a lookup map for old→new time display.
    ***************************************************************************************************/
-  /***************************************************************************************************
-   * Build the active list with shadow bookings superseding their originals. When an admin
-   * proposes a reschedule, a reschedule_pending shadow is created that points at the original
-   * via `replacesBookingId`. Showing both as siblings confuses the client — render only the
-   * shadow (with old→new time visible on the card).
-   ***************************************************************************************************/
-  const activeBookings = useMemo(() => {
-    const activeAll = bookings.filter(
-      (b) => ACTIVE_STATUSES.has(b.status) && !isPastBooking(b, now),
+  const { activeBookings, replacedBookingLookup } = useMemo(() => {
+    const activeIds = new Set(
+      bookings
+        .filter((b) => ACTIVE_STATUSES.has(b.status) && !isPastBooking(b, now))
+        .map((b) => b.id),
     );
-    const replacedIds = new Set<string>(
-      activeAll
-        .filter((b) => b.status === 'reschedule_pending' && b.replacesBookingId)
-        .map((b) => b.replacesBookingId as string),
-    );
-    return activeAll
-      .filter((b) => !replacedIds.has(b.id))
-      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    // Build replacedLookup from the FULL bookings list so that originals whose
+    // startsAt is already in the past are still found and the "was <old time>"
+    // annotation renders correctly on reschedule_pending shadow cards.
+    const { visible: visibleFromFull, replacedLookup } = collapseReschedulePending(bookings);
+    const visible = visibleFromFull.filter((b) => activeIds.has(b.id));
+    return {
+      activeBookings: visible.sort(
+        (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+      ),
+      replacedBookingLookup: replacedLookup,
+    };
   }, [bookings, now]);
-
-  const replacedBookingLookup = useMemo(() => {
-    const map = new Map<string, TBooking>();
-    for (const b of bookings) {
-      map.set(b.id, b);
-    }
-    return map;
-  }, [bookings]);
   /***************************************************************************************************
    * Defines the past bookings value used by the page layer.
    *
@@ -285,12 +275,16 @@ export default function BookingsPage(): ReactNode {
                       : undefined
                   }
                   onApproveReschedule={
-                    !isPreview && booking.status === 'reschedule_pending'
+                    !isPreview &&
+                    booking.status === 'reschedule_pending' &&
+                    booking.createdBy === 'specialist'
                       ? reschedule.approve
                       : undefined
                   }
                   onDeclineReschedule={
-                    !isPreview && booking.status === 'reschedule_pending'
+                    !isPreview &&
+                    booking.status === 'reschedule_pending' &&
+                    booking.createdBy === 'specialist'
                       ? reschedule.decline
                       : undefined
                   }

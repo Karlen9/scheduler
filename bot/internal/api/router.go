@@ -127,6 +127,8 @@ func NewRouter() http.Handler {
 				r.Post("/bookings", HandleAdminCreateBooking)
 				r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
 				r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
+				r.Put("/bookings/{id}/approve-reschedule", HandleAdminApproveReschedule)
+				r.Put("/bookings/{id}/decline-reschedule", HandleAdminDeclineReschedule)
 
 				r.Get("/days-off", HandleGetDaysOff)
 				r.Post("/days-off/batch", HandleBatchCreateDayOff)
@@ -258,6 +260,8 @@ func NewRouter() http.Handler {
 			r.Post("/bookings", HandleAdminCreateBooking)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
 			r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
+			r.Put("/bookings/{id}/approve-reschedule", HandleAdminApproveReschedule)
+			r.Put("/bookings/{id}/decline-reschedule", HandleAdminDeclineReschedule)
 
 			/***************************************************************************************************
 			* Days off management.

@@ -134,6 +134,18 @@
   "Move.Declined": {
     "other": "↩️ Reschedule declined\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n\nThe session remains in the schedule."
   },
+  "Move.ApprovedForClient": {
+    "other": "✅ Specialist confirmed the reschedule\n\n📋 Service: {{.Service}}\n🕐 Previous time: {{.OldDateTime}}\n🕐 New time: {{.NewDateTime}}"
+  },
+  "Move.DeclinedForClient": {
+    "other": "↩️ Specialist declined the reschedule\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n\nThe session remains in the schedule."
+  },
+  "Callback.RescheduleApproved": {
+    "other": "✅ Reschedule confirmed"
+  },
+  "Callback.RescheduleDeclined": {
+    "other": "↩️ Reschedule declined"
+  },
   "Recurring.Request": {
     "other": "🔄 New recurring schedule request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}"
   },
