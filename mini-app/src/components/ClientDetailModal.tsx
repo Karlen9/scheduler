@@ -1,5 +1,6 @@
 'use client';
 
+import { Bookmark } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -96,17 +97,24 @@ export function ClientDetailModal({
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} showClose>
       <div className={'mb-4 flex items-center gap-4'}>
-        <ClientAvatar name={displayName} photoUrl={displayClient.photoUrl} size={'lg'} />
+        {displayClient.isSelf ? (
+          <div
+            className={'bg-brand flex h-16 w-16 shrink-0 items-center justify-center rounded-full'}
+          >
+            <Bookmark className={'h-8 w-8 fill-white text-white'} />
+          </div>
+        ) : (
+          <ClientAvatar name={displayName} photoUrl={displayClient.photoUrl} size={'lg'} />
+        )}
         <div className={'min-w-0'}>
-          <h3 className={'text-foreground truncate text-xl font-medium'}>{displayName}</h3>
-          {displayClient.displayName && !displayClient.isGhost && (
+          <h3 className={'text-foreground truncate text-xl font-medium'}>
+            {displayClient.isSelf ? tc('self') : displayName}
+          </h3>
+          {displayClient.displayName && !displayClient.isGhost && !displayClient.isSelf && (
             <div className={'text-muted-foreground truncate text-sm'}>{displayClient.name}</div>
           )}
           {displayClient.isGhost && (
             <span className={'text-muted-foreground text-sm'}>{tc('ghost')}</span>
-          )}
-          {displayClient.isSelf && (
-            <span className={'text-muted-foreground text-sm'}>{tc('self')}</span>
           )}
         </div>
       </div>
