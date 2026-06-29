@@ -183,6 +183,7 @@ export type TClientInfo = {
   phone?: string;
   photoUrl?: string;
   isGhost?: boolean;
+  isSelf?: boolean;
   isBlocked?: boolean;
   createdAt: string;
 };

@@ -64,6 +64,7 @@ type Client struct {
 	Language            string    `json:"language,omitempty"`
 	ReferredViaCode     string    `json:"referredViaCode,omitempty"`
 	IsGhost             bool      `json:"isGhost,omitempty"`
+	IsSelf              bool      `json:"isSelf,omitempty"`
 	IsBlocked           bool      `json:"isBlocked,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`

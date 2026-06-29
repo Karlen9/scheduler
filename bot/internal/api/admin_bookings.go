@@ -433,7 +433,7 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	log.Printf("SPECIALIST BOOKING [%s] Specialist: %s booked client: %s | Duration: %dmin | Time: %s %s",
 		booking.ID[:8], specialist.Name, client.Name, duration, req.Date, req.Time)
 
-	if client.IsGhost {
+	if client.IsGhost || isSelfClient(client, specialist) {
 		if err := db.UpdateBookingStatus(booking.ID, models.BookingStatusConfirmed); err != nil {
 			log.Printf("Error auto-confirming ghost booking: %v", err)
 		}
