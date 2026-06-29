@@ -7,10 +7,11 @@ import { toast } from 'sonner';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { Switch } from '@/components/Switch';
 import { TimePickerModal } from '@/components/TimePickerModal';
 import { TopBar } from '@/components/TopBar';
-import { invalidateWorkingHours } from '@/hooks/mutations';
-import { useAdminWorkingHours } from '@/hooks/queries';
+import { invalidateSpecialist, invalidateWorkingHours } from '@/hooks/mutations';
+import { useAdminWorkingHours, useSpecialist } from '@/hooks/queries';
 import { api } from '@/lib/api';
 
 import type { TDaySchedule, TWorkingHours, TWorkingInterval } from '@/lib/types';
@@ -196,6 +197,7 @@ export default function SchedulePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
+  const { data: specialist } = useSpecialist();
   const { data: workingHours, isLoading } = useAdminWorkingHours();
   const [schedule, setSchedule] = useState<Record<number, TDaySchedule>>(() =>
     createSchedule([1, 2, 3, 4, 5]),
@@ -205,6 +207,10 @@ export default function SchedulePage(): ReactNode {
   const [expandedDay, setExpandedDay] = useState<number>(1);
   const [copySourceDay, setCopySourceDay] = useState<number | null>(null);
   const [copyTargetDays, setCopyTargetDays] = useState<number[]>([]);
+  const [cutoffEnabled, setCutoffEnabled] = useState(false);
+  const [cutoffHours, setCutoffHours] = useState(24);
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+  const [policyInitialized, setPolicyInitialized] = useState(false);
 
   const [pickerTarget, setPickerTarget] = useState<{
     day: number;
@@ -239,6 +245,15 @@ export default function SchedulePage(): ReactNode {
     setSchedule(newSchedule);
     setInitialized(true);
   }, [workingHours, isLoading, initialized]);
+
+  useEffect(() => {
+    if (policyInitialized || !specialist) {
+      return;
+    }
+    setCutoffEnabled(specialist.cancelCutoffEnabled ?? false);
+    setCutoffHours(specialist.cancelCutoffHours ?? 24);
+    setPolicyInitialized(true);
+  }, [specialist, policyInitialized]);
 
   /***************************************************************************************************
    * Handles day toggle.
@@ -438,6 +453,23 @@ export default function SchedulePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
+  const handleSavePolicy = async (): Promise<void> => {
+    setIsSavingPolicy(true);
+    try {
+      await api.admin.updateProfile({
+        cancelCutoffEnabled: cutoffEnabled,
+        cancelCutoffHours: cutoffHours,
+      });
+      invalidateSpecialist();
+      toast.success(ts('saved'));
+    } catch (err) {
+      console.error('Failed to save policy:', err);
+      toast.error(te('saveFailed'));
+    } finally {
+      setIsSavingPolicy(false);
+    }
+  };
+
   const handleSave = async (): Promise<void> => {
     if (!isScheduleValid(schedule)) {
       toast.error(t('invalidIntervals'));
@@ -666,6 +698,51 @@ export default function SchedulePage(): ReactNode {
           <p className={'text-muted-foreground mb-3 text-center text-xs'}>{t('saveReminder')}</p>
           <PrimaryButton onClick={handleSave} disabled={isSaving}>
             {isSaving ? tc('saving') : tc('saveChanges')}
+          </PrimaryButton>
+        </div>
+
+        {/* Cancellation Policy */}
+        <div className={'space-y-3'}>
+          <div>
+            <h3 className={'text-foreground text-base font-semibold'}>
+              {t('cancellationPolicyTitle')}
+            </h3>
+            <p className={'text-muted-foreground mt-1 text-sm'}>{t('cancellationPolicyHint')}</p>
+          </div>
+          <div className={'bg-card space-y-4 rounded-lg p-4'}>
+            <div className={'flex items-center justify-between gap-3'}>
+              <span className={'text-foreground text-sm font-medium'}>
+                {t('cancellationPolicyToggle')}
+              </span>
+              <Switch checked={cutoffEnabled} onChange={setCutoffEnabled} />
+            </div>
+            {cutoffEnabled && (
+              <div className={'flex items-center gap-3'}>
+                <span className={'text-foreground flex-1 text-sm'}>
+                  {t('cancellationPolicyHours')}
+                </span>
+                <div className={'flex items-center gap-2'}>
+                  <input
+                    type={'number'}
+                    min={1}
+                    max={720}
+                    value={cutoffHours}
+                    onChange={(e) =>
+                      setCutoffHours(Math.max(1, Math.min(720, Number(e.target.value))))
+                    }
+                    className={
+                      'bg-background text-foreground w-16 rounded-lg px-3 py-2 text-center text-sm font-semibold'
+                    }
+                  />
+                  <span className={'text-muted-foreground text-sm'}>
+                    {t('cancellationPolicyUnit')}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          <PrimaryButton onClick={handleSavePolicy} disabled={isSavingPolicy}>
+            {isSavingPolicy ? tc('saving') : tc('saveChanges')}
           </PrimaryButton>
         </div>
       </div>

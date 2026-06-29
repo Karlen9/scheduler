@@ -1,4 +1,4 @@
-import type { TBooking, TWorkingHours } from './types';
+import type { TBooking, TSpecialist, TWorkingHours } from './types';
 
 /***************************************************************************************************
  * Parses day times.
@@ -301,4 +301,15 @@ export function clientEntityLabel(
   selfLabel: string,
 ): string {
   return entity.clientIsSelf ? selfLabel : entity.clientDisplayName || entity.clientName || '';
+}
+
+export function isWithinCutoff(
+  booking: TBooking,
+  specialist: Pick<TSpecialist, 'cancelCutoffEnabled' | 'cancelCutoffHours'> | null | undefined,
+): boolean {
+  if (!specialist?.cancelCutoffEnabled) {
+    return false;
+  }
+  const msUntil = new Date(booking.startsAt).getTime() - Date.now();
+  return msUntil > 0 && msUntil < (specialist.cancelCutoffHours ?? 24) * 60 * 60 * 1000;
 }

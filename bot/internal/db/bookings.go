@@ -531,6 +531,13 @@ func CancelBooking(bookingID string, reason string, cancelledBy models.Cancelled
 	return updateBookingStatus(bookingID, models.BookingStatusCancelled, &reason, &cancelledBy)
 }
 
+// CompleteBooking marks a booking as completed without a cancellation reason.
+// Used for late cancellations when the specialist has a cutoff policy enabled.
+func CompleteBooking(bookingID string) error {
+	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'completed' WHERE id = ?`), bookingID)
+	return err
+}
+
 /***************************************************************************************************
 * RejectBookingWithReason marks a booking as rejected (not cancelled) and records the reason.
 * Leaves cancelled_by NULL — rejections are a distinct outcome from cancellations. Kept separate

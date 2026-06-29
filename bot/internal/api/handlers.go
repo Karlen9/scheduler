@@ -127,8 +127,9 @@ type SpecialistResponse struct {
 	ID                 string     `json:"id"`
 	Name               string     `json:"name"`
 	Timezone           string     `json:"timezone"`
-	CancelCutoffHrs    int        `json:"cancelCutoffHours"`
-	BotUsername        string     `json:"botUsername,omitempty"`
+	CancelCutoffHrs     int        `json:"cancelCutoffHours"`
+	CancelCutoffEnabled bool       `json:"cancelCutoffEnabled"`
+	BotUsername         string     `json:"botUsername,omitempty"`
 	TelegramHandle     string     `json:"telegramHandle,omitempty"`
 	Phone              string     `json:"phone,omitempty"`
 	Specialization     string     `json:"specialization,omitempty"`
