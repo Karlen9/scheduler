@@ -48,6 +48,7 @@ export default function HelpPage(): ReactNode {
     { question: t('faq_q8'), answer: t('faq_a8') },
     { question: t('faq_q9'), answer: t('faq_a9') },
     { question: t('faq_q10'), answer: t('faq_a10') },
+    { question: t('faq_q12'), answer: t('faq_a12') },
   ];
 
   const handleContactSupport = (): void => {

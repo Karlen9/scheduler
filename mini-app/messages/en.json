@@ -665,10 +665,12 @@
     "faq_a8": "Open the booking from the calendar or All Bookings. Choose Reschedule to pick a new date and time, or Cancel to cancel with an optional reason.",
     "faq_q9": "How do I block days off?",
     "faq_a9": "Go to Settings > Days Off, select a date, add an optional reason, and save it. Clients will not be able to book blocked days.",
-    "faq_q10": "Why can't a client cancel a booking?",
-    "faq_a10": "If cancellation blocking is enabled, clients cannot cancel within the configured cutoff before the session. You can change it in Settings > Schedule.",
+    "faq_q10": "What happens if a client cancels too late?",
+    "faq_a10": "If the cancellation policy is enabled, the booking is counted as completed rather than cancelled. The client sees a warning before confirming but can still proceed. You can set the cutoff window in Settings > Schedule > Cancellation policy.",
     "faq_q11": "How do I add a client via Telegram?",
-    "faq_a11": "Share your Telegram bot link with the client. Once they tap Start in the bot and open the booking app, they will automatically appear in your client list. You can find the link to your bot in your Telegram profile."
+    "faq_a11": "Share your Telegram bot link with the client. Once they tap Start in the bot and open the booking app, they will automatically appear in your client list. You can find the link to your bot in your Telegram profile.",
+    "faq_q12": "How do I set up the cancellation policy?",
+    "faq_a12": "Go to Settings > Schedule and scroll down to the Cancellation policy section. Enable the toggle and set how many hours in advance clients must notify you of a cancellation or reschedule. If a client cancels after that deadline, the session is automatically marked as completed instead of cancelled."
   },
   "ThemeSelector": {
     "auto": "Auto",
