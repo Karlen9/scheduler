@@ -513,6 +513,11 @@ export default function AdminClientsPage(): ReactNode {
                     {tc('ghost')}
                   </span>
                 )}
+                {client.isSelf && (
+                  <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
+                    {tc('self')}
+                  </span>
+                )}
                 {client.isBlocked && (
                   <span className={'text-action-danger-text ml-1.5 text-xs font-normal'}>
                     {t('blocked')}
@@ -532,15 +537,17 @@ export default function AdminClientsPage(): ReactNode {
             >
               <Pencil className={'h-4 w-4'} />
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleteTarget(client);
-              }}
-              className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
-            >
-              <Trash2 className={'h-4 w-4'} />
-            </button>
+            {!client.isSelf && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(client);
+                }}
+                className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
+              >
+                <Trash2 className={'h-4 w-4'} />
+              </button>
+            )}
           </button>
         ))}
         {hasMore && (

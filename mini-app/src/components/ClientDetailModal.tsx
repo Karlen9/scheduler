@@ -56,7 +56,8 @@ export function ClientDetailModal({
   }
 
   const displayName = displayClient.displayName || displayClient.name;
-  const canMessage = !displayClient.isGhost && !!displayClient.telegramUsername;
+  const canMessage =
+    !displayClient.isGhost && !displayClient.isSelf && !!displayClient.telegramUsername;
   const batchServices = services.filter((service) => service.type === 'batch');
   const activeBatches = clientBatches.filter(
     (batch) => batch.status === 'active' && batch.remainingSessions > 0,
@@ -103,6 +104,9 @@ export function ClientDetailModal({
           )}
           {displayClient.isGhost && (
             <span className={'text-muted-foreground text-sm'}>{tc('ghost')}</span>
+          )}
+          {displayClient.isSelf && (
+            <span className={'text-muted-foreground text-sm'}>{tc('self')}</span>
           )}
         </div>
       </div>
@@ -225,6 +229,7 @@ export function ClientDetailModal({
       </div>
 
       {!displayClient.isGhost &&
+        !displayClient.isSelf &&
         (displayClient.isBlocked
           ? onUnblockClient && (
               <button

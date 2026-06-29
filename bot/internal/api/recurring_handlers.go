@@ -815,9 +815,9 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		schedule.ID[:8], client.Name, daysStr, req.Time, req.Period)
 
 	/***************************************************************************************************
-	* Ghost clients: auto-approve and generate bookings immediately.
+	* Ghost clients and self-bookings: auto-approve and generate bookings immediately.
 	***************************************************************************************************/
-	if client.IsGhost {
+	if client.IsGhost || isSelfClient(client, specialist) {
 		if _, err := db.ApproveAndGenerateBookings(schedule.ID); err != nil {
 			log.Printf("Error auto-approving ghost recurring schedule: %v", err)
 		}
@@ -834,7 +834,7 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	if client.IsGhost {
+	if client.IsGhost || isSelfClient(client, specialist) {
 		changes.Publish(specialist.ID, changes.GroupRecurring, changes.GroupBookings)
 	} else {
 		changes.Publish(specialist.ID, changes.GroupRecurring)

@@ -525,7 +525,7 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
-		if client.IsGhost {
+		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
 			return nil
 		}
 		if !client.NotifyBookingStatus {
@@ -567,16 +567,16 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
-		if client.IsGhost {
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil {
+			return err
+		}
+		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
 			return nil
 		}
 		if !client.NotifyBookingStatus {
 			log.Printf("Skipping specialist booking notification for client %s (disabled)", client.Name)
 			return nil
-		}
-		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
-		if err != nil || specialist == nil {
-			return err
 		}
 		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
@@ -656,7 +656,7 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
-		if client.IsGhost {
+		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
 			return nil
 		}
 		if !client.NotifyBookingStatus {
@@ -696,7 +696,7 @@ func main() {
 		if err != nil || client == nil {
 			return err
 		}
-		if client.IsGhost {
+		if client.IsGhost || client.TelegramUserID == specialist.TelegramUserID {
 			return nil
 		}
 		if !client.NotifyCancellations {
