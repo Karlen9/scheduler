@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { wallClockNow } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { TNextBookingBannerProps } from '@/lib/types';
@@ -106,13 +107,6 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
      * Usage context:
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
-    const now = new Date();
-    /***************************************************************************************************
-     * Defines the start value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
     const start = new Date(iso);
     /***************************************************************************************************
      * Defines the diff value used by the component layer.
@@ -120,7 +114,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
      * Usage context:
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
-    const diff = start.getTime() - now.getTime();
+    const diff = start.getTime() - wallClockNow();
     if (diff <= 0) {
       return tu('now');
     }

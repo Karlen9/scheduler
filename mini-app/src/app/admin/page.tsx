@@ -20,7 +20,7 @@ import {
 } from '@/hooks/queries';
 import { ADMIN_UPCOMING_BOOKING_STATUSES, todayISO } from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
-import { getNonWorkingDays } from '@/lib/helpers';
+import { getNonWorkingDays, wallClockNow } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { openTelegramUserChat } from '@/lib/telegram';
 
@@ -200,7 +200,7 @@ export default function AdminHomePage(): ReactNode {
      * Usage context:
      * - Reused by the page layer to keep shared values centralized.
      ***************************************************************************************************/
-    const now = Date.now();
+    const now = wallClockNow();
     return (
       bookings
         .filter((b) => b.status === 'confirmed' && new Date(b.startsAt).getTime() > now)

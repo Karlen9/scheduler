@@ -253,3 +253,7 @@ export function nextDateForWeekday(targetDay: number, today: Date): Date {
   const next = new Date(today.getFullYear(), today.getMonth(), today.getDate() + delta);
   return next;
 }
+
+export function wallClockNow(): number {
+  return Date.now() - new Date().getTimezoneOffset() * 60000;
+}
