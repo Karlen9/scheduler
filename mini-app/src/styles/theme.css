@@ -189,7 +189,7 @@
   --status-purple-text: #c084fc;
 
   /* Status borders */
-  --status-pending-border: var(--tg-theme-button-color);
+  --status-pending-border: #f59e0b;
   --status-confirmed-border: var(--tg-theme-link-color);
   --status-rejected-border: var(--tg-theme-destructive-text-color);
   --status-cancelled-border: var(--tg-theme-hint-color);
@@ -225,7 +225,7 @@
   --card-shadow: 0 0 0 1px var(--tg-theme-bg-color);
 
   /* Accent colors */
-  --warning: var(--tg-theme-button-color);
+  --warning: #f59e0b;
   --success: var(--tg-theme-link-color);
   --error: var(--tg-theme-destructive-text-color);
   --destructive-foreground: var(--tg-theme-button-text-color);
