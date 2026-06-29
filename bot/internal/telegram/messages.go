@@ -941,6 +941,29 @@ func FormatMoveDeclined(loc *i18n.Localizer, oldBooking *models.Booking) string 
 }
 
 /***************************************************************************************************
+* FormatMoveApprovedForClient creates a message for the CLIENT when the specialist approves their
+* reschedule request.
+***************************************************************************************************/
+func FormatMoveApprovedForClient(loc *i18n.Localizer, newBooking, oldBooking *models.Booking) string {
+	return myI18n.Tf(loc, "Move.ApprovedForClient", map[string]interface{}{
+		"Service":     bookingServiceDisplay(loc, oldBooking),
+		"OldDateTime": formatDateTime(loc, oldBooking.StartsAt),
+		"NewDateTime": formatDateTime(loc, newBooking.StartsAt),
+	})
+}
+
+/***************************************************************************************************
+* FormatMoveDeclinedForClient creates a message for the CLIENT when the specialist declines their
+* reschedule request.
+***************************************************************************************************/
+func FormatMoveDeclinedForClient(loc *i18n.Localizer, oldBooking *models.Booking) string {
+	return myI18n.Tf(loc, "Move.DeclinedForClient", map[string]interface{}{
+		"Service":  bookingServiceDisplay(loc, oldBooking),
+		"DateTime": formatDateTime(loc, oldBooking.StartsAt),
+	})
+}
+
+/***************************************************************************************************
 * FormatClientRescheduleRequest creates a message for the specialist when the CLIENT reschedules
 * a booking in-place (status stays pending/confirmed, times change). Distinct from move requests
 * that go through the reschedule_pending shadow flow.

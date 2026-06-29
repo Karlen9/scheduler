@@ -276,6 +276,7 @@
     "approveRescheduleButton": "Принять новое время",
     "declineRescheduleButton": "Отклонить",
     "rescheduleOldLabel": "было",
+    "awaitingRescheduleConfirmation": "Ожидает подтверждения специалиста",
     "loadMore": "Загрузить ещё",
     "loading": "Загрузка..."
   },
@@ -631,7 +632,8 @@
     "emptyFilteredDescription": "Измените фильтры, чтобы увидеть больше записей",
     "loadMore": "Загрузить ещё",
     "loading": "Загрузка...",
-    "dmUnavailable": "Этому клиенту нельзя написать"
+    "dmUnavailable": "Этому клиенту нельзя написать",
+    "rescheduleFromLabel": "было"
   },
   "AdminHelp": {
     "title": "Помощь",
@@ -691,7 +693,8 @@
     "waitingForClient": "Ожидание ответа клиента",
     "approveRescheduleButton": "Принять новое время",
     "declineRescheduleButton": "Отклонить",
-    "specialistNote": "Сообщение от специалиста"
+    "specialistNote": "Сообщение от специалиста",
+    "awaitingRescheduleConfirmation": "Ожидает подтверждения специалиста"
   },
   "RescheduleSheet": {
     "title": "Перенос записи",

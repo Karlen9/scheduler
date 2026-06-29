@@ -10,13 +10,16 @@ import { api } from '@/lib/api';
 import type { TBooking } from '@/lib/types';
 
 /***************************************************************************************************
- * Shared hook for client-side approve / decline of a reschedule_pending booking.
+ * Shared hook for approve / decline of a reschedule_pending booking.
  *
- * Used by the client home booking modal, /bookings BookingCard, and the recurring schedule
- * detail page. Centralises the API + toast + cache-invalidation logic so the three surfaces
- * stay in sync (previously only BookingCard had it, leaving the home modal dead-ended).
+ * Used by the client home booking modal, /bookings BookingCard, admin dashboard, and the
+ * admin bookings list. Mode='client' calls the client API endpoints; mode='admin' calls the
+ * admin API endpoints. Both invalidate the shared SWR bookings cache.
+ *
+ * Parameters:
+ * - mode: 'client' (default) or 'admin'. Determines which API endpoints are used.
  ***************************************************************************************************/
-export function useRescheduleActions(): {
+export function useRescheduleActions(mode: 'client' | 'admin' = 'client'): {
   pending: boolean;
   approve: (booking: TBooking) => Promise<void>;
   decline: (booking: TBooking) => Promise<void>;
@@ -29,7 +32,11 @@ export function useRescheduleActions(): {
     async (booking: TBooking): Promise<void> => {
       setPending(true);
       try {
-        await api.approveReschedule(booking.id);
+        if (mode === 'admin') {
+          await api.admin.approveReschedule(booking.id);
+        } else {
+          await api.approveReschedule(booking.id);
+        }
         toast.success(ts('bookingRescheduled'));
         await invalidateBookings();
         if (booking.recurringScheduleId) {
@@ -41,14 +48,18 @@ export function useRescheduleActions(): {
         setPending(false);
       }
     },
-    [ts, te],
+    [mode, ts, te],
   );
 
   const decline = useCallback(
     async (booking: TBooking): Promise<void> => {
       setPending(true);
       try {
-        await api.declineReschedule(booking.id);
+        if (mode === 'admin') {
+          await api.admin.declineReschedule(booking.id);
+        } else {
+          await api.declineReschedule(booking.id);
+        }
         await invalidateBookings();
         if (booking.recurringScheduleId) {
           await invalidateRecurring();
@@ -59,7 +70,7 @@ export function useRescheduleActions(): {
         setPending(false);
       }
     },
-    [te],
+    [mode, te],
   );
 
   return { pending, approve, decline };

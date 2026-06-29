@@ -741,7 +741,7 @@ func main() {
 	/***************************************************************************************************
 	* Specialist notification when the client approves/declines an admin reschedule proposal.
 	***************************************************************************************************/
-	api.NotifyRescheduleResponseFunc = func(newBooking, oldBooking *models.Booking, approved bool) error {
+	api.NotifyRescheduleResponseFunc = func(newBooking, oldBooking *models.Booking, approved bool, respondedBy string) error {
 		specialist, err := db.GetSpecialistByID(newBooking.SpecialistID)
 		if err != nil || specialist == nil {
 			return err
@@ -751,7 +751,7 @@ func main() {
 			log.Printf("No handler found for specialist %s", specialist.Name)
 			return nil
 		}
-		return handler.NotifyMoveResponse(newBooking, oldBooking, approved)
+		return handler.NotifyMoveResponse(newBooking, oldBooking, approved, respondedBy)
 	}
 
 	api.SuperadminSecret = cfg.SuperadminSecret

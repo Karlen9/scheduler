@@ -71,10 +71,6 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
 		return
 	}
-	if errMsg := validateBookingDateForTimezone(date, specialist.Timezone); errMsg != "" {
-		httpError(w, r, errMsg, http.StatusBadRequest)
-		return
-	}
 
 	hour, minute, err := parseTime(req.Time)
 	if err != nil {
@@ -92,8 +88,9 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 
 	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
-	if isPastBookingStart(startsAt, specialist.Timezone) {
-		httpError(w, r, "Error.TimeInPast", http.StatusBadRequest)
+
+	if errMsg := validateRescheduleTime(date, startsAt, specialist.Timezone); errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
 		return
 	}
 
@@ -108,6 +105,41 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Confirmed booking with a real (non-ghost, non-self) client: create a shadow
+	// reschedule_pending booking so the SPECIALIST can approve or decline.
+	if booking.Status == models.BookingStatusConfirmed && !bookingAutoApplies(booking) {
+		if err := db.DeleteReschedulePendingFor(booking.ID); err != nil {
+			log.Printf("Error clearing prior reschedule proposal: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+
+		newBooking, err := db.CreateRescheduleBooking(
+			booking.SpecialistID, booking.ClientID, booking.SessionTypeID,
+			startsAt, endsAt, booking.ClientName, "", "client",
+			duration, "", booking.ID,
+		)
+		if err != nil {
+			log.Printf("Error creating reschedule request: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("RESCHEDULE REQUEST [%s] Client: %s proposed new time for confirmed booking | New: %s %s",
+			newBooking.ID[:8], booking.ClientName, req.Date, req.Time)
+
+		changes.Publish(specialist.ID, changes.GroupBookings)
+		if NotifyMoveRequestFunc != nil {
+			if err := NotifyMoveRequestFunc(newBooking, booking, "client"); err != nil {
+				log.Printf("Error notifying specialist about reschedule request: %v", err)
+			}
+		}
+
+		writeJSON(w, newBooking)
+		return
+	}
+
+	// Pending booking or auto-apply (ghost/self): update in place.
 	oldBooking := *booking
 	if err := db.UpdateBookingDateTime(bookingID, startsAt, endsAt, duration); err != nil {
 		log.Printf("Error updating booking: %v", err)
@@ -181,7 +213,7 @@ func HandleClientApproveReschedule(w http.ResponseWriter, r *http.Request) {
 		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
 	}
 	if NotifyRescheduleResponseFunc != nil && updated != nil {
-		if err := NotifyRescheduleResponseFunc(updated, oldBooking, true); err != nil {
+		if err := NotifyRescheduleResponseFunc(updated, oldBooking, true, "client"); err != nil {
 			log.Printf("Error notifying specialist about approved reschedule: %v", err)
 		}
 	}
@@ -230,7 +262,7 @@ func HandleClientDeclineReschedule(w http.ResponseWriter, r *http.Request) {
 	log.Printf("RESCHEDULE DECLINED (CLIENT) booking %s", bookingID[:8])
 	changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
 	if NotifyRescheduleResponseFunc != nil {
-		if err := NotifyRescheduleResponseFunc(booking, oldBooking, false); err != nil {
+		if err := NotifyRescheduleResponseFunc(booking, oldBooking, false, "client"); err != nil {
 			log.Printf("Error notifying specialist about declined reschedule: %v", err)
 		}
 	}

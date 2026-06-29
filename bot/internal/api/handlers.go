@@ -100,12 +100,26 @@ func isPastBookingStart(startsAt time.Time, timezone string) bool {
 	return !startsAt.After(scheduleClockNow(timezone))
 }
 
+// validateRescheduleTime returns the first non-empty validation error for a
+// proposed new booking start time. It checks the date is not in the past or
+// too far in the future (timezone-aware), then checks that the exact start
+// time has not already passed.
+func validateRescheduleTime(date, startsAt time.Time, tz string) string {
+	if msg := validateBookingDateForTimezone(date, tz); msg != "" {
+		return msg
+	}
+	if isPastBookingStart(startsAt, tz) {
+		return "Error.TimeInPast"
+	}
+	return ""
+}
+
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 var NotifyBookingFunc func(booking *models.Booking) error
 var UpdateSpecialistMessageFunc func(booking *models.Booking) error
 var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
 var NotifyRescheduleRequestFunc func(booking *models.Booking, oldBooking *models.Booking) error
-var NotifyRescheduleResponseFunc func(newBooking *models.Booking, oldBooking *models.Booking, approved bool) error
+var NotifyRescheduleResponseFunc func(newBooking *models.Booking, oldBooking *models.Booking, approved bool, respondedBy string) error
 var UpdateClientMessageFunc func(booking *models.Booking) error
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
 

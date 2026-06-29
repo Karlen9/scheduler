@@ -86,10 +86,13 @@ export function RescheduleSheet({
   /***************************************************************************************************
    * Admin-mode rescheduling of a confirmed booking creates an approval request rather than
    * updating in place. Show the admin an explanatory textarea so they can include a note
-   * with the proposal.
+   * with the proposal. Self-clients and ghost clients auto-apply so no approval is needed.
    ***************************************************************************************************/
   const showApprovalNote =
-    mode === 'admin' && booking?.status === 'confirmed' && !booking?.clientIsGhost;
+    mode === 'admin' &&
+    booking?.status === 'confirmed' &&
+    !booking?.clientIsGhost &&
+    !booking?.clientIsSelf;
   /***************************************************************************************************
    * Defines the slots request id ref value used by the component layer.
    *

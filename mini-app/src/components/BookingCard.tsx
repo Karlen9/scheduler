@@ -222,6 +222,10 @@ function BookingCardComponent({
             {tb('declineRescheduleButton')}
           </button>
         </div>
+      ) : isReschedulePending ? (
+        <div className={'border-border border-t pt-3'}>
+          <p className={'text-muted-foreground text-xs'}>{tb('awaitingRescheduleConfirmation')}</p>
+        </div>
       ) : isSpecialistPending && onConfirm && onDecline ? (
         <div className={'border-border space-y-2 border-t pt-3'}>
           <p className={'text-muted-foreground mb-2 text-xs'}>{tb('specialistBookedYou')}</p>

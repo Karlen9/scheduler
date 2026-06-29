@@ -134,6 +134,18 @@
   "Move.Declined": {
     "other": "↩️ Перенос отклонён\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}\n\nСеанс остаётся в расписании."
   },
+  "Move.ApprovedForClient": {
+    "other": "✅ Специалист подтвердил перенос\n\n📋 Услуга: {{.Service}}\n🕐 Предыдущее время: {{.OldDateTime}}\n🕐 Новое время: {{.NewDateTime}}"
+  },
+  "Move.DeclinedForClient": {
+    "other": "↩️ Специалист отклонил перенос\n\n📋 Услуга: {{.Service}}\n🕐 Время: {{.DateTime}}\n\nСеанс остаётся в расписании."
+  },
+  "Callback.RescheduleApproved": {
+    "other": "✅ Перенос подтверждён"
+  },
+  "Callback.RescheduleDeclined": {
+    "other": "↩️ Перенос отклонён"
+  },
   "Recurring.Request": {
     "other": "🔄 Новая заявка на регулярное расписание\n\n👤 Клиент: {{.ClientName}}\n📋 Услуга: {{.Service}}\n📅 Расписание: {{.Schedule}}\n📆 Период: {{.DateRange}}"
   },
