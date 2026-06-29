@@ -216,7 +216,7 @@ export function RecurringScheduleCard({
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
     const end = new Date(endDate);
-    return `${start.getDate()} ${td(`monthsShort.${monthShortKeys[start.getMonth()]}`)} — ${end.getDate()} ${td(`monthsShort.${monthShortKeys[end.getMonth()]}`)}`;
+    return `${start.getUTCDate()} ${td(`monthsShort.${monthShortKeys[start.getUTCMonth()]}`)} — ${end.getUTCDate()} ${td(`monthsShort.${monthShortKeys[end.getUTCMonth()]}`)}`;
   }
 
   /***************************************************************************************************
