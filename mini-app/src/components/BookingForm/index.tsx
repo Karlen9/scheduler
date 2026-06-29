@@ -1,5 +1,6 @@
 'use client';
 
+import { Bookmark } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -128,20 +129,36 @@ export function BookingForm({
          ***************************************************************************************************/}
         {hasClientSelector && selectedClient && (
           <div className={'bg-card flex items-center gap-3 rounded-xl p-3'}>
-            <ClientAvatar
-              name={selectedClient.displayName || selectedClient.name}
-              photoUrl={selectedClient.photoUrl}
-            />
+            {selectedClient.isSelf ? (
+              <div
+                className={
+                  'bg-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full'
+                }
+              >
+                <Bookmark className={'h-5 w-5 fill-white text-white'} />
+              </div>
+            ) : (
+              <ClientAvatar
+                name={selectedClient.displayName || selectedClient.name}
+                photoUrl={selectedClient.photoUrl}
+              />
+            )}
             <div className={'min-w-0 flex-1'}>
               <p className={'text-foreground truncate text-sm font-medium'}>
-                {selectedClient.displayName || selectedClient.name}
-                {selectedClient.isGhost && (
-                  <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
-                    {tc('ghost')}
-                  </span>
+                {selectedClient.isSelf ? (
+                  tc('self')
+                ) : (
+                  <>
+                    {selectedClient.displayName || selectedClient.name}
+                    {selectedClient.isGhost && (
+                      <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
+                        {tc('ghost')}
+                      </span>
+                    )}
+                  </>
                 )}
               </p>
-              {selectedClient.phone && (
+              {!selectedClient.isSelf && selectedClient.phone && (
                 <p className={'text-muted-foreground text-xs'}>{selectedClient.phone}</p>
               )}
             </div>
