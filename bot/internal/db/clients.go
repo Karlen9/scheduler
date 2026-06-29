@@ -453,7 +453,9 @@ func GetClientsBySpecialistIDPaged(specialistID, search string, limit, offset in
 		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE `+whereClause+`
-		ORDER BY name ASC
+		ORDER BY
+			(telegram_user_id = (SELECT telegram_user_id FROM specialists WHERE id = clients.specialist_id)) DESC,
+			name ASC
 		LIMIT ? OFFSET ?
 	`), queryArgs...)
 	if err != nil {
