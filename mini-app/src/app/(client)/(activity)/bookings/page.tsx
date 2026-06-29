@@ -14,6 +14,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import { useBookingsPage } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
+import { wallClockNow } from '@/lib/helpers';
 import { isPreviewRoute } from '@/lib/routes';
 
 import type { TBooking } from '@/lib/types';
@@ -74,7 +75,7 @@ export default function BookingsPage(): ReactNode {
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => wallClockNow());
   const isPreview = isPreviewRoute(pathname);
   const hasMore = data.page < data.totalPages;
   const bookings = allBookings;
@@ -95,7 +96,7 @@ export default function BookingsPage(): ReactNode {
   }, [data.bookings, page]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 5000);
+    const timer = window.setInterval(() => setNow(wallClockNow()), 5000);
     return () => window.clearInterval(timer);
   }, []);
 

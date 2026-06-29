@@ -26,7 +26,7 @@ import {
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
-import { formatDateISO, nextDateForWeekday } from '@/lib/helpers';
+import { formatDateISO, nextDateForWeekday, wallClockNow } from '@/lib/helpers';
 import { isPreviewRoute, isTestRoute, resolveTestAwareHref } from '@/lib/routes';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
@@ -244,7 +244,7 @@ export default function HomePage(): ReactNode {
    * treat the admin's proposal as a replacement rather than a duplicate booking.
    ***************************************************************************************************/
   const activeBookings = useMemo(() => {
-    const now = Date.now();
+    const now = wallClockNow();
     const all = bookings.filter(
       (booking) =>
         ACTIVE_BOOKING_STATUSES.has(booking.status) && new Date(booking.startsAt).getTime() > now,
@@ -348,7 +348,7 @@ export default function HomePage(): ReactNode {
     }
 
     const update = (): void => {
-      const diffMs = new Date(nextBooking.startsAt).getTime() - Date.now();
+      const diffMs = new Date(nextBooking.startsAt).getTime() - wallClockNow();
       setCountdownLabel(diffMs > 0 ? formatCountdown(diffMs) : '');
     };
 
