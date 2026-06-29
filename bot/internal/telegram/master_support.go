@@ -232,6 +232,17 @@ func (h *MasterHandler) handleSupportGroupMessage(msg *Message) {
 	// /close and /reply-like topic-scoped commands are admin-only. Everything else is copied
 	// verbatim to the user so operators can paste multi-line replies, voice notes, etc.
 	text := strings.TrimSpace(msg.Text)
+	// Telegram appends @BotUsername to commands in supergroups (e.g. "/close@MyBot").
+	// Normalise so "/close@MyBot" matches "/close" and keeps any trailing arguments intact.
+	if strings.HasPrefix(text, "/") {
+		cmdEnd := strings.IndexByte(text, ' ')
+		if cmdEnd < 0 {
+			cmdEnd = len(text)
+		}
+		if at := strings.Index(text[:cmdEnd], "@"); at > 0 {
+			text = text[:at] + text[cmdEnd:]
+		}
+	}
 	switch {
 	case text == "/close":
 		h.closeSupportThread(thread.ID, msg.MessageThreadID, msg.From)
