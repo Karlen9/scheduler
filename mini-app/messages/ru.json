@@ -559,8 +559,7 @@
     "createSuccess": "Клиент {name} добавлен",
     "createError": "Не удалось добавить клиента",
     "deleteDialog": "Удалить клиента?",
-    "deleteDialogDescription": "Клиент «{name}» будет удалён. Если у клиента есть записи, включите опцию ниже, чтобы удалить их тоже.",
-    "deleteAllDataCheckbox": "Также удалить все записи и расписания",
+    "deleteDialogDescription": "Клиент «{name}» и все его записи и расписания будут удалены.",
     "deleteConfirm": "Удалить",
     "deleteSuccess": "Клиент {name} удалён",
     "deleteError": "Не удалось удалить клиента",
@@ -789,7 +788,10 @@
     "afternoon": "День",
     "evening": "Вечер",
     "noData": "Недостаточно данных",
-    "emptyDescription": "Статистика появится после первых записей"
+    "emptyDescription": "Статистика появится после первых записей",
+    "proLockedTitle": "Аналитика доступна в Pro",
+    "proLockedDescription": "Оформите Pro, чтобы видеть статистику доходов и загрузки",
+    "proManageButton": "Управление Pro в боте"
   },
   "Errors": {
     "specialistLoadFailed": "Не удалось загрузить информацию о специалисте",

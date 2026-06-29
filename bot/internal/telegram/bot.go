@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 /***************************************************************************************************
@@ -1185,6 +1186,10 @@ func (b *Bot) CloseForumTopic(chatID int64, threadID int) error {
 		return err
 	}
 	if !result.OK {
+		// CHAT_NOT_MODIFIED means the topic is already closed — desired state achieved.
+		if strings.Contains(strings.ToLower(result.Description), "chat_not_modified") {
+			return nil
+		}
 		return fmt.Errorf("closeForumTopic failed: %s", result.Description)
 	}
 	return nil
@@ -1217,6 +1222,10 @@ func (b *Bot) ReopenForumTopic(chatID int64, threadID int) error {
 		return err
 	}
 	if !result.OK {
+		// CHAT_NOT_MODIFIED means the topic is already open — desired state achieved.
+		if strings.Contains(strings.ToLower(result.Description), "chat_not_modified") {
+			return nil
+		}
 		return fmt.Errorf("reopenForumTopic failed: %s", result.Description)
 	}
 	return nil

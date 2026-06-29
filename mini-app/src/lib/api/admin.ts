@@ -228,9 +228,8 @@ export const adminApi = {
     });
   },
 
-  async deleteClient(id: string, cascade = false): Promise<void> {
-    const suffix = cascade ? '?cascade=1' : '';
-    await fetchAPI<void>(`/api/admin/clients/${id}${suffix}`, { method: 'DELETE' });
+  async deleteClient(id: string): Promise<void> {
+    await fetchAPI<void>(`/api/admin/clients/${id}?cascade=1`, { method: 'DELETE' });
   },
 
   async blockClient(id: string, cancelBookings: boolean): Promise<TClientInfo> {

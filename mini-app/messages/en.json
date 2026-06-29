@@ -559,8 +559,7 @@
     "createSuccess": "Client {name} added",
     "createError": "Failed to add client",
     "deleteDialog": "Delete client?",
-    "deleteDialogDescription": "Client \"{name}\" will be deleted. Deletion will fail if the client has existing bookings unless you also remove their data below.",
-    "deleteAllDataCheckbox": "Also delete all bookings and recurring schedules",
+    "deleteDialogDescription": "Client \"{name}\" and all their bookings and schedules will be deleted.",
     "deleteConfirm": "Delete",
     "deleteSuccess": "Client {name} deleted",
     "deleteError": "Failed to delete client",
@@ -789,7 +788,10 @@
     "afternoon": "Afternoon",
     "evening": "Evening",
     "noData": "Not enough data",
-    "emptyDescription": "Stats will appear after the first bookings"
+    "emptyDescription": "Stats will appear after the first bookings",
+    "proLockedTitle": "Analytics is a Pro feature",
+    "proLockedDescription": "Get Pro to see your revenue and workload stats",
+    "proManageButton": "Manage Pro in the bot"
   },
   "Errors": {
     "specialistLoadFailed": "Failed to load specialist information",

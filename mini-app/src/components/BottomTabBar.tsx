@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -95,7 +95,7 @@ function TabButton({
       />
       {locked && (
         <span className={'absolute -top-0.5 right-[3px]'}>
-          <Crown className={'text-warning h-3 w-3'} />
+          <Lock className={'text-warning h-3 w-3'} />
         </span>
       )}
     </Link>
