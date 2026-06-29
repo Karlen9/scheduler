@@ -655,7 +655,9 @@
     "faq_q9": "How do I block days off?",
     "faq_a9": "Go to Settings > Days Off, select a date, add an optional reason, and save it. Clients will not be able to book blocked days.",
     "faq_q10": "Why can't a client cancel a booking?",
-    "faq_a10": "If cancellation blocking is enabled, clients cannot cancel within the configured cutoff before the session. You can change it in Settings > Schedule."
+    "faq_a10": "If cancellation blocking is enabled, clients cannot cancel within the configured cutoff before the session. You can change it in Settings > Schedule.",
+    "faq_q11": "How do I add a client via Telegram?",
+    "faq_a11": "Share your Telegram bot link with the client. Once they tap Start in the bot and open the booking app, they will automatically appear in your client list. You can find the link to your bot in your Telegram profile."
   },
   "ThemeSelector": {
     "auto": "Auto",

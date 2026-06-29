@@ -66,6 +66,7 @@ export default function HelpPage(): ReactNode {
   const faqItems: TFAQItem[] = [
     { question: t('faq_q1'), answer: t('faq_a1') },
     { question: t('faq_q2'), answer: t('faq_a2') },
+    { question: t('faq_q11'), answer: t('faq_a11') },
     { question: t('faq_q3'), answer: t('faq_a3') },
     { question: t('faq_q4'), answer: t('faq_a4') },
     { question: t('faq_q5'), answer: t('faq_a5') },
