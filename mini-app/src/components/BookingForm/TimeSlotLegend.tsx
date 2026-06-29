@@ -24,7 +24,7 @@ export function TimeSlotLegend({
   return (
     <div className={'mb-3 flex items-center gap-4'}>
       <div className={'flex items-center gap-1.5'}>
-        <span className={'bg-card border-border h-3 w-3 rounded border'} />
+        <span className={'bg-card border-muted-foreground/30 h-3 w-3 rounded border'} />
         <span className={'text-muted-foreground text-xs'}>{availableLabel}</span>
       </div>
       <div className={'flex items-center gap-1.5'}>
