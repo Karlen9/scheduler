@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { Bookmark, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
@@ -504,39 +504,56 @@ export default function AdminClientsPage(): ReactNode {
               'bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left active:opacity-80'
             }
           >
-            <ClientAvatar name={clientDisplayName(client)} photoUrl={client.photoUrl} size={'md'} />
+            {client.isSelf ? (
+              <div
+                className={
+                  'bg-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full'
+                }
+              >
+                <Bookmark className={'h-5 w-5 fill-white text-white'} />
+              </div>
+            ) : (
+              <ClientAvatar
+                name={clientDisplayName(client)}
+                photoUrl={client.photoUrl}
+                size={'md'}
+              />
+            )}
             <div className={'min-w-0 flex-1'}>
               <div className={'text-foreground truncate font-medium'}>
-                {clientDisplayName(client)}
-                {client.isGhost && (
-                  <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
-                    {tc('ghost')}
-                  </span>
-                )}
-                {client.isSelf && (
-                  <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
-                    {tc('self')}
-                  </span>
-                )}
-                {client.isBlocked && (
-                  <span className={'text-action-danger-text ml-1.5 text-xs font-normal'}>
-                    {t('blocked')}
-                  </span>
+                {client.isSelf ? (
+                  tc('self')
+                ) : (
+                  <>
+                    {clientDisplayName(client)}
+                    {client.isGhost && (
+                      <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
+                        {tc('ghost')}
+                      </span>
+                    )}
+                    {client.isBlocked && (
+                      <span className={'text-action-danger-text ml-1.5 text-xs font-normal'}>
+                        {t('blocked')}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
-              {client.displayName && !client.isGhost && (
+              {client.displayName && !client.isGhost && !client.isSelf && (
                 <div className={'text-muted-foreground truncate text-xs'}>{client.name}</div>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEdit(client);
-              }}
-              className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
-            >
-              <Pencil className={'h-4 w-4'} />
-            </button>
+            {!client.isSelf && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(client);
+                }}
+                className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
+              >
+                <Pencil className={'h-4 w-4'} />
+              </button>
+            )}
             {!client.isSelf && (
               <button
                 onClick={(e) => {
