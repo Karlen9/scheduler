@@ -229,6 +229,7 @@ type Booking struct {
 	ClientPhotoURL         string       `json:"clientPhotoUrl,omitempty"`
 	ClientDisplayName      string       `json:"clientDisplayName,omitempty"`
 	ClientIsGhost          bool         `json:"clientIsGhost,omitempty"`
+	ClientIsSelf           bool         `json:"clientIsSelf,omitempty"`
 	ClientTelegramID       int64        `json:"clientTelegramUserId,omitempty"`
 	ClientTelegramUsername string       `json:"clientTelegramUsername,omitempty"`
 	Client                 *Client      `json:"-"`
@@ -318,6 +319,7 @@ type RecurringSchedule struct {
 	SessionType       *SessionType `json:"sessionType,omitempty"`
 	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
 	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
+	ClientIsSelf      bool         `json:"clientIsSelf,omitempty"`
 	Bookings          []Booking    `json:"bookings,omitempty"`
 }
 

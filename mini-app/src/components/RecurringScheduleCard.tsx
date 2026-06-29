@@ -352,9 +352,12 @@ export function RecurringScheduleCard({
                 name={schedule.clientDisplayName || schedule.clientName}
                 photoUrl={schedule.clientPhotoUrl}
                 size={'sm'}
+                isSelf={schedule.clientIsSelf}
               />
               <span className={'text-foreground text-sm font-medium'}>
-                {schedule.clientDisplayName || schedule.clientName}
+                {schedule.clientIsSelf
+                  ? tc('self')
+                  : schedule.clientDisplayName || schedule.clientName}
               </span>
             </div>
           )}

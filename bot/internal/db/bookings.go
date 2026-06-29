@@ -95,7 +95,8 @@ func insertBooking(id, specialistID, clientID, sessionTypeID, clientBatchID stri
 var bookingColumns = `b.id, b.specialist_id, b.client_id, b.session_type_id, b.starts_at, b.ends_at,
 	b.client_name, b.client_message, b.status, b.cancel_reason, b.cancelled_by, b.created_at,
 	b.duration_minutes, b.created_by, b.recurring_schedule_id, b.replaces_booking_id, b.client_batch_id, ` +
-	clientMetadataSelectColumns("c") + `, COALESCE(c.is_ghost, 0), COALESCE(c.telegram_user_id, 0), COALESCE(c.telegram_username, ''), ` + sessionTypeSelectColumns("st")
+	clientMetadataSelectColumns("c") + `, COALESCE(c.is_ghost, 0), COALESCE(c.telegram_user_id, 0), COALESCE(c.telegram_username, ''), ` + sessionTypeSelectColumns("st") +
+	`, CASE WHEN c.telegram_user_id = sp.telegram_user_id THEN 1 ELSE 0 END`
 
 /***************************************************************************************************
 * Stores the shared SQL FROM clause reused by related queries.
@@ -107,6 +108,7 @@ const bookingFromClause = `
 	FROM bookings b
 	LEFT JOIN clients c ON c.id = b.client_id
 	LEFT JOIN session_types st ON st.id = b.session_type_id
+	LEFT JOIN specialists sp ON sp.id = b.specialist_id
 `
 
 /***************************************************************************************************
@@ -158,6 +160,7 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 	var clientIsGhost sql.NullInt64
 	var clientTelegramID sql.NullInt64
 	var clientTelegramUsername sql.NullString
+	var clientIsSelf sql.NullInt64
 	sessionType := nullableSessionType{}
 
 	dest := append([]interface{}{
@@ -165,7 +168,7 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
 		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &clientBatchID, &b.ClientPhotoURL, &b.ClientDisplayName,
 		&clientIsGhost, &clientTelegramID, &clientTelegramUsername,
-	}, sessionType.scanDest()...)
+	}, append(sessionType.scanDest(), &clientIsSelf)...)
 
 	err := row.Scan(dest...)
 	if err != nil {
@@ -197,6 +200,7 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 		b.ClientBatchID = clientBatchID.String
 	}
 	b.ClientIsGhost = clientIsGhost.Valid && clientIsGhost.Int64 == 1
+	b.ClientIsSelf = clientIsSelf.Valid && clientIsSelf.Int64 == 1
 	if clientTelegramID.Valid {
 		b.ClientTelegramID = clientTelegramID.Int64
 	}

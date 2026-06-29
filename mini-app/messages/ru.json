@@ -249,6 +249,7 @@
     "successMultiFor": " для {name}",
     "successAwaitConfirmation": " Ожидайте подтверждения.",
     "successBookingCreated": "Запись создана.",
+    "successRecurringCreated": "Расписание создано.",
     "successRecurringTitle": "Расписание отправлено",
     "successRecurringForClient": "Расписание для {name} отправлено на подтверждение.",
     "successRecurringForSpecialist": "Расписание отправлено на подтверждение специалисту.",

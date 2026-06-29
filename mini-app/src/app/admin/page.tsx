@@ -285,7 +285,11 @@ export default function AdminHomePage(): ReactNode {
 
   const handleMessageClient = useCallback(
     (booking: TBooking): void => {
-      if (booking.clientIsGhost || !openTelegramUserChat(booking.clientTelegramUsername)) {
+      if (
+        booking.clientIsGhost ||
+        booking.clientIsSelf ||
+        !openTelegramUserChat(booking.clientTelegramUsername)
+      ) {
         toast.error(t('dmUnavailable'));
       }
     },
