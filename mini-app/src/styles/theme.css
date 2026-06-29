@@ -411,3 +411,10 @@
     line-height: 1.5;
   }
 }
+
+/* Sonner toast theming — bind to app CSS vars so toasts match the current theme */
+[data-sonner-toaster] {
+  --normal-bg: var(--card);
+  --normal-text: var(--foreground);
+  --normal-border: var(--border);
+}
