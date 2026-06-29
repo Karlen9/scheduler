@@ -319,21 +319,21 @@ export default function BookingsPage(): ReactNode {
                 {pastBookings.map((booking) => (
                   <BookingCard key={booking.id} booking={booking} />
                 ))}
-                {hasMore && (
-                  <button
-                    type={'button'}
-                    onClick={() => setPage((current) => current + 1)}
-                    disabled={isLoading}
-                    className={
-                      'bg-card text-brand w-full rounded-xl py-3 text-center text-sm font-medium active:opacity-80 disabled:opacity-50'
-                    }
-                  >
-                    {isLoading ? t('loading') : t('loadMore')}
-                  </button>
-                )}
               </div>
             )}
           </div>
+        )}
+        {hasMore && (
+          <button
+            type={'button'}
+            onClick={() => setPage((current) => current + 1)}
+            disabled={isLoading}
+            className={
+              'bg-card text-brand w-full rounded-xl py-3 text-center text-sm font-medium active:opacity-80 disabled:opacity-50'
+            }
+          >
+            {isLoading ? t('loading') : t('loadMore')}
+          </button>
         )}
       </div>
 

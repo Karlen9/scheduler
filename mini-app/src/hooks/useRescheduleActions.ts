@@ -44,6 +44,10 @@ export function useRescheduleActions(mode: 'client' | 'admin' = 'client'): {
         }
       } catch {
         toast.error(te('bookingRescheduleFailed'));
+        await invalidateBookings();
+        if (booking.recurringScheduleId) {
+          await invalidateRecurring();
+        }
       } finally {
         setPending(false);
       }
@@ -66,6 +70,10 @@ export function useRescheduleActions(mode: 'client' | 'admin' = 'client'): {
         }
       } catch {
         toast.error(te('bookingDeclineFailed'));
+        await invalidateBookings();
+        if (booking.recurringScheduleId) {
+          await invalidateRecurring();
+        }
       } finally {
         setPending(false);
       }
