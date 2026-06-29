@@ -80,7 +80,7 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
   }
 
   if (path === '/api/bookings' && method === 'POST') {
-    return ['bookings', 'clients'];
+    return ['bookings', 'clients', 'clientBatches'];
   }
   if (path.startsWith('/api/bookings/')) {
     return ['bookings', 'clientBatches'];

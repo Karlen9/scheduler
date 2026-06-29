@@ -90,6 +90,13 @@ export default function ProfilePage(): ReactNode {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!editorImage) {
+      return;
+    }
+    return () => URL.revokeObjectURL(editorImage);
+  }, [editorImage]);
+
+  useEffect(() => {
     if (isLoading || initialized || !profile) {
       return;
     }
