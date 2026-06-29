@@ -276,9 +276,9 @@ export function createMockState(): TMockState {
   const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const mockSubscription: TSubscription = {
-    status: 'trialing',
+    status: 'expired',
     plan: '',
-    isPro: true,
+    isPro: false,
     trialEndsAt,
     autoRenew: false,
     cancelAtPeriodEnd: false,

@@ -56,7 +56,6 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
   const adminBookingsHref = resolveTestAwareHref(pathname, '/admin/bookings');
   const adminRecurringHref = resolveTestAwareHref(pathname, '/admin/recurring');
   const adminSettingsHref = resolveTestAwareHref(pathname, '/admin/settings');
-  const adminSubscriptionHref = resolveTestAwareHref(pathname, '/admin/settings/subscription');
   /***************************************************************************************************
    * Defines the is home value used by the component layer.
    *
@@ -105,7 +104,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         key: 'analytics',
         label: tn('analytics'),
         icon: ChartColumn,
-        href: isPro ? adminAnalyticsHref : adminSubscriptionHref,
+        href: adminAnalyticsHref,
         locked: !isPro,
       },
       {
@@ -123,7 +122,6 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
       adminHref,
       adminRecurringHref,
       adminSettingsHref,
-      adminSubscriptionHref,
       isPro,
       tn,
     ],

@@ -1,14 +1,21 @@
 'use client';
 
-import { CalendarDays, Check, RussianRuble, Users, Wallet } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import {
+  CalendarDays,
+  Check,
+  Crown,
+  ExternalLink,
+  RussianRuble,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect } from 'react';
 
 import { EmptyState } from '@/components/EmptyState';
 import { StatBar } from '@/components/StatBar';
 import { StatCard } from '@/components/StatCard';
 import { useAdminStats, useSubscription } from '@/hooks/queries';
+import { openTelegramUserChat } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
@@ -54,16 +61,9 @@ export default function AdminAnalyticsPage(): ReactNode {
   const t = useTranslations('AdminAnalytics');
   const { data: subscription, isLoading: subLoading } = useSubscription();
   const isPro = subscription?.isPro ?? true;
-  const router = useRouter();
   const { data: stats, isLoading, error } = useAdminStats();
 
-  useEffect(() => {
-    if (!subLoading && !isPro) {
-      router.replace('/admin/settings/subscription');
-    }
-  }, [subLoading, isPro, router]);
-
-  if (subLoading || !isPro || isLoading) {
+  if (subLoading || isLoading) {
     return (
       <div className={'space-y-6 p-4'}>
         <div className={'animate-pulse space-y-3'}>
@@ -75,6 +75,79 @@ export default function AdminAnalyticsPage(): ReactNode {
           </div>
         </div>
         <div className={'bg-card h-40 animate-pulse rounded-xl'} />
+      </div>
+    );
+  }
+
+  if (!isPro) {
+    return (
+      <div className={'relative min-h-[520px] p-4'}>
+        <div aria-hidden={true} className={'pointer-events-none space-y-6 blur-[6px] select-none'}>
+          <div>
+            <h1 className={'text-foreground text-xl font-semibold'}>{t('title')}</h1>
+            <p className={'text-muted-foreground mt-1 text-sm'}>
+              {'+'}
+              {18} {t('vsLastMonth')}
+            </p>
+          </div>
+          <div className={'grid grid-cols-2 gap-3'}>
+            <StatCard
+              icon={CalendarDays}
+              iconColor={'text-brand'}
+              iconBg={'bg-brand/20'}
+              value={'128'}
+              label={t('bookingsThisMonth')}
+            />
+            <StatCard
+              icon={RussianRuble}
+              iconColor={'text-success'}
+              iconBg={'bg-success/20'}
+              value={locale === 'en' ? '84k' : '84 тыс.'}
+              label={t('revenueThisMonth')}
+            />
+            <StatCard
+              icon={Users}
+              iconColor={'text-warning'}
+              iconBg={'bg-warning/20'}
+              value={'46'}
+              label={t('activeClients')}
+            />
+            <StatCard
+              icon={Check}
+              iconColor={'text-brand'}
+              iconBg={'bg-brand/20'}
+              value={'92%'}
+              label={t('completionRate')}
+            />
+          </div>
+          <div className={'bg-card space-y-5 rounded-xl p-4'}>
+            <StatBar label={t('completionRate')} value={92} maxValue={100} valueLabel={'92%'} />
+            <StatBar label={t('cancellationRate')} value={8} maxValue={100} valueLabel={'8%'} />
+          </div>
+        </div>
+        <div className={'absolute inset-0 flex items-center justify-center p-6'}>
+          <div className={'bg-card w-full max-w-xs rounded-2xl p-6 text-center shadow-lg'}>
+            <div
+              className={
+                'bg-warning/15 text-warning mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full'
+              }
+            >
+              <Crown className={'h-6 w-6'} />
+            </div>
+            <h2 className={'text-foreground text-base font-semibold'}>{t('proLockedTitle')}</h2>
+            <p className={'text-muted-foreground mt-1 text-sm'}>{t('proLockedDescription')}</p>
+            <button
+              type={'button'}
+              onClick={() => openTelegramUserChat(subscription?.masterBotUsername)}
+              className={
+                'bg-brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-opacity active:opacity-80'
+              }
+            >
+              <ExternalLink className={'h-4 w-4'} />
+              {t('proManageButton')}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

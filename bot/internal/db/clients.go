@@ -474,27 +474,9 @@ func GetClientsBySpecialistIDPaged(specialistID, search string, limit, offset in
 }
 
 /***************************************************************************************************
-* Deletes client.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-*
-* Returns:
-* - An error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func DeleteClient(clientID string) error {
-	_, err := DB.Exec(Q(`DELETE FROM clients WHERE id = ?`), clientID)
-	return err
-}
-
-/***************************************************************************************************
 * DeleteClientCascade removes a client along with all records that reference it
 * (bookings, recurring_schedules). Runs in a single transaction so a mid-delete
-* failure leaves no orphaned rows. Use when the caller explicitly opts into purging
-* all client data (e.g. the admin "delete all data" checkbox).
+* failure leaves no orphaned rows.
 ***************************************************************************************************/
 func DeleteClientCascade(clientID string) error {
 	tx, err := DB.Begin()
