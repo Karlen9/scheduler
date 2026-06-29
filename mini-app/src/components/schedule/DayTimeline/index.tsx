@@ -169,7 +169,9 @@ function DayTimelineComponent({
     if (dayWH.length > 0) {
       intervals = dayWH;
     } else if (occupied.length > 0) {
-      const spanStart = Math.min(...occupied.map((s) => s.start));
+      // Start from current time (today) or from the first booking (other days),
+      // and extend to the last booking end so gaps before/between bookings show.
+      const spanStart = isToday ? minAvailableMinute : Math.min(...occupied.map((s) => s.start));
       const spanEnd = Math.max(...occupied.map((s) => s.end));
       const pad = (min: number): string =>
         `${Math.floor(min / 60)
