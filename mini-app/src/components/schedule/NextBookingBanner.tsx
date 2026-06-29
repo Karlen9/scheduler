@@ -268,7 +268,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
         <div className={'flex items-center gap-3'}>
           <div className={'min-w-0 flex-1'}>
             <p className={'text-foreground truncate font-medium'}>
-              {booking.clientDisplayName || booking.clientName}
+              {booking.clientIsSelf ? tc('self') : booking.clientDisplayName || booking.clientName}
             </p>
             <p className={'text-muted-foreground text-sm'}>
               {tc('workout')}
@@ -285,6 +285,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
             name={booking.clientDisplayName || booking.clientName}
             photoUrl={booking.clientPhotoUrl}
             size={'lg'}
+            isSelf={booking.clientIsSelf}
           />
         </div>
       </button>

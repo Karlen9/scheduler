@@ -21,7 +21,8 @@ import (
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
 var recurringColumns = `rs.id, rs.specialist_id, rs.client_id, rs.client_name, rs.day_of_week, rs."time", rs.duration_minutes, rs.status, rs.created_by, rs.created_at, rs.session_type_id, rs.days_of_week, rs.start_date, rs.end_date, rs.day_times, ` +
-	clientMetadataSelectColumns("c") + `, ` + sessionTypeSelectColumns("st")
+	clientMetadataSelectColumns("c") + `, ` + sessionTypeSelectColumns("st") +
+	`, CASE WHEN c.telegram_user_id = sp.telegram_user_id THEN 1 ELSE 0 END`
 
 /***************************************************************************************************
 * Stores the shared SQL FROM clause reused by related queries.
@@ -33,6 +34,7 @@ const recurringFromClause = `
 	FROM recurring_schedules rs
 	LEFT JOIN clients c ON c.id = rs.client_id
 	LEFT JOIN session_types st ON st.id = rs.session_type_id
+	LEFT JOIN specialists sp ON sp.id = rs.specialist_id
 `
 
 /***************************************************************************************************
@@ -74,11 +76,12 @@ func recurringSelectQuery(whereClause, orderBy string) string {
 func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models.RecurringSchedule, error) {
 	var s models.RecurringSchedule
 	var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
+	var clientIsSelf sql.NullInt64
 	sessionType := nullableSessionType{}
 
 	dest := append([]interface{}{
 		&s.ID, &s.SpecialistID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL, &s.ClientDisplayName,
-	}, sessionType.scanDest()...)
+	}, append(sessionType.scanDest(), &clientIsSelf)...)
 
 	err := row.Scan(dest...)
 	if err != nil {
@@ -100,6 +103,7 @@ func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models
 	if dayTimes.Valid {
 		s.DayTimes = dayTimes.String
 	}
+	s.ClientIsSelf = clientIsSelf.Valid && clientIsSelf.Int64 == 1
 	s.SessionType = sessionType.model()
 
 	return &s, nil

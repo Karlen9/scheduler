@@ -141,6 +141,7 @@ export type TBooking = {
   recurringScheduleId?: string;
   replacesBookingId?: string;
   clientIsGhost?: boolean;
+  clientIsSelf?: boolean;
   clientTelegramUserId?: number;
   clientTelegramUsername?: string;
 };
@@ -225,6 +226,7 @@ export type TRecurringSchedule = {
   clientName: string;
   clientDisplayName?: string;
   clientPhotoUrl?: string;
+  clientIsSelf?: boolean;
   dayOfWeek: number;
   time: string;
   durationMinutes: number;

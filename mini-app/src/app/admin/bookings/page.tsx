@@ -436,7 +436,11 @@ export default function AdminAllBookingsPage(): ReactNode {
   };
 
   const handleMessageClient = (booking: TBooking): void => {
-    if (booking.clientIsGhost || !openTelegramUserChat(booking.clientTelegramUsername)) {
+    if (
+      booking.clientIsGhost ||
+      booking.clientIsSelf ||
+      !openTelegramUserChat(booking.clientTelegramUsername)
+    ) {
       toast.error(t('dmUnavailable'));
     }
   };
@@ -555,11 +559,12 @@ export default function AdminAllBookingsPage(): ReactNode {
                   name={bookingDisplayName(booking)}
                   photoUrl={booking.clientPhotoUrl}
                   size={'md'}
+                  isSelf={booking.clientIsSelf}
                 />
                 <div className={'min-w-0 flex-1'}>
                   <div className={'mb-1 flex items-center gap-2'}>
                     <span className={'text-foreground truncate font-medium'}>
-                      {bookingDisplayName(booking)}
+                      {booking.clientIsSelf ? tc('self') : bookingDisplayName(booking)}
                     </span>
                     {booking.clientIsGhost && (
                       <span className={'text-muted-foreground shrink-0 text-xs'}>

@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { Bookmark, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
@@ -504,21 +504,12 @@ export default function AdminClientsPage(): ReactNode {
               'bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left active:opacity-80'
             }
           >
-            {client.isSelf ? (
-              <div
-                className={
-                  'bg-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full'
-                }
-              >
-                <Bookmark className={'h-5 w-5 fill-white text-white'} />
-              </div>
-            ) : (
-              <ClientAvatar
-                name={clientDisplayName(client)}
-                photoUrl={client.photoUrl}
-                size={'md'}
-              />
-            )}
+            <ClientAvatar
+              name={clientDisplayName(client)}
+              photoUrl={client.photoUrl}
+              size={'md'}
+              isSelf={client.isSelf}
+            />
             <div className={'min-w-0 flex-1'}>
               <div className={'text-foreground truncate font-medium'}>
                 {client.isSelf ? (

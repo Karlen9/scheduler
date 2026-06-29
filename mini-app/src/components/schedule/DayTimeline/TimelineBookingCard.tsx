@@ -92,7 +92,7 @@ function TimelineBookingCardComponent({
       {compact ? (
         <div className={'flex h-full min-w-0 items-center gap-2'}>
           <p className={`min-w-0 flex-1 truncate text-xs font-medium ${style.text}`}>
-            {booking.clientDisplayName || booking.clientName}
+            {booking.clientIsSelf ? tc('self') : booking.clientDisplayName || booking.clientName}
           </p>
           <span className={`shrink-0 text-[10px] leading-none ${style.subtext}`}>
             {formatTime(booking.startsAt)}
@@ -103,7 +103,9 @@ function TimelineBookingCardComponent({
           <div className={'min-w-0 flex-1'}>
             <div className={'flex min-w-0 items-center gap-2'}>
               <p className={`min-w-0 flex-1 truncate text-sm font-medium ${style.text}`}>
-                {booking.clientDisplayName || booking.clientName}
+                {booking.clientIsSelf
+                  ? tc('self')
+                  : booking.clientDisplayName || booking.clientName}
               </p>
               <span
                 className={`shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] leading-none ${style.text}`}
@@ -124,6 +126,7 @@ function TimelineBookingCardComponent({
               name={booking.clientDisplayName || booking.clientName}
               photoUrl={booking.clientPhotoUrl}
               size={'sm'}
+              isSelf={booking.clientIsSelf}
             />
           )}
         </div>

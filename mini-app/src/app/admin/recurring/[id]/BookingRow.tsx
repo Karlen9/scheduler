@@ -88,9 +88,10 @@ export function BookingRow({
               name={booking.clientDisplayName || booking.clientName}
               photoUrl={booking.clientPhotoUrl}
               size={'sm'}
+              isSelf={booking.clientIsSelf}
             />
             <span className={'text-foreground text-sm'}>
-              {booking.clientDisplayName || booking.clientName}
+              {booking.clientIsSelf ? tc('self') : booking.clientDisplayName || booking.clientName}
             </span>
           </div>
         </div>

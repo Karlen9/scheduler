@@ -70,6 +70,7 @@ export type TClientAvatarProps = {
   name: string;
   photoUrl?: string;
   size?: 'sm' | 'md' | 'lg';
+  isSelf?: boolean;
 };
 
 export type TConfirmDialogProps = {

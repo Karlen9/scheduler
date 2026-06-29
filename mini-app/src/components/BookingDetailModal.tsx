@@ -93,7 +93,10 @@ export function BookingDetailModal({
    ***************************************************************************************************/
   const endsAt = new Date(displayBooking.endsAt);
   const canMessageClient =
-    !!onMessageClient && !displayBooking.clientIsGhost && !!displayBooking.clientTelegramUsername;
+    !!onMessageClient &&
+    !displayBooking.clientIsGhost &&
+    !displayBooking.clientIsSelf &&
+    !!displayBooking.clientTelegramUsername;
 
   /***************************************************************************************************
    * Formats date.
@@ -155,10 +158,13 @@ export function BookingDetailModal({
           name={displayBooking.clientDisplayName || displayBooking.clientName}
           photoUrl={displayBooking.clientPhotoUrl}
           size={'lg'}
+          isSelf={displayBooking.clientIsSelf}
         />
         <div>
           <h3 className={'text-foreground text-xl font-medium'}>
-            {displayBooking.clientDisplayName || displayBooking.clientName}
+            {displayBooking.clientIsSelf
+              ? tc('self')
+              : displayBooking.clientDisplayName || displayBooking.clientName}
           </h3>
           <StatusBadge status={displayBooking.status} className={'inline-block px-2 py-0.5'} />
         </div>

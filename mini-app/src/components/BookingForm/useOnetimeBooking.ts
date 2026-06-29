@@ -729,7 +729,7 @@ export function useOnetimeBooking({
      * Usage context:
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
-    const isGhost = selectedClient?.isGhost;
+    const isAutoConfirmed = !!(selectedClient?.isGhost || selectedClient?.isSelf);
     if (mode === 'single' && selectedDate && selectedTime && selectedService) {
       /***************************************************************************************************
        * Defines the who value used by the component layer.
@@ -753,7 +753,7 @@ export function useOnetimeBooking({
        * Usage context:
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
-      const suffix = isGhost ? '' : t('successAwaitConfirmation');
+      const suffix = isAutoConfirmed ? '' : t('successAwaitConfirmation');
       return t('successBookedAt', {
         who,
         date: selectedDate.getDate(),
@@ -779,10 +779,10 @@ export function useOnetimeBooking({
        * Usage context:
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
-      const confirm = isGhost ? '' : t('successAwaitConfirmation');
+      const confirm = isAutoConfirmed ? '' : t('successAwaitConfirmation');
       return `${t('successMultiCount', { count: selectedDates.length })}${multiFor}.${confirm}`;
     }
-    return isGhost ? t('successBookingCreated') : t('successAwaitConfirmation');
+    return isAutoConfirmed ? t('successBookingCreated') : t('successAwaitConfirmation');
   };
 
   /***************************************************************************************************

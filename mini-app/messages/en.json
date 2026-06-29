@@ -249,6 +249,7 @@
     "successMultiFor": " for {name}",
     "successAwaitConfirmation": " Awaiting confirmation.",
     "successBookingCreated": "Booking created.",
+    "successRecurringCreated": "Schedule created.",
     "successRecurringTitle": "Schedule Submitted",
     "successRecurringForClient": "Schedule for {name} has been submitted for confirmation.",
     "successRecurringForSpecialist": "Schedule has been submitted for specialist's confirmation.",

@@ -1,6 +1,5 @@
 'use client';
 
-import { Bookmark } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -97,15 +96,12 @@ export function ClientDetailModal({
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} showClose>
       <div className={'mb-4 flex items-center gap-4'}>
-        {displayClient.isSelf ? (
-          <div
-            className={'bg-brand flex h-16 w-16 shrink-0 items-center justify-center rounded-full'}
-          >
-            <Bookmark className={'h-8 w-8 fill-white text-white'} />
-          </div>
-        ) : (
-          <ClientAvatar name={displayName} photoUrl={displayClient.photoUrl} size={'lg'} />
-        )}
+        <ClientAvatar
+          name={displayName}
+          photoUrl={displayClient.photoUrl}
+          size={'lg'}
+          isSelf={displayClient.isSelf}
+        />
         <div className={'min-w-0'}>
           <h3 className={'text-foreground truncate text-xl font-medium'}>
             {displayClient.isSelf ? tc('self') : displayName}
