@@ -310,6 +310,6 @@ export function isWithinCutoff(
   if (!specialist?.cancelCutoffEnabled) {
     return false;
   }
-  const msUntil = new Date(booking.startsAt).getTime() - Date.now();
+  const msUntil = new Date(booking.startsAt).getTime() - wallClockNow();
   return msUntil > 0 && msUntil < (specialist.cancelCutoffHours ?? 24) * 60 * 60 * 1000;
 }

@@ -850,21 +850,10 @@ export function useOnetimeBooking({
       return;
     }
     setIsSubmitting(true);
+    const createdISOs: string[] = [];
     try {
       for (const date of selectedDates) {
-        /***************************************************************************************************
-         * Defines the iso value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const iso = formatDateISO(date);
-        /***************************************************************************************************
-         * Defines the time value used by the component layer.
-         *
-         * Usage context:
-         * - Reused by the component layer to keep shared values centralized.
-         ***************************************************************************************************/
         const time = timeAssignments[iso];
         if (!time) {
           continue;
@@ -877,17 +866,26 @@ export function useOnetimeBooking({
           time,
           message: message || undefined,
         });
+        createdISOs.push(iso);
       }
       invalidateBookings();
       toast.success(t('successTitle'), { description: getOnetimeSuccessDescription() });
       router.push(resolveTestAwareHref(pathname, successRedirect));
     } catch (err) {
-      /***************************************************************************************************
-       * Defines the msg value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
+      // Some bookings may already have been created before the failure. Drop those
+      // from the selection (and the bookings cache) so a retry does not duplicate them.
+      if (createdISOs.length > 0) {
+        const createdSet = new Set(createdISOs);
+        setSelectedDates((prev) => prev.filter((d) => !createdSet.has(formatDateISO(d))));
+        setTimeAssignments((prev) => {
+          const next = { ...prev };
+          for (const iso of createdISOs) {
+            delete next[iso];
+          }
+          return next;
+        });
+        invalidateBookings();
+      }
       if (err instanceof ProRequiredError) {
         toast.error(te('proRequiredBooking'));
       } else {
