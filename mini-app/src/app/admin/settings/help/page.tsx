@@ -5,22 +5,12 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { TopBar } from '@/components/TopBar';
+import { useSubscription } from '@/hooks/queries';
+import { openTelegramUserChat } from '@/lib/telegram';
 
 import type { TFAQItem } from '@/lib/types';
 import type { ReactNode } from 'react';
 
-/***************************************************************************************************
- * Renders the faqaccordion UI and related interactions.
- *
- * Parameters:
- * - props: Component props that drive rendering and callbacks.
- *
- * Returns:
- * - The computed value for the current operation as ReactNode.
- *
- * Side effects:
- * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
- ***************************************************************************************************/
 function FAQAccordion({ item }: { item: TFAQItem }): ReactNode {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -42,26 +32,9 @@ function FAQAccordion({ item }: { item: TFAQItem }): ReactNode {
   );
 }
 
-/***************************************************************************************************
- * Renders the help page UI and related interactions.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as ReactNode.
- *
- * Side effects:
- * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
- ***************************************************************************************************/
 export default function HelpPage(): ReactNode {
-  /***************************************************************************************************
-   * Defines the t value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
   const t = useTranslations('AdminHelp');
+  const { data } = useSubscription();
 
   const faqItems: TFAQItem[] = [
     { question: t('faq_q1'), answer: t('faq_a1') },
@@ -77,24 +50,14 @@ export default function HelpPage(): ReactNode {
     { question: t('faq_q10'), answer: t('faq_a10') },
   ];
 
-  /***************************************************************************************************
-   * Handles contact support.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
   const handleContactSupport = (): void => {
-    window.open('https://t.me/karlenptsd', '_blank');
+    openTelegramUserChat(data?.masterBotUsername);
   };
 
   return (
     <div>
       <TopBar title={t('title')} showBack />
-
       <div className={'space-y-6 p-4'}>
-        {/***************************************************************************************************
-         * FAQ Section.
-         ***************************************************************************************************/}
         <div>
           <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>{t('faqTitle')}</h3>
           <div className={'bg-card rounded-xl px-4'}>
@@ -103,10 +66,6 @@ export default function HelpPage(): ReactNode {
             ))}
           </div>
         </div>
-
-        {/***************************************************************************************************
-         * Contact Support.
-         ***************************************************************************************************/}
         <div>
           <h3 className={'text-muted-foreground mb-3 text-sm font-medium'}>{t('needHelp')}</h3>
           <button
