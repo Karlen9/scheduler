@@ -376,6 +376,8 @@ func isTopicMissingError(err error) bool {
 		return true
 	case strings.Contains(s, "thread was deleted"):
 		return true
+	case strings.Contains(s, "topic_id_invalid"):
+		return true
 	}
 	return false
 }
