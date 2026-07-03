@@ -6,6 +6,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"scheduler-bot/internal/models"
@@ -658,14 +659,20 @@ func buildMonthRanges(now time.Time, loc *time.Location, count int) []monthRange
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
+var statsLocationCache sync.Map
+
 func loadLocation(timezone string) *time.Location {
 	if timezone == "" {
 		return time.UTC
 	}
+	if cached, ok := statsLocationCache.Load(timezone); ok {
+		return cached.(*time.Location)
+	}
 	location, err := time.LoadLocation(timezone)
 	if err != nil {
-		return time.UTC
+		location = time.UTC
 	}
+	statsLocationCache.Store(timezone, location)
 	return location
 }
 
