@@ -2,8 +2,14 @@ package api
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
+
+/***************************************************************************************************
+* tzLocationCache memoizes time.LoadLocation results, since it parses IANA tzdata on every call.
+***************************************************************************************************/
+var tzLocationCache sync.Map
 
 /***************************************************************************************************
 * Loads a schedule location, falling back to UTC when a specialist timezone is missing or invalid.
@@ -12,10 +18,14 @@ func scheduleLocation(timezone string) *time.Location {
 	if timezone == "" {
 		return time.UTC
 	}
+	if cached, ok := tzLocationCache.Load(timezone); ok {
+		return cached.(*time.Location)
+	}
 	location, err := time.LoadLocation(timezone)
 	if err != nil {
-		return time.UTC
+		location = time.UTC
 	}
+	tzLocationCache.Store(timezone, location)
 	return location
 }
 
