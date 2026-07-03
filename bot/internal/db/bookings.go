@@ -814,7 +814,9 @@ type BookingReminder struct {
 /***************************************************************************************************
 * GetBookingRemindersDue returns confirmed bookings starting within the next hour that haven't had
 * a reminder sent yet, together with the client and specialist fields needed to send it. Bookings
-* whose client or specialist row is missing are skipped (INNER JOIN).
+* whose client or specialist row is missing are skipped (bookingFromClause's LEFT JOINs are
+* narrowed back to INNER JOIN semantics via the WHERE clause below, since the aliases it defines are
+* reused as-is here instead of being joined a second time).
 *
 * Parameters:
 * - None.
@@ -831,11 +833,10 @@ func GetBookingRemindersDue() ([]BookingReminder, error) {
 
 	query := `SELECT ` + bookingColumns + `,
 		c.telegram_user_id, COALESCE(c.language, ''), c.name, c.notify_reminders,
-		s.name, s.webhook_secret
+		sp.name, sp.webhook_secret
 		` + bookingFromClause + `
-		JOIN clients c ON c.id = b.client_id
-		JOIN specialists s ON s.id = b.specialist_id
 		WHERE b.status = 'confirmed' AND b.reminder_sent = 0 AND b.starts_at > ? AND b.starts_at <= ?
+		  AND c.id IS NOT NULL AND sp.id IS NOT NULL
 		ORDER BY b.starts_at ASC`
 
 	rows, err := DB.Query(Q(query), now, oneHourLater)
@@ -938,35 +939,6 @@ func CreateBookingBySpecialist(specialistID, clientID, sessionTypeID string, sta
 	id := uuid.New().String()
 
 	if err := insertBooking(id, specialistID, clientID, sessionTypeID, "", startsAt, endsAt, clientName, clientMessage, models.BookingStatusPending, durationMinutes, "specialist", "", ""); err != nil {
-		return nil, err
-	}
-
-	return GetBookingByID(id)
-}
-
-/***************************************************************************************************
-* Creates recurring booking.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-* - specialistID: Identifier used to target the current record.
-* - startsAt: Starts at used by the current operation.
-* - sessionTypeID: Identifier used to target the current record.
-* - endsAt: Ends at used by the current operation.
-* - clientName: Client name used by the current operation.
-* - durationMinutes: Duration value used by the current operation.
-* - recurringScheduleID: Identifier used to target the current record.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func CreateRecurringBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID string) (*models.Booking, error) {
-	id := uuid.New().String()
-
-	if err := insertBooking(id, specialistID, clientID, sessionTypeID, "", startsAt, endsAt, clientName, "", models.BookingStatusConfirmed, durationMinutes, "", recurringScheduleID, ""); err != nil {
 		return nil, err
 	}
 
