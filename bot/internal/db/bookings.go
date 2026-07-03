@@ -213,6 +213,93 @@ func scanBookingRow(row interface{ Scan(...interface{}) error }) (*models.Bookin
 }
 
 /***************************************************************************************************
+* Scans a booking reminder row, replicating scanBookingRow's dest order exactly before scanning the
+* trailing client/specialist reminder columns.
+*
+* Parameters:
+* - row: Row used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func scanBookingReminderRow(row interface{ Scan(...interface{}) error }) (*models.Booking, int64, string, string, bool, string, string, error) {
+	var b models.Booking
+	var clientMessage sql.NullString
+	var cancelReason sql.NullString
+	var cancelledBy sql.NullString
+	var durationMinutes sql.NullInt64
+	var createdBy sql.NullString
+	var recurringScheduleID sql.NullString
+	var replacesBookingID sql.NullString
+	var clientBatchID sql.NullString
+	var clientIsGhost sql.NullInt64
+	var clientTelegramID sql.NullInt64
+	var clientTelegramUsername sql.NullString
+	var clientIsSelf sql.NullInt64
+	sessionType := nullableSessionType{}
+
+	var reminderClientTelegramUserID int64
+	var reminderClientLanguage string
+	var reminderClientName string
+	var reminderClientNotifyReminders bool
+	var reminderSpecialistName string
+	var reminderSpecialistWebhookSecret string
+
+	dest := append([]interface{}{
+		&b.ID, &b.SpecialistID, &b.ClientID, &b.SessionTypeID, &b.StartsAt, &b.EndsAt,
+		&b.ClientName, &clientMessage, &b.Status, &cancelReason, &cancelledBy, &b.CreatedAt,
+		&durationMinutes, &createdBy, &recurringScheduleID, &replacesBookingID, &clientBatchID, &b.ClientPhotoURL, &b.ClientDisplayName,
+		&clientIsGhost, &clientTelegramID, &clientTelegramUsername,
+	}, append(sessionType.scanDest(), &clientIsSelf,
+		&reminderClientTelegramUserID, &reminderClientLanguage, &reminderClientName, &reminderClientNotifyReminders,
+		&reminderSpecialistName, &reminderSpecialistWebhookSecret)...)
+
+	err := row.Scan(dest...)
+	if err != nil {
+		return nil, 0, "", "", false, "", "", err
+	}
+
+	if clientMessage.Valid {
+		b.ClientMessage = clientMessage.String
+	}
+	if cancelReason.Valid {
+		b.CancelReason = cancelReason.String
+	}
+	if cancelledBy.Valid {
+		b.CancelledBy = models.CancelledBy(cancelledBy.String)
+	}
+	if durationMinutes.Valid {
+		b.DurationMinutes = int(durationMinutes.Int64)
+	}
+	if createdBy.Valid {
+		b.CreatedBy = createdBy.String
+	}
+	if recurringScheduleID.Valid {
+		b.RecurringScheduleID = recurringScheduleID.String
+	}
+	if replacesBookingID.Valid {
+		b.ReplacesBookingID = replacesBookingID.String
+	}
+	if clientBatchID.Valid {
+		b.ClientBatchID = clientBatchID.String
+	}
+	b.ClientIsGhost = clientIsGhost.Valid && clientIsGhost.Int64 == 1
+	b.ClientIsSelf = clientIsSelf.Valid && clientIsSelf.Int64 == 1
+	if clientTelegramID.Valid {
+		b.ClientTelegramID = clientTelegramID.Int64
+	}
+	if clientTelegramUsername.Valid {
+		b.ClientTelegramUsername = clientTelegramUsername.String
+	}
+	b.SessionType = sessionType.model()
+
+	return &b, reminderClientTelegramUserID, reminderClientLanguage, reminderClientName, reminderClientNotifyReminders, reminderSpecialistName, reminderSpecialistWebhookSecret, nil
+}
+
+/***************************************************************************************************
 * Returns booking by id.
 *
 * Parameters:
@@ -556,6 +643,52 @@ func HasConflictingBooking(specialistID string, startsAt, endsAt time.Time, excl
 	return count > 0, nil
 }
 
+/***************************************************************************************************
+* bookingInterval is a lightweight starts_at/ends_at pair used for in-memory conflict checks.
+***************************************************************************************************/
+type bookingInterval struct {
+	startsAt time.Time
+	endsAt   time.Time
+}
+
+/***************************************************************************************************
+* getBookingIntervalsInRange returns the starts_at/ends_at intervals of pending/confirmed bookings
+* for a specialist that overlap the given range, so callers can run many in-memory conflict checks
+* instead of one query per candidate slot.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - rangeStart: Start used by the current operation.
+* - rangeEnd: End used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func getBookingIntervalsInRange(specialistID string, rangeStart, rangeEnd time.Time) ([]bookingInterval, error) {
+	rows, err := DB.Query(Q(`
+		SELECT starts_at, ends_at FROM bookings
+		WHERE specialist_id = ? AND status IN ('pending', 'confirmed')
+		  AND starts_at < ? AND ends_at > ?
+	`), specialistID, rangeEnd, rangeStart)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var intervals []bookingInterval
+	for rows.Next() {
+		var interval bookingInterval
+		if err := rows.Scan(&interval.startsAt, &interval.endsAt); err != nil {
+			return nil, err
+		}
+		intervals = append(intervals, interval)
+	}
+	return intervals, rows.Err()
+}
+
 type BookingListFilters struct {
 	Status         string
 	Statuses       []string
@@ -665,8 +798,25 @@ func GetBookingsBySpecialistIDFiltered(specialistID string, filters BookingListF
 }
 
 /***************************************************************************************************
-* GetBookingsNeedingReminder returns confirmed bookings starting within the next hour that haven't
-* had a reminder sent yet.
+* BookingReminder pairs a due booking with the client and specialist fields the reminder worker
+* needs, fetched via a single joined query instead of per-booking lookups.
+***************************************************************************************************/
+type BookingReminder struct {
+	Booking                 models.Booking
+	ClientTelegramUserID    int64
+	ClientLanguage          string
+	ClientName              string
+	ClientNotifyReminders   bool
+	SpecialistName          string
+	SpecialistWebhookSecret string
+}
+
+/***************************************************************************************************
+* GetBookingRemindersDue returns confirmed bookings starting within the next hour that haven't had
+* a reminder sent yet, together with the client and specialist fields needed to send it. Bookings
+* whose client or specialist row is missing are skipped (bookingFromClause's LEFT JOINs are
+* narrowed back to INNER JOIN semantics via the WHERE clause below, since the aliases it defines are
+* reused as-is here instead of being joined a second time).
 *
 * Parameters:
 * - None.
@@ -677,20 +827,45 @@ func GetBookingsBySpecialistIDFiltered(specialistID string, filters BookingListF
 * Side effects:
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
-func GetBookingsNeedingReminder() ([]models.Booking, error) {
+func GetBookingRemindersDue() ([]BookingReminder, error) {
 	now := time.Now().UTC()
 	oneHourLater := now.Add(time.Hour)
 
-	rows, err := DB.Query(Q(bookingSelectQuery(
-		"b.status = 'confirmed' AND b.reminder_sent = 0 AND b.starts_at > ? AND b.starts_at <= ?",
-		"b.starts_at ASC",
-	)), now, oneHourLater)
+	query := `SELECT ` + bookingColumns + `,
+		c.telegram_user_id, COALESCE(c.language, ''), c.name, c.notify_reminders,
+		sp.name, sp.webhook_secret
+		` + bookingFromClause + `
+		WHERE b.status = 'confirmed' AND b.reminder_sent = 0 AND b.starts_at > ? AND b.starts_at <= ?
+		  AND c.id IS NOT NULL AND sp.id IS NOT NULL
+		ORDER BY b.starts_at ASC`
+
+	rows, err := DB.Query(Q(query), now, oneHourLater)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	return scanBookings(rows)
+	var reminders []BookingReminder
+	for rows.Next() {
+		booking, clientTelegramUserID, clientLanguage, clientName, clientNotifyReminders, specialistName, specialistWebhookSecret, err := scanBookingReminderRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		reminders = append(reminders, BookingReminder{
+			Booking:                 *booking,
+			ClientTelegramUserID:    clientTelegramUserID,
+			ClientLanguage:          clientLanguage,
+			ClientName:              clientName,
+			ClientNotifyReminders:   clientNotifyReminders,
+			SpecialistName:          specialistName,
+			SpecialistWebhookSecret: specialistWebhookSecret,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return reminders, nil
 }
 
 /***************************************************************************************************
@@ -764,35 +939,6 @@ func CreateBookingBySpecialist(specialistID, clientID, sessionTypeID string, sta
 	id := uuid.New().String()
 
 	if err := insertBooking(id, specialistID, clientID, sessionTypeID, "", startsAt, endsAt, clientName, clientMessage, models.BookingStatusPending, durationMinutes, "specialist", "", ""); err != nil {
-		return nil, err
-	}
-
-	return GetBookingByID(id)
-}
-
-/***************************************************************************************************
-* Creates recurring booking.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-* - specialistID: Identifier used to target the current record.
-* - startsAt: Starts at used by the current operation.
-* - sessionTypeID: Identifier used to target the current record.
-* - endsAt: Ends at used by the current operation.
-* - clientName: Client name used by the current operation.
-* - durationMinutes: Duration value used by the current operation.
-* - recurringScheduleID: Identifier used to target the current record.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func CreateRecurringBooking(specialistID, clientID, sessionTypeID string, startsAt, endsAt time.Time, clientName string, durationMinutes int, recurringScheduleID string) (*models.Booking, error) {
-	id := uuid.New().String()
-
-	if err := insertBooking(id, specialistID, clientID, sessionTypeID, "", startsAt, endsAt, clientName, "", models.BookingStatusConfirmed, durationMinutes, "", recurringScheduleID, ""); err != nil {
 		return nil, err
 	}
 

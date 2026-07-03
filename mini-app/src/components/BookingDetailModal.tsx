@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { ClientAvatar } from '@/components/ClientAvatar';
@@ -67,11 +67,9 @@ export function BookingDetailModal({
   const locale = useLocale();
   const [retainedBooking, setRetainedBooking] = useState(booking);
 
-  useEffect(() => {
-    if (booking) {
-      setRetainedBooking(booking);
-    }
-  }, [booking]);
+  if (booking && booking !== retainedBooking) {
+    setRetainedBooking(booking);
+  }
 
   const displayBooking = booking ?? retainedBooking;
 

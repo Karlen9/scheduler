@@ -3,6 +3,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { openTelegramUserChat } from '@/lib/telegram';
+
 import SubscriptionPage from '../page';
 
 import type { TSubscription } from '@/lib/types';
@@ -68,6 +70,7 @@ vi.mock('@/components/Switch', () => ({
 
 vi.mock('@/lib/telegram', () => ({
   getTelegramWebApp: () => null,
+  openTelegramUserChat: vi.fn(),
 }));
 
 vi.mock('swr', () => ({
@@ -147,6 +150,17 @@ const messages = {
     bookingUnavailableTitle: 'Запись временно недоступна',
     bookingUnavailableDescription:
       'Онлайн-запись пока недоступна. Свяжитесь со специалистом напрямую.',
+    benefitsHeading: 'Возможности Pro',
+    benefitSelfBooking: 'Самостоятельная запись клиентов',
+    benefitSelfBookingHint: 'Клиенты бронируют время сами по вашей ссылке',
+    benefitRecurring: 'Повторяющиеся записи и абонементы',
+    benefitRecurringHint: 'Регулярные сеансы и массовое планирование',
+    benefitBulkDaysOff: 'Выходные периодами',
+    benefitBulkDaysOffHint: 'Отмечайте нерабочие дни сразу диапазоном',
+    benefitAnalytics: 'Расширенная аналитика',
+    benefitAnalyticsHint: 'Подробная статистика и экспорт данных',
+    manageInBotTitle: 'Управление подпиской в боте',
+    manageInBotHint: 'Оплата и продление — в мастер-боте',
   },
 };
 
@@ -200,27 +214,17 @@ beforeEach(() => {
 });
 
 describe('SubscriptionPage plan rendering', () => {
-  it('renders all three plan labels', () => {
+  // Plan selection, checkout, and promo-code UI were removed from this page in favor of a
+  // "manage in bot" deep link (commit 0eca279); the page now only shows status + a static
+  // benefits list, so these tests cover that instead of the old in-app plan picker.
+  it('renders the Pro benefits list', () => {
     renderPage(makeSubscription());
 
-    expect(screen.getByText('Месяц')).toBeTruthy();
-    expect(screen.getByText('3 месяца')).toBeTruthy();
-    expect(screen.getByText('Год')).toBeTruthy();
-  });
-
-  it('renders correct prices in roubles (kopecks / 100)', () => {
-    renderPage(makeSubscription());
-
-    // Each plan row shows "<price> ₽ / <suffix>"
-    expect(screen.getByText(/590/)).toBeTruthy();
-    expect(screen.getByText(/1490/)).toBeTruthy();
-    expect(screen.getByText(/4990/)).toBeTruthy();
-  });
-
-  it('marks the annual plan as recommended', () => {
-    renderPage(makeSubscription());
-
-    expect(screen.getByText('Выгоднее')).toBeTruthy();
+    expect(screen.getByText('Возможности Pro')).toBeTruthy();
+    expect(screen.getByText('Самостоятельная запись клиентов')).toBeTruthy();
+    expect(screen.getByText('Повторяющиеся записи и абонементы')).toBeTruthy();
+    expect(screen.getByText('Выходные периодами')).toBeTruthy();
+    expect(screen.getByText('Расширенная аналитика')).toBeTruthy();
   });
 
   it('shows the trial status when status=trialing', () => {
@@ -249,54 +253,27 @@ describe('SubscriptionPage plan rendering', () => {
   });
 });
 
-describe('SubscriptionPage checkout flow', () => {
-  it('calls checkoutSubscription with the selected plan on button click', async () => {
-    renderPage(makeSubscription());
+// Plan selection, checkout, and promo-code flows moved out of the mini-app and into the
+// master bot (commit 0eca279); the page now surfaces a single "manage in bot" deep link
+// instead, covered below in place of the old in-app checkout-flow tests.
+describe('SubscriptionPage manage in bot', () => {
+  it('opens a chat with the master bot when the manage link is clicked', () => {
+    renderPage(makeSubscription({ masterBotUsername: 'masterbot' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Оформить' }));
+    fireEvent.click(screen.getByText('Управление подпиской в боте'));
 
-    await waitFor(() => {
-      expect(apiMock.admin.checkoutSubscription).toHaveBeenCalledWith(
-        'pro_annual',
-        undefined,
-        true,
-      );
-    });
+    expect(openTelegramUserChat).toHaveBeenCalledWith('masterbot');
   });
 
-  it('calls checkoutSubscription with promo code when one is applied', async () => {
-    apiMock.admin.validatePromo.mockResolvedValue({
-      valid: true,
-      discountKopecks: 499000,
-      finalKopecks: 0,
-      discountValue: 100,
-    });
+  it('hides the manage link when no masterBotUsername is present', () => {
+    renderPage(makeSubscription({ masterBotUsername: undefined }));
 
-    renderPage(makeSubscription());
-
-    const input = screen.getByPlaceholderText('Промокод');
-    fireEvent.change(input, { target: { value: 'MOCK100' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Применить' }));
-
-    await waitFor(() => {
-      expect(apiMock.admin.validatePromo).toHaveBeenCalledWith('MOCK100', 'pro_annual');
-    });
-
-    apiMock.admin.checkoutSubscription.mockResolvedValue({ granted: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Оформить' }));
-
-    await waitFor(() => {
-      expect(apiMock.admin.checkoutSubscription).toHaveBeenCalledWith(
-        'pro_annual',
-        'MOCK100',
-        true,
-      );
-    });
+    expect(screen.queryByText('Управление подпиской в боте')).toBeNull();
   });
 });
 
 describe('SubscriptionPage cancel / resume auto-renew', () => {
-  it('shows cancel button and confirm dialog when status=active without cancelAtPeriodEnd', async () => {
+  it('shows the auto-renew toggle on when status=active without cancelAtPeriodEnd', () => {
     const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     renderPage(
       makeSubscription({
@@ -308,16 +285,11 @@ describe('SubscriptionPage cancel / resume auto-renew', () => {
     );
 
     expect(screen.getByText('Автопродление включено')).toBeTruthy();
-    const cancelBtn = screen.getByRole('button', { name: 'Отключить автопродление' });
-    expect(cancelBtn).toBeTruthy();
-
-    fireEvent.click(cancelBtn);
-    await waitFor(() => {
-      expect(screen.getByText('Отключить автопродление?')).toBeTruthy();
-    });
+    const toggle = screen.getByRole('switch', { name: 'Автопродление' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('calls cancelSubscription when confirm dialog is confirmed', async () => {
+  it('calls cancelSubscription when the auto-renew toggle is switched off', async () => {
     const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     renderPage(
       makeSubscription({
@@ -328,20 +300,14 @@ describe('SubscriptionPage cancel / resume auto-renew', () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Отключить автопродление' }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Отключить' })).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Отключить' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Автопродление' }));
 
     await waitFor(() => {
       expect(apiMock.admin.cancelSubscription).toHaveBeenCalledTimes(1);
     });
   });
 
-  it('shows resume button and calls resumeSubscription when cancelAtPeriodEnd=true', async () => {
+  it('shows the auto-renew toggle off and calls resumeSubscription when cancelAtPeriodEnd=true', async () => {
     const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     renderPage(
       makeSubscription({
@@ -354,10 +320,10 @@ describe('SubscriptionPage cancel / resume auto-renew', () => {
     );
 
     expect(screen.getByText('Автопродление отключено')).toBeTruthy();
-    const resumeBtn = screen.getByRole('button', { name: 'Включить автопродление' });
-    expect(resumeBtn).toBeTruthy();
+    const toggle = screen.getByRole('switch', { name: 'Автопродление' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
 
-    fireEvent.click(resumeBtn);
+    fireEvent.click(toggle);
 
     await waitFor(() => {
       expect(apiMock.admin.resumeSubscription).toHaveBeenCalledTimes(1);
