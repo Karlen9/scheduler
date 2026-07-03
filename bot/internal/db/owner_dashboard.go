@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -139,35 +140,70 @@ func GetOwnerMonthlyTrends(count int) ([]OwnerMonthlyTrendPoint, error) {
 	}
 	now := time.Now().UTC()
 	months := buildMonthRanges(now, time.UTC, count)
-	result := make([]OwnerMonthlyTrendPoint, 0, len(months))
+	result := make([]OwnerMonthlyTrendPoint, len(months))
+	for index, month := range months {
+		result[index] = OwnerMonthlyTrendPoint{Month: month.Key}
+	}
 
+	if len(months) == 0 {
+		return result, nil
+	}
+
+	rangeStart := months[0].Start.UTC()
+	rangeEnd := months[len(months)-1].End.UTC()
+
+	bookingsColumns := make([]string, 0, len(months)*3)
+	for range months {
+		bookingsColumns = append(bookingsColumns,
+			"COALESCE(SUM(CASE WHEN created_at >= ? AND created_at < ? THEN 1 ELSE 0 END), 0)",
+			"COALESCE(SUM(CASE WHEN created_at >= ? AND created_at < ? AND status = 'completed' THEN 1 ELSE 0 END), 0)",
+			"COALESCE(SUM(CASE WHEN created_at >= ? AND created_at < ? AND status = 'cancelled' THEN 1 ELSE 0 END), 0)",
+		)
+	}
+	bookingsQuery := fmt.Sprintf(`SELECT %s FROM bookings WHERE created_at >= ? AND created_at < ?`, strings.Join(bookingsColumns, ", "))
+
+	bookingsArgs := make([]interface{}, 0, len(months)*6+2)
 	for _, month := range months {
-		point := OwnerMonthlyTrendPoint{Month: month.Key}
-		if err := DB.QueryRow(Q(`
-			SELECT
-				COUNT(*),
-				COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0),
-				COALESCE(SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END), 0)
-			FROM bookings
-			WHERE created_at >= ? AND created_at < ?
-		`), month.Start.UTC(), month.End.UTC()).Scan(&point.Bookings, &point.Completed, &point.Cancelled); err != nil {
-			return nil, err
-		}
-		if err := DB.QueryRow(Q(`
-			SELECT COUNT(*)
-			FROM clients
-			WHERE created_at >= ? AND created_at < ?
-		`), month.Start.UTC(), month.End.UTC()).Scan(&point.NewClients); err != nil {
-			return nil, err
-		}
-		if err := DB.QueryRow(Q(`
-			SELECT COUNT(*)
-			FROM specialists
-			WHERE created_at >= ? AND created_at < ?
-		`), month.Start.UTC(), month.End.UTC()).Scan(&point.NewSpecialists); err != nil {
-			return nil, err
-		}
-		result = append(result, point)
+		start, end := month.Start.UTC(), month.End.UTC()
+		bookingsArgs = append(bookingsArgs, start, end, start, end, start, end)
+	}
+	bookingsArgs = append(bookingsArgs, rangeStart, rangeEnd)
+
+	bookingsDest := make([]interface{}, 0, len(months)*3)
+	for index := range months {
+		bookingsDest = append(bookingsDest, &result[index].Bookings, &result[index].Completed, &result[index].Cancelled)
+	}
+	if err := DB.QueryRow(Q(bookingsQuery), bookingsArgs...).Scan(bookingsDest...); err != nil {
+		return nil, err
+	}
+
+	countColumns := make([]string, 0, len(months))
+	for range months {
+		countColumns = append(countColumns, "COALESCE(SUM(CASE WHEN created_at >= ? AND created_at < ? THEN 1 ELSE 0 END), 0)")
+	}
+	countArgs := make([]interface{}, 0, len(months)*2+2)
+	for _, month := range months {
+		start, end := month.Start.UTC(), month.End.UTC()
+		countArgs = append(countArgs, start, end)
+	}
+	countArgs = append(countArgs, rangeStart, rangeEnd)
+
+	clientsQuery := fmt.Sprintf(`SELECT %s FROM clients WHERE created_at >= ? AND created_at < ?`, strings.Join(countColumns, ", "))
+	clientsDest := make([]interface{}, 0, len(months))
+	for index := range months {
+		clientsDest = append(clientsDest, &result[index].NewClients)
+	}
+	if err := DB.QueryRow(Q(clientsQuery), countArgs...).Scan(clientsDest...); err != nil {
+		return nil, err
+	}
+
+	specialistsQuery := fmt.Sprintf(`SELECT %s FROM specialists WHERE created_at >= ? AND created_at < ?`, strings.Join(countColumns, ", "))
+	specialistsDest := make([]interface{}, 0, len(months))
+	for index := range months {
+		specialistsDest = append(specialistsDest, &result[index].NewSpecialists)
+	}
+	if err := DB.QueryRow(Q(specialistsQuery), countArgs...).Scan(specialistsDest...); err != nil {
+		return nil, err
 	}
 
 	return result, nil
