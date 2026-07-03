@@ -142,12 +142,7 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 
 	// Check if cancellation falls within the specialist's late-cancel window.
 	lateCancel := false
-	specialist, err := db.GetSpecialistByID(booking.SpecialistID)
-	if err != nil {
-		log.Printf("Error getting specialist for cutoff check: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
+	specialist := GetSpecialistFromContext(r)
 	if specialist != nil && specialist.CancelCutoffEnabled && specialist.CancelCutoffHrs > 0 {
 		timeUntil := time.Until(booking.StartsAt)
 		if timeUntil < time.Duration(specialist.CancelCutoffHrs)*time.Hour {
