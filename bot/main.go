@@ -1058,61 +1058,43 @@ func startReminderWorker(ctx context.Context) {
 * - Keeps work scoped to the current module unless downstream helpers perform I/O.
 ***************************************************************************************************/
 func sendReminders() {
-	bookings, err := db.GetBookingsNeedingReminder()
+	reminders, err := db.GetBookingRemindersDue()
 	if err != nil {
 		log.Printf("Reminder: error fetching bookings: %v", err)
 		return
 	}
 
-	for _, booking := range bookings {
-		/***************************************************************************************************
-		* Get client to find their Telegram user ID.
-		***************************************************************************************************/
-		client, err := db.GetClientByID(booking.ClientID)
-		if err != nil || client == nil {
-			log.Printf("Reminder: error getting client for booking %s: %v", booking.ID, err)
-			continue
-		}
-
+	for _, item := range reminders {
 		/***************************************************************************************************
 		* Check client notification preferences.
 		***************************************************************************************************/
-		if !client.NotifyReminders {
+		if !item.ClientNotifyReminders {
 			/***************************************************************************************************
 			* Mark as sent so we don't check again.
 			***************************************************************************************************/
-			db.MarkReminderSent(booking.ID)
-			log.Printf("Reminder: skipping for client %s (reminders disabled)", client.Name)
+			db.MarkReminderSent(item.Booking.ID)
+			log.Printf("Reminder: skipping for client %s (reminders disabled)", item.ClientName)
 			continue
 		}
 
-		/***************************************************************************************************
-		* Get specialist to find the correct bot.
-		***************************************************************************************************/
-		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
-		if err != nil || specialist == nil {
-			log.Printf("Reminder: error getting specialist for booking %s: %v", booking.ID, err)
-			continue
-		}
-
-		bot := botManager.GetBot(specialist.WebhookSecret)
+		bot := botManager.GetBot(item.SpecialistWebhookSecret)
 		if bot == nil {
-			log.Printf("Reminder: no bot found for specialist %s", specialist.Name)
+			log.Printf("Reminder: no bot found for specialist %s", item.SpecialistName)
 			continue
 		}
 
-		loc := myI18n.NewLocalizer(client.Language)
-		text := telegram.FormatReminderClient(loc, &booking)
-		if _, err := bot.SendMessage(client.TelegramUserID, text, nil); err != nil {
-			log.Printf("Reminder: error sending to client %s: %v", client.Name, err)
+		loc := myI18n.NewLocalizer(item.ClientLanguage)
+		text := telegram.FormatReminderClient(loc, &item.Booking)
+		if _, err := bot.SendMessage(item.ClientTelegramUserID, text, nil); err != nil {
+			log.Printf("Reminder: error sending to client %s: %v", item.ClientName, err)
 			continue
 		}
 
-		if err := db.MarkReminderSent(booking.ID); err != nil {
-			log.Printf("Reminder: error marking sent for booking %s: %v", booking.ID, err)
+		if err := db.MarkReminderSent(item.Booking.ID); err != nil {
+			log.Printf("Reminder: error marking sent for booking %s: %v", item.Booking.ID, err)
 		}
 
-		log.Printf("Reminder sent for booking %s (client: %s)", booking.ID, client.Name)
+		log.Printf("Reminder sent for booking %s (client: %s)", item.Booking.ID, item.ClientName)
 	}
 }
 
