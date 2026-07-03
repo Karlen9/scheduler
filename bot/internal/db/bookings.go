@@ -643,6 +643,52 @@ func HasConflictingBooking(specialistID string, startsAt, endsAt time.Time, excl
 	return count > 0, nil
 }
 
+/***************************************************************************************************
+* bookingInterval is a lightweight starts_at/ends_at pair used for in-memory conflict checks.
+***************************************************************************************************/
+type bookingInterval struct {
+	startsAt time.Time
+	endsAt   time.Time
+}
+
+/***************************************************************************************************
+* getBookingIntervalsInRange returns the starts_at/ends_at intervals of pending/confirmed bookings
+* for a specialist that overlap the given range, so callers can run many in-memory conflict checks
+* instead of one query per candidate slot.
+*
+* Parameters:
+* - specialistID: Identifier used to target the current record.
+* - rangeStart: Start used by the current operation.
+* - rangeEnd: End used by the current operation.
+*
+* Returns:
+* - The requested result together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - Reads from or writes to the shared database connection.
+***************************************************************************************************/
+func getBookingIntervalsInRange(specialistID string, rangeStart, rangeEnd time.Time) ([]bookingInterval, error) {
+	rows, err := DB.Query(Q(`
+		SELECT starts_at, ends_at FROM bookings
+		WHERE specialist_id = ? AND status IN ('pending', 'confirmed')
+		  AND starts_at < ? AND ends_at > ?
+	`), specialistID, rangeEnd, rangeStart)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var intervals []bookingInterval
+	for rows.Next() {
+		var interval bookingInterval
+		if err := rows.Scan(&interval.startsAt, &interval.endsAt); err != nil {
+			return nil, err
+		}
+		intervals = append(intervals, interval)
+	}
+	return intervals, rows.Err()
+}
+
 type BookingListFilters struct {
 	Status         string
 	Statuses       []string
