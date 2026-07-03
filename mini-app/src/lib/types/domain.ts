@@ -23,7 +23,7 @@ export type TSpecialist = {
   autoRenew?: boolean;
 };
 
-export type TSubscriptionPlan = {
+type TSubscriptionPlan = {
   code: string;
   priceKopecks: number;
   durationDays: number;
@@ -51,7 +51,7 @@ export type TPromoValidation = {
   reason?: string;
 };
 
-export type TReferralClient = {
+type TReferralClient = {
   id: string;
   name: string;
   displayName?: string;

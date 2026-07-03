@@ -42,20 +42,3 @@ func SetMasterUserLanguage(telegramUserID int64, language string) error {
 	`), telegramUserID, language, now, now)
 	return err
 }
-
-// TouchMasterUser records that a Telegram user interacted with the master bot without changing
-// their language. Creates the row with the product-default language if it does not exist.
-func TouchMasterUser(telegramUserID int64) {
-	now := time.Now().UTC()
-	res, err := DB.Exec(Q(`UPDATE master_users SET last_seen_at = ? WHERE telegram_user_id = ?`), now, telegramUserID)
-	if err != nil {
-		return
-	}
-	if n, _ := res.RowsAffected(); n > 0 {
-		return
-	}
-	_, _ = DB.Exec(Q(`
-		INSERT INTO master_users (telegram_user_id, language, first_seen_at, last_seen_at)
-		VALUES (?, 'ru', ?, ?)
-	`), telegramUserID, now, now)
-}

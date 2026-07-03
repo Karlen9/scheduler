@@ -261,55 +261,6 @@ func CreateSessionTypeWithSessionsCount(specialistID, sessionType, name string, 
 }
 
 /***************************************************************************************************
-* Implements the upsert session type logic used by this module.
-*
-* Parameters:
-* - sessionType: Session type used by the current operation.
-* - specialistID: Identifier used to target the current record.
-* - durationMinutes: Duration value used by the current operation.
-* - name: Name used by the current operation.
-* - price: Price used by the current operation.
-* - currency: Currency used by the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func UpsertSessionType(specialistID, sessionType, name string, durationMinutes, price int, currency string) (*models.SessionType, error) {
-	/***************************************************************************************************
-	* Check if exists.
-	***************************************************************************************************/
-	var existingID string
-	err := DB.QueryRow(Q(`
-		SELECT id FROM session_types
-		WHERE specialist_id = ? AND type = ?
-	`), specialistID, sessionType).Scan(&existingID)
-
-	if err == sql.ErrNoRows {
-		return CreateSessionType(specialistID, sessionType, name, durationMinutes, price, currency, "")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	/***************************************************************************************************
-	* Update existing.
-	***************************************************************************************************/
-	_, err = DB.Exec(Q(`
-		UPDATE session_types
-		SET name = ?, duration_minutes = ?, price = ?, currency = ?, is_active = 1
-		WHERE id = ?
-	`), name, durationMinutes, price, currency, existingID)
-	if err != nil {
-		return nil, err
-	}
-
-	return GetSessionTypeByID(existingID)
-}
-
-/***************************************************************************************************
 * Returns all session types by specialist id.
 *
 * Parameters:
@@ -343,29 +294,6 @@ func GetAllSessionTypesBySpecialistID(specialistID string) ([]models.SessionType
 	}
 
 	return sessionTypes, rows.Err()
-}
-
-/***************************************************************************************************
-* Updates session type.
-*
-* Parameters:
-* - sessionType: Session type used by the current operation.
-* - id: Identifier used to target the current record.
-* - durationMinutes: Duration value used by the current operation.
-* - name: Name used by the current operation.
-* - currency: Currency used by the current operation.
-* - price: Price used by the current operation.
-* - imageURL: Image url used by the current operation.
-* - isActive: Boolean flag that influences the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func UpdateSessionType(id, sessionType, name string, durationMinutes, price int, currency, imageURL string, isActive bool) (*models.SessionType, error) {
-	return UpdateSessionTypeWithSessionsCount(id, sessionType, name, durationMinutes, price, currency, imageURL, 0, isActive)
 }
 
 /***************************************************************************************************

@@ -131,23 +131,6 @@ func GetDayOff(specialistID string, date time.Time) (*models.DayOff, error) {
 }
 
 /***************************************************************************************************
-* Deletes day off.
-*
-* Parameters:
-* - id: Identifier used to target the current record.
-*
-* Returns:
-* - An error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func DeleteDayOff(id string) error {
-	_, err := DB.Exec(Q(`DELETE FROM days_off WHERE id = ?`), id)
-	return err
-}
-
-/***************************************************************************************************
 * DeleteDayOffForSpecialist deletes a day off only when it belongs to the given specialist.
 *
 * Parameters:

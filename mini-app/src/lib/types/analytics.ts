@@ -1,26 +1,26 @@
-export type TTimeSlotLabel = 'morning' | 'afternoon' | 'evening';
+type TTimeSlotLabel = 'morning' | 'afternoon' | 'evening';
 
-export type TDurationBreakdown = {
+type TDurationBreakdown = {
   duration: number;
   count: number;
 };
 
-export type TMonthlyTrendPoint = {
+type TMonthlyTrendPoint = {
   month: string;
   count: number;
 };
 
-export type TRevenueByMonthPoint = {
+type TRevenueByMonthPoint = {
   month: string;
   revenue: number;
 };
 
-export type TRevenueByService = {
+type TRevenueByService = {
   name: string;
   revenue: number;
 };
 
-export type TTopClientStat = {
+type TTopClientStat = {
   name: string;
   count: number;
   photoUrl?: string;

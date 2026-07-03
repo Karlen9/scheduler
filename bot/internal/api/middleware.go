@@ -468,14 +468,6 @@ func GetTelegramUserFromContext(r *http.Request) *TelegramUser {
 }
 
 /***************************************************************************************************
-* IsPreviewRequest reports whether the current request is using preview auth/context.
-***************************************************************************************************/
-func IsPreviewRequest(r *http.Request) bool {
-	preview, _ := r.Context().Value(PreviewContextKey).(bool)
-	return preview
-}
-
-/***************************************************************************************************
 * AdminAuthMiddleware checks if the user is the specialist (admin).
 *
 * Parameters:

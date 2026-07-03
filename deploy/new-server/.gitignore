@@ -1,0 +1,10 @@
+# Real env files and data live only on the server; only *.example files belong in git.
+.env
+bot.env
+monitor.env
+ssh/
+backups/
+monitor-state/
+bot-data/
+*.sql.gz
+*.tar.gz
