@@ -82,27 +82,6 @@ func UpsertWorkingHours(specialistID string, dayOfWeek int, startTime, endTime s
 }
 
 /***************************************************************************************************
-* Deletes working hours.
-*
-* Parameters:
-* - specialistID: Identifier used to target the current record.
-* - dayOfWeek: Day of week used by the current operation.
-*
-* Returns:
-* - An error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func DeleteWorkingHours(specialistID string, dayOfWeek int) error {
-	_, err := DB.Exec(Q(`
-		DELETE FROM working_hours
-		WHERE specialist_id = ? AND day_of_week = ?
-	`), specialistID, dayOfWeek)
-	return err
-}
-
-/***************************************************************************************************
 * Implements the clear working hours logic used by this module.
 *
 * Parameters:

@@ -32,6 +32,12 @@ next-env.d.ts
 .DS_Store
 *.pem
 
+# Playwright
+/test-results
+/playwright-report
+/playwright/.cache
+/blob-report
+
 # IDE
 .idea
 .vscode

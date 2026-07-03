@@ -36,13 +36,13 @@ export type TBottomSheetProps = {
   className?: string;
 };
 
-export type TSubTab = {
+type TSubTab = {
   icon: LucideIcon;
   href: string;
   label?: string;
 };
 
-export type TTab = {
+type TTab = {
   key: string;
   label: string;
   icon: LucideIcon;

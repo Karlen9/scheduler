@@ -39,23 +39,6 @@ func formatDateTime(loc *i18n.Localizer, t time.Time) string {
 }
 
 /***************************************************************************************************
-* Formats price.
-*
-* Parameters:
-* - price: Price used by the current operation.
-* - currency: Currency used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func formatPrice(price int, currency string) string {
-	return fmt.Sprintf("%d %s", price, currency)
-}
-
-/***************************************************************************************************
 * Formats duration.
 *
 * Parameters:
@@ -83,29 +66,6 @@ func formatDuration(loc *i18n.Localizer, minutes int) string {
 		parts = append(parts, fmt.Sprintf("%d %s", remainingMinutes, myI18n.T(loc, "Duration.Minute")))
 	}
 	return strings.Join(parts, " ")
-}
-
-/***************************************************************************************************
-* Implements the booking duration display logic used by this module.
-*
-* Parameters:
-* - loc: Loc used by the current operation.
-* - booking: Booking used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func bookingDurationDisplay(loc *i18n.Localizer, booking *models.Booking) string {
-	if booking.SessionType != nil {
-		return booking.SessionType.Name
-	}
-	if booking.DurationMinutes > 0 {
-		return formatDuration(loc, booking.DurationMinutes)
-	}
-	return myI18n.T(loc, "Hint.DefaultSession")
 }
 
 /***************************************************************************************************
@@ -450,23 +410,6 @@ func FormatBookingCancelledBySpecialistClient(loc *i18n.Localizer, booking *mode
 }
 
 /***************************************************************************************************
-* FormatBookingPendingClient creates a message for client after booking creation.
-*
-* Parameters:
-* - loc: Loc used by the current operation.
-* - booking: Booking used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func FormatBookingPendingClient(loc *i18n.Localizer, booking *models.Booking) string {
-	return myI18n.Tf(loc, "Booking.PendingClient", bookingTemplateData(loc, booking))
-}
-
-/***************************************************************************************************
 * FormatReminderClient creates a reminder message for client 1h before session.
 *
 * Parameters:
@@ -706,97 +649,6 @@ func FormatRecurringScheduleRequestForClient(loc *i18n.Localizer, schedule *mode
 	}
 	msg += myI18n.T(loc, "Hint.OpenApp")
 	return msg
-}
-
-/***************************************************************************************************
-* FormatRecurringScheduleApproved creates a message shown to specialist after approving (or shown
-* to specialist when client approves).
-*
-* Parameters:
-* - loc: Loc used by the current operation.
-* - schedule: Schedule used by the current operation.
-* - count: Count used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func FormatRecurringScheduleApproved(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
-	return myI18n.Tf(loc, "Recurring.Approved", map[string]interface{}{
-		"ClientName": schedule.ClientName,
-		"Service":    scheduleServiceDisplay(loc, schedule),
-		"Schedule":   scheduleTimeLine(loc, schedule),
-		"DateRange":  formatScheduleDateRange(loc, schedule.StartDate, schedule.EndDate),
-		"Count":      count,
-	})
-}
-
-/***************************************************************************************************
-* FormatRecurringScheduleApprovedClient creates a message for client about approved schedule.
-*
-* Parameters:
-* - loc: Loc used by the current operation.
-* - schedule: Schedule used by the current operation.
-* - count: Count used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func FormatRecurringScheduleApprovedClient(loc *i18n.Localizer, schedule *models.RecurringSchedule, count int) string {
-	return myI18n.Tf(loc, "Recurring.ApprovedClient", map[string]interface{}{
-		"Service":   scheduleServiceDisplay(loc, schedule),
-		"Schedule":  scheduleTimeLine(loc, schedule),
-		"DateRange": formatScheduleDateRange(loc, schedule.StartDate, schedule.EndDate),
-		"Count":     count,
-	})
-}
-
-/***************************************************************************************************
-* FormatRecurringScheduleDeclined creates a message shown to specialist after declining.
-*
-* Parameters:
-* - loc: Loc used by the current operation.
-* - schedule: Schedule used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func FormatRecurringScheduleDeclined(loc *i18n.Localizer, schedule *models.RecurringSchedule) string {
-	return myI18n.Tf(loc, "Recurring.Declined", map[string]interface{}{
-		"ClientName": schedule.ClientName,
-		"Service":    scheduleServiceDisplay(loc, schedule),
-		"Schedule":   scheduleTimeLine(loc, schedule),
-		"DateRange":  formatScheduleDateRange(loc, schedule.StartDate, schedule.EndDate),
-	})
-}
-
-/***************************************************************************************************
-* FormatRecurringScheduleDeclinedClient creates a message for client about declined schedule.
-*
-* Parameters:
-* - loc: Loc used by the current operation.
-* - schedule: Schedule used by the current operation.
-*
-* Returns:
-* - The computed value for the current operation as string.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func FormatRecurringScheduleDeclinedClient(loc *i18n.Localizer, schedule *models.RecurringSchedule) string {
-	return myI18n.Tf(loc, "Recurring.DeclinedClient", map[string]interface{}{
-		"Service":   scheduleServiceDisplay(loc, schedule),
-		"Schedule":  scheduleTimeLine(loc, schedule),
-		"DateRange": formatScheduleDateRange(loc, schedule.StartDate, schedule.EndDate),
-	})
 }
 
 /***************************************************************************************************

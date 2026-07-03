@@ -1,0 +1,21 @@
+# Install to /etc/systemd/system/webhook.service
+#
+# IMPORTANT: the tokens in hooks.json MUST be rotated before this goes live.
+# Generate fresh ones with: openssl rand -hex 32
+# The old tokens are permanently committed in this repo's git history at
+# deploy/hooks.json and must be treated as compromised forever — do not
+# reuse them.
+
+[Unit]
+Description=adnanh/webhook listener for scheduler redeploy hooks
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=deploy
+ExecStart=/usr/bin/webhook -hooks /srv/scheduler/hooks/hooks.json -ip 127.0.0.1 -port 9000 -verbose
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

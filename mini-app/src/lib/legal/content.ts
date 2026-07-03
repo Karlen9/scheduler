@@ -1,4 +1,4 @@
-export type TLegalSection = {
+type TLegalSection = {
   heading?: string;
   body: string;
 };
