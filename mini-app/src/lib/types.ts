@@ -1,21 +1,5 @@
-export type {
-  TAdminStats,
-  TClientStats,
-  TDurationBreakdown,
-  TMonthlyTrendPoint,
-  TRevenueByMonthPoint,
-  TRevenueByService,
-  TTimeSlotLabel,
-  TTopClientStat,
-} from './types/analytics';
-export type {
-  TAdminBookingsQuery,
-  TAdminBookingsResponse,
-  TAdminBookingsSort,
-  TCreateBookingParams,
-  TCreateRecurringParams,
-  TPreviewRecurringParams,
-} from './types/api';
+export type { TAdminStats, TClientStats } from './types/analytics';
+export type { TAdminBookingsQuery, TAdminBookingsResponse, TAdminBookingsSort } from './types/api';
 export type {
   TAdminScheduleContext,
   TBooking,
@@ -29,13 +13,11 @@ export type {
   TReferredSpecialist,
   TRecurringPreviewResponse,
   TRecurringSchedule,
-  TReferralClient,
   TReferralsResponse,
   TScheduleContext,
   TSessionType,
   TSpecialist,
   TSubscription,
-  TSubscriptionPlan,
   TPromoValidation,
   TTimeSlot,
   TWorkingHours,
@@ -59,7 +41,6 @@ export type {
 } from './types/props-booking';
 export type {
   TAdminScheduleInfoCardProps,
-  TBookingActionDraft,
   TCalendarViewProps,
   TClientScheduleInfoCardProps,
   TClientSelectorProps,
@@ -100,15 +81,8 @@ export type {
   TStatCardProps,
   TStatsSectionProps,
   TStatusBadgeProps,
-  TSubTab,
-  TTab,
   TTimePickerModalProps,
   TTopBarProps,
 } from './types/props-ui';
-export type {
-  TChangeGroup,
-  TChangeVersions,
-  TTranslateFunction,
-  TVoidFunction,
-} from './types/shared';
+export type { TChangeGroup, TChangeVersions, TVoidFunction } from './types/shared';
 export type { TTelegramWebApp, TThemePreference } from './types/telegram';

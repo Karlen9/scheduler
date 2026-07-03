@@ -15,7 +15,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['.next/**', 'node_modules/**', 'eslint.config.mjs', 'next-env.d.ts'],
+    ignores: ['.next/**', 'node_modules/**', 'eslint.config.mjs', 'next-env.d.ts', 'e2e/**', 'playwright.config.ts'],
   },
   {
     ...nextPlugin.configs.recommended,

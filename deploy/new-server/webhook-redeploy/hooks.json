@@ -1,0 +1,24 @@
+[
+  {
+    "id": "redeploy",
+    "execute-command": "/srv/scheduler/hooks/redeploy.sh",
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "REPLACE_WITH_NEW_TOKEN_PROD",
+        "parameter": { "source": "url", "name": "token" }
+      }
+    }
+  },
+  {
+    "id": "redeploy-dev",
+    "execute-command": "/srv/scheduler/hooks/redeploy-dev.sh",
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "REPLACE_WITH_NEW_TOKEN_DEV",
+        "parameter": { "source": "url", "name": "token" }
+      }
+    }
+  }
+]

@@ -1,6 +1,6 @@
 const TELEGRAM_PROFILE_PHOTO_PREFIX = 'telegram:';
 
-export function isTelegramProfilePhotoUrl(photoUrl: string): boolean {
+function isTelegramProfilePhotoUrl(photoUrl: string): boolean {
   if (!photoUrl.startsWith('http')) {
     return false;
   }

@@ -28,20 +28,6 @@ func GetPromoCodeByCode(code string) (*models.PromoCode, error) {
 	return scanPromoCode(row)
 }
 
-// GetPromoCodeByID looks up a promo code by its primary key.
-// Returns nil, nil when not found.
-func GetPromoCodeByID(id string) (*models.PromoCode, error) {
-	row := DB.QueryRow(Q(`
-		SELECT id, code, discount_type, discount_value, duration_days,
-		       max_redemptions, redemptions_count,
-		       valid_from, valid_until,
-		       applies_to_plan, referral_specialist_id, is_active, created_at
-		FROM promo_codes
-		WHERE id = ?
-	`), id)
-	return scanPromoCode(row)
-}
-
 // CreatePromoCode inserts a new promo_codes row. p.ID may be empty — a UUID is generated.
 // The code is upper-cased before insert.
 func CreatePromoCode(p models.PromoCode) error {

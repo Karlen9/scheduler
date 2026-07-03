@@ -1,0 +1,29 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# adnanh/webhook (host-level process on 127.0.0.1:9000) expects the full
+	# path including /hooks/<id>, so this uses `handle` (which preserves the
+	# matched path) rather than `handle_path` (which would strip the prefix
+	# before proxying and break hook lookup).
+	handle /hooks/* {
+		reverse_proxy host.docker.internal:9000
+	}
+
+	# Catch-all: everything else goes to the bot's compose service.
+	# `handle` blocks are evaluated in order and are mutually exclusive with
+	# each other, so this only fires when /hooks/* did not match above.
+	handle {
+		reverse_proxy bot:8080
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+	}
+}

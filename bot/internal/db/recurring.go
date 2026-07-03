@@ -110,38 +110,6 @@ func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models
 }
 
 /***************************************************************************************************
-* Creates recurring schedule.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-* - specialistID: Identifier used to target the current record.
-* - clientName: Client name used by the current operation.
-* - dayOfWeek: Day of week used by the current operation.
-* - timeStr: Time value used by the current operation.
-* - durationMinutes: Duration value used by the current operation.
-* - createdBy: Created by used by the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func CreateRecurringSchedule(specialistID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string) (*models.RecurringSchedule, error) {
-	id := uuid.New().String()
-
-	_, err := DB.Exec(Q(`
-		INSERT INTO recurring_schedules (id, specialist_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-	`), id, specialistID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy)
-	if err != nil {
-		return nil, err
-	}
-
-	return GetRecurringScheduleByID(id)
-}
-
-/***************************************************************************************************
 * CreateRecurringScheduleFull creates a recurring schedule with all Phase 2 fields.
 *
 * Parameters:
@@ -200,27 +168,6 @@ func GetRecurringScheduleByID(id string) (*models.RecurringSchedule, error) {
 		return nil, err
 	}
 	return s, nil
-}
-
-/***************************************************************************************************
-* Returns active recurring schedules.
-*
-* Parameters:
-* - None.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func GetActiveRecurringSchedules() ([]models.RecurringSchedule, error) {
-	rows, err := DB.Query(recurringSelectQuery("rs.status = 'active'", `rs.day_of_week, rs."time"`))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return scanRecurringSchedules(rows)
 }
 
 /***************************************************************************************************
