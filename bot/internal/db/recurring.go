@@ -362,6 +362,18 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 		requestedDays[d] = true
 	}
 
+	/***************************************************************************************************
+	* Fetch existing conflict intervals once, instead of querying per candidate day. rangeEnd has two
+	* extra days of slack so slots crossing midnight near the schedule boundaries are still caught.
+	***************************************************************************************************/
+	rangeStart := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	rangeEnd := endDate.AddDate(0, 0, 2)
+
+	existingIntervals, err := getBookingIntervalsInRange(schedule.SpecialistID, rangeStart, rangeEnd)
+	if err != nil {
+		return 0, err
+	}
+
 	count := 0
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dow := int(d.Weekday())
@@ -388,18 +400,25 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 		endsAt := startsAt.Add(time.Duration(schedule.DurationMinutes) * time.Minute)
 
 		/***************************************************************************************************
-		* Check conflicts.
+		* Check conflicts in-memory against previously fetched (and previously inserted) intervals.
 		***************************************************************************************************/
-		hasConflict, _ := HasConflictingBooking(schedule.SpecialistID, startsAt, endsAt, "")
+		hasConflict := false
+		for _, existing := range existingIntervals {
+			if existing.startsAt.Before(endsAt) && existing.endsAt.After(startsAt) {
+				hasConflict = true
+				break
+			}
+		}
 		if hasConflict {
 			continue
 		}
 
-		_, err := CreateRecurringBooking(schedule.SpecialistID, schedule.ClientID, sessionTypeID, startsAt, endsAt, schedule.ClientName, schedule.DurationMinutes, scheduleID)
-		if err != nil {
+		id := uuid.New().String()
+		if err := insertBooking(id, schedule.SpecialistID, schedule.ClientID, sessionTypeID, "", startsAt, endsAt, schedule.ClientName, "", models.BookingStatusConfirmed, schedule.DurationMinutes, "", scheduleID, ""); err != nil {
 			log.Printf("Error creating recurring booking for schedule %s on %s: %v", scheduleID, d.Format("2006-01-02"), err)
 			continue
 		}
+		existingIntervals = append(existingIntervals, bookingInterval{startsAt: startsAt, endsAt: endsAt})
 		count++
 	}
 
