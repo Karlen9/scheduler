@@ -235,28 +235,6 @@ func GetBookingByID(id string) (*models.Booking, error) {
 	return booking, nil
 }
 
-/***************************************************************************************************
-* Returns bookings by client id.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func GetBookingsByClientID(clientID string) ([]models.Booking, error) {
-	rows, err := DB.Query(Q(bookingSelectQuery("b.client_id = ?", "b.starts_at DESC")), clientID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return scanBookings(rows)
-}
-
 func GetBookingsByClientIDPaged(clientID string, limit, offset int) ([]models.Booking, int, error) {
 	var total int
 	if err := DB.QueryRow(Q(`
@@ -280,28 +258,6 @@ func GetBookingsByClientIDPaged(clientID string, limit, offset int) ([]models.Bo
 	}
 
 	return bookings, total, nil
-}
-
-/***************************************************************************************************
-* Returns active bookings by client id.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func GetActiveBookingsByClientID(clientID string) ([]models.Booking, error) {
-	rows, err := DB.Query(Q(bookingSelectQuery("b.client_id = ? AND b.status IN ('pending', 'confirmed')", "b.starts_at ASC")), clientID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return scanBookings(rows)
 }
 
 /***************************************************************************************************
@@ -600,37 +556,6 @@ func HasConflictingBooking(specialistID string, startsAt, endsAt time.Time, excl
 	return count > 0, nil
 }
 
-/***************************************************************************************************
-* Returns bookings by specialist id.
-*
-* Parameters:
-* - specialistID: Identifier used to target the current record.
-* - status: Status used by the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func GetBookingsBySpecialistID(specialistID string, status string) ([]models.Booking, error) {
-	var rows *sql.Rows
-	var err error
-
-	if status != "" {
-		rows, err = DB.Query(Q(bookingSelectQuery("b.specialist_id = ? AND b.status = ?", "b.starts_at DESC")), specialistID, status)
-	} else {
-		rows, err = DB.Query(Q(bookingSelectQuery("b.specialist_id = ?", "b.starts_at DESC")), specialistID)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return scanBookings(rows)
-}
-
 type BookingListFilters struct {
 	Status         string
 	Statuses       []string
@@ -875,48 +800,6 @@ func CreateRecurringBooking(specialistID, clientID, sessionTypeID string, starts
 }
 
 /***************************************************************************************************
-* Implements the confirm bookings by recurring schedule id logic used by this module.
-*
-* Parameters:
-* - scheduleID: Identifier used to target the current record.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func ConfirmBookingsByRecurringScheduleID(scheduleID string) (int, error) {
-	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'confirmed' WHERE recurring_schedule_id = ? AND status = 'pending'`), scheduleID)
-	if err != nil {
-		return 0, err
-	}
-	n, err := result.RowsAffected()
-	return int(n), err
-}
-
-/***************************************************************************************************
-* Implements the reject bookings by recurring schedule id logic used by this module.
-*
-* Parameters:
-* - scheduleID: Identifier used to target the current record.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func RejectBookingsByRecurringScheduleID(scheduleID string) (int, error) {
-	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'rejected' WHERE recurring_schedule_id = ? AND status = 'pending'`), scheduleID)
-	if err != nil {
-		return 0, err
-	}
-	n, err := result.RowsAffected()
-	return int(n), err
-}
-
-/***************************************************************************************************
 * CreateRescheduleBooking creates a new booking that replaces an existing one (status =
 * reschedule_pending).
 *
@@ -1110,35 +993,4 @@ func GetClientNotificationInfo(bookingID string) (chatID int64, messageID int, e
 		messageID = int(msgIDNull.Int64)
 	}
 	return
-}
-
-/***************************************************************************************************
-* Implements the booking exists for recurring logic used by this module.
-*
-* Parameters:
-* - scheduleID: Identifier used to target the current record.
-* - date: Date value used by the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func BookingExistsForRecurring(scheduleID string, date time.Time) (bool, error) {
-	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
-	endOfDay := startOfDay.AddDate(0, 0, 1)
-
-	var count int
-	err := DB.QueryRow(Q(`
-		SELECT COUNT(*) FROM bookings
-		WHERE recurring_schedule_id = ?
-		  AND starts_at >= ?
-		  AND starts_at < ?
-		  AND status IN ('pending', 'confirmed')
-	`), scheduleID, startOfDay, endOfDay).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
 }

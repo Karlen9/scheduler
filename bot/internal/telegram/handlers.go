@@ -193,22 +193,6 @@ func (h *Handler) handleSpecialistKeyboardTap(msg *Message) bool {
 }
 
 /***************************************************************************************************
-* Handles start.
-*
-* Parameters:
-* - msg: Msg used by the current operation.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func (h *Handler) handleStart(msg *Message) {
-	h.handleStartWithPayload(msg, "")
-}
-
-/***************************************************************************************************
 * parseReferralPayload extracts the referral code from a /start payload. Accepts both bare codes
 * ("abcd1234") and the ref_-prefixed form ("ref_abcd1234"). Returns an empty string if the payload
 * does not look like a referral.
@@ -993,26 +977,6 @@ func (h *Handler) UpdateClientNotificationMessage(loc *i18n.Localizer, chatID in
 		text = FormatSpecialistCreatedBookingClient(loc, booking)
 	}
 	return h.Bot.EditMessageText(chatID, messageID, text, nil)
-}
-
-/***************************************************************************************************
-* localizerForClient returns a localizer for the client's language.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-*
-* Returns:
-* - The computed value for the current operation as *i18n.Localizer.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func localizerForClient(clientID string) *i18n.Localizer {
-	client, err := db.GetClientByID(clientID)
-	if err != nil || client == nil {
-		return myI18n.Default()
-	}
-	return myI18n.NewLocalizer(client.Language)
 }
 
 /***************************************************************************************************

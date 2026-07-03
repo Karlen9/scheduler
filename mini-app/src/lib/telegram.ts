@@ -332,39 +332,6 @@ export function initTelegramApp(): void {
 }
 
 /***************************************************************************************************
- * Returns theme params.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as TTelegramWebApp['themeParams'].
- *
- * Side effects:
- * - May read browser state, call shared helpers, or perform network requests.
- ***************************************************************************************************/
-export function getThemeParams(): TTelegramWebApp['themeParams'] {
-  /***************************************************************************************************
-   * Defines the web app value used by the shared utility layer.
-   *
-   * Usage context:
-   * - Reused by the shared utility layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const webApp = getTelegramWebApp();
-  return (
-    webApp?.themeParams ?? {
-      bg_color: '#ffffff',
-      text_color: '#000000',
-      hint_color: '#999999',
-      link_color: '#2678b6',
-      button_color: '#2678b6',
-      button_text_color: '#ffffff',
-      secondary_bg_color: '#f0f0f0',
-    }
-  );
-}
-
-/***************************************************************************************************
  * Returns user name.
  *
  * Parameters:
@@ -460,7 +427,7 @@ export async function waitForTelegramUserPhotoUrl(timeoutMs = 1500): Promise<str
  * Side effects:
  * - May read browser state, call shared helpers, or perform network requests.
  ***************************************************************************************************/
-export function getInitData(): string {
+function getInitData(): string {
   /***************************************************************************************************
    * Defines the web app value used by the shared utility layer.
    *

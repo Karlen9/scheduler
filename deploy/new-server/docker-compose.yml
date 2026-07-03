@@ -1,0 +1,83 @@
+# Deployment bundle for the new VPS.
+#
+# NOTE on logging: no per-service `logging:` blocks are defined here on purpose.
+# setup-server.sh writes /etc/docker/daemon.json with a global json-file driver
+# (max-size 10m, max-file 3), so every container on this host already gets
+# bounded log rotation from the Docker daemon itself. Adding per-service
+# logging config here would just duplicate that.
+name: scheduler
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: "${DOMAIN}"
+      ACME_EMAIL: "${ACME_EMAIL}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - bot
+
+  bot:
+    image: rainingman/scheduler-bot:latest
+    restart: unless-stopped
+    env_file: ./bot.env
+    environment:
+      DATABASE_URL: "postgres://scheduler:${DB_PASSWORD}@db:5432/scheduler_prod?sslmode=disable"
+      DATABASE_PATH: "/data/scheduler.db"
+      PORT: "8080"
+    volumes:
+      - ./bot-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: scheduler_prod
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?set in .env}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler -d scheduler_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  monitor:
+    image: rainingman/scheduler-monitor:latest
+    profiles: ["monitor"]
+    restart: unless-stopped
+    env_file: ./monitor.env
+    volumes:
+      - ./backups:/backups
+      - ./ssh:/root/.ssh:ro
+      - ./monitor-state:/var/lib/monitor
+    mem_limit: 128m
+    cpus: 0.5
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

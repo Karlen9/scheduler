@@ -518,25 +518,6 @@ func EnsureSpecialistReferralCode(specialistID string) (string, error) {
 }
 
 /***************************************************************************************************
-* GetReferralCountBySpecialist returns the number of real (non-ghost) clients acquired via the
-* specialist's referral link.
-***************************************************************************************************/
-func GetReferralCountBySpecialist(specialistID, referralCode string) (int, error) {
-	if referralCode == "" {
-		return 0, nil
-	}
-	var n int
-	err := DB.QueryRow(Q(`
-		SELECT COUNT(*) FROM clients
-		WHERE specialist_id = ? AND referred_via_code = ? AND COALESCE(is_ghost, 0) = 0
-	`), specialistID, referralCode).Scan(&n)
-	if err != nil {
-		return 0, err
-	}
-	return n, nil
-}
-
-/***************************************************************************************************
 * GetReferredClientsBySpecialist returns the list of clients acquired via the specialist's
 * referral link, ordered by newest first.
 ***************************************************************************************************/

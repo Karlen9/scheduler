@@ -388,7 +388,11 @@ export function MonthGrid({
        * Header.
        ***************************************************************************************************/}
       <div className={'mb-3 flex items-center justify-between'}>
-        <button onClick={onPrevMonth} className={'text-muted-foreground p-2'}>
+        <button
+          onClick={onPrevMonth}
+          aria-label={'Предыдущий месяц'}
+          className={'text-muted-foreground p-2'}
+        >
           <ChevronLeft className={'h-5 w-5'} />
         </button>
         <span
@@ -397,7 +401,11 @@ export function MonthGrid({
         >
           {MONTH_NAMES[month]} {year}
         </span>
-        <button onClick={onNextMonth} className={'text-muted-foreground p-2'}>
+        <button
+          onClick={onNextMonth}
+          aria-label={'Следующий месяц'}
+          className={'text-muted-foreground p-2'}
+        >
           <ChevronRight className={'h-5 w-5'} />
         </button>
       </div>
@@ -496,6 +504,7 @@ export function MonthGrid({
           return (
             <button
               key={i}
+              data-testid={`calendar-day-${toISODate(date)}`}
               onClick={() => !disabled && onSelectDate(date)}
               disabled={disabled}
               className={`relative flex flex-col items-center ${fillOuterDays ? 'py-1.5' : 'aspect-square justify-center'}`}

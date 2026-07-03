@@ -210,14 +210,6 @@ export async function invalidateBookings(): Promise<void> {
   await invalidateChangeGroups(['bookings']);
 }
 
-export async function invalidateClientStats(): Promise<void> {
-  await revalidateKeys([CACHE_KEYS.clientStats]);
-}
-
-export async function invalidateAdminStats(): Promise<void> {
-  await revalidateKeys([CACHE_KEYS.adminStats]);
-}
-
 export async function invalidateWorkingHours(): Promise<void> {
   await invalidateChangeGroups(['workingHours']);
 }
