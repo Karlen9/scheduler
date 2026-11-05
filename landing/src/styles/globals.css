@@ -1,0 +1,307 @@
+@import './tailwind.css';
+@import './theme.css';
+
+/* Page-level tokens derived only from the design-system tokens in theme.css. */
+:root {
+  --soft: color-mix(in srgb, var(--foreground) 72%, var(--card));
+  --hairline: color-mix(in srgb, var(--foreground) 9%, transparent);
+  --phone-glow: color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
+:root.dark {
+  --soft: color-mix(in srgb, var(--foreground) 74%, var(--card));
+  --hairline: color-mix(in srgb, var(--foreground) 11%, transparent);
+  --phone-glow: color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
+@theme inline {
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-accent: var(--font-lora), Georgia, 'Times New Roman', serif;
+  --color-soft: var(--soft);
+  --color-hairline: var(--hairline);
+  --animate-fade-in: fade-in 0.25s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1180px;
+  padding-inline: 1rem;
+
+  @media (min-width: 640px) {
+    padding-inline: 1.5rem;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    overflow-x: clip;
+    line-height: 1.5;
+    hyphens: manual;
+    overflow-wrap: break-word;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+    border-radius: 0.5rem;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+
+  summary {
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  section[id],
+  div[id] {
+    scroll-margin-top: 6rem;
+  }
+}
+
+/* Card surface: white on light, slightly raised on dark, with an edge that survives both. */
+.surface {
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+/* Cursor glow on cards; only wired up for fine hover pointers (see PageMotion). */
+.glow-card {
+  position: relative;
+  isolation: isolate;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glow-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: radial-gradient(
+      320px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--brand) 16%, transparent),
+      transparent 70%
+    );
+  }
+
+  .glow-card:hover::before {
+    opacity: 1;
+  }
+}
+
+/* Hero is hidden before first paint only while the motion script is about to take over. */
+html.hero-pending [data-hero] {
+  opacity: 0;
+}
+
+@media print {
+  html.hero-pending [data-hero] {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.surface-featured {
+  background: var(--card);
+  box-shadow:
+    0 0 0 2px var(--primary),
+    0 24px 48px -24px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+
+.hero-wash {
+  background:
+    radial-gradient(
+      72% 58% at 50% 0%,
+      color-mix(in srgb, var(--brand) 26%, transparent) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      46% 46% at 92% 34%,
+      color-mix(in srgb, var(--primary) 12%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      40% 40% at 6% 46%,
+      color-mix(in srgb, var(--brand) 12%, transparent),
+      transparent
+    ),
+    linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--card)), var(--card));
+}
+
+.tall-card {
+  background:
+    radial-gradient(
+      90% 55% at 50% 100%,
+      color-mix(in srgb, var(--brand) 30%, transparent),
+      transparent
+    ),
+    linear-gradient(
+      170deg,
+      color-mix(in srgb, var(--brand) 20%, var(--card)),
+      color-mix(in srgb, var(--primary) 8%, var(--card))
+    );
+}
+
+.closing-card {
+  background: linear-gradient(120deg, var(--primary) 0%, var(--primary) 45%, var(--brand) 100%);
+  box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--primary) 60%, transparent);
+}
+
+:root.dark .closing-card {
+  /* Text is centred below lg, so darken the whole card (top to bottom); on lg the text sits
+     in the left column, so the overlay stays flat across it and fades out under the QR. */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background) 55%, transparent),
+      color-mix(in srgb, var(--background) 40%, transparent)
+    ),
+    linear-gradient(120deg, var(--primary) 0%, var(--primary) 45%, var(--brand) 100%);
+}
+
+@media (min-width: 1024px) {
+  :root.dark .closing-card {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--background) 40%, transparent) 0%,
+        color-mix(in srgb, var(--background) 40%, transparent) 62%,
+        transparent 85%
+      ),
+      linear-gradient(120deg, var(--primary) 0%, var(--primary) 45%, var(--brand) 100%);
+  }
+}
+
+/*
+ * Phone frame. The device is drawn at its real proportions (body 780:1634, screen 1320:2868,
+ * even border) in container units of the .phone wrapper. These greys are a deliberate exception
+ * to the token rule: the frame is a physical object and stays one neutral dark finish in both
+ * themes. Everything inside the screen uses the theme tokens.
+ */
+.phone {
+  --phone-rim-light: #8d939c;
+  --phone-rim-mid: #565b63;
+  --phone-rim-dark: #25282d;
+  --phone-black: #000000;
+  --phone-btn-light: #6a7078;
+  --phone-btn-dark: #2a2d32;
+}
+
+.phone-body {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 16cqw;
+  background: linear-gradient(
+    135deg,
+    var(--phone-rim-light) 0%,
+    var(--phone-rim-dark) 24%,
+    var(--phone-rim-mid) 52%,
+    var(--phone-rim-dark) 78%,
+    var(--phone-rim-light) 100%
+  );
+  box-shadow:
+    inset 0 0 0 0.3cqw rgb(255 255 255 / 0.16),
+    inset 0 0 1.6cqw rgb(0 0 0 / 0.55),
+    0 0 0 1px var(--hairline),
+    0 40px 70px -34px rgb(0 0 0 / 0.55);
+}
+
+.phone-bezel {
+  position: absolute;
+  inset: 0.9cqw;
+  border-radius: 15.1cqw;
+  background: var(--phone-black);
+  box-shadow: inset 0 0 0 0.25cqw rgb(255 255 255 / 0.07);
+}
+
+.phone-screen {
+  position: absolute;
+  top: 3.27cqw;
+  left: 3.27cqw;
+  right: 3.27cqw;
+  aspect-ratio: 1320 / 2868;
+  overflow: hidden;
+  container-type: inline-size;
+  border-radius: 13.08cqw;
+  background: var(--background);
+}
+
+.phone-island {
+  position: absolute;
+  top: 2.8cqw;
+  left: 50%;
+  z-index: 20;
+  width: 18.5cqw;
+  height: 5.2cqw;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: var(--phone-black);
+}
+
+.phone-btn {
+  position: absolute;
+  width: 1.1cqw;
+  background: linear-gradient(
+    90deg,
+    var(--phone-btn-dark),
+    var(--phone-btn-light) 55%,
+    var(--phone-btn-dark)
+  );
+  box-shadow: 0 0 0 0.15cqw rgb(255 255 255 / 0.1);
+}
+
+.phone-btn-left {
+  left: -0.7cqw;
+  border-radius: 0.6cqw 0 0 0.6cqw;
+}
+
+.phone-btn-right {
+  right: -0.7cqw;
+  border-radius: 0 0.6cqw 0.6cqw 0;
+  transform: scaleX(-1);
+}
+
+.phone-btn-flush {
+  right: -0.35cqw;
+  width: 0.7cqw;
+  opacity: 0.85;
+}
