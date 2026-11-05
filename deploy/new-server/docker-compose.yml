@@ -32,6 +32,8 @@ services:
     restart: unless-stopped
     env_file: ./bot.env
     environment:
+      # DATABASE_URL takes precedence over DATABASE_PATH; /data stays mounted anyway so any SQLite
+      # fallback or leftover file survives container recreation.
       DATABASE_URL: "postgres://scheduler:${DB_PASSWORD}@db:5432/scheduler_prod?sslmode=disable"
       DATABASE_PATH: "/data/scheduler.db"
       PORT: "8080"

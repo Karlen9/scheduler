@@ -123,9 +123,12 @@ func TestMain(m *testing.M) {
 	api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) { return "", nil })
 
 	/***************************************************************************************************
-	* Create the router.
+	* Create the router. Per-route limits are disabled for the shared router because most tests reuse
+	* one Telegram user; limit-specific tests build their own router with limits enabled.
 	***************************************************************************************************/
+	api.SetRouteRateLimitsDisabledForTest(true)
 	router = api.NewRouter()
+	api.SetRouteRateLimitsDisabledForTest(false)
 
 	os.Exit(m.Run())
 }

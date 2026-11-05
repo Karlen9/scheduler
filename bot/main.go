@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -100,7 +99,7 @@ func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 	/***************************************************************************************************
 	* Set webhook with retry.
 	***************************************************************************************************/
-	webhookURL := strings.TrimRight(m.baseURL, "/") + "/tg/" + specialist.WebhookSecret + "/webhook"
+	webhookURL := m.expectedWebhookURL()
 	for attempt := 1; attempt <= 3; attempt++ {
 		if err := bot.SetWebhook(webhookURL, specialist.WebhookSecret); err != nil {
 			log.Printf("Failed to set webhook for @%s (attempt %d): %v", bot.Username, attempt, err)
@@ -124,7 +123,7 @@ func (m *BotManager) RegisterBot(specialist *models.Specialist) error {
 	* Log webhook info for debugging.
 	***************************************************************************************************/
 	url, pending, lastErr := bot.GetWebhookInfo()
-	log.Printf("  Webhook info for @%s: url=%s pending=%d lastError=%q", bot.Username, url, pending, lastErr)
+	log.Printf("  Webhook info for @%s: matchesExpected=%v pending=%d lastError=%q", bot.Username, url == webhookURL, pending, lastErr)
 
 	return nil
 }
@@ -173,7 +172,7 @@ func (m *BotManager) GetOrLoadHandler(webhookSecret string) *telegram.Handler {
 	***************************************************************************************************/
 	specialist, err := db.GetSpecialistByWebhookSecret(webhookSecret)
 	if err != nil {
-		log.Printf("Lazy-load DB error for secret %s...: %v", webhookSecret[:8], err)
+		log.Printf("Lazy-load DB error: %v", err)
 		return nil
 	}
 	if specialist == nil {
@@ -229,11 +228,12 @@ func (m *BotManager) UnregisterBot(webhookSecret string) error {
 }
 
 /***************************************************************************************************
-* expectedWebhookURL returns the webhook URL Telegram should have registered for the given
-* specialist. Extracted so the healer logic can compare without duplicating the format string.
+* expectedWebhookURL returns the webhook URL Telegram should have registered for specialist bots.
+* The secret is not part of the URL; it is sent as secret_token and echoed back in a header.
+* Extracted so the healer logic can compare without duplicating the format string.
 ***************************************************************************************************/
-func (m *BotManager) expectedWebhookURL(webhookSecret string) string {
-	return strings.TrimRight(m.baseURL, "/") + "/tg/" + webhookSecret + "/webhook"
+func (m *BotManager) expectedWebhookURL() string {
+	return strings.TrimRight(m.baseURL, "/") + "/tg/webhook"
 }
 
 /***************************************************************************************************
@@ -321,7 +321,7 @@ func (m *BotManager) healWebhooksOnce(ctx context.Context, maxConcurrent int) {
 * No-op when Telegram already has the expected URL.
 ***************************************************************************************************/
 func (m *BotManager) healSpecialistWebhook(s *models.Specialist) {
-	expected := m.expectedWebhookURL(s.WebhookSecret)
+	expected := m.expectedWebhookURL()
 
 	m.mu.RLock()
 	bot := m.bots[s.WebhookSecret]
@@ -343,7 +343,8 @@ func (m *BotManager) healSpecialistWebhook(s *models.Specialist) {
 		return
 	}
 
-	log.Printf("Webhook healer: @%s url=%q expected=%q lastError=%q — re-registering", s.BotUsername, url, expected, lastErr)
+	// The old URL is deliberately not logged: legacy registrations embed the webhook secret.
+	log.Printf("Webhook healer: @%s webhook url differs from expected (lastError=%q) — re-registering", s.BotUsername, lastErr)
 	if err := bot.SetWebhook(expected, s.WebhookSecret); err != nil {
 		log.Printf("Webhook healer: SetWebhook for @%s failed: %v", s.BotUsername, err)
 		return
@@ -756,6 +757,7 @@ func main() {
 
 	api.SuperadminSecret = cfg.SuperadminSecret
 	api.WebAppURL = cfg.WebAppURL
+	api.CORSAllowedOrigins = cfg.CORSAllowedOrigins
 	api.MasterBotToken = cfg.MasterBotToken
 	api.AdminIDs = cfg.AdminIDs
 
@@ -772,7 +774,7 @@ func main() {
 	api.ReceiptVATCode = cfg.YooKassaVATCode
 	api.ReceiptTaxSystemCode = cfg.YooKassaTaxSystemCode
 
-	api.LoadTestMode = os.Getenv("LOAD_TEST_MODE") == "true"
+	api.LoadTestMode = cfg.LoadTestMode
 	if api.LoadTestMode {
 		log.Println("WARNING: LOAD_TEST_MODE enabled — Telegram auth bypassed for X-Test-User-ID requests")
 		if err := seedLoadTestData(); err != nil {
@@ -828,7 +830,7 @@ func main() {
 		* Set webhook for master bot.
 		***************************************************************************************************/
 		masterBot.DeleteWebhook(true)
-		masterWebhookURL := strings.TrimRight(cfg.PublicBaseURL, "/") + "/master/" + masterWebhookSecret + "/webhook"
+		masterWebhookURL := strings.TrimRight(cfg.PublicBaseURL, "/") + "/master/webhook"
 		if err := masterBot.SetWebhook(masterWebhookURL, masterWebhookSecret); err != nil {
 			log.Printf("Failed to set master bot webhook: %v", err)
 		} else {
@@ -837,113 +839,21 @@ func main() {
 	}
 
 	/***************************************************************************************************
-	* Main handler: route by path prefix (avoids Go 1.22 ServeMux issues with chi).
+	* Main handler: webhooks are dispatched by path prefix before the chi API router (avoids Go 1.22
+	* ServeMux issues with chi). See webhook_routes.go for the routes.
 	***************************************************************************************************/
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-
-		if strings.HasPrefix(path, "/tg/") {
-			/***************************************************************************************************
-			* Specialist bot webhooks.
-			***************************************************************************************************/
-			log.Printf("Webhook request: %s %s", r.Method, path)
-
-			parts := strings.Split(strings.Trim(path, "/"), "/")
-			if len(parts) < 3 || parts[2] != "webhook" {
-				log.Printf("Webhook rejected: invalid path (parts=%d)", len(parts))
-				http.NotFound(w, r)
-				return
-			}
-			secret := parts[1]
-
-			if r.Method != http.MethodPost {
-				log.Printf("Webhook rejected: method %s", r.Method)
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				return
-			}
-
-			secretHeader := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
-			if secretHeader == "" || secretHeader != secret {
-				log.Printf("Webhook rejected: secret mismatch")
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			h := botManager.GetOrLoadHandler(secret)
-			if h == nil {
-				log.Printf("Webhook ignored: no handler for secret %s... (returning 200 to stop retries)", secret[:8])
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-
-			r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-			defer r.Body.Close()
-
-			var update telegram.Update
-			if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-				log.Printf("Webhook rejected: invalid json: %v", err)
-				http.Error(w, "invalid json", http.StatusBadRequest)
-				return
-			}
-
-			log.Printf("Webhook update received (message=%v, callback=%v)", update.Message != nil, update.CallbackQuery != nil)
-			w.WriteHeader(http.StatusOK)
-			go h.HandleUpdate(update)
-			return
+	resolveSpecialist := func(secret string) updateHandler {
+		h := botManager.GetOrLoadHandler(secret)
+		if h == nil {
+			return nil // avoid wrapping a nil *telegram.Handler in a non-nil interface
 		}
-
-		if strings.HasPrefix(path, "/master/") && masterHandler != nil {
-			/***************************************************************************************************
-			* Master bot webhook.
-			***************************************************************************************************/
-			log.Printf("Master webhook request: %s %s", r.Method, path)
-
-			parts := strings.Split(strings.Trim(path, "/"), "/")
-			if len(parts) < 3 || parts[2] != "webhook" {
-				http.NotFound(w, r)
-				return
-			}
-			secret := parts[1]
-
-			if r.Method != http.MethodPost {
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				return
-			}
-
-			if secret != masterWebhookSecret {
-				log.Printf("Master webhook rejected: secret mismatch")
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			secretHeader := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
-			if secretHeader != masterWebhookSecret {
-				log.Printf("Master webhook rejected: header mismatch")
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-			defer r.Body.Close()
-
-			var update telegram.Update
-			if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-				log.Printf("Master webhook rejected: invalid json: %v", err)
-				http.Error(w, "invalid json", http.StatusBadRequest)
-				return
-			}
-
-			log.Printf("Master webhook update (message=%v, callback=%v)", update.Message != nil, update.CallbackQuery != nil)
-			w.WriteHeader(http.StatusOK)
-			go masterHandler.HandleUpdate(update)
-			return
-		}
-
-		/***************************************************************************************************
-		* Everything else goes to the API router.
-		***************************************************************************************************/
-		apiRouter.ServeHTTP(w, r)
-	})
+		return h
+	}
+	var master updateHandler
+	if masterHandler != nil {
+		master = masterHandler
+	}
+	handler := newWebhookHandler(resolveSpecialist, masterWebhookSecret, master, apiRouter)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

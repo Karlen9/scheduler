@@ -161,3 +161,68 @@ func TestLoadWithEnvVars(t *testing.T) {
 		t.Errorf("AdminIDs = %v, want [100 200]", cfg.AdminIDs)
 	}
 }
+
+func TestIsLoopbackBaseURL(t *testing.T) {
+	tests := []struct {
+		in   string
+		want bool
+	}{
+		{"http://localhost:8082", true},
+		{"http://localhost", true},
+		{"localhost", true},
+		{"http://127.0.0.1", true},
+		{"http://127.0.0.1:8080", true},
+		{"http://[::1]:8080", true},
+		{"[::1]:8080", true},
+		{"http://foo.localhost", true},
+		{"http://foo.localhost:3000", true},
+		{"https://scheduler.rainingman.site", false},
+		{"http://localhost.evil.com", false},
+		{"http://evil.com/localhost", false},
+		{"http://127.0.0.1.evil.com", false},
+		{"http://10.0.0.1", false},
+		{"", false},
+		{"   ", false},
+		{"garbage", false},
+		{"://", false},
+		{"ftp://localhost", false},
+	}
+	for _, tt := range tests {
+		if got := isLoopbackBaseURL(tt.in); got != tt.want {
+			t.Errorf("isLoopbackBaseURL(%q) = %v, want %v", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestSqlitePathIsEphemeral(t *testing.T) {
+	tests := []struct {
+		name        string
+		databaseURL string
+		path        string
+		inContainer bool
+		want        bool
+	}{
+		{"container relative sqlite", "", "./data/scheduler.db", true, true},
+		{"container bare relative", "", "scheduler.db", true, true},
+		{"container absolute", "", "/data/scheduler.db", true, false},
+		{"host relative", "", "./data/scheduler.db", false, false},
+		{"postgres url set", "postgres://u:p@h/db", "./data/scheduler.db", true, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sqlitePathIsEphemeral(tt.databaseURL, tt.path, tt.inContainer); got != tt.want {
+				t.Fatalf("sqlitePathIsEphemeral(%q, %q, %v) = %v, want %v", tt.databaseURL, tt.path, tt.inContainer, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseCommaList(t *testing.T) {
+	got := parseCommaList(" https://a.example , ,https://b.example,")
+	if len(got) != 2 || got[0] != "https://a.example" || got[1] != "https://b.example" {
+		t.Fatalf("parseCommaList = %#v", got)
+	}
+	if parseCommaList("") != nil {
+		t.Fatal("expected nil for empty input")
+	}
+}
