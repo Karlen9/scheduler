@@ -237,25 +237,27 @@ func TestGetAdminStats(t *testing.T) {
 	***************************************************************************************************/
 	recentPastMonday := startOfWeek(now).AddDate(0, 0, -6).Add(9 * time.Hour)
 	twoWeeksAgoMonday := startOfWeek(now).AddDate(0, 0, -13).Add(9 * time.Hour)
-	currentMonthBooking := startOfMonth(now).AddDate(0, 0, 5).Add(10 * time.Hour)
 	lastMonthBooking := startOfMonth(now).AddDate(0, -1, 0).AddDate(0, 0, 3).Add(18 * time.Hour)
 
 	/***************************************************************************************************
-	* currentMonthBooking is the 6th of the current month at 10:00. If the test runs in the first
-	* five days of a month, that's in the future — fall back to a morning slot 2 days ago so
-	* ActiveClients still counts clientTwo. BusiestDay still resolves to Monday since Monday has
-	* at least the recentPastMonday + twoWeeksAgoMonday bookings.
+	* recentPastMondayLater is a second completed booking (for clientTwo) one hour after
+	* recentPastMonday: also a Monday morning, strictly in the past and inside the 30-day
+	* ActiveClients window on every date.
+	*
+	* It is deliberately NOT tied to a day of the month. BusiestDay is computed over all non-cancelled
+	* bookings and ties resolve to the lowest weekday index (Sunday), while lastMonthBooking falls on
+	* the 4th of last month, a weekday that varies with the date. Two Monday bookings guarantee Monday
+	* strictly beats every other weekday (at most one booking, lastMonthBooking), and both Monday
+	* bookings are morning slots, so "morning" beats lastMonthBooking's 18:00 slot too.
 	***************************************************************************************************/
-	if !currentMonthBooking.Before(now) {
-		currentMonthBooking = now.AddDate(0, 0, -2).Truncate(24 * time.Hour).Add(10 * time.Hour)
-	}
+	recentPastMondayLater := recentPastMonday.Add(time.Hour)
 
 	/***************************************************************************************************
-	* Both recentPastMonday and currentMonthBooking's fallback are computed as fixed day-offsets from
-	* `now`, so either can land in the current calendar month or the one immediately before it,
-	* depending on where in the month the test runs (e.g. the fallback above subtracts 2 days, which
-	* crosses into the prior month on the 1st or 2nd). Attribute each one's revenue to whichever month
-	* it actually falls in rather than assuming a fixed placement, so the test is correct on any day.
+	* recentPastMonday and recentPastMondayLater are fixed day-offsets from `now` (6 days before this
+	* week's Sunday start, so 5 to 12 days ago), which puts them in the current calendar month or the
+	* one immediately before it depending on where in the month the test runs. They fall on the same
+	* calendar day, so they always share a month. Attribute each one's revenue to whichever month it actually falls in rather than assuming a
+	* fixed placement, so the test is correct on any day. lastMonthBooking is always last month.
 	***************************************************************************************************/
 	expectedRevenueThisMonth := 0
 	expectedRevenueLastMonth := serviceTwo.Price
@@ -264,7 +266,7 @@ func TestGetAdminStats(t *testing.T) {
 	} else {
 		expectedRevenueLastMonth += serviceOne.Price
 	}
-	if currentMonthBooking.Year() == now.Year() && currentMonthBooking.Month() == now.Month() {
+	if recentPastMondayLater.Year() == now.Year() && recentPastMondayLater.Month() == now.Month() {
 		expectedRevenueThisMonth += serviceOne.Price
 	} else {
 		expectedRevenueLastMonth += serviceOne.Price
@@ -272,7 +274,7 @@ func TestGetAdminStats(t *testing.T) {
 
 	createStatsBooking(t, specialist.ID, clientOne, serviceOne.ID, recentPastMonday, 60, models.BookingStatusCompleted, recentPastMonday)
 	createStatsBooking(t, specialist.ID, clientOne, serviceTwo.ID, lastMonthBooking, 90, models.BookingStatusCompleted, lastMonthBooking)
-	createStatsBooking(t, specialist.ID, clientTwo, serviceOne.ID, currentMonthBooking, 60, models.BookingStatusCompleted, currentMonthBooking)
+	createStatsBooking(t, specialist.ID, clientTwo, serviceOne.ID, recentPastMondayLater, 60, models.BookingStatusCompleted, recentPastMondayLater)
 	createStatsBooking(t, specialist.ID, clientThree, serviceOne.ID, twoWeeksAgoMonday, 60, models.BookingStatusCancelled, twoWeeksAgoMonday)
 
 	stats, err := GetAdminStats(specialist.ID, specialist.Timezone)
