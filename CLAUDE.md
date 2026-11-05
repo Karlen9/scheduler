@@ -47,7 +47,7 @@ go test ./...     # Run tests
 ```
 
 Required env vars (master bot): `MASTER_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`
-Optional: `ADMIN_IDS`, `MASTER_WEBHOOK_SECRET`, `ENCRYPTION_KEY`, `SUPPORT_GROUP_ID` (forum-topic supergroup chat id; enables the master bot's operator relay)
+Optional: `ADMIN_IDS`, `MASTER_WEBHOOK_SECRET`, `ENCRYPTION_KEY`, `ROTATE_ENCRYPTION_KEY_FROM` (one-shot key rotation: set to the old key while `ENCRYPTION_KEY` is the new key, remove after the run), `SUPPORT_GROUP_ID` (forum-topic supergroup chat id; enables the master bot's operator relay)
 Legacy (single-bot): `TELEGRAM_BOT_TOKEN`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST_NAME`
 
 ### Deployment
@@ -57,9 +57,11 @@ Legacy (single-bot): `TELEGRAM_BOT_TOKEN`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST
 cd mini-app && bunx vercel --prod
 
 # Backend
-docker build --platform linux/amd64 -t rainingman/scheduler-bot:latest -f bot/Dockerfile bot/
-docker push rainingman/scheduler-bot:latest
+docker build --platform linux/amd64 -t <dockerhub-user>/scheduler-bot:latest -f bot/Dockerfile bot/
+docker push <dockerhub-user>/scheduler-bot:latest
 ```
+
+Real image namespace/registry comes from the `IMAGE` env var in `deploy/build-and-push.sh`.
 
 ## Architecture
 
@@ -132,3 +134,11 @@ Bot uses Telegram webhooks (not long polling):
 - Theme: light/dark via Telegram `colorScheme` — `theme.css` has `:root` light defaults and `:root.dark` overrides; status colors exposed via `@theme inline` for Tailwind
 - Light frontend data sync + SWR cache retention across route switches; infinite scroll for admin bookings; URL-backed filters on bookings list
 - Pre-commit hooks: gofmt, prettier, eslint, go test, vitest (via Lefthook)
+
+## Public Repository Hygiene
+
+- The repo is public (renamed `scheduler`).
+- Never commit `.env*` (only `*.example`), DB dumps/backups (`*.sql`, `*.sql.gz`, `*.db`), tokens, or prod hostnames/IPs/paths. Use placeholders (`api.example.com`, `/srv/scheduler`, `<dockerhub-user>`).
+- Docs and comments must stay generic.
+- `final.sql.gz` and `rehearsal.sql.gz` in the repo root are production-data dumps: they must be removed from the tree and purged from git history (tracked in history via commit 18e204f), and every secret they could contain rotated.
+- Ask the maintainer before any history rewrite or force-push.
