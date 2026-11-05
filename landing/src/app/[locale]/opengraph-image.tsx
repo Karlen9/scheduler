@@ -7,11 +7,12 @@ import { getTranslations } from 'next-intl/server';
 
 import { routing } from '@/i18n/routing';
 import { LOGO } from '@/lib/logo';
-import { MASTER_BOT_URL, PRODUCT_NAME } from '@/lib/site';
+import { MASTER_BOT_URL, getProductName } from '@/lib/site';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = PRODUCT_NAME;
+// A static export is shared by both locales, so the alt stays free of the product name.
+export const alt = MASTER_BOT_URL.replace('https://', '');
 
 export function generateStaticParams(): { locale: string }[] {
   return routing.locales.map((locale) => ({ locale }));
@@ -68,7 +69,7 @@ export default async function OpengraphImage({
             strokeLinejoin={'round'}
           />
         </svg>
-        <div style={{ fontSize: 40, fontWeight: 700 }}>{PRODUCT_NAME}</div>
+        <div style={{ fontSize: 40, fontWeight: 700 }}>{getProductName(locale)}</div>
       </div>
       <div
         style={{

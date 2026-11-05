@@ -4,7 +4,7 @@ import { hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { routing } from '@/i18n/routing';
-import { PRODUCT_NAME, SITE_URL } from '@/lib/site';
+import { SITE_URL, getProductName } from '@/lib/site';
 import { THEME_COLORS, THEME_INIT_SCRIPT } from '@/lib/theme';
 import '@/styles/globals.css';
 
@@ -51,7 +51,8 @@ export async function generateMetadata({
     return {};
   }
   const t = await getTranslations({ locale, namespace: 'meta' });
-  const title = t('title', { name: PRODUCT_NAME });
+  const productName = getProductName(locale);
+  const title = t('title', { name: productName });
   const description = t('description');
   const path = locale === routing.defaultLocale ? '/' : `/${locale}`;
 
@@ -65,7 +66,7 @@ export async function generateMetadata({
     },
     openGraph: {
       type: 'website',
-      siteName: PRODUCT_NAME,
+      siteName: productName,
       title,
       description,
       url: path,
