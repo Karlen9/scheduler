@@ -19,7 +19,7 @@ scheduler/
 
 ### How it works
 
-1. Specialist opens master bot (`@sportappmasterbot`) → registers their own bot
+1. Specialist opens master bot (`@schedu1erbot`) → registers their own bot
 2. Client opens specialist's bot → `/start` → "Open Scheduler" button
 3. Mini-app loads → client picks date/time/duration → booking created (status: pending)
 4. Specialist gets Telegram notification with Accept/Reject buttons
