@@ -59,24 +59,12 @@ func Init(hexKey string) error {
 		return nil
 	}
 
-	key, err := hex.DecodeString(hexKey)
+	aead, err := newGCM(hexKey)
 	if err != nil {
-		return fmt.Errorf("crypto: invalid hex key: %w", err)
-	}
-	if len(key) != 32 {
-		return fmt.Errorf("crypto: key must be 32 bytes (got %d)", len(key))
+		return err
 	}
 
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return fmt.Errorf("crypto: %w", err)
-	}
-
-	gcm, err = cipher.NewGCM(block)
-	if err != nil {
-		return fmt.Errorf("crypto: %w", err)
-	}
-
+	gcm = aead
 	enabled = true
 	return nil
 }
@@ -115,13 +103,7 @@ func Encrypt(plaintext string) (string, error) {
 		return plaintext, nil
 	}
 
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := rand.Read(nonce); err != nil {
-		return "", fmt.Errorf("crypto: failed to generate nonce: %w", err)
-	}
-
-	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
-	return encPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
+	return seal(gcm, plaintext)
 }
 
 /***************************************************************************************************
@@ -146,23 +128,7 @@ func Decrypt(value string) (string, error) {
 		return "", errors.New("crypto: encrypted value found but no encryption key configured")
 	}
 
-	raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(value, encPrefix))
-	if err != nil {
-		return "", fmt.Errorf("crypto: invalid base64: %w", err)
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(raw) < nonceSize {
-		return "", errors.New("crypto: ciphertext too short")
-	}
-
-	nonce, ciphertext := raw[:nonceSize], raw[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return "", fmt.Errorf("crypto: decryption failed: %w", err)
-	}
-
-	return string(plaintext), nil
+	return open(gcm, value)
 }
 
 /***************************************************************************************************
@@ -196,4 +162,161 @@ func HashToken(token string) string {
 ***************************************************************************************************/
 func IsEncrypted(value string) bool {
 	return strings.HasPrefix(value, encPrefix)
+}
+
+/***************************************************************************************************
+* Cipher is an independent AES-256-GCM instance bound to its own key. It uses the same "enc:" value
+* format as the package-level functions and is used for key rotation, where two keys are needed at
+* the same time.
+***************************************************************************************************/
+type Cipher struct {
+	aead cipher.AEAD
+}
+
+/***************************************************************************************************
+* NewCipher builds a Cipher from a hex-encoded 32-byte key. Unlike Init, an empty key is rejected.
+*
+* Parameters:
+* - hexKey: Hex key used by the current operation.
+*
+* Returns:
+* - The cipher together with an error when the key is empty or invalid.
+*
+* Side effects:
+* - None.
+***************************************************************************************************/
+func NewCipher(hexKey string) (*Cipher, error) {
+	if hexKey == "" {
+		return nil, errors.New("crypto: key must not be empty")
+	}
+	aead, err := newGCM(hexKey)
+	if err != nil {
+		return nil, err
+	}
+	return &Cipher{aead: aead}, nil
+}
+
+/***************************************************************************************************
+* Encrypt encrypts plaintext with this cipher's key. Returns "enc:<base64(nonce+ciphertext)>".
+*
+* Parameters:
+* - plaintext: Plaintext used by the current operation.
+*
+* Returns:
+* - The encrypted value together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - None.
+***************************************************************************************************/
+func (c *Cipher) Encrypt(plaintext string) (string, error) {
+	return seal(c.aead, plaintext)
+}
+
+/***************************************************************************************************
+* Decrypt decrypts an "enc:" value with this cipher's key. Values without the prefix are returned
+* as-is.
+*
+* Parameters:
+* - value: Input data consumed by the current operation.
+*
+* Returns:
+* - The plaintext together with an error when the operation cannot complete successfully.
+*
+* Side effects:
+* - None.
+***************************************************************************************************/
+func (c *Cipher) Decrypt(value string) (string, error) {
+	if !IsEncrypted(value) {
+		return value, nil
+	}
+	return open(c.aead, value)
+}
+
+/***************************************************************************************************
+* newGCM validates a hex-encoded 32-byte key and builds an AES-256-GCM AEAD from it.
+*
+* Parameters:
+* - hexKey: Hex key used by the current operation.
+*
+* Returns:
+* - The AEAD together with an error when the key is invalid.
+*
+* Side effects:
+* - None.
+***************************************************************************************************/
+func newGCM(hexKey string) (cipher.AEAD, error) {
+	key, err := hex.DecodeString(hexKey)
+	if err != nil {
+		return nil, fmt.Errorf("crypto: invalid hex key: %w", err)
+	}
+	if len(key) != 32 {
+		return nil, fmt.Errorf("crypto: key must be 32 bytes (got %d)", len(key))
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("crypto: %w", err)
+	}
+
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("crypto: %w", err)
+	}
+	return aead, nil
+}
+
+/***************************************************************************************************
+* seal encrypts plaintext with the given AEAD and returns the "enc:" formatted value.
+*
+* Parameters:
+* - aead: AEAD used to encrypt.
+* - plaintext: Plaintext used by the current operation.
+*
+* Returns:
+* - The encrypted value together with an error when the nonce cannot be generated.
+*
+* Side effects:
+* - Reads random bytes from the system source.
+***************************************************************************************************/
+func seal(aead cipher.AEAD, plaintext string) (string, error) {
+	nonce := make([]byte, aead.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return "", fmt.Errorf("crypto: failed to generate nonce: %w", err)
+	}
+
+	ciphertext := aead.Seal(nonce, nonce, []byte(plaintext), nil)
+	return encPrefix + base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+/***************************************************************************************************
+* open decrypts an "enc:" formatted value with the given AEAD.
+*
+* Parameters:
+* - aead: AEAD used to decrypt.
+* - value: Input data consumed by the current operation.
+*
+* Returns:
+* - The plaintext together with an error when the value is malformed or authentication fails.
+*
+* Side effects:
+* - None.
+***************************************************************************************************/
+func open(aead cipher.AEAD, value string) (string, error) {
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(value, encPrefix))
+	if err != nil {
+		return "", fmt.Errorf("crypto: invalid base64: %w", err)
+	}
+
+	nonceSize := aead.NonceSize()
+	if len(raw) < nonceSize {
+		return "", errors.New("crypto: ciphertext too short")
+	}
+
+	nonce, ciphertext := raw[:nonceSize], raw[nonceSize:]
+	plaintext, err := aead.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", fmt.Errorf("crypto: decryption failed: %w", err)
+	}
+
+	return string(plaintext), nil
 }

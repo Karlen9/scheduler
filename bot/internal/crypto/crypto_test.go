@@ -282,3 +282,53 @@ func TestEnabled(t *testing.T) {
 		t.Error("Enabled() = true after Init with empty key")
 	}
 }
+
+/***************************************************************************************************
+* Verifies Cipher round trips and interoperates with the global Init'd key.
+***************************************************************************************************/
+func TestNewCipherInterop(t *testing.T) {
+	key := validHexKey(t)
+	if err := Init(key); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = Init("") })
+
+	c, err := NewCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enc, err := c.Encrypt("secret")
+	if err != nil || !IsEncrypted(enc) {
+		t.Fatalf("encrypt: %q %v", enc, err)
+	}
+	if got, err := c.Decrypt(enc); err != nil || got != "secret" {
+		t.Fatalf("cipher round trip: %q %v", got, err)
+	}
+	if got, err := Decrypt(enc); err != nil || got != "secret" {
+		t.Fatalf("global decrypt of cipher value: %q %v", got, err)
+	}
+	genc, err := Encrypt("other")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := c.Decrypt(genc); err != nil || got != "other" {
+		t.Fatalf("cipher decrypt of global value: %q %v", got, err)
+	}
+
+	otherKey := make([]byte, 32)
+	other, _ := NewCipher(hex.EncodeToString(otherKey))
+	if _, err := other.Decrypt(enc); err == nil {
+		t.Fatal("decrypt with different key should fail")
+	}
+}
+
+/***************************************************************************************************
+* Verifies NewCipher rejects empty, non-hex and wrong-length keys.
+***************************************************************************************************/
+func TestNewCipherRejectsBadKeys(t *testing.T) {
+	for _, k := range []string{"", "zz", "abcd", hex.EncodeToString(make([]byte, 16))} {
+		if _, err := NewCipher(k); err == nil {
+			t.Errorf("NewCipher(%q) should fail", k)
+		}
+	}
+}

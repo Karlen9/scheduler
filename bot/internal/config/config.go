@@ -86,6 +86,8 @@ type Config struct {
 	***************************************************************************************************/
 	EncryptionKey string // Hex-encoded 32-byte AES key for encrypting tokens at rest
 
+	RotateEncryptionKeyFrom string // Previous hex-encoded AES key; when set, stored secrets are re-encrypted from it to EncryptionKey on startup (one-shot)
+
 	/***************************************************************************************************
 	* Security.
 	***************************************************************************************************/
@@ -201,17 +203,18 @@ func Load() *Config {
 	}
 
 	cfg := &Config{
-		WebAppURL:           os.Getenv("WEB_APP_URL"),
-		DatabasePath:        os.Getenv("DATABASE_PATH"),
-		DatabaseURL:         os.Getenv("DATABASE_URL"),
-		Port:                os.Getenv("PORT"),
-		PublicBaseURL:       os.Getenv("PUBLIC_BASE_URL"),
-		MasterBotToken:      os.Getenv("MASTER_BOT_TOKEN"),
-		MasterWebhookSecret: os.Getenv("MASTER_WEBHOOK_SECRET"),
-		AdminIDs:            parseAdminIDs(os.Getenv("ADMIN_IDS")),
-		SupportGroupID:      supportGroupID,
-		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
-		SuperadminSecret:    os.Getenv("SUPERADMIN_SECRET"),
+		WebAppURL:               os.Getenv("WEB_APP_URL"),
+		DatabasePath:            os.Getenv("DATABASE_PATH"),
+		DatabaseURL:             os.Getenv("DATABASE_URL"),
+		Port:                    os.Getenv("PORT"),
+		PublicBaseURL:           os.Getenv("PUBLIC_BASE_URL"),
+		MasterBotToken:          os.Getenv("MASTER_BOT_TOKEN"),
+		MasterWebhookSecret:     os.Getenv("MASTER_WEBHOOK_SECRET"),
+		AdminIDs:                parseAdminIDs(os.Getenv("ADMIN_IDS")),
+		SupportGroupID:          supportGroupID,
+		EncryptionKey:           os.Getenv("ENCRYPTION_KEY"),
+		RotateEncryptionKeyFrom: os.Getenv("ROTATE_ENCRYPTION_KEY_FROM"),
+		SuperadminSecret:        os.Getenv("SUPERADMIN_SECRET"),
 
 		/***************************************************************************************************
 		* Subscription / YooKassa.

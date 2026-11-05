@@ -406,6 +406,16 @@ func main() {
 	defer db.Close()
 
 	/***************************************************************************************************
+	* Rotate stored secrets from the previous encryption key to the current one (one-shot).
+	***************************************************************************************************/
+	if cfg.RotateEncryptionKeyFrom != "" {
+		if err := db.RotateEncryptionKey(cfg.RotateEncryptionKeyFrom); err != nil {
+			log.Fatalf("Failed to rotate encryption key: %v", err)
+		}
+		log.Printf("WARNING: ROTATE_ENCRYPTION_KEY_FROM is set; encryption key rotation finished. Remove this env var before the next restart.")
+	}
+
+	/***************************************************************************************************
 	* Migrate existing plain-text tokens to encrypted form.
 	***************************************************************************************************/
 	if err := db.MigrateEncryptTokens(); err != nil {

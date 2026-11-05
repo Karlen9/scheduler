@@ -237,37 +237,32 @@ func TestGetAdminStats(t *testing.T) {
 	***************************************************************************************************/
 	recentPastMonday := startOfWeek(now).AddDate(0, 0, -6).Add(9 * time.Hour)
 	twoWeeksAgoMonday := startOfWeek(now).AddDate(0, 0, -13).Add(9 * time.Hour)
-	currentMonthBooking := startOfMonth(now).AddDate(0, 0, 5).Add(10 * time.Hour)
 	lastMonthBooking := startOfMonth(now).AddDate(0, -1, 0).AddDate(0, 0, 3).Add(18 * time.Hour)
 
 	/***************************************************************************************************
-	* currentMonthBooking is the 6th of the current month at 10:00. If the test runs in the first
-	* five days of a month, that's in the future — fall back to a morning slot 2 days ago so
-	* ActiveClients still counts clientTwo. BusiestDay still resolves to Monday since Monday has
-	* at least the recentPastMonday + twoWeeksAgoMonday bookings.
+	* clientTwo's completed booking is a second past Monday-morning slot (10:00, two weeks back), so it
+	* is deterministic on any run date: Monday holds 2 of the 3 non-cancelled bookings (the other is
+	* lastMonthBooking on an arbitrary weekday) and morning holds 2 of 3, making BusiestDay and
+	* BusiestTimeSlot unique regardless of weekday or day of month. It is at most 19 days ago, so it
+	* is inside ActiveClients' 30-day window. The cancelled booking is excluded from the busiest-day
+	* query and only feeds the cancellation rate.
 	***************************************************************************************************/
-	if !currentMonthBooking.Before(now) {
-		currentMonthBooking = now.AddDate(0, 0, -2).Truncate(24 * time.Hour).Add(10 * time.Hour)
-	}
+	currentMonthBooking := startOfWeek(now).AddDate(0, 0, -13).Add(10 * time.Hour)
 
 	/***************************************************************************************************
-	* Both recentPastMonday and currentMonthBooking's fallback are computed as fixed day-offsets from
-	* `now`, so either can land in the current calendar month or the one immediately before it,
-	* depending on where in the month the test runs (e.g. the fallback above subtracts 2 days, which
-	* crosses into the prior month on the 1st or 2nd). Attribute each one's revenue to whichever month
-	* it actually falls in rather than assuming a fixed placement, so the test is correct on any day.
+	* recentPastMonday and currentMonthBooking are fixed day-offsets from `now`, so either can land in
+	* the current calendar month or the previous one depending on where in the month the test runs.
+	* Attribute each one's revenue to whichever month it actually falls in rather than assuming a
+	* fixed placement, so the test is correct on any day.
 	***************************************************************************************************/
 	expectedRevenueThisMonth := 0
 	expectedRevenueLastMonth := serviceTwo.Price
-	if recentPastMonday.Year() == now.Year() && recentPastMonday.Month() == now.Month() {
-		expectedRevenueThisMonth += serviceOne.Price
-	} else {
-		expectedRevenueLastMonth += serviceOne.Price
-	}
-	if currentMonthBooking.Year() == now.Year() && currentMonthBooking.Month() == now.Month() {
-		expectedRevenueThisMonth += serviceOne.Price
-	} else {
-		expectedRevenueLastMonth += serviceOne.Price
+	for _, ts := range []time.Time{recentPastMonday, currentMonthBooking} {
+		if ts.Year() == now.Year() && ts.Month() == now.Month() {
+			expectedRevenueThisMonth += serviceOne.Price
+		} else {
+			expectedRevenueLastMonth += serviceOne.Price
+		}
 	}
 
 	createStatsBooking(t, specialist.ID, clientOne, serviceOne.ID, recentPastMonday, 60, models.BookingStatusCompleted, recentPastMonday)
