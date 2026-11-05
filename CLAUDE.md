@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Multi-tenant Telegram Mini App scheduler for specialists (trainers, teachers, beauty professionals, etc.). Two main components:
+Multi-tenant Telegram Mini App scheduler for specialists (trainers, teachers, beauty professionals, etc.). Three main components:
 
 - **bot/** - Go backend (chi router, SQLite/PostgreSQL, Telegram webhooks + REST API)
 - **mini-app/** - Next.js 15 frontend (Telegram Mini App) for booking UI
+- **landing/** - Next.js 16 marketing site for specialists (ru at `/`, en at `/en`), static, Vercel Root Directory = `landing`; prices/trial/theme tokens are drift-tested against `bot/internal/config/config.go` and `mini-app/src/styles/theme.css`
 
 Language: Russian UI throughout, English supported via i18n (go-i18n backend, next-intl frontend).
 
@@ -23,6 +24,18 @@ bun build         # Production build
 bun lint          # ESLint
 bunx vitest run   # Run tests
 ```
+
+### Landing (Next.js)
+
+```bash
+cd landing
+bun install
+bun dev           # http://localhost:3000
+bun run build     # must report the locale pages as static
+bun run lint && bunx tsc --noEmit && bunx vitest run
+```
+
+Copy lives in `landing/messages/*.json`; product name, bot link and legal entity in `landing/src/lib/site.ts`; see `landing/README.md` for screenshots and email setup.
 
 ### Bot (Go)
 

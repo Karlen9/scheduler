@@ -10,3 +10,11 @@ pre-commit:
             root: 'mini-app/'
             run: bunx eslint --fix {staged_files} && bunx eslint {staged_files}
             stage_fixed: true
+        landing-eslint:
+            glob: '*.{js,jsx,ts,tsx}'
+            root: 'landing/'
+            run: bunx eslint --fix {staged_files} && bunx eslint {staged_files}
+            stage_fixed: true
+        landing-test:
+            glob: '{landing/**,bot/internal/config/config.go,mini-app/src/styles/theme.css}'
+            run: cd landing && bunx vitest run
