@@ -6,8 +6,8 @@ import {
   LEGAL_ENTITY,
   MASTER_BOT_URL,
   PRIVACY_URL,
-  PRODUCT_NAME,
   TERMS_URL,
+  getProductName,
 } from '@/lib/site';
 
 import { Logo } from './Logo';
@@ -27,6 +27,7 @@ const LINK =
 export function Footer(): ReactNode {
   const t = useTranslations();
   const locale = useLocale();
+  const productName = getProductName(locale);
   const year = new Date().getFullYear();
 
   return (
@@ -38,7 +39,7 @@ export function Footer(): ReactNode {
           <div>
             <Logo
               href={getPathname({ locale, href: '/' })}
-              label={t('a11y.home', { name: PRODUCT_NAME })}
+              label={t('a11y.home', { name: productName })}
             />
             {CONTACT_EMAIL ? (
               <a
@@ -80,7 +81,7 @@ export function Footer(): ReactNode {
           <span>{t('footer.ogrnip', { ogrnip: LEGAL_ENTITY.ogrnip })}</span>
           <span className={'sm:ml-auto'}>
             {'© '}
-            {year} {PRODUCT_NAME}
+            {year} {productName}
             {'. '}
             {t('footer.rights')}
           </span>
