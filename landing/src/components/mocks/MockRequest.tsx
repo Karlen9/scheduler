@@ -1,7 +1,7 @@
 import { Check, ChevronLeft, Ellipsis, Mic, Paperclip } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
-import { PRODUCT_NAME } from '@/lib/site';
+import { getProductName } from '@/lib/site';
 
 import { LogoMark } from '../Logo';
 
@@ -11,6 +11,7 @@ const BUBBLE = 'bg-card rounded-[4cqw] rounded-bl-[1cqw] px-[3.8cqw] py-[3cqw]';
 
 export function MockRequest(): ReactNode {
   const t = useTranslations('mocks.request');
+  const locale = useLocale();
 
   return (
     <div className={'flex h-full flex-col'}>
@@ -22,7 +23,9 @@ export function MockRequest(): ReactNode {
           <LogoMark className={'size-[7.4cqw]'} />
         </span>
         <div className={'leading-tight'}>
-          <div className={'text-[4.8cqw] font-bold'}>{t('bot', { name: PRODUCT_NAME })}</div>
+          <div className={'text-[4.8cqw] font-bold'}>
+            {t('bot', { name: getProductName(locale) })}
+          </div>
           <div className={'text-soft text-[3.8cqw]'}>{t('status')}</div>
         </div>
         <Ellipsis aria-hidden={'true'} className={'text-primary ml-auto size-[6cqw]'} />

@@ -1,8 +1,8 @@
 import { Check, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { accent } from '@/lib/rich';
-import { PRODUCT_NAME } from '@/lib/site';
+import { getProductName } from '@/lib/site';
 
 import { SectionHeading } from './SectionHeading';
 
@@ -12,6 +12,7 @@ const ROWS = ['r1', 'r2', 'r3', 'r4', 'r5'] as const;
 
 export function ComparisonSection(): ReactNode {
   const t = useTranslations('compare');
+  const productName = getProductName(useLocale());
 
   return (
     <section aria-labelledby={'compare-title'} className={'container-page py-12 sm:py-16 lg:py-20'}>
@@ -32,7 +33,7 @@ export function ComparisonSection(): ReactNode {
             }
           >
             <Check aria-hidden={'true'} className={'text-primary size-4 shrink-0'} />
-            {PRODUCT_NAME}
+            {productName}
           </p>
         </div>
         <ul>
@@ -61,7 +62,7 @@ export function ComparisonSection(): ReactNode {
                 <Check aria-hidden={'true'} className={'text-success mt-1 size-4 shrink-0'} />
                 <span>
                   <span className={'sr-only'}>
-                    {PRODUCT_NAME}
+                    {productName}
                     {': '}
                   </span>
                   {t(`rows.${row}.after`)}
