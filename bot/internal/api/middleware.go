@@ -330,6 +330,14 @@ func loadRequestSpecialist(specialistID string) (*models.Specialist, error) {
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
 func validateInitData(initData, botToken string) (*TelegramUser, bool) {
+	/***************************************************************************************************
+	* An empty bot token makes the HMAC key public knowledge, so anyone could forge initData.
+	***************************************************************************************************/
+	if botToken == "" {
+		log.Printf("Auth rejected: empty bot token")
+		return nil, false
+	}
+
 	values, err := url.ParseQuery(initData)
 	if err != nil {
 		return nil, false

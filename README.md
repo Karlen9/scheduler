@@ -360,6 +360,8 @@ ENCRYPTION_KEY=your-64-char-hex-string
 SUPERADMIN_SECRET=your-superadmin-bearer-secret
 ```
 
+The production `.env` holds every secret: `chmod 600` it and keep it owned by the user that runs the deploy hook.
+
 ### .env.dev
 
 ```env

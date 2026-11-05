@@ -1,6 +1,9 @@
 services:
   bot:
     image: rainingman/scheduler-bot:latest
+    # The bot stores its data in SQLite on the ./bot-data bind mount (/data in the container).
+    # It does NOT use the `db` service below unless DATABASE_URL is set in bot/.env; with host
+    # networking the Postgres host is then localhost:5432.
     network_mode: host
     volumes:
       - ./bot-data:/data
