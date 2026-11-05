@@ -186,17 +186,24 @@ export function ClientSelector({
                   <ClientAvatar
                     name={client.displayName || client.name}
                     photoUrl={client.photoUrl}
+                    isSelf={client.isSelf}
                   />
                   <div className={'min-w-0 flex-1'}>
                     <div className={'text-foreground truncate font-medium'}>
-                      {client.displayName || client.name}
-                      {client.isGhost && (
-                        <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
-                          {tc('ghost')}
-                        </span>
+                      {client.isSelf ? (
+                        tc('self')
+                      ) : (
+                        <>
+                          {client.displayName || client.name}
+                          {client.isGhost && (
+                            <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
+                              {tc('ghost')}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
-                    {client.phone && (
+                    {!client.isSelf && client.phone && (
                       <div className={'text-muted-foreground text-sm'}>{client.phone}</div>
                     )}
                   </div>

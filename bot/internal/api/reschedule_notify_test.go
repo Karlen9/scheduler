@@ -54,9 +54,11 @@ func doRequestFromIP(t *testing.T, method, path string, body *string, telegramID
 
 type rescheduleNotifyCapture struct {
 	requestCalls     int
+	moveRequestCalls int
 	responseCalls    int
 	lastApproved     bool
 	lastHadOld       bool
+	lastRespondedBy  string
 	newBookingBookId string
 }
 
@@ -64,6 +66,7 @@ func swapRescheduleCallbacks(capture *rescheduleNotifyCapture) (restore func()) 
 	oldRequest := api.NotifyRescheduleRequestFunc
 	oldResponse := api.NotifyRescheduleResponseFunc
 	oldBooking := api.NotifyBookingFunc
+	oldMoveRequest := api.NotifyMoveRequestFunc
 
 	api.NotifyRescheduleRequestFunc = func(newBooking, oldBk *models.Booking) error {
 		capture.requestCalls++
@@ -72,20 +75,28 @@ func swapRescheduleCallbacks(capture *rescheduleNotifyCapture) (restore func()) 
 		}
 		return nil
 	}
-	api.NotifyRescheduleResponseFunc = func(newBooking, oldBk *models.Booking, approved bool) error {
+	api.NotifyRescheduleResponseFunc = func(newBooking, oldBk *models.Booking, approved bool, respondedBy string) error {
 		capture.responseCalls++
 		capture.lastApproved = approved
 		capture.lastHadOld = oldBk != nil
+		capture.lastRespondedBy = respondedBy
+		return nil
+	}
+	api.NotifyMoveRequestFunc = func(newBooking, oldBk *models.Booking, requestedBy string) error {
+		capture.moveRequestCalls++
+		if newBooking != nil {
+			capture.newBookingBookId = newBooking.ID
+		}
 		return nil
 	}
 	api.NotifyBookingFunc = func(booking *models.Booking) error {
-		// Intentionally fail the test if reached from a reschedule path.
 		return nil
 	}
 
 	return func() {
 		api.NotifyRescheduleRequestFunc = oldRequest
 		api.NotifyRescheduleResponseFunc = oldResponse
+		api.NotifyMoveRequestFunc = oldMoveRequest
 		api.NotifyBookingFunc = oldBooking
 	}
 }
@@ -116,7 +127,10 @@ func seedConfirmedBooking(t *testing.T, clientTelegramID int64) *models.Booking 
 	return refreshed
 }
 
-func TestClientRescheduleFiresRescheduleRequestCallback(t *testing.T) {
+// TestClientRescheduleConfirmedCreatesShadow verifies that a client rescheduling a CONFIRMED
+// booking with a real (non-ghost, non-self) client creates a shadow reschedule_pending booking and
+// fires NotifyMoveRequestFunc (not NotifyRescheduleRequestFunc).
+func TestClientRescheduleConfirmedCreatesShadow(t *testing.T) {
 	var capture rescheduleNotifyCapture
 	restore := swapRescheduleCallbacks(&capture)
 	defer restore()
@@ -131,14 +145,63 @@ func TestClientRescheduleFiresRescheduleRequestCallback(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	if capture.requestCalls != 1 {
-		t.Fatalf("expected NotifyRescheduleRequestFunc called once, got %d", capture.requestCalls)
+	// Shadow path: NotifyMoveRequestFunc fires, not the in-place reschedule callback.
+	if capture.moveRequestCalls != 1 {
+		t.Fatalf("expected NotifyMoveRequestFunc called once, got %d", capture.moveRequestCalls)
+	}
+	if capture.requestCalls != 0 {
+		t.Fatalf("expected NotifyRescheduleRequestFunc NOT called, got %d", capture.requestCalls)
 	}
 	if capture.responseCalls != 0 {
 		t.Fatalf("expected NotifyRescheduleResponseFunc NOT called, got %d", capture.responseCalls)
 	}
-	if capture.newBookingBookId != booking.ID {
-		t.Fatalf("expected callback with booking %s, got %s", booking.ID, capture.newBookingBookId)
+	// The returned booking should be the new shadow, not the original.
+	if capture.newBookingBookId == booking.ID {
+		t.Fatal("expected shadow booking ID, got original booking ID")
+	}
+}
+
+// TestClientReschedulePendingInPlace verifies that a client rescheduling a PENDING booking
+// updates it in place and fires NotifyRescheduleRequestFunc.
+func TestClientReschedulePendingInPlace(t *testing.T) {
+	var capture rescheduleNotifyCapture
+	restore := swapRescheduleCallbacks(&capture)
+	defer restore()
+
+	telegramID := int64(770099)
+	service, err := db.CreateSessionType(testSpecialist.ID, fmt.Sprintf("rsp-%d", time.Now().UnixNano()), "Pending Reschedule Test", 60, 0, "USD", "")
+	if err != nil {
+		t.Fatalf("CreateSessionType: %v", err)
+	}
+	client, err := db.GetOrCreateClient(telegramID, testSpecialist.ID, "Pending Client")
+	if err != nil {
+		t.Fatalf("GetOrCreateClient: %v", err)
+	}
+	startsAt := time.Now().UTC().Add(48 * time.Hour).Truncate(time.Hour)
+	endsAt := startsAt.Add(60 * time.Minute)
+	pendingBooking, err := db.CreateBooking(testSpecialist.ID, client.ID, service.ID, startsAt, endsAt, client.Name, "", 60)
+	if err != nil {
+		t.Fatalf("CreateBooking: %v", err)
+	}
+	// Leave as pending (no status update).
+	refreshed, err := db.GetBookingByID(pendingBooking.ID)
+	if err != nil || refreshed == nil {
+		t.Fatalf("GetBookingByID: %v", err)
+	}
+
+	newStart := time.Now().UTC().Add(96 * time.Hour).Truncate(time.Hour)
+	body := fmt.Sprintf(`{"date":%q,"time":%q}`, newStart.Format("2006-01-02"), newStart.Format("15:04"))
+	w := doRequestFromIP(t, http.MethodPut, "/api/bookings/"+refreshed.ID+"/reschedule", &body, telegramID, false, "203.0.113.215")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// In-place path: NotifyRescheduleRequestFunc fires, not the shadow path.
+	if capture.requestCalls != 1 {
+		t.Fatalf("expected NotifyRescheduleRequestFunc called once, got %d", capture.requestCalls)
+	}
+	if capture.moveRequestCalls != 0 {
+		t.Fatalf("expected NotifyMoveRequestFunc NOT called, got %d", capture.moveRequestCalls)
 	}
 }
 
@@ -207,6 +270,72 @@ func TestClientDeclineRescheduleFiresResponseCallback(t *testing.T) {
 	}
 	if !capture.lastHadOld {
 		t.Fatal("expected non-nil oldBooking passed to callback")
+	}
+}
+
+// TestAdminApproveRescheduleNotifiesClient verifies that HandleAdminApproveReschedule notifies
+// the client (respondedBy="specialist") and returns 200.
+func TestAdminApproveRescheduleNotifiesClient(t *testing.T) {
+	var capture rescheduleNotifyCapture
+	restore := swapRescheduleCallbacks(&capture)
+	defer restore()
+
+	telegramID := int64(770200)
+	original := seedConfirmedBooking(t, telegramID)
+
+	newStart := original.StartsAt.Add(5 * time.Hour)
+	shadow, err := db.CreateRescheduleBooking(
+		original.SpecialistID, original.ClientID, original.SessionTypeID,
+		newStart, newStart.Add(time.Hour), original.ClientName, "", "client",
+		60, "", original.ID,
+	)
+	if err != nil {
+		t.Fatalf("CreateRescheduleBooking: %v", err)
+	}
+
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/bookings/"+shadow.ID+"/approve-reschedule", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	if capture.responseCalls != 1 {
+		t.Fatalf("expected NotifyRescheduleResponseFunc called once, got %d", capture.responseCalls)
+	}
+	if !capture.lastApproved {
+		t.Fatal("expected approved=true")
+	}
+	if capture.lastRespondedBy != "specialist" {
+		t.Fatalf("expected respondedBy=specialist, got %q", capture.lastRespondedBy)
+	}
+	if !capture.lastHadOld {
+		t.Fatal("expected non-nil oldBooking")
+	}
+}
+
+// TestAdminPastRescheduleRejected verifies that HandleAdminRescheduleBooking rejects past
+// start times.
+func TestAdminPastRescheduleRejected(t *testing.T) {
+	telegramID := int64(770201)
+	service, err := db.CreateSessionType(testSpecialist.ID, fmt.Sprintf("rpa-%d", time.Now().UnixNano()), "Past Reschedule", 60, 0, "USD", "")
+	if err != nil {
+		t.Fatalf("CreateSessionType: %v", err)
+	}
+	client, err := db.GetOrCreateClient(telegramID, testSpecialist.ID, "Past Rescheduler")
+	if err != nil {
+		t.Fatalf("GetOrCreateClient: %v", err)
+	}
+	startsAt := time.Now().UTC().Add(48 * time.Hour).Truncate(time.Hour)
+	booking, err := db.CreateBooking(testSpecialist.ID, client.ID, service.ID, startsAt, startsAt.Add(time.Hour), client.Name, "", 60)
+	if err != nil {
+		t.Fatalf("CreateBooking: %v", err)
+	}
+
+	// Use a clearly past date.
+	pastDate := time.Now().UTC().Add(-24 * time.Hour)
+	body := fmt.Sprintf(`{"date":%q,"time":"10:00"}`, pastDate.Format("2006-01-02"))
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/bookings/"+booking.ID+"/reschedule", &body)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for past reschedule, got %d: %s", w.Code, w.Body.String())
 	}
 }
 

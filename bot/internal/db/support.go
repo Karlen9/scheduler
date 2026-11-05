@@ -46,6 +46,18 @@ func GetSupportThreadByTopicID(topicID int) (*models.SupportThread, error) {
 	`), topicID))
 }
 
+// GetAnyThreadByTopicID returns the support_threads row for a topic regardless of whether
+// it is currently closed. Used to auto-reopen threads when an operator responds after
+// inactivity auto-close.
+func GetAnyThreadByTopicID(topicID int) (*models.SupportThread, error) {
+	return scanSupportThreadRow(DB.QueryRow(Q(`
+		SELECT id, telegram_user_id, telegram_username, display_name, language_code,
+		       topic_id, created_at, last_message_at, closed_at
+		FROM support_threads
+		WHERE topic_id = ?
+	`), topicID))
+}
+
 // ListInactiveSupportThreads returns open support threads whose last activity is at or before cutoff.
 func ListInactiveSupportThreads(cutoff time.Time) ([]*models.SupportThread, error) {
 	rows, err := DB.Query(Q(`

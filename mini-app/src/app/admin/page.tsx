@@ -18,9 +18,10 @@ import {
   useAdminScheduleContext,
   useAdminServices,
 } from '@/hooks/queries';
+import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { ADMIN_UPCOMING_BOOKING_STATUSES, todayISO } from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
-import { getNonWorkingDays } from '@/lib/helpers';
+import { clientEntityLabel, getNonWorkingDays, wallClockNow } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { openTelegramUserChat } from '@/lib/telegram';
 
@@ -73,6 +74,7 @@ export default function AdminHomePage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const ts = useTranslations('Success');
+  const tc = useTranslations('Common');
   const [isPageVisible, setIsPageVisible] = useState(true);
   const activeBookingsCountQuery = useMemo<TAdminBookingsQuery>(
     () => ({
@@ -122,6 +124,8 @@ export default function AdminHomePage(): ReactNode {
       Array.from(new Set(services.map((service) => service.durationMinutes))).sort((a, b) => a - b),
     [services],
   );
+  const adminReschedule = useRescheduleActions('admin');
+
   const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<TBooking | null>(null);
@@ -160,10 +164,18 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
+  /***************************************************************************************************
+   * Pending actions for the specialist: client-created booking requests AND client-initiated
+   * reschedule proposals (reschedule_pending with createdBy==='client').
+   ***************************************************************************************************/
   const pendingBookings = useMemo(
     () =>
       bookings
-        .filter((b) => b.status === 'pending' && b.createdBy !== 'specialist')
+        .filter(
+          (b) =>
+            (b.status === 'pending' && b.createdBy !== 'specialist') ||
+            (b.status === 'reschedule_pending' && b.createdBy === 'client'),
+        )
         .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
     [bookings],
   );
@@ -200,7 +212,7 @@ export default function AdminHomePage(): ReactNode {
      * Usage context:
      * - Reused by the page layer to keep shared values centralized.
      ***************************************************************************************************/
-    const now = Date.now();
+    const now = wallClockNow();
     return (
       bookings
         .filter((b) => b.status === 'confirmed' && new Date(b.startsAt).getTime() > now)
@@ -285,7 +297,11 @@ export default function AdminHomePage(): ReactNode {
 
   const handleMessageClient = useCallback(
     (booking: TBooking): void => {
-      if (booking.clientIsGhost || !openTelegramUserChat(booking.clientTelegramUsername)) {
+      if (
+        booking.clientIsGhost ||
+        booking.clientIsSelf ||
+        !openTelegramUserChat(booking.clientTelegramUsername)
+      ) {
         toast.error(t('dmUnavailable'));
       }
     },
@@ -413,7 +429,7 @@ export default function AdminHomePage(): ReactNode {
        ***************************************************************************************************/}
       <RejectDialog
         isOpen={showRejectDialog}
-        targetName={rejectTarget?.clientDisplayName || rejectTarget?.clientName || ''}
+        targetName={rejectTarget ? clientEntityLabel(rejectTarget, tc('self')) : ''}
         reason={rejectReason}
         onReasonChange={setRejectReason}
         onConfirm={handleConfirmReject}
@@ -436,6 +452,22 @@ export default function AdminHomePage(): ReactNode {
         onAccept={handleAccept}
         onReject={handleRejectClick}
         onMessageClient={handleMessageClient}
+        onApproveReschedule={
+          selectedBooking?.status === 'reschedule_pending' && selectedBooking.createdBy === 'client'
+            ? async (b) => {
+                await adminReschedule.approve(b);
+                setSelectedBooking(null);
+              }
+            : undefined
+        }
+        onDeclineReschedule={
+          selectedBooking?.status === 'reschedule_pending' && selectedBooking.createdBy === 'client'
+            ? async (b) => {
+                await adminReschedule.decline(b);
+                setSelectedBooking(null);
+              }
+            : undefined
+        }
       />
 
       {/***************************************************************************************************

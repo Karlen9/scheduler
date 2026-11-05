@@ -173,23 +173,23 @@
   --brand-hover: var(--tg-theme-link-color);
 
   /* Status badge colors */
-  --status-pending-bg: var(--tg-theme-bg-color);
-  --status-pending-text: var(--tg-theme-link-color);
-  --status-confirmed-bg: var(--tg-theme-bg-color);
-  --status-confirmed-text: var(--tg-theme-link-color);
-  --status-rejected-bg: var(--tg-theme-bg-color);
-  --status-rejected-text: var(--tg-theme-link-color);
-  --status-cancelled-bg: var(--tg-theme-bg-color);
+  --status-pending-bg: rgba(245, 158, 11, 0.18);
+  --status-pending-text: #fbbf24;
+  --status-confirmed-bg: rgba(34, 197, 94, 0.15);
+  --status-confirmed-text: #4ade80;
+  --status-rejected-bg: rgba(239, 68, 68, 0.15);
+  --status-rejected-text: #f87171;
+  --status-cancelled-bg: rgba(107, 114, 128, 0.15);
   --status-cancelled-text: var(--tg-theme-subtitle-text-color);
-  --status-completed-bg: var(--tg-theme-bg-color);
-  --status-completed-text: var(--tg-theme-link-color);
-  --status-warning-bg: var(--tg-theme-bg-color);
-  --status-warning-text: var(--tg-theme-link-color);
-  --status-purple-bg: var(--tg-theme-bg-color);
-  --status-purple-text: var(--tg-theme-link-color);
+  --status-completed-bg: rgba(59, 130, 246, 0.15);
+  --status-completed-text: #60a5fa;
+  --status-warning-bg: rgba(249, 115, 22, 0.18);
+  --status-warning-text: #fb923c;
+  --status-purple-bg: rgba(168, 85, 247, 0.15);
+  --status-purple-text: #c084fc;
 
   /* Status borders */
-  --status-pending-border: var(--tg-theme-button-color);
+  --status-pending-border: #f59e0b;
   --status-confirmed-border: var(--tg-theme-link-color);
   --status-rejected-border: var(--tg-theme-destructive-text-color);
   --status-cancelled-border: var(--tg-theme-hint-color);
@@ -225,9 +225,9 @@
   --card-shadow: 0 0 0 1px var(--tg-theme-bg-color);
 
   /* Accent colors */
-  --warning: var(--tg-theme-button-color);
-  --success: var(--tg-theme-link-color);
-  --error: var(--tg-theme-destructive-text-color);
+  --warning: #f59e0b;
+  --success: #4ade80;
+  --error: #f87171;
   --destructive-foreground: var(--tg-theme-button-text-color);
   --chart-1: var(--tg-theme-button-color);
   --chart-2: var(--tg-theme-link-color);
@@ -410,4 +410,11 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+}
+
+/* Sonner toast theming — bind to app CSS vars so toasts match the current theme */
+[data-sonner-toaster] {
+  --normal-bg: var(--card);
+  --normal-text: var(--foreground);
+  --normal-border: var(--border);
 }

@@ -330,6 +330,14 @@ func loadRequestSpecialist(specialistID string) (*models.Specialist, error) {
 * - May coordinate request handling, authentication checks, or other API-facing behavior.
 ***************************************************************************************************/
 func validateInitData(initData, botToken string) (*TelegramUser, bool) {
+	/***************************************************************************************************
+	* An empty bot token makes the HMAC key public knowledge, so anyone could forge initData.
+	***************************************************************************************************/
+	if botToken == "" {
+		log.Printf("Auth rejected: empty bot token")
+		return nil, false
+	}
+
 	values, err := url.ParseQuery(initData)
 	if err != nil {
 		return nil, false
@@ -465,14 +473,6 @@ func GetSpecialistFromContext(r *http.Request) *models.Specialist {
 func GetTelegramUserFromContext(r *http.Request) *TelegramUser {
 	user, _ := r.Context().Value(TelegramUserContextKey).(*TelegramUser)
 	return user
-}
-
-/***************************************************************************************************
-* IsPreviewRequest reports whether the current request is using preview auth/context.
-***************************************************************************************************/
-func IsPreviewRequest(r *http.Request) bool {
-	preview, _ := r.Context().Value(PreviewContextKey).(bool)
-	return preview
 }
 
 /***************************************************************************************************

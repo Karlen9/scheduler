@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 
-import { TopBar } from '@/components';
+import { TopBar } from '@/components/TopBar';
 
 import type { ReactNode } from 'react';
 

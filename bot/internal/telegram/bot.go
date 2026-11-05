@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 /***************************************************************************************************
@@ -269,37 +269,6 @@ func NewBot(token string) (*Bot, error) {
 }
 
 /***************************************************************************************************
-* GetUpdates fetches updates from Telegram.
-*
-* Parameters:
-* - offset: Offset used by the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func (b *Bot) GetUpdates(offset int) ([]Update, error) {
-	resp, err := http.Get(fmt.Sprintf("%s%s/getUpdates?offset=%d&timeout=60", telegramAPI, b.Token, offset))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var result GetUpdatesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	if !result.OK {
-		return nil, fmt.Errorf("getUpdates returned not OK")
-	}
-
-	return result.Result, nil
-}
-
-/***************************************************************************************************
 * DeleteWebhook removes the current webhook and optionally drops pending updates.
 *
 * Parameters:
@@ -451,22 +420,6 @@ func (b *Bot) SendMessageHTML(chatID int64, text string, replyMarkup *InlineKeyb
 	}
 	if replyMarkup != nil {
 		req.ReplyMarkup = replyMarkup
-	}
-	return b.sendMessageRequest(req)
-}
-
-/***************************************************************************************************
-* SendMessageHTMLWithReplyKeyboard sends an HTML-parsed message and attaches a persistent reply
-* keyboard. Passing nil keeps the current keyboard untouched.
-***************************************************************************************************/
-func (b *Bot) SendMessageHTMLWithReplyKeyboard(chatID int64, text string, replyKeyboard *ReplyKeyboardMarkup) (*Message, error) {
-	req := SendMessageRequest{
-		ChatID:    chatID,
-		Text:      text,
-		ParseMode: "HTML",
-	}
-	if replyKeyboard != nil {
-		req.ReplyMarkup = replyKeyboard
 	}
 	return b.sendMessageRequest(req)
 }
@@ -1087,35 +1040,6 @@ func (b *Bot) GetUserProfilePhotoFileID(userID int64) (string, error) {
 	return photos[len(photos)-1].FileID, nil
 }
 
-/***************************************************************************************************
-* PollUpdates starts polling for updates.
-*
-* Parameters:
-* - handler: Handler used by the current operation.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func (b *Bot) PollUpdates(handler func(Update)) {
-	offset := 0
-
-	for {
-		updates, err := b.GetUpdates(offset)
-		if err != nil {
-			log.Printf("Error getting updates: %v", err)
-			continue
-		}
-
-		for _, update := range updates {
-			offset = update.UpdateID + 1
-			handler(update)
-		}
-	}
-}
-
 // CreateForumTopic creates a new topic in a forum supergroup and returns its message_thread_id.
 // Requires the bot to be admin in the group with the "Manage Topics" right.
 func (b *Bot) CreateForumTopic(chatID int64, name string) (int, error) {
@@ -1185,6 +1109,10 @@ func (b *Bot) CloseForumTopic(chatID int64, threadID int) error {
 		return err
 	}
 	if !result.OK {
+		// CHAT_NOT_MODIFIED means the topic is already closed — desired state achieved.
+		if strings.Contains(strings.ToLower(result.Description), "chat_not_modified") {
+			return nil
+		}
 		return fmt.Errorf("closeForumTopic failed: %s", result.Description)
 	}
 	return nil
@@ -1217,6 +1145,10 @@ func (b *Bot) ReopenForumTopic(chatID int64, threadID int) error {
 		return err
 	}
 	if !result.OK {
+		// CHAT_NOT_MODIFIED means the topic is already open — desired state achieved.
+		if strings.Contains(strings.ToLower(result.Description), "chat_not_modified") {
+			return nil
+		}
 		return fmt.Errorf("reopenForumTopic failed: %s", result.Description)
 	}
 	return nil

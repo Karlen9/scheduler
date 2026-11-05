@@ -16,7 +16,6 @@ import type {
   TClientListQuery,
   TClientListResponse,
   TClientProfile,
-  TClientStats,
   TDayOff,
   TRecurringSchedule,
   TReferralsResponse,
@@ -159,32 +158,6 @@ export function useScheduleContext(): {
 }
 
 /***************************************************************************************************
- * Loads and exposes days off data for consuming components.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as .
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function useDaysOff(): {
-  data: { date: string }[];
-  isLoading: boolean;
-  error: Error | undefined;
-  mutate: KeyedMutator<{ date: string }[]>;
-} {
-  const { data, isLoading, error, mutate } = useSWR<{ date: string }[]>(
-    CACHE_KEYS.daysOff,
-    async () => api.getDaysOff(),
-    staticConfig,
-  );
-  return { data: data ?? [], isLoading, error, mutate };
-}
-
-/***************************************************************************************************
  * Loads and exposes session types data for consuming components.
  *
  * Parameters:
@@ -249,32 +222,6 @@ export function useProfile(): {
     CACHE_KEYS.profile,
     async () => api.getProfile(),
     userConfig,
-  );
-  return { data: data ?? null, isLoading, error, mutate };
-}
-
-/***************************************************************************************************
- * Loads and exposes client analytics data for consuming components.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as .
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function useClientStats(): {
-  data: TClientStats | null;
-  isLoading: boolean;
-  error: Error | undefined;
-  mutate: KeyedMutator<TClientStats>;
-} {
-  const { data, isLoading, error, mutate } = useSWR<TClientStats>(
-    CACHE_KEYS.clientStats,
-    async () => api.getClientStats(),
-    staticConfig,
   );
   return { data: data ?? null, isLoading, error, mutate };
 }

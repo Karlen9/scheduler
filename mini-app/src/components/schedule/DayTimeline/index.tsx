@@ -145,10 +145,6 @@ function DayTimelineComponent({
   }, [workingHours, date]);
 
   const emptySlots = useMemo<TEmptySlot[]>(() => {
-    if (dayWH.length === 0) {
-      return [];
-    }
-
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const minAvailableMinute = isToday ? roundUpToQuarterHour(nowMinutes) : 0;
@@ -164,8 +160,30 @@ function DayTimelineComponent({
       })
       .sort((a, b) => a.start - b.start);
 
+    // Determine which intervals to scan for gaps.
+    // When working hours are configured, use them directly.
+    // When there are no working hours but there are bookings, synthesise a
+    // single interval that spans the entire booking range so that the
+    // gap-finding loop can still emit empty-slot cards between bookings.
+    let intervals: { startTime: string; endTime: string }[];
+    if (dayWH.length > 0) {
+      intervals = dayWH;
+    } else if (occupied.length > 0) {
+      // Start from current time (today) or from the first booking (other days),
+      // and extend to the last booking end so gaps before/between bookings show.
+      const spanStart = isToday ? minAvailableMinute : Math.min(...occupied.map((s) => s.start));
+      const spanEnd = Math.max(...occupied.map((s) => s.end));
+      const pad = (min: number): string =>
+        `${Math.floor(min / 60)
+          .toString()
+          .padStart(2, '0')}:${(min % 60).toString().padStart(2, '0')}`;
+      intervals = [{ startTime: pad(spanStart), endTime: pad(spanEnd) }];
+    } else {
+      return [];
+    }
+
     const gaps: TEmptySlot[] = [];
-    for (const interval of dayWH) {
+    for (const interval of intervals) {
       const whStart = parseTimeToMin(interval.startTime);
       const whEnd = parseTimeToMin(interval.endTime);
       let cursor = whStart;

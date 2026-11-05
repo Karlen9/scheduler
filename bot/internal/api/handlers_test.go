@@ -229,11 +229,11 @@ func withSpecialistTimezone(t *testing.T, timezone string) *time.Location {
 		t.Fatal("test specialist not found")
 	}
 
-	if _, err := db.UpdateSpecialist(specialist.ID, specialist.Name, timezone, specialist.CancelCutoffHrs); err != nil {
+	if _, err := db.UpdateSpecialist(specialist.ID, specialist.Name, timezone, specialist.CancelCutoffHrs, specialist.CancelCutoffEnabled); err != nil {
 		t.Fatalf("db.UpdateSpecialist timezone: %v", err)
 	}
 	t.Cleanup(func() {
-		_, _ = db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs)
+		_, _ = db.UpdateSpecialist(specialist.ID, specialist.Name, specialist.Timezone, specialist.CancelCutoffHrs, specialist.CancelCutoffEnabled)
 	})
 
 	return location
@@ -556,7 +556,7 @@ func TestAdminUnauthorized(t *testing.T) {
 ***************************************************************************************************/
 func TestGetClientProfile(t *testing.T) {
 	/***************************************************************************************************
-	* GET /api/profile as client 444444 -> should create via DevAuthMiddleware with name "Dev User".
+	* GET /api/profile as client 444444 -> client is created from signed initData with name "Test User".
 	***************************************************************************************************/
 	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, 444444)
 

@@ -1,4 +1,4 @@
-import type { TWorkingHours } from './types';
+import type { TBooking, TSpecialist, TWorkingHours } from './types';
 
 /***************************************************************************************************
  * Parses day times.
@@ -252,4 +252,64 @@ export function nextDateForWeekday(targetDay: number, today: Date): Date {
   const delta = (targetDay - today.getDay() + 7) % 7;
   const next = new Date(today.getFullYear(), today.getMonth(), today.getDate() + delta);
   return next;
+}
+
+export function wallClockNow(): number {
+  return Date.now() - new Date().getTimezoneOffset() * 60000;
+}
+
+/***************************************************************************************************
+ * Collapses reschedule_pending shadow bookings over their originals.
+ *
+ * When a reschedule is proposed, a shadow booking (status='reschedule_pending') is created
+ * that references the original via `replacesBookingId`. Showing both side-by-side confuses
+ * the user — this helper hides the original from the visible list and builds a lookup map so
+ * each shadow card can display the old→new time change.
+ *
+ * Parameters:
+ * - bookings: The full flat list of bookings to process.
+ *
+ * Returns:
+ * - visible: The list with originals superseded by their shadows removed.
+ * - replacedLookup: Map from replacesBookingId → original booking (for old→new display).
+ ***************************************************************************************************/
+export function collapseReschedulePending(bookings: TBooking[]): {
+  visible: TBooking[];
+  replacedLookup: Map<string, TBooking>;
+} {
+  const idToBooking = new Map<string, TBooking>(bookings.map((b) => [b.id, b]));
+  const replacedIds = new Set<string>(
+    bookings
+      .filter((b) => b.status === 'reschedule_pending' && b.replacesBookingId)
+      .map((b) => b.replacesBookingId as string),
+  );
+  const replacedLookup = new Map<string, TBooking>();
+  for (const id of replacedIds) {
+    const original = idToBooking.get(id);
+    if (original) {
+      replacedLookup.set(id, original);
+    }
+  }
+  return {
+    visible: bookings.filter((b) => !replacedIds.has(b.id)),
+    replacedLookup,
+  };
+}
+
+export function clientEntityLabel(
+  entity: { clientIsSelf?: boolean; clientDisplayName?: string; clientName?: string },
+  selfLabel: string,
+): string {
+  return entity.clientIsSelf ? selfLabel : entity.clientDisplayName || entity.clientName || '';
+}
+
+export function isWithinCutoff(
+  booking: TBooking,
+  specialist: Pick<TSpecialist, 'cancelCutoffEnabled' | 'cancelCutoffHours'> | null | undefined,
+): boolean {
+  if (!specialist?.cancelCutoffEnabled) {
+    return false;
+  }
+  const msUntil = new Date(booking.startsAt).getTime() - wallClockNow();
+  return msUntil > 0 && msUntil < (specialist.cancelCutoffHours ?? 24) * 60 * 60 * 1000;
 }

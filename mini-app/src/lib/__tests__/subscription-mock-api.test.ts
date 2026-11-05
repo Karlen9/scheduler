@@ -10,11 +10,13 @@ import type { TSubscription } from '../types';
 // stateful flow.
 
 describe('mock-api subscription GET', () => {
-  it('returns the default trialing subscription with 3 plans', async () => {
+  it('returns the default expired subscription with 3 plans', async () => {
     const sub = await fetchMockAPI<TSubscription>('/api/admin/subscription');
 
-    expect(sub.status).toBe('trialing');
-    expect(sub.isPro).toBe(true);
+    // Default fixture status per createMockState() in mock-api/fixtures.ts (demonstrates
+    // the expired/free-tier UI state; changed from 'trialing' in commit 997ded1).
+    expect(sub.status).toBe('expired');
+    expect(sub.isPro).toBe(false);
     expect(Array.isArray(sub.plans)).toBe(true);
     expect(sub.plans).toHaveLength(3);
 

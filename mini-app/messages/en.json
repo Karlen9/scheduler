@@ -23,6 +23,7 @@
     "uploading": "Uploading...",
     "workout": "Session",
     "ghost": "(guest)",
+    "self": "You",
     "add": "Add"
   },
   "Status": {
@@ -160,6 +161,7 @@
     "inMinutes": "in {count} {word}",
     "inHours": "in {count} {word}",
     "inDays": "in {count} {word}",
+    "inHoursAndMinutes": "in {hours}h {mins}m",
     "minute1": "minute",
     "minute234": "minutes",
     "minute5": "minutes",
@@ -194,7 +196,8 @@
     "servicesTitle": "Services:",
     "servicesEmpty": "The specialist has not added services yet",
     "bookService": "Book service",
-    "startsIn": "In {time}"
+    "startsIn": "In {time}",
+    "lateCancelWarning": "This session will be counted as completed."
   },
   "BookingForm": {
     "title": "Book a Session",
@@ -247,10 +250,13 @@
     "successMultiFor": " for {name}",
     "successAwaitConfirmation": " Awaiting confirmation.",
     "successBookingCreated": "Booking created.",
+    "successRecurringCreated": "Schedule created.",
     "successRecurringTitle": "Schedule Submitted",
     "successRecurringForClient": "Schedule for {name} has been submitted for confirmation.",
     "successRecurringForSpecialist": "Schedule has been submitted for specialist's confirmation.",
-    "bookedDateWarning": "You already have a booking on this day. Cancel it to book a new time."
+    "bookedDateWarning": "You already have a booking on this day. Cancel it to book a new time.",
+    "consentNote": "By booking, you consent to the processing of your personal data under Federal Law No. 152-FZ",
+    "privacyPolicy": "Privacy Policy"
   },
   "BookingsPage": {
     "title": "My Bookings",
@@ -271,8 +277,10 @@
     "approveRescheduleButton": "Accept new time",
     "declineRescheduleButton": "Decline",
     "rescheduleOldLabel": "was",
+    "awaitingRescheduleConfirmation": "Awaiting specialist confirmation",
     "loadMore": "Load more",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "lateCancelWarning": "This session will be counted as completed."
   },
   "RecurringPage": {
     "emptyTitle": "No recurring schedules",
@@ -316,7 +324,9 @@
     "useTelegramPhoto": "Use Telegram photo",
     "removePhoto": "Remove photo",
     "telegramPhotoActive": "Telegram photo is active",
-    "theme": "Theme"
+    "theme": "Theme",
+    "termsOfUse": "Terms of Use",
+    "privacyPolicy": "Privacy Policy"
   },
   "ServicesPage": {
     "title": "Services & Prices",
@@ -358,7 +368,10 @@
     "other": "Other",
     "notifications": "Notifications",
     "help": "Help",
-    "theme": "Theme"
+    "theme": "Theme",
+    "legal": "Legal",
+    "termsOfUse": "Terms of Use",
+    "privacyPolicy": "Privacy Policy"
   },
   "DeleteBot": {
     "zoneTitle": "Danger zone",
@@ -429,7 +442,9 @@
     "benefitBulkDaysOff": "Bulk days off",
     "benefitBulkDaysOffHint": "Mark non-working periods as a range",
     "benefitAnalytics": "Advanced analytics",
-    "benefitAnalyticsHint": "Detailed stats and data export"
+    "benefitAnalyticsHint": "Detailed stats and data export",
+    "manageInBotTitle": "Manage subscription in the bot",
+    "manageInBotHint": "Payment and renewal happen in the master bot"
   },
   "AdminReferrals": {
     "title": "Referrals",
@@ -444,7 +459,7 @@
     "linkCopied": "Link copied",
     "copyFailed": "Couldn't copy link",
     "shareTelegram": "Share on Telegram",
-    "shareText": "Hey! I take client bookings through Telegram — a handy mini-app for specialists: online booking, reminders, analytics. Give it a try:",
+    "shareText": "Hey! I take client bookings through Telegram — a handy mini-app for specialists: online booking and reminders. Give it a try:",
     "statsActive": "Active",
     "statsPending": "Pending",
     "sectionActive": "Active",
@@ -486,7 +501,12 @@
     "invalidRange": "End time must be later than start time",
     "overlapIntervals": "Time ranges cannot overlap",
     "invalidIntervals": "Fix highlighted days before saving",
-    "saveReminder": "Changes only take effect after you save."
+    "saveReminder": "Changes only take effect after you save.",
+    "cancellationPolicyTitle": "Cancellation policy",
+    "cancellationPolicyHint": "If a client cancels or reschedules too late, the session is counted as completed.",
+    "cancellationPolicyToggle": "Count late cancellations as completed",
+    "cancellationPolicyHours": "Minimum notice period",
+    "cancellationPolicyUnit": "h."
   },
   "AdminServices": {
     "title": "Services & Prices",
@@ -550,8 +570,7 @@
     "createSuccess": "Client {name} added",
     "createError": "Failed to add client",
     "deleteDialog": "Delete client?",
-    "deleteDialogDescription": "Client \"{name}\" will be deleted. Deletion will fail if the client has existing bookings unless you also remove their data below.",
-    "deleteAllDataCheckbox": "Also delete all bookings and recurring schedules",
+    "deleteDialogDescription": "Client \"{name}\" and all their bookings and schedules will be deleted.",
     "deleteConfirm": "Delete",
     "deleteSuccess": "Client {name} deleted",
     "deleteError": "Failed to delete client",
@@ -620,7 +639,8 @@
     "emptyFilteredDescription": "Change filters to see more bookings",
     "loadMore": "Load more",
     "loading": "Loading...",
-    "dmUnavailable": "This client cannot be messaged"
+    "dmUnavailable": "This client cannot be messaged",
+    "rescheduleFromLabel": "was"
   },
   "AdminHelp": {
     "title": "Help",
@@ -645,8 +665,12 @@
     "faq_a8": "Open the booking from the calendar or All Bookings. Choose Reschedule to pick a new date and time, or Cancel to cancel with an optional reason.",
     "faq_q9": "How do I block days off?",
     "faq_a9": "Go to Settings > Days Off, select a date, add an optional reason, and save it. Clients will not be able to book blocked days.",
-    "faq_q10": "Why can't a client cancel a booking?",
-    "faq_a10": "If cancellation blocking is enabled, clients cannot cancel within the configured cutoff before the session. You can change it in Settings > Schedule."
+    "faq_q10": "What happens if a client cancels too late?",
+    "faq_a10": "If the cancellation policy is enabled, the booking is counted as completed rather than cancelled. The client sees a warning before confirming but can still proceed. You can set the cutoff window in Settings > Schedule > Cancellation policy.",
+    "faq_q11": "How do I add a client via Telegram?",
+    "faq_a11": "Share your Telegram bot link with the client. Once they tap Start in the bot and open the booking app, they will automatically appear in your client list. You can find the link to your bot in your Telegram profile.",
+    "faq_q12": "How do I set up the cancellation policy?",
+    "faq_a12": "Go to Settings > Schedule and scroll down to the Cancellation policy section. Enable the toggle and set how many hours in advance clients must notify you of a cancellation or reschedule. If a client cancels after that deadline, the session is automatically marked as completed instead of cancelled."
   },
   "ThemeSelector": {
     "auto": "Auto",
@@ -678,7 +702,8 @@
     "waitingForClient": "Waiting for client response",
     "approveRescheduleButton": "Accept new time",
     "declineRescheduleButton": "Decline",
-    "specialistNote": "Note from specialist"
+    "specialistNote": "Note from specialist",
+    "awaitingRescheduleConfirmation": "Awaiting specialist confirmation"
   },
   "RescheduleSheet": {
     "title": "Reschedule Booking",
@@ -780,7 +805,10 @@
     "afternoon": "Afternoon",
     "evening": "Evening",
     "noData": "Not enough data",
-    "emptyDescription": "Stats will appear after the first bookings"
+    "emptyDescription": "Stats will appear after the first bookings",
+    "proLockedTitle": "Analytics is a Pro feature",
+    "proLockedDescription": "Get Pro to see your revenue and workload stats",
+    "proManageButton": "Manage Pro in the bot"
   },
   "Errors": {
     "specialistLoadFailed": "Failed to load specialist information",
@@ -826,7 +854,8 @@
     "sessionCancelled": "Session cancelled",
     "moveConfirmed": "Reschedule confirmed",
     "moveDeclined": "Reschedule declined",
-    "clientDeleted": "Client {name} deleted"
+    "clientDeleted": "Client {name} deleted",
+    "saved": "Saved"
   },
   "ActivityTabs": {
     "bookings": "Bookings",

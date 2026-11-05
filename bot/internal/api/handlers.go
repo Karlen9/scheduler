@@ -100,36 +100,51 @@ func isPastBookingStart(startsAt time.Time, timezone string) bool {
 	return !startsAt.After(scheduleClockNow(timezone))
 }
 
+// validateRescheduleTime returns the first non-empty validation error for a
+// proposed new booking start time. It checks the date is not in the past or
+// too far in the future (timezone-aware), then checks that the exact start
+// time has not already passed.
+func validateRescheduleTime(date, startsAt time.Time, tz string) string {
+	if msg := validateBookingDateForTimezone(date, tz); msg != "" {
+		return msg
+	}
+	if isPastBookingStart(startsAt, tz) {
+		return "Error.TimeInPast"
+	}
+	return ""
+}
+
 var NotifyStatusChangeFunc func(booking *models.Booking, newStatus string) error
 var NotifyBookingFunc func(booking *models.Booking) error
 var UpdateSpecialistMessageFunc func(booking *models.Booking) error
 var NotifyClientBookingResponseFunc func(booking *models.Booking, accepted bool) error
 var NotifyRescheduleRequestFunc func(booking *models.Booking, oldBooking *models.Booking) error
-var NotifyRescheduleResponseFunc func(newBooking *models.Booking, oldBooking *models.Booking, approved bool) error
+var NotifyRescheduleResponseFunc func(newBooking *models.Booking, oldBooking *models.Booking, approved bool, respondedBy string) error
 var UpdateClientMessageFunc func(booking *models.Booking) error
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
 
 type SpecialistResponse struct {
-	ID                 string     `json:"id"`
-	Name               string     `json:"name"`
-	Timezone           string     `json:"timezone"`
-	CancelCutoffHrs    int        `json:"cancelCutoffHours"`
-	BotUsername        string     `json:"botUsername,omitempty"`
-	TelegramHandle     string     `json:"telegramHandle,omitempty"`
-	Phone              string     `json:"phone,omitempty"`
-	Specialization     string     `json:"specialization,omitempty"`
-	Bio                string     `json:"bio,omitempty"`
-	PhotoURL           string     `json:"photoUrl,omitempty"`
-	LocationLatitude   float64    `json:"locationLatitude,omitempty"`
-	LocationLongitude  float64    `json:"locationLongitude,omitempty"`
-	IsOwner            bool       `json:"isOwner"`
-	Language           string     `json:"language,omitempty"`
-	Wallpaper          string     `json:"wallpaper,omitempty"`
-	IsPro              bool       `json:"isPro"`
-	SubscriptionStatus string     `json:"subscriptionStatus,omitempty"`
-	TrialEndsAt        *time.Time `json:"trialEndsAt,omitempty"`
-	CurrentPeriodEndAt *time.Time `json:"currentPeriodEndAt,omitempty"`
-	AutoRenew          bool       `json:"autoRenew"`
+	ID                  string     `json:"id"`
+	Name                string     `json:"name"`
+	Timezone            string     `json:"timezone"`
+	CancelCutoffHrs     int        `json:"cancelCutoffHours"`
+	CancelCutoffEnabled bool       `json:"cancelCutoffEnabled"`
+	BotUsername         string     `json:"botUsername,omitempty"`
+	TelegramHandle      string     `json:"telegramHandle,omitempty"`
+	Phone               string     `json:"phone,omitempty"`
+	Specialization      string     `json:"specialization,omitempty"`
+	Bio                 string     `json:"bio,omitempty"`
+	PhotoURL            string     `json:"photoUrl,omitempty"`
+	LocationLatitude    float64    `json:"locationLatitude,omitempty"`
+	LocationLongitude   float64    `json:"locationLongitude,omitempty"`
+	IsOwner             bool       `json:"isOwner"`
+	Language            string     `json:"language,omitempty"`
+	Wallpaper           string     `json:"wallpaper,omitempty"`
+	IsPro               bool       `json:"isPro"`
+	SubscriptionStatus  string     `json:"subscriptionStatus,omitempty"`
+	TrialEndsAt         *time.Time `json:"trialEndsAt,omitempty"`
+	CurrentPeriodEndAt  *time.Time `json:"currentPeriodEndAt,omitempty"`
+	AutoRenew           bool       `json:"autoRenew"`
 }
 
 func writeJSON(w http.ResponseWriter, data interface{}) {

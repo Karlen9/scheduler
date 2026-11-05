@@ -140,17 +140,38 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if cancellation falls within the specialist's late-cancel window.
+	lateCancel := false
+	specialist := GetSpecialistFromContext(r)
+	if specialist != nil && specialist.CancelCutoffEnabled && specialist.CancelCutoffHrs > 0 {
+		timeUntil := time.Until(booking.StartsAt)
+		if timeUntil < time.Duration(specialist.CancelCutoffHrs)*time.Hour {
+			lateCancel = true
+		}
+	}
+
 	var req CancelBookingRequest
 	json.NewDecoder(r.Body).Decode(&req)
 
-	if err := db.CancelBooking(bookingID, req.Reason, models.CancelledByClient); err != nil {
-		log.Printf("Error cancelling booking: %v", err)
+	var cancelErr error
+	if lateCancel {
+		cancelErr = db.CompleteBooking(bookingID)
+	} else {
+		cancelErr = db.CancelBooking(bookingID, req.Reason, models.CancelledByClient)
+	}
+	if cancelErr != nil {
+		log.Printf("Error cancelling booking: %v", cancelErr)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("BOOKING CANCELLED [%s] Client: %s cancelled their booking (reason: %s)",
-		bookingID[:8], booking.ClientName, req.Reason)
+	if lateCancel {
+		log.Printf("BOOKING COMPLETED [%s] Client: %s cancelled within cutoff window — counted as completed",
+			bookingID[:8], booking.ClientName)
+	} else {
+		log.Printf("BOOKING CANCELLED [%s] Client: %s cancelled their booking (reason: %s)",
+			bookingID[:8], booking.ClientName, req.Reason)
+	}
 
 	booking, _ = db.GetBookingByID(bookingID)
 	if NotifyCancellationFunc != nil {

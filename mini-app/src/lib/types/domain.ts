@@ -3,6 +3,7 @@ export type TSpecialist = {
   name: string;
   timezone: string;
   cancelCutoffHours: number;
+  cancelCutoffEnabled?: boolean;
   botUsername?: string;
   telegramHandle?: string;
   phone?: string;
@@ -22,7 +23,7 @@ export type TSpecialist = {
   autoRenew?: boolean;
 };
 
-export type TSubscriptionPlan = {
+type TSubscriptionPlan = {
   code: string;
   priceKopecks: number;
   durationDays: number;
@@ -37,6 +38,7 @@ export type TSubscription = {
   autoRenew: boolean;
   cancelAtPeriodEnd: boolean;
   recurringAvailable?: boolean;
+  masterBotUsername?: string;
   plans: TSubscriptionPlan[];
 };
 
@@ -49,7 +51,7 @@ export type TPromoValidation = {
   reason?: string;
 };
 
-export type TReferralClient = {
+type TReferralClient = {
   id: string;
   name: string;
   displayName?: string;
@@ -140,6 +142,7 @@ export type TBooking = {
   recurringScheduleId?: string;
   replacesBookingId?: string;
   clientIsGhost?: boolean;
+  clientIsSelf?: boolean;
   clientTelegramUserId?: number;
   clientTelegramUsername?: string;
 };
@@ -182,6 +185,7 @@ export type TClientInfo = {
   phone?: string;
   photoUrl?: string;
   isGhost?: boolean;
+  isSelf?: boolean;
   isBlocked?: boolean;
   createdAt: string;
 };
@@ -223,6 +227,7 @@ export type TRecurringSchedule = {
   clientName: string;
   clientDisplayName?: string;
   clientPhotoUrl?: string;
+  clientIsSelf?: boolean;
   dayOfWeek: number;
   time: string;
   durationMinutes: number;

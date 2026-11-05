@@ -17,33 +17,34 @@ func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := GetClientFromContext(r)
-	isOwner := client != nil && client.TelegramUserID == specialist.TelegramUserID
+	isOwner := client.IsSelfOf(specialist.TelegramUserID)
 	if isOwner {
 		ensureSpecialistTelegramProfilePhoto(r, specialist)
 	}
 
 	ent := specialist.Entitlement(time.Now())
 	resp := SpecialistResponse{
-		ID:                 specialist.ID,
-		Name:               specialist.Name,
-		Timezone:           specialist.Timezone,
-		CancelCutoffHrs:    specialist.CancelCutoffHrs,
-		BotUsername:        specialist.BotUsername,
-		TelegramHandle:     specialist.TelegramHandle,
-		Phone:              specialist.Phone,
-		Specialization:     specialist.Specialization,
-		Bio:                specialist.Bio,
-		PhotoURL:           specialist.PhotoURL,
-		LocationLatitude:   specialist.LocationLatitude,
-		LocationLongitude:  specialist.LocationLongitude,
-		IsOwner:            isOwner,
-		Language:           specialist.Language,
-		Wallpaper:          specialist.Wallpaper,
-		IsPro:              ent.IsPro,
-		SubscriptionStatus: specialist.SubscriptionStatus,
-		TrialEndsAt:        specialist.TrialEndsAt,
-		CurrentPeriodEndAt: specialist.CurrentPeriodEndAt,
-		AutoRenew:          specialist.AutoRenew,
+		ID:                  specialist.ID,
+		Name:                specialist.Name,
+		Timezone:            specialist.Timezone,
+		CancelCutoffHrs:     specialist.CancelCutoffHrs,
+		CancelCutoffEnabled: specialist.CancelCutoffEnabled,
+		BotUsername:         specialist.BotUsername,
+		TelegramHandle:      specialist.TelegramHandle,
+		Phone:               specialist.Phone,
+		Specialization:      specialist.Specialization,
+		Bio:                 specialist.Bio,
+		PhotoURL:            specialist.PhotoURL,
+		LocationLatitude:    specialist.LocationLatitude,
+		LocationLongitude:   specialist.LocationLongitude,
+		IsOwner:             isOwner,
+		Language:            specialist.Language,
+		Wallpaper:           specialist.Wallpaper,
+		IsPro:               ent.IsPro,
+		SubscriptionStatus:  specialist.SubscriptionStatus,
+		TrialEndsAt:         specialist.TrialEndsAt,
+		CurrentPeriodEndAt:  specialist.CurrentPeriodEndAt,
+		AutoRenew:           specialist.AutoRenew,
 	}
 
 	setPrivateCache(w, 60, 300)

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Crown } from 'lucide-react';
+import { Check, Crown, ExternalLink } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { Switch } from '@/components/Switch';
 import { TopBar } from '@/components/TopBar';
 import { useSubscription } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { openTelegramUserChat } from '@/lib/telegram';
 
 import type { ReactNode } from 'react';
 
@@ -217,6 +218,24 @@ export default function SubscriptionPage(): ReactNode {
               />
             </div>
           </div>
+        )}
+
+        {data?.masterBotUsername && (
+          <button
+            type={'button'}
+            onClick={() => openTelegramUserChat(data?.masterBotUsername)}
+            className={
+              'bg-card flex w-full items-center justify-between gap-3 rounded-xl p-4 text-left transition-opacity active:opacity-80'
+            }
+          >
+            <div>
+              <div className={'text-foreground text-[15px] font-medium'}>
+                {t('manageInBotTitle')}
+              </div>
+              <div className={'text-muted-foreground text-sm'}>{t('manageInBotHint')}</div>
+            </div>
+            <ExternalLink className={'text-muted-foreground h-5 w-5 shrink-0'} />
+          </button>
         )}
       </div>
     </div>

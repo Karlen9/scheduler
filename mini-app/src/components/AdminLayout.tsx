@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
+import { useSubscription } from '@/hooks/queries';
 import { resolveTestAwareHref } from '@/lib/routes';
 
 import { BottomTabBar } from './BottomTabBar';
@@ -47,6 +48,8 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const tn = useTranslations('Navigation');
+  const { data: subscription } = useSubscription();
+  const isPro = subscription?.isPro ?? true;
   const adminHref = resolveTestAwareHref(pathname, '/admin');
   const adminBookHref = resolveTestAwareHref(pathname, '/admin/choose-client');
   const adminAnalyticsHref = resolveTestAwareHref(pathname, '/admin/analytics');
@@ -102,6 +105,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
         label: tn('analytics'),
         icon: ChartColumn,
         href: adminAnalyticsHref,
+        locked: !isPro,
       },
       {
         key: 'profile',
@@ -118,6 +122,7 @@ export function AdminLayout({ children }: TAdminLayoutProps): ReactNode {
       adminHref,
       adminRecurringHref,
       adminSettingsHref,
+      isPro,
       tn,
     ],
   );

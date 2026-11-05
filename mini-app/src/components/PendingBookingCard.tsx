@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { memo } from 'react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { clientEntityLabel } from '@/lib/helpers';
 
 import type { TPendingBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -155,10 +156,11 @@ function PendingBookingCardComponent({
         <ClientAvatar
           name={booking.clientDisplayName || booking.clientName}
           photoUrl={booking.clientPhotoUrl}
+          isSelf={booking.clientIsSelf}
         />
         <div className={'min-w-0 flex-1'}>
           <p className={'text-foreground truncate font-medium'}>
-            {booking.clientDisplayName || booking.clientName}
+            {clientEntityLabel(booking, tc('self'))}
           </p>
           <p className={'text-muted-foreground text-sm'}>
             {booking.sessionType?.name || tc('workout')}
@@ -183,18 +185,21 @@ function PendingBookingCardComponent({
         </div>
       </div>
 
-      {onMessageClient && !booking.clientIsGhost && booking.clientTelegramUsername && (
-        <button
-          type={'button'}
-          onClick={() => onMessageClient(booking)}
-          className={
-            'bg-card border-border text-foreground mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-opacity active:opacity-70'
-          }
-        >
-          <MessageCircle className={'h-4 w-4'} />
-          {t('message')}
-        </button>
-      )}
+      {onMessageClient &&
+        !booking.clientIsGhost &&
+        !booking.clientIsSelf &&
+        booking.clientTelegramUsername && (
+          <button
+            type={'button'}
+            onClick={() => onMessageClient(booking)}
+            className={
+              'bg-card border-border text-foreground mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-opacity active:opacity-70'
+            }
+          >
+            <MessageCircle className={'h-4 w-4'} />
+            {t('message')}
+          </button>
+        )}
 
       <div className={'mt-3 flex gap-2'}>
         <button

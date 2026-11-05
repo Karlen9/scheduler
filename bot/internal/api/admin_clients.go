@@ -14,6 +14,10 @@ import (
 	"scheduler-bot/internal/models"
 )
 
+func isSelfClient(c *models.Client, s *models.Specialist) bool {
+	return s != nil && c.IsSelfOf(s.TelegramUserID)
+}
+
 type AssignClientBatchRequest struct {
 	ServiceID      string `json:"service_id"`
 	ServiceIDCamel string `json:"serviceId"`
@@ -167,24 +171,18 @@ func HandleAdminDeleteClient(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
-
-	cascade := r.URL.Query().Get("cascade") == "1"
-	if !cascade {
-		if err := db.DeleteClient(clientID); err != nil {
-			log.Printf("Error deleting client: %v", err)
-			httpError(w, r, "Error.DeleteClientBookings", http.StatusConflict)
-			return
-		}
-	}
-	if cascade {
-		if err := db.DeleteClientCascade(clientID); err != nil {
-			log.Printf("Error cascade-deleting client: %v", err)
-			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-			return
-		}
+	if isSelfClient(client, specialist) {
+		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
+		return
 	}
 
-	log.Printf("CLIENT deleted: %s (%s) cascade=%v by specialist %s", client.Name, clientID[:8], cascade, specialist.Name)
+	if err := db.DeleteClientCascade(clientID); err != nil {
+		log.Printf("Error cascade-deleting client: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("CLIENT deleted: %s (%s) by specialist %s", client.Name, clientID[:8], specialist.Name)
 	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring)
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -248,6 +246,7 @@ func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	updated.IsSelf = isSelfClient(updated, specialist)
 	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring)
 	writeJSON(w, updated)
 }
@@ -283,6 +282,10 @@ func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 	}
 	if clients == nil {
 		clients = []models.Client{}
+	}
+
+	for i := range clients {
+		clients[i].IsSelf = isSelfClient(&clients[i], specialist)
 	}
 
 	totalPages := 0
@@ -323,7 +326,7 @@ func HandleAdminBlockClient(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.ClientNotFound", http.StatusNotFound)
 		return
 	}
-	if client.IsGhost {
+	if client.IsGhost || isSelfClient(client, specialist) {
 		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
@@ -363,6 +366,7 @@ func HandleAdminBlockClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	updated.IsSelf = isSelfClient(updated, specialist)
 	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring)
 	writeJSON(w, updated)
 }

@@ -16,7 +16,7 @@ export type TWallpaperId =
   | 'fitness'
   | 'teaching';
 
-export const WALLPAPER_IDS: TWallpaperId[] = [
+const WALLPAPER_IDS: TWallpaperId[] = [
   'none',
   'w1',
   'w2',

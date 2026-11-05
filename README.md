@@ -19,7 +19,7 @@ scheduler/
 
 ### How it works
 
-1. Specialist opens master bot (`@sportappmasterbot`) → registers their own bot
+1. Specialist opens master bot (`@schedu1erbot`) → registers their own bot
 2. Client opens specialist's bot → `/start` → "Open Scheduler" button
 3. Mini-app loads → client picks date/time/duration → booking created (status: pending)
 4. Specialist gets Telegram notification with Accept/Reject buttons
@@ -359,6 +359,8 @@ ADMIN_IDS=[your-telegram-id]
 ENCRYPTION_KEY=your-64-char-hex-string
 SUPERADMIN_SECRET=your-superadmin-bearer-secret
 ```
+
+The production `.env` holds every secret: `chmod 600` it and keep it owned by the user that runs the deploy hook.
 
 ### .env.dev
 

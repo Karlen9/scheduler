@@ -254,10 +254,6 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.BadDate", http.StatusBadRequest)
 		return
 	}
-	if errMsg := validateBookingDate(date); errMsg != "" {
-		httpError(w, r, errMsg, http.StatusBadRequest)
-		return
-	}
 
 	hour, minute, err := parseTime(req.Time)
 	if err != nil {
@@ -268,6 +264,11 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	duration := bookingDuration(booking)
 	startsAt := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
 	endsAt := startsAt.Add(time.Duration(duration) * time.Minute)
+
+	if errMsg := validateRescheduleTime(date, startsAt, specialist.Timezone); errMsg != "" {
+		httpError(w, r, errMsg, http.StatusBadRequest)
+		return
+	}
 
 	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, bookingID)
 	if err != nil {
@@ -280,7 +281,7 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if booking.Status == models.BookingStatusConfirmed && !isGhostBooking(booking) {
+	if booking.Status == models.BookingStatusConfirmed && !bookingAutoApplies(booking) {
 		message := strings.TrimSpace(req.Message)
 		if len(message) > 500 {
 			message = message[:500]
@@ -338,15 +339,102 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, booking)
 }
 
-func isGhostBooking(booking *models.Booking) bool {
-	if booking == nil || booking.ClientID == "" {
-		return false
+// bookingAutoApplies reports whether a reschedule should be applied in-place
+// without a shadow approval step. This is true when the client is a ghost (no
+// Telegram account) or is the specialist themselves (self-booking).
+func bookingAutoApplies(b *models.Booking) bool {
+	return b != nil && (b.ClientIsGhost || b.ClientIsSelf)
+}
+
+func HandleAdminApproveReschedule(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
 	}
-	client, err := db.GetClientByID(booking.ClientID)
-	if err != nil || client == nil {
-		return false
+
+	bookingID := chi.URLParam(r, "id")
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
 	}
-	return client.IsGhost
+	if booking == nil || booking.SpecialistID != specialist.ID {
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
+		return
+	}
+	if booking.Status != models.BookingStatusReschedulePending || booking.CreatedBy != "client" {
+		httpError(w, r, "Error.NoMoveRequest", http.StatusBadRequest)
+		return
+	}
+
+	var oldBooking *models.Booking
+	if booking.ReplacesBookingID != "" {
+		oldBooking, _ = db.GetBookingByID(booking.ReplacesBookingID)
+	}
+
+	if err := db.ApproveRescheduleBooking(bookingID); err != nil {
+		log.Printf("Error approving reschedule: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("RESCHEDULE APPROVED (SPECIALIST) booking %s", bookingID[:8])
+	updated, _ := db.GetBookingByID(bookingID)
+	if updated != nil {
+		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	}
+	if NotifyRescheduleResponseFunc != nil && updated != nil {
+		if err := NotifyRescheduleResponseFunc(updated, oldBooking, true, "specialist"); err != nil {
+			log.Printf("Error notifying client about approved reschedule: %v", err)
+		}
+	}
+	writeJSON(w, updated)
+}
+
+func HandleAdminDeclineReschedule(w http.ResponseWriter, r *http.Request) {
+	specialist := GetSpecialistFromContext(r)
+	if specialist == nil {
+		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
+		return
+	}
+
+	bookingID := chi.URLParam(r, "id")
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil {
+		log.Printf("Error getting booking: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if booking == nil || booking.SpecialistID != specialist.ID {
+		httpError(w, r, "Error.BookingNotFound", http.StatusNotFound)
+		return
+	}
+	if booking.Status != models.BookingStatusReschedulePending || booking.CreatedBy != "client" {
+		httpError(w, r, "Error.NoMoveRequest", http.StatusBadRequest)
+		return
+	}
+
+	var oldBooking *models.Booking
+	if booking.ReplacesBookingID != "" {
+		oldBooking, _ = db.GetBookingByID(booking.ReplacesBookingID)
+	}
+
+	if err := db.DeclineRescheduleBooking(bookingID); err != nil {
+		log.Printf("Error declining reschedule: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("RESCHEDULE DECLINED (SPECIALIST) booking %s", bookingID[:8])
+	changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+	if NotifyRescheduleResponseFunc != nil {
+		if err := NotifyRescheduleResponseFunc(booking, oldBooking, false, "specialist"); err != nil {
+			log.Printf("Error notifying client about declined reschedule: %v", err)
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
@@ -433,7 +521,7 @@ func HandleAdminCreateBooking(w http.ResponseWriter, r *http.Request) {
 	log.Printf("SPECIALIST BOOKING [%s] Specialist: %s booked client: %s | Duration: %dmin | Time: %s %s",
 		booking.ID[:8], specialist.Name, client.Name, duration, req.Date, req.Time)
 
-	if client.IsGhost {
+	if client.IsGhost || isSelfClient(client, specialist) {
 		if err := db.UpdateBookingStatus(booking.ID, models.BookingStatusConfirmed); err != nil {
 			log.Printf("Error auto-confirming ghost booking: %v", err)
 		}

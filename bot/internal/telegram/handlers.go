@@ -193,22 +193,6 @@ func (h *Handler) handleSpecialistKeyboardTap(msg *Message) bool {
 }
 
 /***************************************************************************************************
-* Handles start.
-*
-* Parameters:
-* - msg: Msg used by the current operation.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func (h *Handler) handleStart(msg *Message) {
-	h.handleStartWithPayload(msg, "")
-}
-
-/***************************************************************************************************
 * parseReferralPayload extracts the referral code from a /start payload. Accepts both bare codes
 * ("abcd1234") and the ref_-prefixed form ("ref_abcd1234"). Returns an empty string if the payload
 * does not look like a referral.
@@ -484,6 +468,15 @@ func (h *Handler) handleCallbackQuery(update Update) {
 	***************************************************************************************************/
 	if strings.HasPrefix(data, "client_accept:") || strings.HasPrefix(data, "client_decline:") {
 		h.handleClientBookingCallback(update)
+		return
+	}
+
+	/***************************************************************************************************
+	* Handle reschedule shadow approval callbacks (all four prefixes).
+	***************************************************************************************************/
+	if strings.HasPrefix(data, "rs_acc:") || strings.HasPrefix(data, "rs_rej:") ||
+		strings.HasPrefix(data, "rs_ok:") || strings.HasPrefix(data, "rs_no:") {
+		h.handleRescheduleCallback(update)
 		return
 	}
 
@@ -819,6 +812,145 @@ func (h *Handler) handleClientBookingCallback(update Update) {
 }
 
 /***************************************************************************************************
+* handleRescheduleCallback processes rs_acc/rs_rej (specialist acting) and rs_ok/rs_no
+* (client acting) callbacks on reschedule shadow bookings.
+***************************************************************************************************/
+func (h *Handler) handleRescheduleCallback(update Update) {
+	cq := update.CallbackQuery
+	data := cq.Data
+
+	parts := strings.SplitN(data, ":", 2)
+	if len(parts) != 2 {
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+		return
+	}
+	prefix, bookingID := parts[0], parts[1]
+
+	booking, err := db.GetBookingByID(bookingID)
+	if err != nil || booking == nil {
+		loc := myI18n.Default()
+		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.NotFound"))
+		return
+	}
+
+	if booking.Status != models.BookingStatusReschedulePending {
+		loc := myI18n.Default()
+		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.AlreadyProcessed"))
+		if cq.Message != nil {
+			_ = h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID,
+				myI18n.T(loc, "Callback.AlreadyProcessed"), nil)
+		}
+		return
+	}
+
+	var oldBooking *models.Booking
+	if booking.ReplacesBookingID != "" {
+		oldBooking, _ = db.GetBookingByID(booking.ReplacesBookingID)
+	}
+
+	switch prefix {
+	case "rs_acc", "rs_rej":
+		// SPECIALIST is acting — verify the presser owns this bot and the request came from client.
+		specialist, err := db.GetSpecialistByID(booking.SpecialistID)
+		if err != nil || specialist == nil || cq.From.ID != specialist.TelegramUserID {
+			h.Bot.AnswerCallbackQuery(cq.ID, "")
+			return
+		}
+		if booking.CreatedBy != "client" {
+			h.Bot.AnswerCallbackQuery(cq.ID, "")
+			return
+		}
+		loc := myI18n.NewLocalizer(specialist.Language)
+		approved := prefix == "rs_acc"
+		if approved {
+			if err := db.ApproveRescheduleBooking(bookingID); err != nil {
+				log.Printf("Error approving reschedule via callback: %v", err)
+				h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+				return
+			}
+		} else {
+			if err := db.DeclineRescheduleBooking(bookingID); err != nil {
+				log.Printf("Error declining reschedule via callback: %v", err)
+				h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+				return
+			}
+		}
+		toastText := myI18n.T(loc, "Callback.RescheduleApproved")
+		if !approved {
+			toastText = myI18n.T(loc, "Callback.RescheduleDeclined")
+		}
+		h.Bot.AnswerCallbackQuery(cq.ID, toastText)
+		// On approve the row still exists; on decline it was just deleted and
+		// GetBookingByID returns nil — pass the pre-delete booking instead so
+		// that NotifyMoveResponse never receives a nil newBooking.
+		notifyBooking := booking
+		if approved {
+			if updated, _ := db.GetBookingByID(bookingID); updated != nil {
+				notifyBooking = updated
+			}
+		}
+		if cq.Message != nil {
+			_ = h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, toastText, nil)
+		}
+		if err := h.NotifyMoveResponse(notifyBooking, oldBooking, approved, "specialist"); err != nil {
+			log.Printf("Error notifying client about reschedule response: %v", err)
+		}
+		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+
+	case "rs_ok", "rs_no":
+		// CLIENT is acting — verify the presser is the booking's client and request came from specialist.
+		client, err := db.GetClientByID(booking.ClientID)
+		if err != nil || client == nil || cq.From.ID != client.TelegramUserID {
+			h.Bot.AnswerCallbackQuery(cq.ID, "")
+			return
+		}
+		if booking.CreatedBy != "specialist" {
+			h.Bot.AnswerCallbackQuery(cq.ID, "")
+			return
+		}
+		loc := myI18n.NewLocalizer(client.Language)
+		approved := prefix == "rs_ok"
+		if approved {
+			if err := db.ApproveRescheduleBooking(bookingID); err != nil {
+				log.Printf("Error approving reschedule via callback: %v", err)
+				h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+				return
+			}
+		} else {
+			if err := db.DeclineRescheduleBooking(bookingID); err != nil {
+				log.Printf("Error declining reschedule via callback: %v", err)
+				h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+				return
+			}
+		}
+		toastText := myI18n.T(loc, "Callback.RescheduleApproved")
+		if !approved {
+			toastText = myI18n.T(loc, "Callback.RescheduleDeclined")
+		}
+		h.Bot.AnswerCallbackQuery(cq.ID, toastText)
+		// On approve the row still exists; on decline it was just deleted and
+		// GetBookingByID returns nil — pass the pre-delete booking instead so
+		// that NotifyMoveResponse never receives a nil newBooking.
+		notifyBooking := booking
+		if approved {
+			if updated, _ := db.GetBookingByID(bookingID); updated != nil {
+				notifyBooking = updated
+			}
+		}
+		if cq.Message != nil {
+			_ = h.Bot.EditMessageText(cq.Message.Chat.ID, cq.Message.MessageID, toastText, nil)
+		}
+		if err := h.NotifyMoveResponse(notifyBooking, oldBooking, approved, "client"); err != nil {
+			log.Printf("Error notifying specialist about reschedule response: %v", err)
+		}
+		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+
+	default:
+		h.Bot.AnswerCallbackQuery(cq.ID, "")
+	}
+}
+
+/***************************************************************************************************
 * UpdateClientNotificationMessage edits the client's booking notification to reflect the new
 * status.
 *
@@ -845,26 +977,6 @@ func (h *Handler) UpdateClientNotificationMessage(loc *i18n.Localizer, chatID in
 		text = FormatSpecialistCreatedBookingClient(loc, booking)
 	}
 	return h.Bot.EditMessageText(chatID, messageID, text, nil)
-}
-
-/***************************************************************************************************
-* localizerForClient returns a localizer for the client's language.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-*
-* Returns:
-* - The computed value for the current operation as *i18n.Localizer.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func localizerForClient(clientID string) *i18n.Localizer {
-	client, err := db.GetClientByID(clientID)
-	if err != nil || client == nil {
-		return myI18n.Default()
-	}
-	return myI18n.NewLocalizer(client.Language)
 }
 
 /***************************************************************************************************
@@ -1171,7 +1283,7 @@ func (h *Handler) NotifyClientBookingCancelled(booking *models.Booking) error {
 func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requestedBy string) error {
 	if requestedBy == "client" {
 		/***************************************************************************************************
-		* Notify specialist.
+		* Notify specialist with Accept/Reject inline buttons.
 		***************************************************************************************************/
 		specialist, err := db.GetSpecialistByID(oldBooking.SpecialistID)
 		if err != nil || specialist == nil {
@@ -1179,19 +1291,38 @@ func (h *Handler) NotifyMoveRequest(newBooking, oldBooking *models.Booking, requ
 		}
 		loc := myI18n.NewLocalizer(specialist.Language)
 		text := FormatMoveRequestForSpecialist(loc, newBooking, oldBooking)
-		_, err = h.Bot.SendNotification(specialist.TelegramUserID, text)
+		keyboard := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{
+					{Text: BtnAccept(loc), CallbackData: "rs_acc:" + newBooking.ID},
+					{Text: BtnReject(loc), CallbackData: "rs_rej:" + newBooking.ID},
+				},
+			},
+		}
+		_, err = h.Bot.SendMessageHTML(specialist.TelegramUserID, text, keyboard)
 		return err
 	}
 	/***************************************************************************************************
-	* Notify client.
+	* Notify client with Accept/Decline inline buttons.
 	***************************************************************************************************/
 	client, err := db.GetClientByID(oldBooking.ClientID)
 	if err != nil || client == nil {
 		return fmt.Errorf("client not found")
 	}
+	if client.IsGhost {
+		return nil
+	}
 	loc := myI18n.NewLocalizer(client.Language)
 	text := FormatMoveRequestForClient(loc, newBooking, oldBooking)
-	_, err = h.Bot.SendNotification(client.TelegramUserID, text)
+	keyboard := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: BtnAccept(loc), CallbackData: "rs_ok:" + newBooking.ID},
+				{Text: BtnDecline(loc), CallbackData: "rs_no:" + newBooking.ID},
+			},
+		},
+	}
+	_, err = h.Bot.SendMessageHTML(client.TelegramUserID, text, keyboard)
 	return err
 }
 
@@ -1214,13 +1345,37 @@ func (h *Handler) NotifyClientRescheduleRequest(newBooking, oldBooking *models.B
 }
 
 /***************************************************************************************************
-* NotifyMoveResponse notifies the specialist when the client approves or declines an
-* admin-initiated reschedule proposal. Uses FormatMoveApproved / FormatMoveDeclined.
+* NotifyMoveResponse notifies the appropriate party when a reschedule proposal is approved or
+* declined. respondedBy is "client" (specialist gets notified) or "specialist" (client gets
+* notified).
 ***************************************************************************************************/
-func (h *Handler) NotifyMoveResponse(newBooking, oldBooking *models.Booking, approved bool) error {
+func (h *Handler) NotifyMoveResponse(newBooking, oldBooking *models.Booking, approved bool, respondedBy string) error {
 	if oldBooking == nil {
 		oldBooking = newBooking
 	}
+	if newBooking == nil {
+		newBooking = oldBooking
+	}
+	if respondedBy == "specialist" {
+		// Notify the CLIENT that the specialist approved/declined their reschedule request.
+		client, err := db.GetClientByID(newBooking.ClientID)
+		if err != nil || client == nil {
+			return fmt.Errorf("client not found")
+		}
+		if client.IsGhost {
+			return nil
+		}
+		loc := myI18n.NewLocalizer(client.Language)
+		var text string
+		if approved {
+			text = FormatMoveApprovedForClient(loc, newBooking, oldBooking)
+		} else {
+			text = FormatMoveDeclinedForClient(loc, oldBooking)
+		}
+		_, err = h.Bot.SendNotification(client.TelegramUserID, text)
+		return err
+	}
+	// respondedBy == "client": notify the SPECIALIST.
 	specialist, err := db.GetSpecialistByID(newBooking.SpecialistID)
 	if err != nil || specialist == nil {
 		return fmt.Errorf("specialist not found")

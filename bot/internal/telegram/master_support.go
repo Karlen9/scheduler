@@ -196,9 +196,18 @@ func (h *MasterHandler) handleSupportGroupMessage(msg *Message) {
 	}
 	thread, err := db.GetSupportThreadByTopicID(msg.MessageThreadID)
 	if errors.Is(err, db.ErrSupportThreadNotFound) {
-		return
-	}
-	if err != nil {
+		// Thread may have been auto-closed while the Telegram topic stayed open (CloseForumTopic
+		// failed silently). Find the stale row and auto-reopen it so the relay works.
+		stale, serr := db.GetAnyThreadByTopicID(msg.MessageThreadID)
+		if serr != nil {
+			return // No thread for this topic — unrelated topic in the group.
+		}
+		if rerr := db.ReopenSupportThread(stale.ID); rerr != nil {
+			log.Printf("master-support: auto-reopen thread %s for operator reply failed: %v", stale.ID, rerr)
+			return
+		}
+		thread = stale
+	} else if err != nil {
 		log.Printf("master-support: lookup thread for topic %d failed: %v", msg.MessageThreadID, err)
 		return
 	}
@@ -223,6 +232,17 @@ func (h *MasterHandler) handleSupportGroupMessage(msg *Message) {
 	// /close and /reply-like topic-scoped commands are admin-only. Everything else is copied
 	// verbatim to the user so operators can paste multi-line replies, voice notes, etc.
 	text := strings.TrimSpace(msg.Text)
+	// Telegram appends @BotUsername to commands in supergroups (e.g. "/close@MyBot").
+	// Normalise so "/close@MyBot" matches "/close" and keeps any trailing arguments intact.
+	if strings.HasPrefix(text, "/") {
+		cmdEnd := strings.IndexByte(text, ' ')
+		if cmdEnd < 0 {
+			cmdEnd = len(text)
+		}
+		if at := strings.Index(text[:cmdEnd], "@"); at > 0 {
+			text = text[:at] + text[cmdEnd:]
+		}
+	}
 	switch {
 	case text == "/close":
 		h.closeSupportThread(thread.ID, msg.MessageThreadID, msg.From)
@@ -355,6 +375,8 @@ func isTopicMissingError(err error) bool {
 	case strings.Contains(s, "topic not found"):
 		return true
 	case strings.Contains(s, "thread was deleted"):
+		return true
+	case strings.Contains(s, "topic_id_invalid"):
 		return true
 	}
 	return false

@@ -1,4 +1,3 @@
-import type { TCreateBookingParams } from './api';
 import type {
   TBooking,
   TClientBatch,
@@ -155,6 +154,7 @@ export type TPinnedBottomButtonProps = {
   onetimeButtonText: string;
   readOnly?: boolean;
   readOnlyActionLabel?: string;
+  showConsentNote?: boolean;
 };
 
 export type TServiceCardProps = {
@@ -170,10 +170,4 @@ export type TTimeSlotGridProps = {
   slots: { time: string; endTime?: string; available: boolean; mine?: boolean }[];
   selected: string | null;
   onSelect: (time: string) => void;
-};
-
-export type TBookingActionDraft = {
-  selectedClient?: TClientInfo;
-  selectedService?: TSessionType;
-  params?: TCreateBookingParams;
 };

@@ -11,9 +11,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { BookingCardSkeleton } from '@/components/LoadingSkeleton';
 import { invalidateBookings } from '@/hooks/mutations';
-import { useBookingsPage } from '@/hooks/queries';
+import { useBookingsPage, useSpecialist } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api } from '@/lib/api';
+import { collapseReschedulePending, isWithinCutoff, wallClockNow } from '@/lib/helpers';
 import { isPreviewRoute } from '@/lib/routes';
 
 import type { TBooking } from '@/lib/types';
@@ -68,13 +69,14 @@ export default function BookingsPage(): ReactNode {
    ***************************************************************************************************/
   const ts = useTranslations('Success');
   const pathname = usePathname();
+  const { data: specialist } = useSpecialist();
   const [page, setPage] = useState(1);
   const [allBookings, setAllBookings] = useState<TBooking[]>([]);
   const { data, isLoading, error } = useBookingsPage({ page, limit: BOOKINGS_PAGE_LIMIT });
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showPast, setShowPast] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => wallClockNow());
   const isPreview = isPreviewRoute(pathname);
   const hasMore = data.page < data.totalPages;
   const bookings = allBookings;
@@ -95,43 +97,33 @@ export default function BookingsPage(): ReactNode {
   }, [data.bookings, page]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 5000);
+    const timer = window.setInterval(() => setNow(wallClockNow()), 5000);
     return () => window.clearInterval(timer);
   }, []);
 
   /***************************************************************************************************
-   * Defines the active bookings value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
+   * Build the active list with shadow bookings superseding their originals. Uses the shared
+   * collapseReschedulePending helper which hides originals that have a pending shadow and
+   * returns a lookup map for old→new time display.
    ***************************************************************************************************/
-  /***************************************************************************************************
-   * Build the active list with shadow bookings superseding their originals. When an admin
-   * proposes a reschedule, a reschedule_pending shadow is created that points at the original
-   * via `replacesBookingId`. Showing both as siblings confuses the client — render only the
-   * shadow (with old→new time visible on the card).
-   ***************************************************************************************************/
-  const activeBookings = useMemo(() => {
-    const activeAll = bookings.filter(
-      (b) => ACTIVE_STATUSES.has(b.status) && !isPastBooking(b, now),
+  const { activeBookings, replacedBookingLookup } = useMemo(() => {
+    const activeIds = new Set(
+      bookings
+        .filter((b) => ACTIVE_STATUSES.has(b.status) && !isPastBooking(b, now))
+        .map((b) => b.id),
     );
-    const replacedIds = new Set<string>(
-      activeAll
-        .filter((b) => b.status === 'reschedule_pending' && b.replacesBookingId)
-        .map((b) => b.replacesBookingId as string),
-    );
-    return activeAll
-      .filter((b) => !replacedIds.has(b.id))
-      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    // Build replacedLookup from the FULL bookings list so that originals whose
+    // startsAt is already in the past are still found and the "was <old time>"
+    // annotation renders correctly on reschedule_pending shadow cards.
+    const { visible: visibleFromFull, replacedLookup } = collapseReschedulePending(bookings);
+    const visible = visibleFromFull.filter((b) => activeIds.has(b.id));
+    return {
+      activeBookings: visible.sort(
+        (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+      ),
+      replacedBookingLookup: replacedLookup,
+    };
   }, [bookings, now]);
-
-  const replacedBookingLookup = useMemo(() => {
-    const map = new Map<string, TBooking>();
-    for (const b of bookings) {
-      map.set(b.id, b);
-    }
-    return map;
-  }, [bookings]);
   /***************************************************************************************************
    * Defines the past bookings value used by the page layer.
    *
@@ -284,12 +276,16 @@ export default function BookingsPage(): ReactNode {
                       : undefined
                   }
                   onApproveReschedule={
-                    !isPreview && booking.status === 'reschedule_pending'
+                    !isPreview &&
+                    booking.status === 'reschedule_pending' &&
+                    booking.createdBy === 'specialist'
                       ? reschedule.approve
                       : undefined
                   }
                   onDeclineReschedule={
-                    !isPreview && booking.status === 'reschedule_pending'
+                    !isPreview &&
+                    booking.status === 'reschedule_pending' &&
+                    booking.createdBy === 'specialist'
                       ? reschedule.decline
                       : undefined
                   }
@@ -323,21 +319,21 @@ export default function BookingsPage(): ReactNode {
                 {pastBookings.map((booking) => (
                   <BookingCard key={booking.id} booking={booking} />
                 ))}
-                {hasMore && (
-                  <button
-                    type={'button'}
-                    onClick={() => setPage((current) => current + 1)}
-                    disabled={isLoading}
-                    className={
-                      'bg-card text-brand w-full rounded-xl py-3 text-center text-sm font-medium active:opacity-80 disabled:opacity-50'
-                    }
-                  >
-                    {isLoading ? t('loading') : t('loadMore')}
-                  </button>
-                )}
               </div>
             )}
           </div>
+        )}
+        {hasMore && (
+          <button
+            type={'button'}
+            onClick={() => setPage((current) => current + 1)}
+            disabled={isLoading}
+            className={
+              'bg-card text-brand w-full rounded-xl py-3 text-center text-sm font-medium active:opacity-80 disabled:opacity-50'
+            }
+          >
+            {isLoading ? t('loading') : t('loadMore')}
+          </button>
         )}
       </div>
 
@@ -350,7 +346,11 @@ export default function BookingsPage(): ReactNode {
           }}
           onConfirm={handleCancelBooking}
           title={t('cancelDialog')}
-          description={t('cancelConfirmMessage')}
+          description={
+            cancelBookingTarget && isWithinCutoff(cancelBookingTarget, specialist)
+              ? `${t('cancelConfirmMessage')} ${t('lateCancelWarning')}`
+              : t('cancelConfirmMessage')
+          }
           confirmText={tc('yes')}
           cancelText={tc('no')}
           destructive

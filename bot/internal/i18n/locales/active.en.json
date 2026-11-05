@@ -3,7 +3,7 @@
     "other": "Welcome! Press the button below to open the booking app."
   },
   "Welcome.Specialist": {
-    "other": "👋 <b>Your dashboard</b>\n\nYour bot accepts online bookings and helps you run your practice:\n• 📅 Clients book themselves — you just confirm\n• 🔔 Reminders for clients, notifications for you\n• 🔁 Recurring bookings\n• 👥 Client base with history\n• 📊 Revenue and workload analytics\n\n💳 Subscription, partner program and support — in the \"Specialist master bot\" bot."
+    "other": "👋 <b>Your dashboard</b>\n\nYour bot accepts online bookings and helps you run your practice:\n• 📅 Clients book themselves — you just confirm\n• 🔔 Reminders for clients, notifications for you\n• 🔁 Recurring bookings\n• 👥 Client base with history\n\n💳 Subscription, partner program and support — in the \"Specialist master bot\" bot."
   },
   "Help.Client": {
     "other": "This is a bot for online booking with a specialist.\n\nWhat you can do:\n• Choose a convenient date and time\n• Book a session\n• View and cancel your bookings\n• Create a recurring schedule\n\nPress the \"Book\" button below or /start to open the app."
@@ -133,6 +133,18 @@
   },
   "Move.Declined": {
     "other": "↩️ Reschedule declined\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n\nThe session remains in the schedule."
+  },
+  "Move.ApprovedForClient": {
+    "other": "✅ Specialist confirmed the reschedule\n\n📋 Service: {{.Service}}\n🕐 Previous time: {{.OldDateTime}}\n🕐 New time: {{.NewDateTime}}"
+  },
+  "Move.DeclinedForClient": {
+    "other": "↩️ Specialist declined the reschedule\n\n📋 Service: {{.Service}}\n🕐 Time: {{.DateTime}}\n\nThe session remains in the schedule."
+  },
+  "Callback.RescheduleApproved": {
+    "other": "✅ Reschedule confirmed"
+  },
+  "Callback.RescheduleDeclined": {
+    "other": "↩️ Reschedule declined"
   },
   "Recurring.Request": {
     "other": "🔄 New recurring schedule request\n\n👤 Client: {{.ClientName}}\n📋 Service: {{.Service}}\n📅 Schedule: {{.Schedule}}\n📆 Period: {{.DateRange}}"
@@ -552,6 +564,9 @@
   "Master.InvalidEmail": {
     "other": "That doesn't look like an email. Please enter a valid address, e.g. name@example.com"
   },
+  "Master.ConsentPrompt": {
+    "other": "Last step. By creating a bot you accept the Terms of Use and the Privacy Policy and consent to the processing of your personal data in accordance with Russian Federal Law No. 152-FZ “On Personal Data”. Review the documents using the buttons below and tap “I accept” to continue."
+  },
   "Master.Success": {
     "other": "🎉 Congratulations, %s!\n\nYour bot @%s is ready.\n\n🚀 What to do next:\n\n1️⃣ Open @%s → send /start\n2️⃣ Set up services and schedule\n3️⃣ Send the link t.me/%s to your clients\n\nClients will be able to choose a time and book, and you'll receive a notification with \"Confirm\" or \"Reject\" buttons.\n\nGood luck! 💪"
   },
@@ -583,10 +598,10 @@
     "other": "A platform for specialists: launch your own Telegram bot for online client bookings. Each specialist gets a dedicated bot with a Mini App — clients book themselves, reminders are sent automatically, and visit history is tracked. Tap Start to create your bot in just a couple of minutes."
   },
   "MasterMenu.Home": {
-    "other": "👋 Hi! I'll help you launch your own Telegram bot for online client bookings.\n\nWhat your bot does:\n• 📅 Accepts bookings 24/7 via a Mini App\n• 🔔 Sends reminders to clients and notifications to you\n• 👥 Keeps a client base with visit history\n• 📊 Shows revenue and workload analytics\n\n🚀 Pro (first 14 days free):\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nPick an option:"
+    "other": "👋 Hi! I'll help you launch your own Telegram bot for online client bookings.\n\nWhat your bot does:\n• 📅 Accepts bookings 24/7 via a Mini App\n• 🔔 Sends reminders to clients and notifications to you\n• 👥 Keeps a client base with visit history\n\n🚀 Pro (first 14 days free):\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n• Revenue and workload analytics\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nPick an option:"
   },
   "MasterMenu.HomeRegistered": {
-    "other": "👋 Welcome back! Your bot is up and running.\n\nHere you can:\n• 💳 Manage your Pro subscription — clients book themselves, recurring bookings and subscriptions\n• 🎁 Invite colleagues and earn bonuses\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
+    "other": "👋 Welcome back! Your bot is up and running.\n\nHere you can:\n• 💳 Manage your Pro subscription — clients book themselves, recurring bookings, subscriptions and analytics\n• 🎁 Invite colleagues and earn bonuses\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
@@ -643,13 +658,13 @@
     "other": "<b>🤖 How to create a bot via BotFather</b>\n\nDon't worry — it takes 2 minutes and our operator can help at any step.\n\n1. Open @BotFather in Telegram\n2. Send /newbot\n3. Pick a <b>name</b> for the bot (e.g. \"Ivan — massage\")\n4. Pick a <b>username</b> ending in <i>bot</i> (e.g. ivan_massage_bot)\n5. Copy the long token BotFather sends you\n6. Come back here, tap \"🤖 Create my bot\" and paste the token\n\nStuck? Tap \"💬 Talk to operator\" and we'll walk you through it."
   },
   "MasterFAQ.Usage": {
-    "other": "<b>📱 How to use the service</b>\n\n• After registration you get your own bot — share its link with clients.\n• Set up your services, prices and schedule in the mini-app.\n• Clients open the bot and book themselves: date, duration, time.\n• You get a notification and confirm or decline with a single button.\n• Inside: calendar, client base, visit history, reminders and analytics."
+    "other": "<b>📱 How to use the service</b>\n\n• After registration you get your own bot — share its link with clients.\n• Set up your services, prices and schedule in the mini-app.\n• Clients open the bot and book themselves: date, duration, time.\n• You get a notification and confirm or decline with a single button.\n• Inside: calendar, client base, visit history, and reminders."
   },
   "MasterFAQ.Pricing": {
     "other": "<b>💳 Pricing & payment</b>\n\n🎁 14 days of Pro free when you sign up.\n\nAfter that Pro is a subscription — 1, 3 or 12 months (the longer the term, the better the rate). Current prices are in the «💳 Subscription» section.\n\nPayment by card via YooKassa, with an electronic receipt. Got a promo code? Enter it at checkout."
   },
   "MasterFAQ.Pro": {
-    "other": "<b>⭐ Free vs Pro</b>\n\n<b>Free</b> — keep your client base and book clients manually.\n\n<b>Pro</b> adds:\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n\n🎁 First 14 days of Pro are free, no card required. After the trial, manual booking stays available."
+    "other": "<b>⭐ Free vs Pro</b>\n\n<b>Free</b> — keep your client base and book clients manually.\n\n<b>Pro</b> adds:\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n• Revenue and workload analytics\n\n🎁 First 14 days of Pro are free, no card required. After the trial, manual booking stays available."
   },
   "MasterFAQ.Referral": {
     "other": "<b>🤝 Referral program</b>\n\nInvite fellow specialists with your personal link — the «🤝 Invite a colleague» button in the menu.\n\nWhen an invited specialist pays for their first subscription, you get free Pro days — for every one who pays."
@@ -733,6 +748,16 @@
     "other": "This feature requires a Pro subscription"
   },
 
+  "Btn.Terms": {
+    "other": "📄 Terms of Use"
+  },
+  "Btn.Privacy": {
+    "other": "🔒 Privacy Policy"
+  },
+  "Btn.AcceptConsent": {
+    "other": "✅ I accept"
+  },
+
   "Btn.Subscription": {
     "other": "💳 Subscription"
   },
@@ -771,7 +796,7 @@
     "other": "12 months"
   },
   "Subscription.ProBenefits": {
-    "other": "What Pro unlocks:\n• Clients book themselves through your bot\n• Recurring appointments\n• Prepaid passes (session packages)\n• Bulk schedule tools\n\nWithout Pro: you can still book clients manually."
+    "other": "What Pro unlocks:\n• Clients book themselves through your bot\n• Recurring appointments\n• Prepaid passes (session packages)\n• Bulk schedule tools\n• Revenue and workload analytics\n\nWithout Pro: you can still book clients manually."
   },
   "Subscription.TrialNote": {
     "other": "🎁 First 14 days free."

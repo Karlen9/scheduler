@@ -245,9 +245,11 @@ export function RecurringBookingFlow({
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
       const recDesc = selectedClient
-        ? t('successRecurringForClient', {
-            name: selectedClient.displayName || selectedClient.name,
-          })
+        ? selectedClient.isSelf || selectedClient.isGhost
+          ? t('successRecurringCreated')
+          : t('successRecurringForClient', {
+              name: selectedClient.displayName || selectedClient.name,
+            })
         : t('successRecurringForSpecialist');
       toast.success(t('successRecurringTitle'), { description: recDesc });
       router.push(resolveTestAwareHref(pathname, successRedirect));

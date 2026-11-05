@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26.4-alpine AS builder
 
 WORKDIR /app
 
@@ -39,8 +39,10 @@ RUN apk add --no-cache ca-certificates tzdata
 # Copy binary from builder
 COPY --from=builder /app/scheduler-bot .
 
-# Create data directory for SQLite
+# Create data directory for SQLite and make it the default, persistent location
 RUN mkdir -p /data
+ENV DATABASE_PATH=/data/scheduler.db
+VOLUME ["/data"]
 
 EXPOSE 8080
 

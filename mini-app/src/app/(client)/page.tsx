@@ -26,7 +26,13 @@ import {
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { api, getPhotoUrl } from '@/lib/api';
 import { getAvatarColor } from '@/lib/colors';
-import { formatDateISO, nextDateForWeekday } from '@/lib/helpers';
+import {
+  collapseReschedulePending,
+  formatDateISO,
+  isWithinCutoff,
+  nextDateForWeekday,
+  wallClockNow,
+} from '@/lib/helpers';
 import { isPreviewRoute, isTestRoute, resolveTestAwareHref } from '@/lib/routes';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
 
@@ -241,20 +247,16 @@ export default function HomePage(): ReactNode {
 
   /***************************************************************************************************
    * Collapse reschedule_pending shadows over their originals so the home hero / badge count
-   * treat the admin's proposal as a replacement rather than a duplicate booking.
+   * treat the proposal as a replacement rather than a duplicate booking.
    ***************************************************************************************************/
   const activeBookings = useMemo(() => {
-    const now = Date.now();
+    const now = wallClockNow();
     const all = bookings.filter(
       (booking) =>
         ACTIVE_BOOKING_STATUSES.has(booking.status) && new Date(booking.startsAt).getTime() > now,
     );
-    const replacedIds = new Set<string>(
-      all
-        .filter((b) => b.status === 'reschedule_pending' && b.replacesBookingId)
-        .map((b) => b.replacesBookingId as string),
-    );
-    return all.filter((b) => !replacedIds.has(b.id));
+    const { visible } = collapseReschedulePending(all);
+    return visible;
   }, [bookings]);
 
   const nextBooking = useMemo(
@@ -348,7 +350,7 @@ export default function HomePage(): ReactNode {
     }
 
     const update = (): void => {
-      const diffMs = new Date(nextBooking.startsAt).getTime() - Date.now();
+      const diffMs = new Date(nextBooking.startsAt).getTime() - wallClockNow();
       setCountdownLabel(diffMs > 0 ? formatCountdown(diffMs) : '');
     };
 
@@ -813,7 +815,9 @@ export default function HomePage(): ReactNode {
               )}
             </div>
 
-            {!isPreviewInstance && selectedBooking.status === 'reschedule_pending' ? (
+            {!isPreviewInstance &&
+            selectedBooking.status === 'reschedule_pending' &&
+            selectedBooking.createdBy === 'specialist' ? (
               <div className={'mt-5 flex gap-3'}>
                 <button
                   type={'button'}
@@ -843,6 +847,13 @@ export default function HomePage(): ReactNode {
                 >
                   {tb('declineRescheduleButton')}
                 </button>
+              </div>
+            ) : selectedBooking.status === 'reschedule_pending' &&
+              selectedBooking.createdBy === 'client' ? (
+              <div className={'mt-5'}>
+                <p className={'text-muted-foreground text-center text-sm'}>
+                  {tb('awaitingRescheduleConfirmation')}
+                </p>
               </div>
             ) : !isPreviewInstance &&
               (selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') ? (
@@ -885,6 +896,7 @@ export default function HomePage(): ReactNode {
             onClose={() => setRescheduleBooking(null)}
             onSuccess={handleRescheduleSuccess}
             mode={'client'}
+            withinCutoff={rescheduleBooking ? isWithinCutoff(rescheduleBooking, specialist) : false}
           />
 
           <ConfirmDialog
@@ -895,7 +907,11 @@ export default function HomePage(): ReactNode {
             }}
             onConfirm={handleCancelBooking}
             title={t('cancelDialog')}
-            description={t('cancelConfirmMessage')}
+            description={
+              cancelBookingTarget && isWithinCutoff(cancelBookingTarget, specialist)
+                ? `${t('cancelConfirmMessage')} ${t('lateCancelWarning')}`
+                : t('cancelConfirmMessage')
+            }
             confirmText={tc('yes')}
             cancelText={tc('no')}
             destructive

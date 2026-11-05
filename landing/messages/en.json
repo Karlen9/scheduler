@@ -1,0 +1,359 @@
+{
+  "meta": {
+    "title": "{name} — client booking in Telegram",
+    "description": "Your own Telegram bot for online booking: clients book themselves and you confirm with one tap. 14 days of Pro free, no card required."
+  },
+  "nav": {
+    "features": "Features",
+    "how": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ"
+  },
+  "cta": {
+    "primary": "Create my bot",
+    "hero": "Create my bot for free",
+    "trial": "14 days of Pro free, no card required"
+  },
+  "hero": {
+    "eyebrow": "Online booking in Telegram",
+    "title": "Clients book themselves, <accent>you just confirm</accent>",
+    "subtitle": "Your own bot with your name, plus a calendar and notifications right in Telegram. Setup takes 2 minutes, and your clients have nothing to install."
+  },
+  "pain": {
+    "title": "Bookings shouldn't live <accent>in your DMs</accent>",
+    "items": {
+      "lost": {
+        "title": "Bookings get lost in chats",
+        "text": "Times, services and agreements are scattered across dozens of conversations."
+      },
+      "anytime": {
+        "title": "Questions at any hour",
+        "text": "\"Any slots tomorrow?\" pulls you away from work and arrives even at night."
+      },
+      "forget": {
+        "title": "Clients forget",
+        "text": "Without a reminder a visit is easily missed, and your time is already gone."
+      },
+      "late": {
+        "title": "Late cancellations",
+        "text": "A client cancels an hour before, and the slot stays empty."
+      }
+    }
+  },
+  "features": {
+    "title": "Everything for booking, <accent>right in Telegram</accent>",
+    "subtitle": "Clients stay in a messenger they already use, and you run your schedule from your phone.",
+    "items": {
+      "confirm": {
+        "title": "One-tap confirmation",
+        "text": "New requests arrive in Telegram: accept or decline right away."
+      },
+      "reminders": {
+        "title": "Reminders",
+        "text": "Clients get reminders, and you get notified about new bookings."
+      },
+      "recurring": {
+        "title": "Recurring bookings",
+        "text": "Got a regular client? Set up their schedule once."
+      },
+      "selfbook": {
+        "title": "Clients book themselves",
+        "text": "They pick a date, duration and time in your bot, and taken slots are never shown."
+      },
+      "clients": {
+        "title": "Client base",
+        "text": "Visit history and contacts in one place. You can add clients without Telegram too."
+      },
+      "policy": {
+        "title": "Cancellation policy",
+        "text": "Set a deadline: a late cancellation counts as a completed session."
+      },
+      "stats": {
+        "title": "Analytics",
+        "text": "Revenue and workload, so you can see how things are going."
+      }
+    }
+  },
+  "audience": {
+    "title": "For anyone who works <accent>by appointment</accent>",
+    "items": {
+      "trainers": "Trainers",
+      "tutors": "Tutors and teachers",
+      "nails": "Nail artists",
+      "hair": "Hairdressers and barbers",
+      "massage": "Massage therapists",
+      "psy": "Psychologists and consultants"
+    }
+  },
+  "how": {
+    "title": "Up and running in <accent>three steps</accent>",
+    "steps": {
+      "s1": {
+        "title": "Create your bot",
+        "text": "Open our bot and follow the prompts. If you get stuck, an operator can help at any step."
+      },
+      "s2": {
+        "title": "Set up your services",
+        "text": "Add services, prices and your schedule in the mini-app."
+      },
+      "s3": {
+        "title": "Share the link",
+        "text": "Send your bot link to clients so they can start booking themselves."
+      }
+    }
+  },
+  "compare": {
+    "title": "Why it's <accent>easier</accent> than booking by hand",
+    "before": "DMs and a notebook",
+    "rows": {
+      "r1": {
+        "before": "You arrange every booking in chat",
+        "after": "Clients pick a free slot themselves"
+      },
+      "r2": {
+        "before": "Your schedule is in your head or a notebook",
+        "after": "Your calendar is always at hand"
+      },
+      "r3": {
+        "before": "You remind everyone yourself",
+        "after": "Clients get reminders"
+      },
+      "r4": {
+        "before": "You sort out cancellations by hand",
+        "after": "Set a cancellation policy once"
+      },
+      "r5": {
+        "before": "Client history gets lost in chats",
+        "after": "A client base with visit history"
+      }
+    }
+  },
+  "pricing": {
+    "title": "Simple <accent>pricing</accent>",
+    "subtitle": "14 days of Pro free when you sign up, no card required. After that, pick a term: the longer it is, the better the rate.",
+    "free": {
+      "name": "Free",
+      "price": "0 ₽",
+      "desc": "Keep your client base and book clients manually.",
+      "cta": "Start for free"
+    },
+    "plans": {
+      "pro_monthly": "1 month",
+      "pro_quarterly": "3 months",
+      "pro_annual": "12 months"
+    },
+    "pro": "Pro",
+    "badge": "Best value",
+    "perMonth": "{price} ₽/mo",
+    "save": "−{percent}%",
+    "cta": "Try Pro",
+    "includesTitle": "What Pro adds",
+    "includes": {
+      "i1": "Clients book themselves through your bot",
+      "i2": "Recurring bookings",
+      "i3": "Prepaid passes (session packages)",
+      "i4": "Bulk scheduling tools",
+      "i5": "Revenue and workload analytics"
+    },
+    "note": "Payment by card via YooKassa, with an electronic receipt. Got a promo code? Enter it at checkout. After the trial, manual booking stays available."
+  },
+  "referral": {
+    "title": "Recommend us to a colleague",
+    "text": "When a specialist you invite pays for their first subscription, you get free Pro days for every one who pays.",
+    "cta": "Invite a colleague"
+  },
+  "faq": {
+    "title": "Frequently asked <accent>questions</accent>",
+    "groups": {
+      "start": "Getting started",
+      "pricing": "Pricing and payment",
+      "services": "Services and schedule",
+      "clients": "Clients",
+      "bookings": "Bookings and cancellations"
+    },
+    "items": {
+      "i1": {
+        "q": "How do I create a bot?",
+        "a": "It takes 2 minutes, and an operator can help at any step. Open @BotFather in Telegram and send /newbot. Pick a name for the bot (e.g. \"Ivan — massage\") and a username ending in bot (e.g. ivan_massage_bot). Copy the token BotFather sends you, come back to our bot, tap \"🤖 Create my bot\" and paste the token. If you get stuck, support will help you create the bot: open our bot and tap \"💬 Talk to operator\"."
+      },
+      "i2": {
+        "q": "How do I use the service?",
+        "a": "After registration you get your own bot: share its link with clients. Set up your services, prices and schedule in the mini-app. Clients open the bot and book themselves, choosing a date, duration and time. You get a notification and confirm or decline with a single button. Inside you'll find a calendar, client base, visit history and reminders."
+      },
+      "i3": {
+        "q": "How do I replace my bot token?",
+        "a": "If your token stopped working or you recreated the bot in BotFather, send /replacetoken in our bot and follow the steps."
+      },
+      "i4": {
+        "q": "How much does it cost?",
+        "a": "You get 14 days of Pro free when you sign up. After that Pro is a subscription: {monthly} ₽ for 1 month, {quarterly} ₽ for 3 months ({quarterlyPerMonth} ₽/mo) or {annual} ₽ for 12 months ({annualPerMonth} ₽/mo). Payment is by card via YooKassa, with an electronic receipt. Got a promo code? Enter it at checkout."
+      },
+      "i5": {
+        "q": "What's the difference between Free and Pro?",
+        "a": "On Free you keep your client base and book clients manually. Pro adds self-booking through your bot, recurring bookings, prepaid passes (session packages), bulk scheduling tools, and revenue and workload analytics. The first 14 days of Pro are free, no card required. After the trial, manual booking stays available."
+      },
+      "i6": {
+        "q": "How does the referral program work?",
+        "a": "Invite fellow specialists with your personal link, using the \"🤝 Invite a colleague\" button in our bot's menu. When an invited specialist pays for their first subscription, you get free Pro days for every one who pays."
+      },
+      "i7": {
+        "q": "How do I add or edit a service?",
+        "a": "Go to Settings > Services & Prices. Add a service or open an existing one, then set its name, price, duration, and photo."
+      },
+      "i8": {
+        "q": "How do I set working hours and breaks?",
+        "a": "Go to Settings > Schedule. Add one or more working intervals for a day. Any gap between intervals appears as a break in the admin calendar."
+      },
+      "i9": {
+        "q": "How do I block days off?",
+        "a": "Go to Settings > Days Off, select a date, add an optional reason, and save it. Clients will not be able to book blocked days."
+      },
+      "i10": {
+        "q": "How do I add a client via Telegram?",
+        "a": "Share your Telegram bot link with the client. Once they tap Start in the bot and open the booking app, they will automatically appear in your client list. You can find the link to your bot in your Telegram profile."
+      },
+      "i11": {
+        "q": "How do I add a client who does not use Telegram?",
+        "a": "Go to Settings > Clients, tap +, and add a guest client. You can then book sessions for them yourself from the admin booking flow."
+      },
+      "i12": {
+        "q": "How do I find a client?",
+        "a": "Use the search bar in Settings > Clients. Search works by client name, display name, and phone."
+      },
+      "i13": {
+        "q": "How do I message a client?",
+        "a": "Open a booking or a new request and tap Message. Messaging is available only for clients with a Telegram account linked to the booking."
+      },
+      "i14": {
+        "q": "How do I handle new booking requests?",
+        "a": "On the admin home screen, open New Requests. You can accept, reject, or message the client if they can be reached in Telegram."
+      },
+      "i15": {
+        "q": "Where can I see all bookings?",
+        "a": "Go to All Bookings from the admin dashboard. Use filters for status, date, client, service, and sorting."
+      },
+      "i16": {
+        "q": "How do I reschedule or cancel a booking?",
+        "a": "Open the booking from the calendar or All Bookings. Choose Reschedule to pick a new date and time, or Cancel to cancel with an optional reason."
+      },
+      "i17": {
+        "q": "What happens if a client cancels too late?",
+        "a": "If the cancellation policy is enabled, the booking is counted as completed rather than cancelled. The client sees a warning before confirming but can still proceed. You can set the cutoff window in Settings > Schedule > Cancellation policy."
+      },
+      "i18": {
+        "q": "How do I set up the cancellation policy?",
+        "a": "Go to Settings > Schedule and scroll down to the Cancellation policy section. Enable the toggle and set how many hours in advance clients must notify you of a cancellation or reschedule. If a client cancels after that deadline, the session is automatically marked as completed instead of cancelled."
+      }
+    }
+  },
+  "support": {
+    "title": "Still have questions?",
+    "text": "Open our bot and tap \"💬 Talk to operator\". We'll reply right there.",
+    "cta": "Contact support",
+    "email": "Or write to {email}"
+  },
+  "closing": {
+    "title": "Your booking could be live <accent>today</accent>",
+    "text": "Scan the QR code with your phone camera or press the button to open the bot in Telegram.",
+    "qrLabel": "QR code that opens the bot in Telegram"
+  },
+  "footer": {
+    "privacy": "Privacy policy (in Russian)",
+    "terms": "Terms of use (in Russian)",
+    "support": "Support",
+    "inn": "TIN {inn}",
+    "ogrnip": "OGRNIP {ogrnip}",
+    "rights": "All rights reserved"
+  },
+  "a11y": {
+    "skip": "Skip to content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "toDark": "Switch to dark theme",
+    "toLight": "Switch to light theme",
+    "language": "Change language",
+    "mainNav": "Main navigation",
+    "home": "{name}: back to top"
+  },
+  "phones": {
+    "booking": "A client booking in the bot",
+    "calendar": "The specialist's calendar",
+    "request": "A booking request in Telegram"
+  },
+  "mocks": {
+    "booking": {
+      "specialist": "Anna",
+      "role": "Massage",
+      "month": "June",
+      "confirm": "Book",
+      "duration": "1 h",
+      "days": {
+        "d1": "Mon",
+        "d2": "Tue",
+        "d3": "Wed",
+        "d4": "Thu",
+        "d5": "Fri"
+      },
+      "close": "Close",
+      "title": "Booking",
+      "dateLabel": "Date",
+      "durationLabel": "Duration",
+      "timeLabel": "Time",
+      "dur1": "1 h",
+      "dur2": "1.5 h",
+      "dur3": "2 h",
+      "summary": "Wed, June 14 · 1:00 PM"
+    },
+    "calendar": {
+      "today": "Today",
+      "count": "4 bookings",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "done": "Completed",
+      "b1": "Maria · Massage",
+      "b2": "Igor · Consultation",
+      "b3": "Anna · Massage",
+      "b4": "Maria · Session",
+      "date": "Wednesday, June 14",
+      "b5": "Igor · Session",
+      "tabCalendar": "Calendar",
+      "tabClients": "Clients",
+      "tabStats": "Analytics",
+      "days": {
+        "d1": "Mon",
+        "d2": "Tue",
+        "d3": "Wed",
+        "d4": "Thu",
+        "d5": "Fri"
+      }
+    },
+    "request": {
+      "bot": "{name}",
+      "status": "bot",
+      "title": "New booking request",
+      "client": "Maria",
+      "when": "Today, 3:00 PM · 1 h",
+      "accept": "Accept",
+      "decline": "Decline",
+      "time": "2:52 PM",
+      "today": "Today",
+      "placeholder": "Message",
+      "prevTitle": "Booking confirmed",
+      "prevClient": "Igor",
+      "prevWhen": "Yesterday, 6:00 PM · 1 h",
+      "prevTime": "6:05 PM",
+      "reminderTitle": "Reminder",
+      "reminderText": "In an hour: Anna, 5:00 PM",
+      "reminderTime": "2:30 PM",
+      "prevStatus": "Accepted",
+      "digestTitle": "Today's summary",
+      "digestText": "4 bookings, the first at 10:00 AM",
+      "digestTime": "8:00 AM"
+    },
+    "statusTime": "3:02"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "home": "Back to home"
+  }
+}

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { memo } from 'react';
 
 import { StatusBadge } from '@/components/StatusBadge';
+import { wallClockNow } from '@/lib/helpers';
 
 import type { TBookingCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -94,7 +95,7 @@ function BookingCardComponent({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const endsAt = new Date(booking.endsAt);
-  const isPast = startsAt.getTime() <= Date.now();
+  const isPast = startsAt.getTime() <= wallClockNow();
   const displayStatus = booking.status === 'confirmed' && isPast ? 'completed' : booking.status;
   /***************************************************************************************************
    * Defines the is active value used by the component layer.
@@ -220,6 +221,10 @@ function BookingCardComponent({
           >
             {tb('declineRescheduleButton')}
           </button>
+        </div>
+      ) : isReschedulePending ? (
+        <div className={'border-border border-t pt-3'}>
+          <p className={'text-muted-foreground text-xs'}>{tb('awaitingRescheduleConfirmation')}</p>
         </div>
       ) : isSpecialistPending && onConfirm && onDecline ? (
         <div className={'border-border space-y-2 border-t pt-3'}>

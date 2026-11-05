@@ -1,6 +1,7 @@
 import { ArrowRight, Calendar, Check, Clock, X } from 'lucide-react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { clientEntityLabel } from '@/lib/helpers';
 import { bookingStatusColors, bookingStatusKeys } from '@/lib/mappings';
 
 import type { TBookingRowProps } from '@/lib/types';
@@ -88,9 +89,10 @@ export function BookingRow({
               name={booking.clientDisplayName || booking.clientName}
               photoUrl={booking.clientPhotoUrl}
               size={'sm'}
+              isSelf={booking.clientIsSelf}
             />
             <span className={'text-foreground text-sm'}>
-              {booking.clientDisplayName || booking.clientName}
+              {clientEntityLabel(booking, tc('self'))}
             </span>
           </div>
         </div>

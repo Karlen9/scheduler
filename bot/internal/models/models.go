@@ -17,6 +17,7 @@ type Specialist struct {
 	Name                    string     `json:"name"`
 	Timezone                string     `json:"timezone"`
 	CancelCutoffHrs         int        `json:"cancelCutoffHours"`
+	CancelCutoffEnabled     bool       `json:"cancelCutoffEnabled"`
 	TelegramHandle          string     `json:"telegramHandle"`
 	Phone                   string     `json:"phone"`
 	Email                   string     `json:"email"`
@@ -64,12 +65,19 @@ type Client struct {
 	Language            string    `json:"language,omitempty"`
 	ReferredViaCode     string    `json:"referredViaCode,omitempty"`
 	IsGhost             bool      `json:"isGhost,omitempty"`
+	IsSelf              bool      `json:"isSelf,omitempty"`
 	IsBlocked           bool      `json:"isBlocked,omitempty"`
 	NotifyBookingStatus bool      `json:"notifyBookingStatus"`
 	NotifyReminders     bool      `json:"notifyReminders"`
 	NotifyDaysOff       bool      `json:"notifyDaysOff"`
 	NotifyCancellations bool      `json:"notifyCancellations"`
 	CreatedAt           time.Time `json:"createdAt"`
+}
+
+// IsSelfOf reports whether this client is the owning specialist's own ("self") client,
+// i.e. the client row whose Telegram user matches the specialist's Telegram user id.
+func (c *Client) IsSelfOf(specialistTelegramID int64) bool {
+	return c != nil && c.TelegramUserID == specialistTelegramID
 }
 
 /***************************************************************************************************
@@ -228,6 +236,7 @@ type Booking struct {
 	ClientPhotoURL         string       `json:"clientPhotoUrl,omitempty"`
 	ClientDisplayName      string       `json:"clientDisplayName,omitempty"`
 	ClientIsGhost          bool         `json:"clientIsGhost,omitempty"`
+	ClientIsSelf           bool         `json:"clientIsSelf,omitempty"`
 	ClientTelegramID       int64        `json:"clientTelegramUserId,omitempty"`
 	ClientTelegramUsername string       `json:"clientTelegramUsername,omitempty"`
 	Client                 *Client      `json:"-"`
@@ -317,6 +326,7 @@ type RecurringSchedule struct {
 	SessionType       *SessionType `json:"sessionType,omitempty"`
 	ClientPhotoURL    string       `json:"clientPhotoUrl,omitempty"`
 	ClientDisplayName string       `json:"clientDisplayName,omitempty"`
+	ClientIsSelf      bool         `json:"clientIsSelf,omitempty"`
 	Bookings          []Booking    `json:"bookings,omitempty"`
 }
 

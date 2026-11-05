@@ -48,6 +48,7 @@ export function BookingForm({
   initialTime,
   initialComment,
   initialSelectedClient,
+  showConsentNote = false,
 }: TBookingFormProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -130,17 +131,24 @@ export function BookingForm({
             <ClientAvatar
               name={selectedClient.displayName || selectedClient.name}
               photoUrl={selectedClient.photoUrl}
+              isSelf={selectedClient.isSelf}
             />
             <div className={'min-w-0 flex-1'}>
               <p className={'text-foreground truncate text-sm font-medium'}>
-                {selectedClient.displayName || selectedClient.name}
-                {selectedClient.isGhost && (
-                  <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
-                    {tc('ghost')}
-                  </span>
+                {selectedClient.isSelf ? (
+                  tc('self')
+                ) : (
+                  <>
+                    {selectedClient.displayName || selectedClient.name}
+                    {selectedClient.isGhost && (
+                      <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
+                        {tc('ghost')}
+                      </span>
+                    )}
+                  </>
                 )}
               </p>
-              {selectedClient.phone && (
+              {!selectedClient.isSelf && selectedClient.phone && (
                 <p className={'text-muted-foreground text-xs'}>{selectedClient.phone}</p>
               )}
             </div>
@@ -214,6 +222,7 @@ export function BookingForm({
                 initialService={initialService}
                 initialTime={initialTime}
                 initialComment={initialComment}
+                showConsentNote={showConsentNote}
               />
             ) : (
               <RecurringBookingFlow

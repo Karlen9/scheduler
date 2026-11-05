@@ -60,6 +60,9 @@ func HandleGetAdminStats(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	if !requirePro(w, r, specialist) {
+		return
+	}
 
 	stats, err := db.GetAdminStats(specialist.ID, specialist.Timezone)
 	if err != nil {

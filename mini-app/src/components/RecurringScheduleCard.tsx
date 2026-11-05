@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { StatusBadge, statusBorders } from '@/components/StatusBadge';
-import { formatDuration } from '@/lib/helpers';
+import { clientEntityLabel, formatDuration } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { TRecurringSchedule, TRecurringScheduleCardProps, TSessionType } from '@/lib/types';
@@ -216,7 +216,7 @@ export function RecurringScheduleCard({
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
     const end = new Date(endDate);
-    return `${start.getDate()} ${td(`monthsShort.${monthShortKeys[start.getMonth()]}`)} — ${end.getDate()} ${td(`monthsShort.${monthShortKeys[end.getMonth()]}`)}`;
+    return `${start.getUTCDate()} ${td(`monthsShort.${monthShortKeys[start.getUTCMonth()]}`)} — ${end.getUTCDate()} ${td(`monthsShort.${monthShortKeys[end.getUTCMonth()]}`)}`;
   }
 
   /***************************************************************************************************
@@ -352,9 +352,10 @@ export function RecurringScheduleCard({
                 name={schedule.clientDisplayName || schedule.clientName}
                 photoUrl={schedule.clientPhotoUrl}
                 size={'sm'}
+                isSelf={schedule.clientIsSelf}
               />
               <span className={'text-foreground text-sm font-medium'}>
-                {schedule.clientDisplayName || schedule.clientName}
+                {clientEntityLabel(schedule, tc('self'))}
               </span>
             </div>
           )}

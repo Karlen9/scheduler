@@ -36,19 +36,20 @@ export type TBottomSheetProps = {
   className?: string;
 };
 
-export type TSubTab = {
+type TSubTab = {
   icon: LucideIcon;
   href: string;
   label?: string;
 };
 
-export type TTab = {
+type TTab = {
   key: string;
   label: string;
   icon: LucideIcon;
   href: string;
   isCenter?: boolean;
   matchPaths?: string[];
+  locked?: boolean;
 };
 
 export type TBottomTabBarProps = {
@@ -69,6 +70,7 @@ export type TClientAvatarProps = {
   name: string;
   photoUrl?: string;
   size?: 'sm' | 'md' | 'lg';
+  isSelf?: boolean;
 };
 
 export type TConfirmDialogProps = {

@@ -56,7 +56,8 @@ export function ClientDetailModal({
   }
 
   const displayName = displayClient.displayName || displayClient.name;
-  const canMessage = !displayClient.isGhost && !!displayClient.telegramUsername;
+  const canMessage =
+    !displayClient.isGhost && !displayClient.isSelf && !!displayClient.telegramUsername;
   const batchServices = services.filter((service) => service.type === 'batch');
   const activeBatches = clientBatches.filter(
     (batch) => batch.status === 'active' && batch.remainingSessions > 0,
@@ -95,10 +96,17 @@ export function ClientDetailModal({
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} showClose>
       <div className={'mb-4 flex items-center gap-4'}>
-        <ClientAvatar name={displayName} photoUrl={displayClient.photoUrl} size={'lg'} />
+        <ClientAvatar
+          name={displayName}
+          photoUrl={displayClient.photoUrl}
+          size={'lg'}
+          isSelf={displayClient.isSelf}
+        />
         <div className={'min-w-0'}>
-          <h3 className={'text-foreground truncate text-xl font-medium'}>{displayName}</h3>
-          {displayClient.displayName && !displayClient.isGhost && (
+          <h3 className={'text-foreground truncate text-xl font-medium'}>
+            {displayClient.isSelf ? tc('self') : displayName}
+          </h3>
+          {displayClient.displayName && !displayClient.isGhost && !displayClient.isSelf && (
             <div className={'text-muted-foreground truncate text-sm'}>{displayClient.name}</div>
           )}
           {displayClient.isGhost && (
@@ -225,6 +233,7 @@ export function ClientDetailModal({
       </div>
 
       {!displayClient.isGhost &&
+        !displayClient.isSelf &&
         (displayClient.isBlocked
           ? onUnblockClient && (
               <button

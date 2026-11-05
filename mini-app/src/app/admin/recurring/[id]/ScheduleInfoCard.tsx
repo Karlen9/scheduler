@@ -1,6 +1,8 @@
 import { Calendar, CalendarCheck, Clock, Repeat } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { clientEntityLabel } from '@/lib/helpers';
 
 import type { TAdminScheduleInfoCardProps } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -28,6 +30,7 @@ export function ScheduleInfoCard({
   durationLabel,
   dayTimes,
 }: TAdminScheduleInfoCardProps): ReactNode {
+  const tc = useTranslations('Common');
   return (
     <div className={`bg-card rounded-xl border-l-4 p-4 ${scheduleStatus.border}`}>
       <div className={'mb-3 flex items-start justify-between'}>
@@ -43,9 +46,10 @@ export function ScheduleInfoCard({
             name={schedule.clientDisplayName || schedule.clientName}
             photoUrl={schedule.clientPhotoUrl}
             size={'sm'}
+            isSelf={schedule.clientIsSelf}
           />
           <span className={'text-foreground text-sm'}>
-            {schedule.clientDisplayName || schedule.clientName}
+            {clientEntityLabel(schedule, tc('self'))}
           </span>
         </div>
 

@@ -74,7 +74,7 @@ function resolveTestScopedHref(path: string, suffix: string): string | null {
   return resolveClientScopedHref(testClientBasePath, path, suffix);
 }
 
-export function isTestPathname(pathname?: string | null): boolean {
+function isTestPathname(pathname?: string | null): boolean {
   return (
     pathname === testClientBasePath ||
     pathname?.startsWith(`${testClientBasePath}/`) ||
@@ -84,7 +84,7 @@ export function isTestPathname(pathname?: string | null): boolean {
   );
 }
 
-export function isPreviewPathname(pathname?: string | null): boolean {
+function isPreviewPathname(pathname?: string | null): boolean {
   return (
     pathname === previewClientBasePath || pathname?.startsWith(`${previewClientBasePath}/`) || false
   );

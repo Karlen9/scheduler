@@ -78,10 +78,11 @@ export default function AdminChooseClientBookPage(): ReactNode {
         <ClientAvatar
           name={selectedClient.displayName || selectedClient.name}
           photoUrl={selectedClient.photoUrl}
+          isSelf={selectedClient.isSelf}
         />
         <div className={'min-w-0 flex-1'}>
           <p className={'text-foreground truncate text-sm font-medium'}>
-            {selectedClient.displayName || selectedClient.name}
+            {selectedClient.isSelf ? tc('self') : selectedClient.displayName || selectedClient.name}
             {selectedClient.isGhost && (
               <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
                 {tc('ghost')}

@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Multi-tenant Telegram Mini App scheduler for specialists (trainers, teachers, beauty professionals, etc.). Two main components:
+Multi-tenant Telegram Mini App scheduler for specialists (trainers, teachers, beauty professionals, etc.). Three main components:
 
 - **bot/** - Go backend (chi router, SQLite/PostgreSQL, Telegram webhooks + REST API)
 - **mini-app/** - Next.js 15 frontend (Telegram Mini App) for booking UI
+- **landing/** - Next.js 16 marketing site for specialists (ru at `/`, en at `/en`), static, Vercel Root Directory = `landing`; prices/trial/theme tokens are drift-tested against `bot/internal/config/config.go` and `mini-app/src/styles/theme.css`
 
 Language: Russian UI throughout, English supported via i18n (go-i18n backend, next-intl frontend).
 
@@ -24,6 +25,18 @@ bun lint          # ESLint
 bunx vitest run   # Run tests
 ```
 
+### Landing (Next.js)
+
+```bash
+cd landing
+bun install
+bun dev           # http://localhost:3000
+bun run build     # must report the locale pages as static
+bun run lint && bunx tsc --noEmit && bunx vitest run
+```
+
+Copy lives in `landing/messages/*.json`; product name, bot link and legal entity in `landing/src/lib/site.ts`; see `landing/README.md` for screenshots and email setup.
+
 ### Bot (Go)
 
 ```bash
@@ -34,7 +47,7 @@ go test ./...     # Run tests
 ```
 
 Required env vars (master bot): `MASTER_BOT_TOKEN`, `WEB_APP_URL`, `PUBLIC_BASE_URL`
-Optional: `ADMIN_IDS`, `MASTER_WEBHOOK_SECRET`, `ENCRYPTION_KEY`, `SUPPORT_GROUP_ID` (forum-topic supergroup chat id; enables the master bot's operator relay)
+Optional: `ADMIN_IDS`, `MASTER_WEBHOOK_SECRET`, `ENCRYPTION_KEY`, `SUPPORT_GROUP_ID` (forum-topic supergroup chat id; enables the master bot's operator relay), `CORS_ALLOWED_ORIGINS` (comma-separated extra origins added to `WEB_APP_URL`; wildcards rejected)
 Legacy (single-bot): `TELEGRAM_BOT_TOKEN`, `SPECIALIST_TELEGRAM_ID`, `SPECIALIST_NAME`
 
 ### Deployment
@@ -89,9 +102,11 @@ docker push rainingman/scheduler-bot:latest
 
 Bot uses Telegram webhooks (not long polling):
 
-- Master bot: `{PUBLIC_BASE_URL}/master/{MASTER_WEBHOOK_SECRET}/webhook`
-- Per-specialist bots: `{PUBLIC_BASE_URL}/specialist/{id}/{secret}/webhook`
-- Secret token validated via `X-Telegram-Bot-Api-Secret-Token` header
+- Master bot: `{PUBLIC_BASE_URL}/master/webhook`
+- Per-specialist bots: `{PUBLIC_BASE_URL}/tg/webhook`
+- The secret travels only in the `X-Telegram-Bot-Api-Secret-Token` header (validated in constant time; for specialist bots the header selects the bot), never in the URL
+- Legacy `/master/{secret}/webhook` and `/tg/{secret}/webhook` are still accepted so already-registered webhooks keep working; the webhook healer re-registers specialist bots on the new URL
+- Dispatch lives in `bot/webhook_routes.go` (before the chi router); no log line may contain a secret or a path containing one
 - For local dev, use ngrok: `ngrok http 8080` and set `PUBLIC_BASE_URL`
 
 ## Key Patterns
@@ -118,4 +133,5 @@ Bot uses Telegram webhooks (not long polling):
 - Master bot doubles as help-desk + owner analytics. `/start` shows an inline menu (Create my bot / FAQ / Talk to operator / Admin panel). Operator relay copies DMs into a forum topic inside `SUPPORT_GROUP_ID` (one topic per user, mapping in `support_threads`); admin replies in the topic are copied back. `/close` in a topic closes the thread; a conservative substring spam filter drops obvious junk before relay. Admin panel (users in `ADMIN_IDS` only) drills into platform/bookings/clients/recurring/referrals/top-specialists/durations/specialist-list.
 - Theme: light/dark via Telegram `colorScheme` — `theme.css` has `:root` light defaults and `:root.dark` overrides; status colors exposed via `@theme inline` for Tailwind
 - Light frontend data sync + SWR cache retention across route switches; infinite scroll for admin bookings; URL-backed filters on bookings list
+- Rate limiting: `clientIP` trusts `X-Forwarded-For` only when the TCP peer is loopback/private (Caddy), walking it right-to-left to the first public address; `X-Real-IP` is ignored. Per-IP limit runs before the global one. Route limits (`PerClientRateLimitMiddleware`, keyed on the authenticated Telegram user, namespaced from IP keys) cover booking/recurring writes, admin booking writes, sensitive admin actions, photo upload; `/dashboard/auth/telegram` is per-IP. All route limits are no-ops under `LOAD_TEST_MODE`, which `config.Load()` refuses unless `PUBLIC_BASE_URL` is loopback
 - Pre-commit hooks: gofmt, prettier, eslint, go test, vitest (via Lefthook)

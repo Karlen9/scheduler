@@ -10,34 +10,30 @@ func TestExpectedWebhookURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		baseURL string
-		secret  string
 		want    string
 	}{
 		{
 			name:    "no trailing slash",
 			baseURL: "https://example.com",
-			secret:  "abc",
-			want:    "https://example.com/tg/abc/webhook",
+			want:    "https://example.com/tg/webhook",
 		},
 		{
 			name:    "trailing slash stripped",
 			baseURL: "https://example.com/",
-			secret:  "abc",
-			want:    "https://example.com/tg/abc/webhook",
+			want:    "https://example.com/tg/webhook",
 		},
 		{
 			name:    "multiple trailing slashes stripped",
 			baseURL: "https://example.com///",
-			secret:  "abc",
-			want:    "https://example.com/tg/abc/webhook",
+			want:    "https://example.com/tg/webhook",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewBotManager("", tt.baseURL, "")
-			if got := m.expectedWebhookURL(tt.secret); got != tt.want {
-				t.Fatalf("expectedWebhookURL(%q) = %q, want %q", tt.secret, got, tt.want)
+			if got := m.expectedWebhookURL(); got != tt.want {
+				t.Fatalf("expectedWebhookURL() = %q, want %q", got, tt.want)
 			}
 		})
 	}

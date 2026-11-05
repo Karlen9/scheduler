@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -16,6 +17,17 @@ import (
 * - Reused by the api layer to keep shared values centralized.
 ***************************************************************************************************/
 var WebAppURL string
+
+/***************************************************************************************************
+* CORSAllowedOrigins holds extra allowed origins from CORS_ALLOWED_ORIGINS (added to WebAppURL).
+***************************************************************************************************/
+var CORSAllowedOrigins []string
+
+/***************************************************************************************************
+* routeRateLimitsDisabled turns the per-route limits off when NewRouter builds the router. Only the
+* test suite sets it (see export_test.go); production relies on LoadTestMode alone.
+***************************************************************************************************/
+var routeRateLimitsDisabled bool
 
 /***************************************************************************************************
 * Creates router.
@@ -44,22 +56,53 @@ func NewRouter() http.Handler {
 	* Rate limiting (disabled in load test mode).
 	***************************************************************************************************/
 	if !LoadTestMode {
-		r.Use(GlobalRateLimitMiddleware(100, 200))
+		// Per-IP first so one abuser cannot drain the shared global budget before its own limit applies.
 		r.Use(PerIPRateLimitMiddleware(20, 40))
+		r.Use(GlobalRateLimitMiddleware(100, 200))
 	}
+
+	/***************************************************************************************************
+	* Per-route limits. Each limiter is created once and shared by every route in its group. They
+	* are no-ops in load test mode (k6 hammers POST /api/bookings).
+	***************************************************************************************************/
+	passthrough := func(next http.Handler) http.Handler { return next }
+	routeLimitsOff := LoadTestMode || routeRateLimitsDisabled
+	perClient := func(rps float64, burst int) func(http.Handler) http.Handler {
+		if routeLimitsOff {
+			return passthrough
+		}
+		return PerClientRateLimitMiddleware(rps, burst)
+	}
+	perIP := func(rps float64, burst int) func(http.Handler) http.Handler {
+		if routeLimitsOff {
+			return passthrough
+		}
+		return PerIPRateLimitMiddleware(rps, burst)
+	}
+	clientBookingWrites := perClient(0.2, 10)
+	adminBookingWrites := perClient(1, 30)
+	sensitiveAdminActions := perClient(0.1, 5)
+	photoUploads := perClient(0.2, 5)
+	dashboardLogin := perIP(0.2, 10)
 
 	/***************************************************************************************************
 	* CORS for mini-app.
 	***************************************************************************************************/
-	allowedOrigins := allowedOriginsForCORS(WebAppURL)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Specialist-ID", "X-Trainer-ID", "X-Test-User-ID"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
-		MaxAge:           300,
-	}))
+	allowedOrigins := allowedOriginsForCORS(WebAppURL, CORSAllowedOrigins)
+	if len(allowedOrigins) == 0 {
+		// go-chi/cors treats an empty AllowedOrigins list as allow-all, so fail closed by not
+		// installing the middleware at all: no Access-Control-* headers are ever sent.
+		log.Printf("WARNING: no valid CORS origins (check WEB_APP_URL and CORS_ALLOWED_ORIGINS); CORS is disabled and cross-origin browser requests will be blocked")
+	} else {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   allowedOrigins,
+			AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Telegram-Init-Data", "X-Specialist-ID", "X-Trainer-ID", "X-Test-User-ID"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: false,
+			MaxAge:           300,
+		}))
+	}
 
 	/***************************************************************************************************
 	* Health check (no auth).
@@ -77,7 +120,7 @@ func NewRouter() http.Handler {
 	/***************************************************************************************************
 	* Dashboard Telegram login (Telegram Login Widget auth + ADMIN_IDS allowlist).
 	***************************************************************************************************/
-	r.Post("/dashboard/auth/telegram", HandleDashboardTelegramAuth)
+	r.With(dashboardLogin).Post("/dashboard/auth/telegram", HandleDashboardTelegramAuth)
 
 	/***************************************************************************************************
 	* Super admin (bearer token auth).
@@ -127,6 +170,8 @@ func NewRouter() http.Handler {
 				r.Post("/bookings", HandleAdminCreateBooking)
 				r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
 				r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
+				r.Put("/bookings/{id}/approve-reschedule", HandleAdminApproveReschedule)
+				r.Put("/bookings/{id}/decline-reschedule", HandleAdminDeclineReschedule)
 
 				r.Get("/days-off", HandleGetDaysOff)
 				r.Post("/days-off/batch", HandleBatchCreateDayOff)
@@ -194,9 +239,9 @@ func NewRouter() http.Handler {
 		r.Get("/stats", HandleGetClientStats)
 		r.Get("/batches", HandleGetClientBatches)
 		r.Get("/changes", HandleGetChangeVersions)
-		r.Post("/bookings", HandleCreateBooking)
+		r.With(clientBookingWrites).Post("/bookings", HandleCreateBooking)
 		r.Delete("/bookings/{id}", HandleCancelBooking)
-		r.Put("/bookings/{id}/reschedule", HandleClientRescheduleBooking)
+		r.With(clientBookingWrites).Put("/bookings/{id}/reschedule", HandleClientRescheduleBooking)
 		r.Put("/bookings/{id}/confirm", HandleClientConfirmBooking)
 		r.Put("/bookings/{id}/decline", HandleClientDeclineBooking)
 		r.Put("/bookings/{id}/approve-reschedule", HandleClientApproveReschedule)
@@ -213,7 +258,7 @@ func NewRouter() http.Handler {
 		* Client recurring schedules.
 		***************************************************************************************************/
 		r.Get("/recurring", HandleGetRecurringSchedules)
-		r.Post("/recurring", HandleCreateRecurringSchedule)
+		r.With(clientBookingWrites).Post("/recurring", HandleCreateRecurringSchedule)
 		r.Post("/recurring/preview", HandlePreviewRecurringSchedule)
 		r.Get("/recurring/{id}", HandleGetRecurringScheduleDetail)
 		r.Delete("/recurring/{id}", HandleCancelRecurringSchedule)
@@ -222,7 +267,7 @@ func NewRouter() http.Handler {
 		* Client recurring individual booking management.
 		***************************************************************************************************/
 		r.Put("/recurring/{scheduleId}/bookings/{bookingId}/cancel-request", HandleClientCancelRequest)
-		r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleClientMoveRequest)
+		r.With(clientBookingWrites).Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleClientMoveRequest)
 
 		/***************************************************************************************************
 		* Admin routes (specialist only).
@@ -255,9 +300,11 @@ func NewRouter() http.Handler {
 			***************************************************************************************************/
 			r.Get("/bookings", HandleAdminGetBookings)
 			r.Get("/stats", HandleGetAdminStats)
-			r.Post("/bookings", HandleAdminCreateBooking)
+			r.With(adminBookingWrites).Post("/bookings", HandleAdminCreateBooking)
 			r.Put("/bookings/{id}/status", HandleAdminUpdateBookingStatus)
 			r.Put("/bookings/{id}/reschedule", HandleAdminRescheduleBooking)
+			r.Put("/bookings/{id}/approve-reschedule", HandleAdminApproveReschedule)
+			r.Put("/bookings/{id}/decline-reschedule", HandleAdminDeclineReschedule)
 
 			/***************************************************************************************************
 			* Days off management.
@@ -288,7 +335,7 @@ func NewRouter() http.Handler {
 			* Recurring schedules (admin).
 			***************************************************************************************************/
 			r.Get("/recurring", HandleAdminGetRecurringSchedules)
-			r.Post("/recurring", HandleAdminCreateRecurringSchedule)
+			r.With(adminBookingWrites).Post("/recurring", HandleAdminCreateRecurringSchedule)
 			r.Post("/recurring/preview", HandleAdminPreviewRecurringSchedule)
 			r.Get("/recurring/{id}", HandleAdminGetRecurringScheduleDetail)
 			r.Put("/recurring/{id}/approve", HandleAdminApproveRecurringSchedule)
@@ -306,7 +353,7 @@ func NewRouter() http.Handler {
 			/***************************************************************************************************
 			* Photo upload (specialist).
 			***************************************************************************************************/
-			r.Post("/upload/photo", HandleAdminUploadPhoto)
+			r.With(photoUploads).Post("/upload/photo", HandleAdminUploadPhoto)
 
 			/***************************************************************************************************
 			* Notification preferences.
@@ -323,19 +370,19 @@ func NewRouter() http.Handler {
 			* Subscription status + checkout.
 			***************************************************************************************************/
 			r.Get("/subscription", HandleGetSubscriptionStatus)
-			r.Post("/subscription/checkout", HandleSubscriptionCheckout)
+			r.With(sensitiveAdminActions).Post("/subscription/checkout", HandleSubscriptionCheckout)
 			r.Post("/subscription/cancel", HandleCancelSubscription)
 			r.Post("/subscription/resume", HandleResumeSubscription)
 
 			/***************************************************************************************************
 			* Promo code validation.
 			***************************************************************************************************/
-			r.Post("/promocode/validate", HandleValidatePromoCode)
+			r.With(sensitiveAdminActions).Post("/promocode/validate", HandleValidatePromoCode)
 
 			/***************************************************************************************************
 			* Soft-delete the entire bot (requires an exact confirmation phrase in the body).
 			***************************************************************************************************/
-			r.Delete("/specialist", HandleAdminDeleteBot)
+			r.With(sensitiveAdminActions).Delete("/specialist", HandleAdminDeleteBot)
 		})
 	})
 

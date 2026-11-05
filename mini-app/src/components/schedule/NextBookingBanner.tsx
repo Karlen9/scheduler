@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
+import { clientEntityLabel, wallClockNow } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 
 import type { TNextBookingBannerProps } from '@/lib/types';
@@ -106,13 +107,6 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
      * Usage context:
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
-    const now = new Date();
-    /***************************************************************************************************
-     * Defines the start value used by the component layer.
-     *
-     * Usage context:
-     * - Reused by the component layer to keep shared values centralized.
-     ***************************************************************************************************/
     const start = new Date(iso);
     /***************************************************************************************************
      * Defines the diff value used by the component layer.
@@ -120,7 +114,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
      * Usage context:
      * - Reused by the component layer to keep shared values centralized.
      ***************************************************************************************************/
-    const diff = start.getTime() - now.getTime();
+    const diff = start.getTime() - wallClockNow();
     if (diff <= 0) {
       return tu('now');
     }
@@ -149,14 +143,11 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
      ***************************************************************************************************/
     const hours = Math.floor(minutes / 60);
     if (hours < 24) {
-      /***************************************************************************************************
-       * Defines the word value used by the component layer.
-       *
-       * Usage context:
-       * - Reused by the component layer to keep shared values centralized.
-       ***************************************************************************************************/
-      const word = hourWord(hours);
-      return tu('inHours', { count: hours, word });
+      const remainingMins = minutes % 60;
+      if (remainingMins === 0) {
+        return tu('inHours', { count: hours, word: hourWord(hours) });
+      }
+      return tu('inHoursAndMinutes', { hours, hoursWord: hourWord(hours), mins: remainingMins });
     }
     /***************************************************************************************************
      * Defines the days value used by the component layer.
@@ -277,7 +268,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
         <div className={'flex items-center gap-3'}>
           <div className={'min-w-0 flex-1'}>
             <p className={'text-foreground truncate font-medium'}>
-              {booking.clientDisplayName || booking.clientName}
+              {clientEntityLabel(booking, tc('self'))}
             </p>
             <p className={'text-muted-foreground text-sm'}>
               {tc('workout')}
@@ -294,6 +285,7 @@ export function NextBookingBanner({ booking, onBookingClick }: TNextBookingBanne
             name={booking.clientDisplayName || booking.clientName}
             photoUrl={booking.clientPhotoUrl}
             size={'lg'}
+            isSelf={booking.clientIsSelf}
           />
         </div>
       </button>

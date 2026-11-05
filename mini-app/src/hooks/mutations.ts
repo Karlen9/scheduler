@@ -80,7 +80,7 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
   }
 
   if (path === '/api/bookings' && method === 'POST') {
-    return ['bookings', 'clients'];
+    return ['bookings', 'clients', 'clientBatches'];
   }
   if (path.startsWith('/api/bookings/')) {
     return ['bookings', 'clientBatches'];
@@ -208,14 +208,6 @@ export async function invalidateMutation(event: TMutationEvent): Promise<void> {
 
 export async function invalidateBookings(): Promise<void> {
   await invalidateChangeGroups(['bookings']);
-}
-
-export async function invalidateClientStats(): Promise<void> {
-  await revalidateKeys([CACHE_KEYS.clientStats]);
-}
-
-export async function invalidateAdminStats(): Promise<void> {
-  await revalidateKeys([CACHE_KEYS.adminStats]);
 }
 
 export async function invalidateWorkingHours(): Promise<void> {

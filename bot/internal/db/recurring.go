@@ -21,7 +21,8 @@ import (
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
 var recurringColumns = `rs.id, rs.specialist_id, rs.client_id, rs.client_name, rs.day_of_week, rs."time", rs.duration_minutes, rs.status, rs.created_by, rs.created_at, rs.session_type_id, rs.days_of_week, rs.start_date, rs.end_date, rs.day_times, ` +
-	clientMetadataSelectColumns("c") + `, ` + sessionTypeSelectColumns("st")
+	clientMetadataSelectColumns("c") + `, ` + sessionTypeSelectColumns("st") +
+	`, CASE WHEN c.telegram_user_id = sp.telegram_user_id THEN 1 ELSE 0 END`
 
 /***************************************************************************************************
 * Stores the shared SQL FROM clause reused by related queries.
@@ -33,6 +34,7 @@ const recurringFromClause = `
 	FROM recurring_schedules rs
 	LEFT JOIN clients c ON c.id = rs.client_id
 	LEFT JOIN session_types st ON st.id = rs.session_type_id
+	LEFT JOIN specialists sp ON sp.id = rs.specialist_id
 `
 
 /***************************************************************************************************
@@ -74,11 +76,12 @@ func recurringSelectQuery(whereClause, orderBy string) string {
 func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models.RecurringSchedule, error) {
 	var s models.RecurringSchedule
 	var sessionTypeID, daysOfWeek, startDate, endDate, dayTimes sql.NullString
+	var clientIsSelf sql.NullInt64
 	sessionType := nullableSessionType{}
 
 	dest := append([]interface{}{
 		&s.ID, &s.SpecialistID, &s.ClientID, &s.ClientName, &s.DayOfWeek, &s.Time, &s.DurationMinutes, &s.Status, &s.CreatedBy, &s.CreatedAt, &sessionTypeID, &daysOfWeek, &startDate, &endDate, &dayTimes, &s.ClientPhotoURL, &s.ClientDisplayName,
-	}, sessionType.scanDest()...)
+	}, append(sessionType.scanDest(), &clientIsSelf)...)
 
 	err := row.Scan(dest...)
 	if err != nil {
@@ -100,41 +103,10 @@ func scanRecurringSchedule(row interface{ Scan(...interface{}) error }) (*models
 	if dayTimes.Valid {
 		s.DayTimes = dayTimes.String
 	}
+	s.ClientIsSelf = clientIsSelf.Valid && clientIsSelf.Int64 == 1
 	s.SessionType = sessionType.model()
 
 	return &s, nil
-}
-
-/***************************************************************************************************
-* Creates recurring schedule.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-* - specialistID: Identifier used to target the current record.
-* - clientName: Client name used by the current operation.
-* - dayOfWeek: Day of week used by the current operation.
-* - timeStr: Time value used by the current operation.
-* - durationMinutes: Duration value used by the current operation.
-* - createdBy: Created by used by the current operation.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func CreateRecurringSchedule(specialistID, clientID, clientName string, dayOfWeek int, timeStr string, durationMinutes int, createdBy string) (*models.RecurringSchedule, error) {
-	id := uuid.New().String()
-
-	_, err := DB.Exec(Q(`
-		INSERT INTO recurring_schedules (id, specialist_id, client_id, client_name, day_of_week, "time", duration_minutes, status, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-	`), id, specialistID, clientID, clientName, dayOfWeek, timeStr, durationMinutes, createdBy)
-	if err != nil {
-		return nil, err
-	}
-
-	return GetRecurringScheduleByID(id)
 }
 
 /***************************************************************************************************
@@ -196,27 +168,6 @@ func GetRecurringScheduleByID(id string) (*models.RecurringSchedule, error) {
 		return nil, err
 	}
 	return s, nil
-}
-
-/***************************************************************************************************
-* Returns active recurring schedules.
-*
-* Parameters:
-* - None.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func GetActiveRecurringSchedules() ([]models.RecurringSchedule, error) {
-	rows, err := DB.Query(recurringSelectQuery("rs.status = 'active'", `rs.day_of_week, rs."time"`))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return scanRecurringSchedules(rows)
 }
 
 /***************************************************************************************************
@@ -411,6 +362,18 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 		requestedDays[d] = true
 	}
 
+	/***************************************************************************************************
+	* Fetch existing conflict intervals once, instead of querying per candidate day. rangeEnd has two
+	* extra days of slack so slots crossing midnight near the schedule boundaries are still caught.
+	***************************************************************************************************/
+	rangeStart := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	rangeEnd := endDate.AddDate(0, 0, 2)
+
+	existingIntervals, err := getBookingIntervalsInRange(schedule.SpecialistID, rangeStart, rangeEnd)
+	if err != nil {
+		return 0, err
+	}
+
 	count := 0
 	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
 		dow := int(d.Weekday())
@@ -437,18 +400,25 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 		endsAt := startsAt.Add(time.Duration(schedule.DurationMinutes) * time.Minute)
 
 		/***************************************************************************************************
-		* Check conflicts.
+		* Check conflicts in-memory against previously fetched (and previously inserted) intervals.
 		***************************************************************************************************/
-		hasConflict, _ := HasConflictingBooking(schedule.SpecialistID, startsAt, endsAt, "")
+		hasConflict := false
+		for _, existing := range existingIntervals {
+			if existing.startsAt.Before(endsAt) && existing.endsAt.After(startsAt) {
+				hasConflict = true
+				break
+			}
+		}
 		if hasConflict {
 			continue
 		}
 
-		_, err := CreateRecurringBooking(schedule.SpecialistID, schedule.ClientID, sessionTypeID, startsAt, endsAt, schedule.ClientName, schedule.DurationMinutes, scheduleID)
-		if err != nil {
+		id := uuid.New().String()
+		if err := insertBooking(id, schedule.SpecialistID, schedule.ClientID, sessionTypeID, "", startsAt, endsAt, schedule.ClientName, "", models.BookingStatusConfirmed, schedule.DurationMinutes, "", scheduleID, ""); err != nil {
 			log.Printf("Error creating recurring booking for schedule %s on %s: %v", scheduleID, d.Format("2006-01-02"), err)
 			continue
 		}
+		existingIntervals = append(existingIntervals, bookingInterval{startsAt: startsAt, endsAt: endsAt})
 		count++
 	}
 

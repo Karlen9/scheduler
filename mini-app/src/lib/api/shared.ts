@@ -8,7 +8,7 @@ import { getSpecialistId, waitForInitData } from '../telegram';
 
 import type { TWorkingHours } from '../types';
 
-export const API_BASE_URL = '';
+const API_BASE_URL = '';
 export const DEFAULT_CLIENT_BOOKINGS_LIMIT = 50;
 export const DEFAULT_ADMIN_DASHBOARD_BOOKINGS_LIMIT = 100;
 export const DEFAULT_ADMIN_CLIENTS_LIMIT = 50;

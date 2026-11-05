@@ -59,7 +59,6 @@ export default function AdminClientsPage(): ReactNode {
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showUnblockDialog, setShowUnblockDialog] = useState(false);
   const [cancelBookingsOnBlock, setCancelBookingsOnBlock] = useState(false);
-  const [cascadeDeleteData, setCascadeDeleteData] = useState(false);
   const bookingsCountRequestIdRef = useRef(0);
   const [page, setPage] = useState(1);
   const [allClients, setAllClients] = useState<TClientInfo[]>([]);
@@ -195,12 +194,10 @@ export default function AdminClientsPage(): ReactNode {
       return;
     }
     try {
-      await api.admin.deleteClient(deleteTarget.id, cascadeDeleteData);
+      await api.admin.deleteClient(deleteTarget.id);
       invalidateClients();
-      if (cascadeDeleteData) {
-        invalidateBookings();
-        invalidateRecurring();
-      }
+      invalidateBookings();
+      invalidateRecurring();
       toast.success(t('deleteSuccess', { name: deleteTarget.name }));
     } catch (err) {
       /***************************************************************************************************
@@ -507,43 +504,58 @@ export default function AdminClientsPage(): ReactNode {
               'bg-card flex w-full items-center gap-3 rounded-xl p-4 text-left active:opacity-80'
             }
           >
-            <ClientAvatar name={clientDisplayName(client)} photoUrl={client.photoUrl} size={'md'} />
+            <ClientAvatar
+              name={clientDisplayName(client)}
+              photoUrl={client.photoUrl}
+              size={'md'}
+              isSelf={client.isSelf}
+            />
             <div className={'min-w-0 flex-1'}>
               <div className={'text-foreground truncate font-medium'}>
-                {clientDisplayName(client)}
-                {client.isGhost && (
-                  <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
-                    {tc('ghost')}
-                  </span>
-                )}
-                {client.isBlocked && (
-                  <span className={'text-action-danger-text ml-1.5 text-xs font-normal'}>
-                    {t('blocked')}
-                  </span>
+                {client.isSelf ? (
+                  tc('self')
+                ) : (
+                  <>
+                    {clientDisplayName(client)}
+                    {client.isGhost && (
+                      <span className={'text-muted-foreground ml-1.5 text-xs font-normal'}>
+                        {tc('ghost')}
+                      </span>
+                    )}
+                    {client.isBlocked && (
+                      <span className={'text-action-danger-text ml-1.5 text-xs font-normal'}>
+                        {t('blocked')}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
-              {client.displayName && !client.isGhost && (
+              {client.displayName && !client.isGhost && !client.isSelf && (
                 <div className={'text-muted-foreground truncate text-xs'}>{client.name}</div>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEdit(client);
-              }}
-              className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
-            >
-              <Pencil className={'h-4 w-4'} />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeleteTarget(client);
-              }}
-              className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
-            >
-              <Trash2 className={'h-4 w-4'} />
-            </button>
+            {!client.isSelf && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(client);
+                }}
+                className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
+              >
+                <Pencil className={'h-4 w-4'} />
+              </button>
+            )}
+            {!client.isSelf && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(client);
+                }}
+                className={'text-muted-foreground active:bg-card rounded-lg p-2 transition-colors'}
+              >
+                <Trash2 className={'h-4 w-4'} />
+              </button>
+            )}
           </button>
         ))}
         {hasMore && (
@@ -577,43 +589,13 @@ export default function AdminClientsPage(): ReactNode {
         isOpen={!!deleteTarget}
         onClose={() => {
           setDeleteTarget(null);
-          setCascadeDeleteData(false);
         }}
         onConfirm={handleDelete}
         title={t('deleteDialog')}
         description={t('deleteDialogDescription', { name: deleteTarget?.name || '' })}
         confirmText={t('deleteConfirm')}
         destructive
-      >
-        <button
-          type={'button'}
-          onClick={() => setCascadeDeleteData(!cascadeDeleteData)}
-          className={
-            'bg-background mt-4 mb-3 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors active:opacity-80'
-          }
-        >
-          <div
-            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
-              cascadeDeleteData
-                ? 'border-action-danger-text bg-action-danger-text'
-                : 'border-muted-foreground bg-transparent'
-            }`}
-          >
-            {cascadeDeleteData && (
-              <svg className={'h-3 w-3 text-white'} viewBox={'0 0 12 12'} fill={'none'}>
-                <path
-                  d={'M2.5 6L5 8.5L9.5 3.5'}
-                  stroke={'currentColor'}
-                  strokeWidth={'2'}
-                  strokeLinecap={'round'}
-                  strokeLinejoin={'round'}
-                />
-              </svg>
-            )}
-          </div>
-          <span className={'text-foreground text-sm'}>{t('deleteAllDataCheckbox')}</span>
-        </button>
-      </ConfirmDialog>
+      />
 
       <ClientDetailModal
         client={selectedClient}

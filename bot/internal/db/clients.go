@@ -249,24 +249,6 @@ func GetOrCreateClientWithReferral(telegramUserID int64, specialistID string, na
 }
 
 /***************************************************************************************************
-* Updates client name.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-* - name: Name used by the current operation.
-*
-* Returns:
-* - An error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func UpdateClientName(clientID string, name string) error {
-	_, err := DB.Exec(Q(`UPDATE clients SET name = ? WHERE id = ?`), name, clientID)
-	return err
-}
-
-/***************************************************************************************************
 * UpdateClientTelegramUsername refreshes the cached Telegram @username when the bot observes a new
 * value from an incoming update. Stored stripped of any leading `@` so the mini app can compose
 * `https://t.me/<username>` links without extra parsing.
@@ -391,41 +373,6 @@ func MarkSpecialistPhotoRemoved(specialistID string) error {
 	return err
 }
 
-/***************************************************************************************************
-* Returns clients by specialist id.
-*
-* Parameters:
-* - specialistID: Identifier used to target the current record.
-*
-* Returns:
-* - The requested result together with an error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func GetClientsBySpecialistID(specialistID string) ([]models.Client, error) {
-	rows, err := DB.Query(Q(`
-		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
-		FROM clients
-		WHERE specialist_id = ?
-		ORDER BY name ASC
-	`), specialistID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var clients []models.Client
-	for rows.Next() {
-		c, err := scanClient(rows)
-		if err != nil {
-			return nil, err
-		}
-		clients = append(clients, *c)
-	}
-	return clients, rows.Err()
-}
-
 func GetClientsBySpecialistIDPaged(specialistID, search string, limit, offset int) ([]models.Client, int, error) {
 	whereClauses := []string{"specialist_id = ?"}
 	args := []interface{}{specialistID}
@@ -453,7 +400,9 @@ func GetClientsBySpecialistIDPaged(specialistID, search string, limit, offset in
 		SELECT id, telegram_user_id, specialist_id, name, phone, photo_url, photo_removed, preferred_duration, is_ghost, is_blocked, notify_booking_status, notify_reminders, notify_days_off, notify_cancellations, created_at, language, display_name, telegram_username
 		FROM clients
 		WHERE `+whereClause+`
-		ORDER BY name ASC
+		ORDER BY
+			(telegram_user_id = (SELECT telegram_user_id FROM specialists WHERE id = clients.specialist_id)) DESC,
+			name ASC
 		LIMIT ? OFFSET ?
 	`), queryArgs...)
 	if err != nil {
@@ -474,27 +423,9 @@ func GetClientsBySpecialistIDPaged(specialistID, search string, limit, offset in
 }
 
 /***************************************************************************************************
-* Deletes client.
-*
-* Parameters:
-* - clientID: Identifier used to target the current record.
-*
-* Returns:
-* - An error when the operation cannot complete successfully.
-*
-* Side effects:
-* - Reads from or writes to the shared database connection.
-***************************************************************************************************/
-func DeleteClient(clientID string) error {
-	_, err := DB.Exec(Q(`DELETE FROM clients WHERE id = ?`), clientID)
-	return err
-}
-
-/***************************************************************************************************
 * DeleteClientCascade removes a client along with all records that reference it
 * (bookings, recurring_schedules). Runs in a single transaction so a mid-delete
-* failure leaves no orphaned rows. Use when the caller explicitly opts into purging
-* all client data (e.g. the admin "delete all data" checkbox).
+* failure leaves no orphaned rows.
 ***************************************************************************************************/
 func DeleteClientCascade(clientID string) error {
 	tx, err := DB.Begin()

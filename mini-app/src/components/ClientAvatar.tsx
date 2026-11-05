@@ -1,5 +1,6 @@
 'use client';
 
+import { Bookmark } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
@@ -21,6 +22,14 @@ const sizeClasses = {
   lg: 'w-16 h-16 text-2xl',
 };
 
+const iconSizeClasses = {
+  sm: 'h-4 w-4',
+  md: 'h-5 w-5',
+  lg: 'h-8 w-8',
+};
+
+const circleSizeClasses = { sm: 'w-8 h-8', md: 'w-10 h-10', lg: 'w-16 h-16' };
+
 /***************************************************************************************************
  * Renders the client avatar UI and related interactions.
  *
@@ -33,7 +42,12 @@ const sizeClasses = {
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps): ReactNode {
+export function ClientAvatar({
+  name,
+  photoUrl,
+  size = 'md',
+  isSelf = false,
+}: TClientAvatarProps): ReactNode {
   const [error, setError] = useState(false);
   /***************************************************************************************************
    * Defines the cls value used by the component layer.
@@ -47,6 +61,16 @@ export function ClientAvatar({ name, photoUrl, size = 'md' }: TClientAvatarProps
   useEffect(() => {
     setError(false);
   }, [photoUrl]);
+
+  if (isSelf) {
+    return (
+      <div
+        className={`${circleSizeClasses[size]} bg-brand flex shrink-0 items-center justify-center rounded-full`}
+      >
+        <Bookmark className={`${iconSizeClasses[size]} fill-white text-white`} />
+      </div>
+    );
+  }
 
   /***************************************************************************************************
    * Implements the if logic used by this module.

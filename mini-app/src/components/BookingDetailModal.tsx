@@ -1,12 +1,13 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { dayFullLowerKeysJS } from '@/lib/constants';
+import { clientEntityLabel } from '@/lib/helpers';
 import { monthGenKeys } from '@/lib/mappings';
 
 import type { TBookingDetailModalProps } from '@/lib/types';
@@ -66,11 +67,9 @@ export function BookingDetailModal({
   const locale = useLocale();
   const [retainedBooking, setRetainedBooking] = useState(booking);
 
-  useEffect(() => {
-    if (booking) {
-      setRetainedBooking(booking);
-    }
-  }, [booking]);
+  if (booking && booking !== retainedBooking) {
+    setRetainedBooking(booking);
+  }
 
   const displayBooking = booking ?? retainedBooking;
 
@@ -93,7 +92,10 @@ export function BookingDetailModal({
    ***************************************************************************************************/
   const endsAt = new Date(displayBooking.endsAt);
   const canMessageClient =
-    !!onMessageClient && !displayBooking.clientIsGhost && !!displayBooking.clientTelegramUsername;
+    !!onMessageClient &&
+    !displayBooking.clientIsGhost &&
+    !displayBooking.clientIsSelf &&
+    !!displayBooking.clientTelegramUsername;
 
   /***************************************************************************************************
    * Formats date.
@@ -155,10 +157,11 @@ export function BookingDetailModal({
           name={displayBooking.clientDisplayName || displayBooking.clientName}
           photoUrl={displayBooking.clientPhotoUrl}
           size={'lg'}
+          isSelf={displayBooking.clientIsSelf}
         />
         <div>
           <h3 className={'text-foreground text-xl font-medium'}>
-            {displayBooking.clientDisplayName || displayBooking.clientName}
+            {clientEntityLabel(displayBooking, tc('self'))}
           </h3>
           <StatusBadge status={displayBooking.status} className={'inline-block px-2 py-0.5'} />
         </div>
