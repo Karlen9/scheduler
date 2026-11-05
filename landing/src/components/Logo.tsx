@@ -1,5 +1,7 @@
+import { useLocale } from 'next-intl';
+
 import { LOGO } from '@/lib/logo';
-import { PRODUCT_NAME } from '@/lib/site';
+import { getProductName } from '@/lib/site';
 
 import type { ReactNode } from 'react';
 
@@ -32,7 +34,9 @@ export function Logo({ href, label }: { href: string; label: string }): ReactNod
   return (
     <a href={href} aria-label={label} className={'flex items-center gap-2.5 rounded-full py-1.5'}>
       <LogoMark className={'size-9'} />
-      <span className={'text-[1.0625rem] font-bold tracking-tight'}>{PRODUCT_NAME}</span>
+      <span className={'text-[1.0625rem] font-bold tracking-tight whitespace-nowrap'}>
+        {getProductName(useLocale())}
+      </span>
     </a>
   );
 }

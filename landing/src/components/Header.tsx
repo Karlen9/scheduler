@@ -1,7 +1,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 
 import { getPathname } from '@/i18n/navigation';
-import { PRODUCT_NAME } from '@/lib/site';
+import { getProductName } from '@/lib/site';
 
 import { CtaButton } from './CtaButton';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -34,7 +34,7 @@ export function Header(): ReactNode {
         >
           <Logo
             href={getPathname({ locale, href: '/' })}
-            label={t('a11y.home', { name: PRODUCT_NAME })}
+            label={t('a11y.home', { name: getProductName(locale) })}
           />
           <nav
             aria-label={t('a11y.mainNav')}
