@@ -2,8 +2,10 @@ package api
 
 import (
 	"crypto/subtle"
+	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -93,30 +95,93 @@ func MetricsAuthMiddleware(next http.Handler) http.Handler {
 }
 
 /***************************************************************************************************
-* Implements the allowed origins for cors logic used by this module.
+* Placeholder WEB_APP_URL that config.Load() substitutes when the variable is unset.
+***************************************************************************************************/
+const webAppURLPlaceholder = "https://your-mini-app-url.com"
+
+/***************************************************************************************************
+* Normalises a configured origin to scheme://host[:port].
 *
 * Parameters:
-* - webAppURL: Web app url used by the current operation.
+* - raw: Origin or URL as configured (may carry a path or trailing slash).
 *
 * Returns:
-* - The computed value for the current operation as []string.
-*
-* Side effects:
-* - May coordinate request handling, authentication checks, or other API-facing behavior.
+* - The normalised origin and whether the input was a valid http(s) origin without wildcards.
 ***************************************************************************************************/
-func allowedOriginsForCORS(webAppURL string) []string {
-	origins := []string{
-		"http://localhost:3000",
-		"http://127.0.0.1:3000",
+func normalizeOrigin(raw string) (string, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || strings.Contains(raw, "*") {
+		return "", false
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {
+		return "", false
+	}
+	return strings.ToLower(u.Scheme) + "://" + strings.ToLower(u.Host), true
+}
+
+/***************************************************************************************************
+* Reports whether an origin points at a loopback host.
+***************************************************************************************************/
+func isLoopbackOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+/***************************************************************************************************
+* Builds the CORS origin allowlist: the normalised WEB_APP_URL plus CORS_ALLOWED_ORIGINS.
+* Wildcards and invalid entries are dropped with a warning, and "*" is never returned. The local
+* dev origins are added only when WEB_APP_URL is unset, the placeholder, or itself loopback.
+*
+* Parameters:
+* - webAppURL: Configured WEB_APP_URL.
+* - configured: Extra origins from CORS_ALLOWED_ORIGINS.
+*
+* Returns:
+* - The deduplicated list of allowed origins as []string.
+***************************************************************************************************/
+func allowedOriginsForCORS(webAppURL string, configured []string) []string {
+	var origins []string
+	seen := make(map[string]bool)
+	add := func(origin string) {
+		if !seen[origin] {
+			seen[origin] = true
+			origins = append(origins, origin)
+		}
 	}
 
-	if webAppURL == "" || webAppURL == "https://your-mini-app-url.com" {
-		return origins
+	devAllowed := false
+	webAppURL = strings.TrimSpace(webAppURL)
+	if webAppURL == "" || webAppURL == webAppURLPlaceholder {
+		devAllowed = true
+	} else if origin, ok := normalizeOrigin(webAppURL); ok {
+		add(origin)
+		devAllowed = isLoopbackOrigin(origin)
+	} else {
+		log.Printf("CORS: ignoring invalid WEB_APP_URL %q", webAppURL)
 	}
 
-	if webAppURL == origins[0] || webAppURL == origins[1] {
-		return origins
+	for _, entry := range configured {
+		origin, ok := normalizeOrigin(entry)
+		if !ok {
+			log.Printf("CORS: ignoring invalid CORS_ALLOWED_ORIGINS entry %q (wildcards and non-http(s) origins are rejected)", entry)
+			continue
+		}
+		add(origin)
 	}
 
-	return append([]string{webAppURL}, origins...)
+	if devAllowed {
+		add("http://localhost:3000")
+		add("http://127.0.0.1:3000")
+	}
+
+	return origins
 }

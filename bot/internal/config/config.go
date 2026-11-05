@@ -2,7 +2,10 @@ package config
 
 import (
 	"log"
+	"net"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -48,6 +51,82 @@ func parseSupportGroupID(raw string) int64 {
 	return normalised
 }
 
+/***************************************************************************************************
+* Splits a comma-separated list, trimming spaces and dropping empty entries.
+*
+* Parameters:
+* - s: Raw comma-separated value.
+*
+* Returns:
+* - The non-empty trimmed entries as []string (nil when there are none).
+***************************************************************************************************/
+func parseCommaList(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+/***************************************************************************************************
+* Reports whether publicBaseURL points at this machine only (localhost, 127.0.0.1, ::1 or a
+* *.localhost name). Used to refuse LOAD_TEST_MODE on public deployments.
+*
+* Parameters:
+* - publicBaseURL: Value of PUBLIC_BASE_URL.
+*
+* Returns:
+* - True only for loopback hosts; false for empty, unparsable or any other host.
+***************************************************************************************************/
+func isLoopbackBaseURL(publicBaseURL string) bool {
+	raw := strings.TrimSpace(publicBaseURL)
+	if raw == "" {
+		return false
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "" {
+		return false
+	}
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+/***************************************************************************************************
+* Reports whether the SQLite file would live in a container's writable layer: no Postgres URL,
+* a relative database path and a containerised process.
+*
+* Parameters:
+* - databaseURL: Value of DATABASE_URL.
+* - databasePath: Effective SQLite path.
+* - inContainer: Whether the process runs inside a container.
+*
+* Returns:
+* - True when the data would be lost on container recreate.
+***************************************************************************************************/
+func sqlitePathIsEphemeral(databaseURL, databasePath string, inContainer bool) bool {
+	return databaseURL == "" && inContainer && !filepath.IsAbs(databasePath)
+}
+
+/***************************************************************************************************
+* Detects a Docker-style container via /.dockerenv.
+***************************************************************************************************/
+func runningInContainer() bool {
+	_, err := os.Stat("/.dockerenv")
+	return err == nil
+}
+
 func parseAdminIDs(s string) []int64 {
 	if s == "" {
 		return nil
@@ -90,6 +169,14 @@ type Config struct {
 	* Security.
 	***************************************************************************************************/
 	SuperadminSecret string // Bearer token for /superadmin/* endpoints
+
+	// CORSAllowedOrigins extends the CORS allowlist beyond WEB_APP_URL (comma-separated
+	// CORS_ALLOWED_ORIGINS). Wildcards are rejected downstream.
+	CORSAllowedOrigins []string
+
+	// LoadTestMode bypasses Telegram auth for X-Test-User-ID and disables rate limits. Local only:
+	// Load() refuses to start unless PUBLIC_BASE_URL is a loopback address.
+	LoadTestMode bool
 
 	/***************************************************************************************************
 	* Subscription / YooKassa.
@@ -212,6 +299,8 @@ func Load() *Config {
 		SupportGroupID:      supportGroupID,
 		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
 		SuperadminSecret:    os.Getenv("SUPERADMIN_SECRET"),
+		CORSAllowedOrigins:  parseCommaList(os.Getenv("CORS_ALLOWED_ORIGINS")),
+		LoadTestMode:        os.Getenv("LOAD_TEST_MODE") == "true",
 
 		/***************************************************************************************************
 		* Subscription / YooKassa.
@@ -251,6 +340,14 @@ func Load() *Config {
 
 	if cfg.PublicBaseURL == "" {
 		log.Fatal("PUBLIC_BASE_URL environment variable is required")
+	}
+
+	if cfg.LoadTestMode && !isLoopbackBaseURL(cfg.PublicBaseURL) {
+		log.Fatal("LOAD_TEST_MODE=true is only allowed when PUBLIC_BASE_URL points at localhost/127.0.0.1/::1; refusing to start with auth bypass enabled on a public deployment")
+	}
+
+	if sqlitePathIsEphemeral(cfg.DatabaseURL, cfg.DatabasePath, runningInContainer()) {
+		log.Printf("WARNING: SQLite database path %q is relative and the process runs in a container; the file lives in the container layer and will be LOST when the container is recreated. Set DATABASE_PATH=/data/scheduler.db and mount a volume at /data (or set DATABASE_URL).", cfg.DatabasePath)
 	}
 
 	if cfg.MasterBotToken == "" {

@@ -73,6 +73,7 @@ everything you'll need into a local archive directory:
 mkdir -p old-server-archive
 scp root@OLD_IP:/root/sport-app/docker-compose.yml old-server-archive/
 scp root@OLD_IP:/root/sport-app/bot/.env old-server-archive/bot.env.REAL
+chmod 600 old-server-archive/bot.env.REAL   # holds ENCRYPTION_KEY and every secret
 scp root@OLD_IP:/etc/caddy/Caddyfile old-server-archive/Caddyfile.old
 scp root@OLD_IP:/root/sport-app/hooks.json old-server-archive/hooks.json.old
 # Optional — only if these exist on your old server. The new bundle
@@ -190,6 +191,10 @@ cp bot.env.example bot.env
 
 cp monitor.env.example monitor.env
 # fill in real values (see step 9 for SSH_HOST/SSH_USER specifics)
+
+# These files hold secrets: restrict them to the owner. Keep them owned by the
+# `deploy` user (do NOT chown to root) because the redeploy webhook runs as it.
+chmod 600 .env bot.env monitor.env
 
 mkdir -p bot-data backups monitor-state ssh
 mv webhook-redeploy hooks

@@ -172,7 +172,7 @@ cat <<'EOF'
 
  Next steps (full detail in MIGRATION.md):
    1. Copy this deploy/new-server/ bundle to /srv/scheduler as the deploy user.
-   2. Fill in .env, bot.env, monitor.env from their .example files.
+   2. Fill in .env, bot.env, monitor.env from their .example files, then chmod 600 them (keep owner deploy).
    3. docker compose pull && docker compose up -d
    4. Install the redeploy webhook systemd unit and rotate its tokens.
 ==================================================================

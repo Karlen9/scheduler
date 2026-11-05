@@ -556,7 +556,7 @@ func TestAdminUnauthorized(t *testing.T) {
 ***************************************************************************************************/
 func TestGetClientProfile(t *testing.T) {
 	/***************************************************************************************************
-	* GET /api/profile as client 444444 -> should create via DevAuthMiddleware with name "Dev User".
+	* GET /api/profile as client 444444 -> client is created from signed initData with name "Test User".
 	***************************************************************************************************/
 	w := doClientRequest(t, http.MethodGet, "/api/profile", nil, 444444)
 
