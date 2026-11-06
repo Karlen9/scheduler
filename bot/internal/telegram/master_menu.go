@@ -22,6 +22,12 @@ func formatAlreadyRegistered(loc *localizerType, botUsername string) string {
 	return fmt.Sprintf(myI18n.T(loc, "Master.AlreadyRegistered"), botUsername)
 }
 
+// masterHomeRegisteredText renders the registered-user menu text with a link to their bot.
+// An empty username omits the link line so a broken "https://t.me/" is never shown.
+func masterHomeRegisteredText(loc *localizerType, botUsername string) string {
+	return myI18n.Tf(loc, "MasterMenu.HomeRegistered", map[string]interface{}{"Bot": htmlEscape(botUsername)})
+}
+
 // Callback data values. Keep them short (Telegram limit: 64 bytes) and namespaced by a single prefix
 // so the master dispatcher can route them with a prefix switch.
 const (
@@ -51,14 +57,16 @@ const (
 // everyone else gets the new-user pitch with the create-bot entry.
 func (h *MasterHandler) renderMainMenu(chatID, userID int64, messageID int, loc *localizerType) {
 	registered := false
+	botUsername := ""
 	if sp, err := masterLoadSpecialist(userID); err == nil && sp != nil && sp.IsActive {
 		registered = true
+		botUsername = sp.BotUsername
 	}
 
 	var text string
 	var rows [][]InlineKeyboardButton
 	if registered {
-		text = myI18n.T(loc, "MasterMenu.HomeRegistered")
+		text = masterHomeRegisteredText(loc, botUsername)
 		rows = [][]InlineKeyboardButton{
 			{{Text: myI18n.T(loc, "MasterMenu.BtnInvite"), CallbackData: cbMenuInvite}},
 			{{Text: myI18n.T(loc, "MasterMenu.BtnFAQ"), CallbackData: cbMenuFAQ}},

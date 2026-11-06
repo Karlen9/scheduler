@@ -595,7 +595,7 @@
     "other": "👋 Hi! I'll help you launch your own Telegram bot for online client bookings.\n\nWhat your bot does:\n• 📅 Accepts bookings 24/7 via a Mini App\n• 🔔 Sends reminders to clients and notifications to you\n• 👥 Keeps a client base with visit history\n\n🎁 All features are free:\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n• Revenue and workload analytics\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nPick an option:"
   },
   "MasterMenu.HomeRegistered": {
-    "other": "👋 Welcome back! Your bot is up and running, and all features are free.\n\nHere you can:\n• 🤝 Invite colleagues\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
+    "other": "👋 Welcome back! Your bot is up and running, and all features are free.\n\n{{if .Bot}}🔗 Your bot: https://t.me/{{.Bot}}\n\n{{end}}Here you can:\n• 🤝 Invite colleagues\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
