@@ -76,18 +76,13 @@ func TestSensitiveAdminActionsAreLimited(t *testing.T) {
 	h := newLimitedRouter(t)
 	owner := testSpecialist.TelegramUserID
 
-	for i := 0; i < 3; i++ {
-		if w := doRequestOn(h, http.MethodPost, "/api/admin/promocode/validate", `{}`, owner); w.Code == http.StatusTooManyRequests {
-			t.Fatalf("promocode validate %d limited too early", i+1)
+	// Burst of 5; the confirmation phrase is missing so no request deletes anything.
+	for i := 0; i < 5; i++ {
+		if w := doRequestOn(h, http.MethodDelete, "/api/admin/specialist", `{}`, owner); w.Code == http.StatusTooManyRequests {
+			t.Fatalf("delete-bot request %d limited too early", i+1)
 		}
 	}
-	for i := 0; i < 2; i++ {
-		if w := doRequestOn(h, http.MethodPost, "/api/admin/subscription/checkout", `{}`, owner); w.Code == http.StatusTooManyRequests {
-			t.Fatalf("checkout %d limited too early", i+1)
-		}
-	}
-	// Burst of 5 is shared across the group.
-	if w := doRequestOn(h, http.MethodPost, "/api/admin/promocode/validate", `{}`, owner); w.Code != http.StatusTooManyRequests {
+	if w := doRequestOn(h, http.MethodDelete, "/api/admin/specialist", `{}`, owner); w.Code != http.StatusTooManyRequests {
 		t.Fatalf("expected 429 on the 6th sensitive action, got %d", w.Code)
 	}
 }

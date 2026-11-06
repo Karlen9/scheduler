@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sync"
 
-	"scheduler-bot/internal/config"
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
 )
@@ -46,22 +45,19 @@ type ReferralClient struct {
 	IsBlocked      bool   `json:"isBlocked,omitempty"`
 }
 
-// ReferredSpecialist is the per-specialist entry in the referrals response. Active specialists
-// are those with a recorded first_payment_at — the attribution is "lifetime active" once paid.
+// ReferredSpecialist is the per-specialist entry in the referrals response.
 type ReferredSpecialist struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	BotUsername    string  `json:"botUsername"`
-	CreatedAt      string  `json:"createdAt"`
-	FirstPaymentAt *string `json:"firstPaymentAt,omitempty"`
-	IsActive       bool    `json:"isActive"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	BotUsername string `json:"botUsername"`
+	CreatedAt   string `json:"createdAt"`
 }
 
 /***************************************************************************************************
 * ReferralsResponse is returned by GET /api/admin/referrals.
 *
 * Link is the share link to hand out — points at the master bot, not the specialist's personal bot.
-* SpecialistCount / Active / Passive describe the specialist-referral program (primary use).
+* SpecialistCount / Specialists describe the specialist-referral program (primary use).
 * Count / Referrals describe legacy client referrals (kept for backwards compat).
 ***************************************************************************************************/
 type ReferralsResponse struct {
@@ -71,10 +67,7 @@ type ReferralsResponse struct {
 	Referrals []ReferralClient `json:"referrals"`
 	// Specialist-referral program (new surface).
 	SpecialistCount int                  `json:"specialistCount"`
-	ActiveCount     int                  `json:"activeCount"`
-	PassiveCount    int                  `json:"passiveCount"`
 	Specialists     []ReferredSpecialist `json:"specialists"`
-	RewardDays      int                  `json:"rewardDays"`
 }
 
 /***************************************************************************************************
@@ -134,27 +127,17 @@ func buildReferralsResponse(specialist *models.Specialist) (ReferralsResponse, e
 		Referrals:       make([]ReferralClient, 0, len(referred)),
 		SpecialistCount: len(referredSpecialists),
 		Specialists:     make([]ReferredSpecialist, 0, len(referredSpecialists)),
-		RewardDays:      config.ReferralRewardDays(),
 	}
 	for _, c := range referred {
 		resp.Referrals = append(resp.Referrals, toReferralClient(c))
 	}
 	for _, s := range referredSpecialists {
-		item := ReferredSpecialist{
+		resp.Specialists = append(resp.Specialists, ReferredSpecialist{
 			ID:          s.ID,
 			Name:        s.Name,
 			BotUsername: s.BotUsername,
 			CreatedAt:   s.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			IsActive:    s.FirstPaymentAt != nil,
-		}
-		if s.FirstPaymentAt != nil {
-			ts := s.FirstPaymentAt.Format("2006-01-02T15:04:05Z07:00")
-			item.FirstPaymentAt = &ts
-			resp.ActiveCount++
-		} else {
-			resp.PassiveCount++
-		}
-		resp.Specialists = append(resp.Specialists, item)
+		})
 	}
 
 	return resp, nil

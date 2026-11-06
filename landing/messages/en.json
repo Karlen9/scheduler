@@ -1,23 +1,23 @@
 {
   "meta": {
     "title": "{name} — client booking in Telegram",
-    "description": "Your own Telegram bot for online booking: clients book themselves and you confirm with one tap. 14 days of Pro free, no card required."
+    "description": "Your own Telegram bot for online booking: clients book themselves and you confirm with one tap. Every feature is free."
   },
   "nav": {
     "features": "Features",
     "how": "How it works",
-    "pricing": "Pricing",
+    "free": "Free",
     "faq": "FAQ"
   },
   "cta": {
     "primary": "Create my bot",
     "hero": "Create my bot for free",
-    "trial": "14 days of Pro free, no card required"
+    "note": "Every feature is free, no limits"
   },
   "hero": {
-    "eyebrow": "Online booking in Telegram",
+    "eyebrow": "Free online booking in Telegram",
     "title": "Clients book themselves, <accent>you just confirm</accent>",
-    "subtitle": "Your own bot with your name, plus a calendar and notifications right in Telegram. Setup takes 2 minutes, and your clients have nothing to install."
+    "subtitle": "Your own bot with your name, plus a calendar and notifications right in Telegram. It's free, setup takes 2 minutes, and your clients have nothing to install."
   },
   "pain": {
     "title": "Bookings shouldn't live <accent>in your DMs</accent>",
@@ -42,7 +42,7 @@
   },
   "features": {
     "title": "Everything for booking, <accent>right in Telegram</accent>",
-    "subtitle": "Clients stay in a messenger they already use, and you run your schedule from your phone.",
+    "subtitle": "Clients use the messenger they already know, and you run your schedule from your phone. Every feature is free.",
     "items": {
       "confirm": {
         "title": "One-tap confirmation",
@@ -128,45 +128,34 @@
       }
     }
   },
-  "pricing": {
-    "title": "Simple <accent>pricing</accent>",
-    "subtitle": "14 days of Pro free when you sign up, no card required. After that, pick a term: the longer it is, the better the rate.",
-    "free": {
-      "name": "Free",
-      "price": "0 ₽",
-      "desc": "Keep your client base and book clients manually.",
-      "cta": "Start for free"
-    },
-    "plans": {
-      "pro_monthly": "1 month",
-      "pro_quarterly": "3 months",
-      "pro_annual": "12 months"
-    },
-    "pro": "Pro",
-    "badge": "Best value",
-    "perMonth": "{price} ₽/mo",
-    "save": "−{percent}%",
-    "cta": "Try Pro",
-    "includesTitle": "What Pro adds",
+  "free": {
+    "title": "Everything is <accent>free</accent>",
+    "subtitle": "Every feature is open to every specialist from day one. There is nothing to pay.",
+    "price": "0 ₽",
+    "priceCaption": "for every feature",
+    "includesTitle": "What's included",
     "includes": {
       "i1": "Clients book themselves through your bot",
-      "i2": "Recurring bookings",
-      "i3": "Prepaid passes (session packages)",
-      "i4": "Bulk scheduling tools",
-      "i5": "Revenue and workload analytics"
+      "i2": "Calendar and schedule",
+      "i3": "Reminders for clients and notifications for you",
+      "i4": "Recurring bookings",
+      "i5": "Session packages (prepaid passes)",
+      "i6": "A client base with visit history",
+      "i7": "Bulk scheduling tools",
+      "i8": "Revenue and workload analytics"
     },
-    "note": "Payment by card via YooKassa, with an electronic receipt. Got a promo code? Enter it at checkout. After the trial, manual booking stays available."
+    "note": "There are no limits on the number of clients or bookings."
   },
   "referral": {
     "title": "Recommend us to a colleague",
-    "text": "When a specialist you invite pays for their first subscription, you get free Pro days for every one who pays.",
+    "text": "The service is free for every specialist. Send a colleague the link from our bot: setting up their own bot takes a couple of minutes.",
     "cta": "Invite a colleague"
   },
   "faq": {
     "title": "Frequently asked <accent>questions</accent>",
     "groups": {
       "start": "Getting started",
-      "pricing": "Pricing and payment",
+      "cost": "Cost",
       "services": "Services and schedule",
       "clients": "Clients",
       "bookings": "Bookings and cancellations"
@@ -186,15 +175,15 @@
       },
       "i4": {
         "q": "How much does it cost?",
-        "a": "You get 14 days of Pro free when you sign up. After that Pro is a subscription: {monthly} ₽ for 1 month, {quarterly} ₽ for 3 months ({quarterlyPerMonth} ₽/mo) or {annual} ₽ for 12 months ({annualPerMonth} ₽/mo). Payment is by card via YooKassa, with an electronic receipt. Got a promo code? Enter it at checkout."
+        "a": "Nothing. The service is free, and every feature is available to every specialist from day one."
       },
       "i5": {
-        "q": "What's the difference between Free and Pro?",
-        "a": "On Free you keep your client base and book clients manually. Pro adds self-booking through your bot, recurring bookings, prepaid passes (session packages), bulk scheduling tools, and revenue and workload analytics. The first 14 days of Pro are free, no card required. After the trial, manual booking stays available."
+        "q": "Are there any limits?",
+        "a": "No. Client self-booking, recurring bookings, session packages (prepaid passes), bulk scheduling tools, and revenue and workload analytics are available to everyone, with no limits on the number of clients or bookings."
       },
       "i6": {
-        "q": "How does the referral program work?",
-        "a": "Invite fellow specialists with your personal link, using the \"🤝 Invite a colleague\" button in our bot's menu. When an invited specialist pays for their first subscription, you get free Pro days for every one who pays."
+        "q": "How do I invite a colleague?",
+        "a": "Open our bot and tap \"🤝 Invite a colleague\": your personal link is there. Send it to a fellow specialist."
       },
       "i7": {
         "q": "How do I add or edit a service?",
@@ -254,7 +243,7 @@
   },
   "closing": {
     "title": "Your booking could be live <accent>today</accent>",
-    "text": "Scan the QR code with your phone camera or press the button to open the bot in Telegram.",
+    "text": "Free, with every feature. Scan the QR code with your phone camera or press the button to open the bot in Telegram.",
     "qrLabel": "QR code that opens the bot in Telegram"
   },
   "footer": {

@@ -1,16 +1,13 @@
 package telegram
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"scheduler-bot/internal/config"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -46,25 +43,12 @@ const (
 	* - Reused by the telegram bot layer to keep shared values centralized.
 	***************************************************************************************************/
 	StateAwaitingName
-	// StateAwaitingEmail is entered after StateAwaitingName; the user provides a contact email
-	// that will be used for YooKassa fiscal receipts. Name is held in the session until this step
-	// completes and the specialist row is created.
-	StateAwaitingEmail
 	// StateAwaitingReplacementToken is entered via /replacetoken or the profile menu when an
 	// already-registered specialist needs to swap their bot token (e.g. after BotFather /revoke).
 	StateAwaitingReplacementToken
-	// StateAwaitingConsent is entered after StateAwaitingEmail; the validated email is held in
-	// the session while we wait for the user to tap the "I accept" consent button.
+	// StateAwaitingConsent is entered after StateAwaitingName; the name is held in the session
+	// while we wait for the user to tap the "I accept" consent button.
 	StateAwaitingConsent
-	// StateAwaitingPromoCode is entered when the user taps "I have a promo code" on the
-	// subscription screen. The pending plan code is stored in pendingPlanCodes keyed by userID.
-	StateAwaitingPromoCode
-
-	// Admin promo-code creation states (admin-only, stored under the same sessions map).
-	StateAwaitingPromoNewCode       // admin typed the code string
-	StateAwaitingPromoDiscountValue // admin typed the numeric discount
-	StateAwaitingPromoMaxRedempt    // admin typed max redemptions (or "skip")
-	StateAwaitingPromoDurationDays  // admin typed duration_days override (or "skip")
 )
 
 /***************************************************************************************************
@@ -74,8 +58,7 @@ type OnboardingSession struct {
 	State       OnboardingState
 	BotToken    string
 	BotUsername string
-	Name        string // set in handleNameInput; carried into handleEmailInput for specialist creation
-	Email       string // set in handleEmailInput; carried into finalizeOnboarding after consent
+	Name        string // set in handleNameInput; carried into finalizeOnboarding after consent
 }
 
 // pendingRef is a referral code captured from "/start ref_<code>" that is waiting for the user
@@ -102,40 +85,6 @@ type MasterHandler struct {
 	adminIDs       []int64
 	supportGroupID int64                // 0 = support relay disabled
 	pendingRefs    map[int64]pendingRef // telegramUserID -> pending referrer code + capture time
-	// pendingPlanCodes stores the plan code selected before entering the promo-code state.
-	pendingPlanCodes map[int64]string // telegramUserID -> planCode
-
-	// promoCreateDrafts holds in-progress admin promo-code creation state.
-	// Guarded by h.mu (same mutex as sessions / pendingRefs).
-	promoCreateDrafts map[int64]*promoCreateDraft // adminUserID -> draft
-
-	// subAutoRenew stores the specialist's auto-renewal toggle choice on the subscription screen.
-	// Absent entry means default ON. Guarded by h.mu.
-	subAutoRenew map[int64]bool // telegramUserID -> auto-renew choice for master-bot checkout (absent = default ON)
-
-	// pendingPromoCodes stores the validated promo code for a user who has passed validation and is
-	// about to tap "Pay". Guarded by h.mu.
-	pendingPromoCodes map[int64]string // telegramUserID -> validated promo code awaiting payment
-
-	// CreateCheckoutFunc is injected by main.go to avoid an import cycle (api imports telegram
-	// for photo handlers; telegram must not import api). Nil until wired.
-	CreateCheckoutFunc func(ctx context.Context, specialist *models.Specialist, planCode, promoCode string, autoRenew bool) (confirmationURL string, granted bool, err error)
-
-	// ValidatePromoFunc is injected by main.go to avoid the api→telegram import cycle.
-	// It validates a promo code for a given plan and specialist WITHOUT creating a checkout.
-	// Returns (finalKopecks, discountKopecks, reason, ok).
-	ValidatePromoFunc func(code, planCode, specialistID string) (finalKopecks, discountKopecks int, reason string, ok bool)
-}
-
-// promoCreateDraft tracks the state of an admin creating a new promo code step by step.
-// All access must be under h.mu.
-type promoCreateDraft struct {
-	Code         string // upper-cased code string
-	DiscountType string // "percent" | "amount" — set by inline button
-	// DiscountValue is filled in after the admin confirms the type and types the value.
-	DiscountValue  int
-	MaxRedemptions *int // nil = unlimited
-	DurationDays   int  // 0 = use plan's own duration
 }
 
 /***************************************************************************************************
@@ -155,17 +104,13 @@ type promoCreateDraft struct {
 ***************************************************************************************************/
 func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int64, supportGroupID int64) *MasterHandler {
 	return &MasterHandler{
-		bot:               bot,
-		sessions:          make(map[int64]*OnboardingSession),
-		publicBaseURL:     publicBaseURL,
-		webAppURL:         webAppURL,
-		adminIDs:          adminIDs,
-		supportGroupID:    supportGroupID,
-		pendingRefs:       make(map[int64]pendingRef),
-		pendingPlanCodes:  make(map[int64]string),
-		promoCreateDrafts: make(map[int64]*promoCreateDraft),
-		subAutoRenew:      make(map[int64]bool),
-		pendingPromoCodes: make(map[int64]string),
+		bot:            bot,
+		sessions:       make(map[int64]*OnboardingSession),
+		publicBaseURL:  publicBaseURL,
+		webAppURL:      webAppURL,
+		adminIDs:       adminIDs,
+		supportGroupID: supportGroupID,
+		pendingRefs:    make(map[int64]pendingRef),
 	}
 }
 
@@ -226,106 +171,6 @@ func (h *MasterHandler) evictStalePendingRefsLocked(now time.Time) {
 			delete(h.pendingRefs, uid)
 		}
 	}
-}
-
-// setPendingPlanCode stores the plan code for a user about to enter a promo code.
-func (h *MasterHandler) setPendingPlanCode(userID int64, planCode string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.pendingPlanCodes[userID] = planCode
-}
-
-// clearPendingPlanCode drops the pending plan code for a user without returning it.
-// Used from /cancel so an abandoned promo-code entry doesn't leave an orphaned plan code.
-func (h *MasterHandler) clearPendingPlanCode(userID int64) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	delete(h.pendingPlanCodes, userID)
-}
-
-// --- subAutoRenew helpers (guarded by h.mu) ---
-
-// getSubAutoRenew returns the auto-renew preference for a user. Absent entry defaults to true (ON).
-func (h *MasterHandler) getSubAutoRenew(userID int64) bool {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	v, ok := h.subAutoRenew[userID]
-	if !ok {
-		return true
-	}
-	return v
-}
-
-// setSubAutoRenew stores the auto-renew preference for a user.
-func (h *MasterHandler) setSubAutoRenew(userID int64, v bool) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.subAutoRenew[userID] = v
-}
-
-// --- promoCreateDraft helpers (all guarded by h.mu) ---
-
-// getPromoCreateDraft returns the in-progress promo-create draft for an admin, or nil.
-func (h *MasterHandler) getPromoCreateDraft(adminID int64) *promoCreateDraft {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return h.promoCreateDrafts[adminID]
-}
-
-// setPromoCreateDraft stores (or replaces) the in-progress draft for an admin.
-// Passing nil clears the draft.
-func (h *MasterHandler) setPromoCreateDraft(adminID int64, d *promoCreateDraft) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if d == nil {
-		delete(h.promoCreateDrafts, adminID)
-	} else {
-		h.promoCreateDrafts[adminID] = d
-	}
-}
-
-// clearPromoCreateDraft removes the in-progress draft for an admin.
-func (h *MasterHandler) clearPromoCreateDraft(adminID int64) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	delete(h.promoCreateDrafts, adminID)
-}
-
-// peekPendingPlanCode reads the pending plan code WITHOUT deleting it.
-// ok=false when absent or empty (does NOT default to pro_annual).
-func (h *MasterHandler) peekPendingPlanCode(userID int64) (string, bool) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	code, ok := h.pendingPlanCodes[userID]
-	if !ok || code == "" {
-		return "", false
-	}
-	return code, true
-}
-
-// setPendingPromo stores the validated promo code for the user awaiting final payment.
-func (h *MasterHandler) setPendingPromo(userID int64, code string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.pendingPromoCodes[userID] = code
-}
-
-// peekPendingPromo reads the pending promo code without deleting it.
-func (h *MasterHandler) peekPendingPromo(userID int64) (string, bool) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	code, ok := h.pendingPromoCodes[userID]
-	if !ok || code == "" {
-		return "", false
-	}
-	return code, true
-}
-
-// clearPendingPromo removes the pending promo code for the user.
-func (h *MasterHandler) clearPendingPromo(userID int64) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	delete(h.pendingPromoCodes, userID)
 }
 
 /***************************************************************************************************
@@ -444,24 +289,11 @@ func (h *MasterHandler) HandleUpdate(update Update) {
 			h.handleTokenInput(chatID, userID, text, session, loc)
 		case StateAwaitingName:
 			h.handleNameInput(chatID, userID, text, session, msg.From.Username, loc)
-		case StateAwaitingEmail:
-			h.handleEmailInput(chatID, userID, text, session, msg.From.Username, loc)
 		case StateAwaitingConsent:
 			// User typed text instead of tapping the button — re-send the consent prompt.
 			h.sendConsentPrompt(chatID, loc)
 		case StateAwaitingReplacementToken:
 			h.handleReplacementTokenInput(chatID, userID, text, loc)
-		case StateAwaitingPromoCode:
-			h.handlePromoCodeInput(chatID, userID, text, loc)
-		// Admin promo-code creation states (admin-only).
-		case StateAwaitingPromoNewCode:
-			h.handleAdminPromoCodeInput(chatID, userID, text, loc)
-		case StateAwaitingPromoDiscountValue:
-			h.handleAdminPromoDiscountValueInput(chatID, userID, text, loc)
-		case StateAwaitingPromoMaxRedempt:
-			h.handleAdminPromoMaxRedemptInput(chatID, userID, text, loc)
-		case StateAwaitingPromoDurationDays:
-			h.handleAdminPromoDurationDaysInput(chatID, userID, text, loc)
 		}
 		return
 	}
@@ -734,12 +566,6 @@ func (h *MasterHandler) handleCancel(chatID, userID int64, loc *localizerType) {
 	h.setSession(userID, nil)
 	// Drop any referral code captured from a /start ref_<code> that the user is now abandoning.
 	h.clearPendingReferral(userID)
-	// Drop any pending plan code stored before entering the promo-code state.
-	h.clearPendingPlanCode(userID)
-	// Drop any validated promo code stored before the final pay step.
-	h.clearPendingPromo(userID)
-	// Drop any in-progress admin promo-create draft.
-	h.clearPromoCreateDraft(userID)
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Cancelled"), nil)
 }
 
@@ -852,64 +678,22 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 	}
 
 	/***************************************************************************************************
-	* Store the name in the session and advance to the email step.
+	* Store the name in the session and ask for consent to the Terms and Privacy Policy.
 	***************************************************************************************************/
 	session.Name = name
-	session.State = StateAwaitingEmail
-	h.setSession(userID, session)
-
-	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.AskEmail"), nil)
-}
-
-// emailRegexp is a simple sanity-check pattern compiled once at package scope. It requires at
-// least one non-whitespace character before the @, at least one after, and a dot in the domain
-// part. Full RFC 5321 validation is deliberately avoided — we just want to reject obvious typos.
-var emailRegexp = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
-
-// isValidEmail returns true when s looks like a plausible email address.
-func isValidEmail(s string) bool {
-	return emailRegexp.MatchString(s)
-}
-
-// ConsentVersion identifies the current revision of the Terms / Privacy documents.
-// Increment this string whenever the documents materially change so that re-consent can be
-// requested from existing specialists if needed.
-const ConsentVersion = "1.0"
-
-/***************************************************************************************************
-* Handles email input. Validates the address, stores it in the session, and prompts the user to
-* accept the Terms of Use and Privacy Policy before creating the specialist row.
-*
-* Parameters:
-* - chatID: Identifier used to target the current record.
-* - userID: Identifier used to target the current record.
-* - text: Text used by the current operation.
-* - session: Session used by the current operation.
-* - username: Username used by the current operation.
-* - loc: Loc used by the current operation.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - May call Telegram APIs, mutate in-memory workflow state, or persist specialist data.
-***************************************************************************************************/
-func (h *MasterHandler) handleEmailInput(chatID, userID int64, text string, session *OnboardingSession, username string, loc *localizerType) {
-	email := strings.TrimSpace(text)
-	if !isValidEmail(email) {
-		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.InvalidEmail"), nil)
-		return
-	}
-
-	session.Email = email
 	session.State = StateAwaitingConsent
 	h.setSession(userID, session)
 
 	h.sendConsentPrompt(chatID, loc)
 }
 
+// ConsentVersion identifies the current revision of the Terms / Privacy documents.
+// Increment this string whenever the documents materially change so that re-consent can be
+// requested from existing specialists if needed.
+const ConsentVersion = "1.1"
+
 // sendConsentPrompt sends the consent message with Terms / Privacy URL buttons and the accept
-// callback button. Extracted so both handleEmailInput and the StateAwaitingConsent text fallback
+// callback button. Extracted so both handleNameInput and the StateAwaitingConsent text fallback
 // can call it without duplication.
 func (h *MasterHandler) sendConsentPrompt(chatID int64, loc *localizerType) {
 	kb := &InlineKeyboardMarkup{
@@ -938,11 +722,9 @@ func (h *MasterHandler) handleConsentAccept(chatID, userID int64, username strin
 }
 
 // finalizeOnboarding creates the specialist row, persists supplementary data, seeds defaults, and
-// registers the bot webhook. It reads the validated email from session.Email so the original text
-// input is no longer needed at this point.
+// registers the bot webhook.
 func (h *MasterHandler) finalizeOnboarding(chatID, userID int64, username string, session *OnboardingSession, loc *localizerType) {
 	name := session.Name
-	email := session.Email
 
 	/***************************************************************************************************
 	* Create specialist.
@@ -959,13 +741,6 @@ func (h *MasterHandler) finalizeOnboarding(chatID, userID int64, username string
 		log.Printf("Error creating specialist: %v", err)
 		h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Error"), nil)
 		return
-	}
-
-	/***************************************************************************************************
-	* Persist the email address (log-only on failure; do not abort registration).
-	***************************************************************************************************/
-	if err := db.SetSpecialistEmail(specialist.ID, email); err != nil {
-		log.Printf("master: save specialist email failed (%s): %v", specialist.ID, err)
 	}
 
 	/***************************************************************************************************
@@ -1168,33 +943,4 @@ func (h *MasterHandler) handleReplacementTokenInput(chatID, userID int64, text s
 	h.bot.SendMessage(chatID, fmt.Sprintf(myI18n.T(loc, "MasterReplace.Success"), refreshed.BotUsername), nil)
 	h.renderMainMenu(chatID, userID, 0, loc)
 	log.Printf("Specialist @%s token rotated by user %d", refreshed.BotUsername, userID)
-}
-
-// NotifySubscriptionEvent sends a DM to the specialist identified by their Telegram user ID
-// with a message describing the subscription event. Called by api.NotifySubscriptionEventFunc.
-func (h *MasterHandler) NotifySubscriptionEvent(tgID int64, event string) {
-	loc := h.localizerFor(tgID)
-	var text string
-	switch event {
-	case "subscription_activated":
-		text = myI18n.T(loc, "Subscription.EventActivated")
-	case "subscription_renewed":
-		text = myI18n.T(loc, "Subscription.EventRenewed")
-	case "subscription_payment_failed":
-		text = myI18n.T(loc, "Subscription.EventPaymentFailed")
-	case "trial_expired":
-		text = myI18n.T(loc, "Subscription.EventTrialExpired")
-	case "subscription_expired":
-		text = myI18n.T(loc, "Subscription.EventExpired")
-	case "referral_reward":
-		text = myI18n.Tf(loc, "Subscription.EventReferralReward", map[string]interface{}{
-			"Days": config.ReferralRewardDays(),
-		})
-	default:
-		log.Printf("master: NotifySubscriptionEvent: unknown event %q for tgID=%d", event, tgID)
-		return
-	}
-	if _, err := h.bot.SendMessage(tgID, text, nil); err != nil {
-		log.Printf("master: NotifySubscriptionEvent: send to %d failed: %v", tgID, err)
-	}
 }

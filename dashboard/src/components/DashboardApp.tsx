@@ -1404,10 +1404,6 @@ function DashboardAppInner({
             label={t("Specialist referrals")}
             value={formatNumber(data.referrals.specialistCount)}
           />
-          <Card
-            label={t("Active referred specialists")}
-            value={formatNumber(data.referrals.activeCount)}
-          />
         </div>
         <Section title={t("Referral link")}>
           <a
@@ -2305,7 +2301,7 @@ function ReferralSpecialistList({
 }: {
   data: SpecialistSnapshot;
 }): ReactNode {
-  const { language, t } = useDashboardI18n();
+  const { t } = useDashboardI18n();
   if (!data.referrals.specialists.length) {
     return <EmptyState>{t("No referred specialists yet.")}</EmptyState>;
   }
@@ -2316,9 +2312,7 @@ function ReferralSpecialistList({
           <span>
             {item.name} @{item.botUsername}
           </span>
-          <strong>
-            {translateStatus(language, item.isActive ? "active" : "passive")}
-          </strong>
+          <strong>{formatDate(item.createdAt)}</strong>
         </div>
       ))}
     </div>

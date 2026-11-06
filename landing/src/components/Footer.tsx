@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 const NAV = [
   { key: 'features', href: '#features' },
   { key: 'how', href: '#how' },
-  { key: 'pricing', href: '#pricing' },
+  { key: 'free', href: '#free' },
   { key: 'faq', href: '#faq' },
 ] as const;
 

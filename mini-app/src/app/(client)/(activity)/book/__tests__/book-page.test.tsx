@@ -5,19 +5,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 import BookingPage from '../page';
 
-import type { TSpecialist } from '@/lib/types';
-
 // ── dependency mocks ──────────────────────────────────────────────────────────
 
 // Mock all the hooks the page and BookingForm use.
-const useSpecialistMock = vi.fn();
 const useScheduleContextMock = vi.fn();
 const useSessionTypesMock = vi.fn();
 const useClientBatchesMock = vi.fn();
 const useBookingsMock = vi.fn();
 
 vi.mock('@/hooks/queries', () => ({
-  useSpecialist: () => useSpecialistMock(),
   useScheduleContext: () => useScheduleContextMock(),
   useSessionTypes: () => useSessionTypesMock(),
   useClientBatches: () => useClientBatchesMock(),
@@ -47,29 +43,13 @@ vi.mock('@/components/BookingForm', () => ({
 
 const messages = {
   Common: { loading: 'Загрузка...' },
-  Subscription: {
-    bookingUnavailableTitle: 'Запись временно недоступна',
-    bookingUnavailableDescription:
-      'Онлайн-запись пока недоступна. Свяжитесь со специалистом напрямую.',
-  },
   BookingForm: { title: 'Онлайн запись' },
   PreviewMode: { readOnlyAction: 'Только просмотр' },
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function makeSpecialist(isPro: boolean): TSpecialist {
-  return {
-    id: 'mock-specialist',
-    name: 'Test Specialist',
-    timezone: 'Europe/Moscow',
-    cancelCutoffHours: 12,
-    isPro,
-  };
-}
-
-function setupDefaultHooks(specialist: TSpecialist | null, specialistLoading = false): void {
-  useSpecialistMock.mockReturnValue({ data: specialist, isLoading: specialistLoading });
+function setupDefaultHooks(): void {
   useScheduleContextMock.mockReturnValue({
     data: { workingHours: [], daysOff: [] },
     isLoading: false,
@@ -89,33 +69,11 @@ function renderPage(): void {
 
 // ── tests ──────────────────────────────────────────────────────────────────────
 
-describe('BookingPage Pro gate', () => {
-  it('renders the booking form when specialist isPro=true', () => {
-    setupDefaultHooks(makeSpecialist(true));
+describe('BookingPage', () => {
+  it('renders the booking form', () => {
+    setupDefaultHooks();
     renderPage();
 
-    expect(screen.getByTestId('booking-form')).toBeTruthy();
-    expect(screen.queryByText('Запись временно недоступна')).toBeNull();
-  });
-
-  it('renders the unavailable state and hides the form when specialist isPro=false', () => {
-    setupDefaultHooks(makeSpecialist(false));
-    renderPage();
-
-    expect(screen.getByText('Запись временно недоступна')).toBeTruthy();
-    expect(
-      screen.getByText('Онлайн-запись пока недоступна. Свяжитесь со специалистом напрямую.'),
-    ).toBeTruthy();
-    expect(screen.queryByTestId('booking-form')).toBeNull();
-  });
-
-  it('renders the booking form while specialist is still loading (does not pre-emptively gate)', () => {
-    setupDefaultHooks(null, true);
-    renderPage();
-
-    // While loading, specialist is null and isLoading=true — the gate condition requires
-    // !specialistLoading && specialist !== null && !specialist.isPro.
-    // So the form should be rendered (not gated) during loading.
     expect(screen.getByTestId('booking-form')).toBeTruthy();
   });
 });

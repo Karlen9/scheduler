@@ -193,7 +193,6 @@ export type DashboardSpecialist = {
   isActive: boolean;
   createdAt: string;
   deletedAt?: string;
-  firstPaymentAt?: string;
   bookingCount: number;
   clientCount: number;
 };
@@ -364,15 +363,11 @@ export type ReferralsResponse = {
     isBlocked?: boolean;
   }>;
   specialistCount: number;
-  activeCount: number;
-  passiveCount: number;
   specialists: Array<{
     id: string;
     name: string;
     botUsername: string;
     createdAt: string;
-    firstPaymentAt?: string;
-    isActive: boolean;
   }>;
 };
 

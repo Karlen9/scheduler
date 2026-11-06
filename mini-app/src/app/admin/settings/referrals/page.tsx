@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Copy, Gift, Send, UserCircle2, Users } from 'lucide-react';
+import { Copy, Gift, Send, UserCircle2, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
@@ -18,17 +18,11 @@ export default function ReferralsPage(): ReactNode {
   const { data, isLoading } = useAdminReferrals();
 
   const link = data?.link ?? '';
-  const specialists = data?.specialists ?? [];
-  const activeCount = data?.activeCount ?? 0;
-  const pendingCount = data?.passiveCount ?? 0;
-  const rewardDays = data?.rewardDays ?? 30;
+  const invitedCount = data?.specialistCount ?? 0;
 
-  const active = specialists
-    .filter((s) => s.isActive)
-    .sort((a, b) => (b.firstPaymentAt ?? '').localeCompare(a.firstPaymentAt ?? ''));
-  const pending = specialists
-    .filter((s) => !s.isActive)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const invited = [...(data?.specialists ?? [])].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
 
   const handleCopy = useCallback(async (): Promise<void> => {
     if (!link) {
@@ -77,8 +71,6 @@ export default function ReferralsPage(): ReactNode {
     });
   };
 
-  const bothEmpty = active.length === 0 && pending.length === 0;
-
   return (
     <div>
       <TopBar title={t('title')} showBack />
@@ -106,20 +98,18 @@ export default function ReferralsPage(): ReactNode {
             {t('howItWorksHeading')}
           </h3>
           <div className={'space-y-3'}>
-            {([t('step1'), t('step2'), t('step3', { days: rewardDays })] as string[]).map(
-              (step, i) => (
-                <div key={i} className={'flex items-start gap-3'}>
-                  <div
-                    className={
-                      'bg-brand/15 text-brand flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold'
-                    }
-                  >
-                    {i + 1}
-                  </div>
-                  <div className={'text-foreground text-sm'}>{step}</div>
+            {([t('step1'), t('step2')] as string[]).map((step, i) => (
+              <div key={i} className={'flex items-start gap-3'}>
+                <div
+                  className={
+                    'bg-brand/15 text-brand flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold'
+                  }
+                >
+                  {i + 1}
                 </div>
-              ),
-            )}
+                <div className={'text-foreground text-sm'}>{step}</div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -160,44 +150,22 @@ export default function ReferralsPage(): ReactNode {
           </div>
         </div>
 
-        <div className={'grid grid-cols-2 gap-3'}>
-          <StatTile
-            icon={<Users className={'h-5 w-5'} />}
-            accent={'success'}
-            label={t('statsActive')}
-            value={activeCount}
-          />
-          <StatTile
-            icon={<Clock className={'h-5 w-5'} />}
-            accent={'muted'}
-            label={t('statsPending')}
-            value={pendingCount}
-          />
-        </div>
+        <StatTile
+          icon={<Users className={'h-5 w-5'} />}
+          label={t('statsInvited')}
+          value={invitedCount}
+        />
 
-        {bothEmpty ? (
+        {invited.length === 0 ? (
           <div className={'bg-card text-muted-foreground rounded-xl px-4 py-8 text-center text-sm'}>
             {t('listEmpty')}
           </div>
         ) : (
-          <>
-            {active.length > 0 && (
-              <SpecialistSection
-                title={t('sectionActive')}
-                items={active}
-                dateLabel={(s) =>
-                  t('activatedOn', { date: formatDate(s.firstPaymentAt ?? s.createdAt) })
-                }
-              />
-            )}
-            {pending.length > 0 && (
-              <SpecialistSection
-                title={t('sectionPending')}
-                items={pending}
-                dateLabel={(s) => t('joinedOn', { date: formatDate(s.createdAt) })}
-              />
-            )}
-          </>
+          <SpecialistSection
+            title={t('sectionInvited')}
+            items={invited}
+            dateLabel={(s) => t('joinedOn', { date: formatDate(s.createdAt) })}
+          />
         )}
       </div>
     </div>
@@ -206,21 +174,21 @@ export default function ReferralsPage(): ReactNode {
 
 function StatTile({
   icon,
-  accent,
   label,
   value,
 }: {
   icon: ReactNode;
-  accent: 'success' | 'muted';
   label: string;
   value: number;
 }): ReactNode {
-  const accentClasses =
-    accent === 'success' ? 'bg-success/15 text-success' : 'bg-surface-hover text-muted-foreground';
   return (
     <div className={'bg-card rounded-xl p-4'}>
       <div className={'flex items-center gap-3'}>
-        <div className={`${accentClasses} flex h-10 w-10 items-center justify-center rounded-lg`}>
+        <div
+          className={
+            'bg-success/15 text-success flex h-10 w-10 items-center justify-center rounded-lg'
+          }
+        >
           {icon}
         </div>
         <div className={'min-w-0'}>

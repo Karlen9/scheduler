@@ -437,9 +437,6 @@ func HandleCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
-	if !requirePro(w, r, specialist) {
-		return
-	}
 
 	var req CreateRecurringScheduleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -733,9 +730,6 @@ func HandleAdminCreateRecurringSchedule(w http.ResponseWriter, r *http.Request) 
 	specialist := GetSpecialistFromContext(r)
 	if specialist == nil {
 		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
-		return
-	}
-	if !requirePro(w, r, specialist) {
 		return
 	}
 

@@ -4,7 +4,6 @@ import {
   Bell,
   CalendarOff,
   Clock,
-  Crown,
   DollarSign,
   FileText,
   Gift,
@@ -161,12 +160,6 @@ export default function SettingsPage(): ReactNode {
             label={t('referrals')}
             href={'/admin/settings/referrals'}
             iconColor={'bg-[#ec4899]'}
-          />
-          <SettingsMenuItem
-            icon={Crown}
-            label={t('subscription')}
-            href={'/admin/settings/subscription'}
-            iconColor={'bg-[#f59e0b]'}
           />
         </SettingsGroup>
 

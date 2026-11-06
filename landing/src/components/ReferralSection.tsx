@@ -1,4 +1,4 @@
-import { Gift } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { CtaButton } from './CtaButton';
@@ -21,7 +21,7 @@ export function ReferralSection(): ReactNode {
             'bg-primary/12 text-primary flex size-14 shrink-0 items-center justify-center rounded-2xl'
           }
         >
-          <Gift aria-hidden={'true'} className={'size-7'} />
+          <Users aria-hidden={'true'} className={'size-7'} />
         </span>
         <div className={'flex-1'}>
           <h2 id={'referral-title'} className={'text-xl font-bold sm:text-2xl'}>

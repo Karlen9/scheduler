@@ -8,13 +8,13 @@ import { ComparisonSection } from '@/components/ComparisonSection';
 import { FaqSection } from '@/components/FaqSection';
 import { FeaturesSection } from '@/components/FeaturesSection';
 import { Footer } from '@/components/Footer';
+import { FreeSection } from '@/components/FreeSection';
 import { Header } from '@/components/Header';
 import { HeroSection } from '@/components/HeroSection';
 import { HowItWorksSection } from '@/components/HowItWorksSection';
 import { MobileCta } from '@/components/MobileCta';
 import { PageMotion } from '@/components/PageMotion';
 import { PainSection } from '@/components/PainSection';
-import { PricingSection } from '@/components/PricingSection';
 import { ReferralSection } from '@/components/ReferralSection';
 import { SupportSection } from '@/components/SupportSection';
 import { routing } from '@/i18n/routing';
@@ -49,7 +49,7 @@ export default function HomePage({ params }: { params: Promise<{ locale: string 
         <AudienceSection />
         <HowItWorksSection />
         <ComparisonSection />
-        <PricingSection />
+        <FreeSection />
         <ReferralSection />
         <FaqSection />
         <SupportSection />

@@ -179,67 +179,11 @@ type Config struct {
 	LoadTestMode bool
 
 	/***************************************************************************************************
-	* Subscription / YooKassa.
-	***************************************************************************************************/
-	YooKassaShopID        string
-	YooKassaSecretKey     string
-	TrialDays             int
-	ExistingGraceDays     int
-	ReferralRewardDays    int
-	YooKassaVATCode       int    // vat_code for receipt items (default 1)
-	YooKassaTaxSystemCode int    // tax_system_code (0 = omit)
-	YooKassaReceiptEmail  string // fallback receipt email when specialist has none
-
-	/***************************************************************************************************
 	* Optional - for initial single-bot setup (legacy).
 	***************************************************************************************************/
 	TelegramBotToken     string
 	SpecialistTelegramID int64
 	SpecialistName       string
-}
-
-// SubscriptionPlan describes a purchasable plan tier.
-type SubscriptionPlan struct {
-	Code         string
-	PriceKopecks int
-	DurationDays int
-}
-
-// SubscriptionPlans returns all available subscription plans.
-func SubscriptionPlans() []SubscriptionPlan {
-	return []SubscriptionPlan{
-		{Code: "pro_monthly", PriceKopecks: 59000, DurationDays: 30},
-		{Code: "pro_quarterly", PriceKopecks: 149000, DurationDays: 90},
-		{Code: "pro_annual", PriceKopecks: 499000, DurationDays: 365},
-	}
-}
-
-// SubscriptionPlanByCode looks up a plan by its code. Returns false if not found.
-func SubscriptionPlanByCode(code string) (SubscriptionPlan, bool) {
-	for _, p := range SubscriptionPlans() {
-		if p.Code == code {
-			return p, true
-		}
-	}
-	return SubscriptionPlan{}, false
-}
-
-// referralRewardDaysValue holds the parsed REFERRAL_REWARD_DAYS env var.
-// It is set during Load() and exposed via ReferralRewardDays().
-var referralRewardDaysValue = 30
-
-// SetReferralRewardDays is called by Load() to wire the configured value into the
-// package-level accessor.
-func SetReferralRewardDays(days int) {
-	if days > 0 {
-		referralRewardDaysValue = days
-	}
-}
-
-// ReferralRewardDays returns the number of bonus Pro days granted to the referrer when
-// a referred specialist makes their first payment.
-func ReferralRewardDays() int {
-	return referralRewardDaysValue
 }
 
 /***************************************************************************************************
@@ -266,27 +210,6 @@ func Load() *Config {
 
 	supportGroupID := parseSupportGroupID(os.Getenv("SUPPORT_GROUP_ID"))
 
-	trialDays := 14
-	if v, err := strconv.Atoi(os.Getenv("TRIAL_DAYS")); err == nil && v > 0 {
-		trialDays = v
-	}
-	existingGraceDays := 30
-	if v, err := strconv.Atoi(os.Getenv("EXISTING_GRACE_DAYS")); err == nil && v > 0 {
-		existingGraceDays = v
-	}
-	referralRewardDays := 30
-	if v, err := strconv.Atoi(os.Getenv("REFERRAL_REWARD_DAYS")); err == nil && v > 0 {
-		referralRewardDays = v
-	}
-	yooKassaVATCode := 1
-	if v, err := strconv.Atoi(os.Getenv("YOOKASSA_VAT_CODE")); err == nil {
-		yooKassaVATCode = v
-	}
-	yooKassaTaxSystemCode := 0
-	if v, err := strconv.Atoi(os.Getenv("YOOKASSA_TAX_SYSTEM_CODE")); err == nil {
-		yooKassaTaxSystemCode = v
-	}
-
 	cfg := &Config{
 		WebAppURL:           os.Getenv("WEB_APP_URL"),
 		DatabasePath:        os.Getenv("DATABASE_PATH"),
@@ -301,18 +224,6 @@ func Load() *Config {
 		SuperadminSecret:    os.Getenv("SUPERADMIN_SECRET"),
 		CORSAllowedOrigins:  parseCommaList(os.Getenv("CORS_ALLOWED_ORIGINS")),
 		LoadTestMode:        os.Getenv("LOAD_TEST_MODE") == "true",
-
-		/***************************************************************************************************
-		* Subscription / YooKassa.
-		***************************************************************************************************/
-		YooKassaShopID:        os.Getenv("YOOKASSA_SHOP_ID"),
-		YooKassaSecretKey:     os.Getenv("YOOKASSA_SECRET_KEY"),
-		TrialDays:             trialDays,
-		ExistingGraceDays:     existingGraceDays,
-		ReferralRewardDays:    referralRewardDays,
-		YooKassaVATCode:       yooKassaVATCode,
-		YooKassaTaxSystemCode: yooKassaTaxSystemCode,
-		YooKassaReceiptEmail:  os.Getenv("YOOKASSA_RECEIPT_EMAIL"),
 
 		/***************************************************************************************************
 		* Legacy single-bot setup.
@@ -361,8 +272,6 @@ func Load() *Config {
 	if cfg.SupportGroupID == 0 {
 		log.Println("Warning: SUPPORT_GROUP_ID not set, operator support relay disabled")
 	}
-
-	SetReferralRewardDays(cfg.ReferralRewardDays)
 
 	return cfg
 }

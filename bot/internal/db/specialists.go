@@ -57,11 +57,8 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	var t models.Specialist
 	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper, referralCode, referredViaCode sql.NullString
 	var notifyNewBookings, notifyCancellations, photoRemoved sql.NullInt64
-	var deletedAt, firstPaymentAt sql.NullTime
-	var subscriptionStatus, subscriptionPlan, yookassaPaymentMethodID sql.NullString
-	var email sql.NullString
-	var trialEndsAt, subscriptionStartedAt, currentPeriodEndAt sql.NullTime
-	var autoRenew, cancelAtPeriodEnd, cancelCutoffEnabled sql.NullInt64
+	var deletedAt sql.NullTime
+	var cancelCutoffEnabled sql.NullInt64
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
@@ -74,17 +71,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&wallpaper,
 		&referralCode,
 		&referredViaCode,
-		&firstPaymentAt,
 		&deletedAt,
-		&subscriptionStatus,
-		&subscriptionPlan,
-		&trialEndsAt,
-		&subscriptionStartedAt,
-		&currentPeriodEndAt,
-		&autoRenew,
-		&cancelAtPeriodEnd,
-		&yookassaPaymentMethodID,
-		&email,
 		&cancelCutoffEnabled,
 	)
 	if err == sql.ErrNoRows {
@@ -109,32 +96,10 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	t.Wallpaper = wallpaper.String
 	t.ReferralCode = referralCode.String
 	t.ReferredViaCode = referredViaCode.String
-	if firstPaymentAt.Valid {
-		paid := firstPaymentAt.Time
-		t.FirstPaymentAt = &paid
-	}
 	if deletedAt.Valid {
 		deleted := deletedAt.Time
 		t.DeletedAt = &deleted
 	}
-	t.SubscriptionStatus = subscriptionStatus.String
-	t.SubscriptionPlan = subscriptionPlan.String
-	if trialEndsAt.Valid {
-		v := trialEndsAt.Time
-		t.TrialEndsAt = &v
-	}
-	if subscriptionStartedAt.Valid {
-		v := subscriptionStartedAt.Time
-		t.SubscriptionStartedAt = &v
-	}
-	if currentPeriodEndAt.Valid {
-		v := currentPeriodEndAt.Time
-		t.CurrentPeriodEndAt = &v
-	}
-	t.AutoRenew = autoRenew.Valid && autoRenew.Int64 == 1
-	t.CancelAtPeriodEnd = cancelAtPeriodEnd.Valid && cancelAtPeriodEnd.Int64 == 1
-	t.YooKassaPaymentMethodID = yookassaPaymentMethodID.String
-	t.Email = email.String
 	t.CancelCutoffEnabled = cancelCutoffEnabled.Valid && cancelCutoffEnabled.Int64 == 1
 
 	/***************************************************************************************************
@@ -154,7 +119,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, first_payment_at, deleted_at, subscription_status, subscription_plan, trial_ends_at, subscription_started_at, current_period_end_at, auto_renew, cancel_at_period_end, yookassa_payment_method_id, email, cancel_cutoff_enabled`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, deleted_at, cancel_cutoff_enabled`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -317,9 +282,7 @@ func GetAllActiveSpecialists() ([]models.Specialist, error) {
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 // CreateSpecialist creates a new specialist row, OR reactivates a soft-deleted row for the same
-// Telegram user (upsert). The 14-day Pro trial is granted only once per Telegram user: new rows
-// receive the trial immediately; reactivated rows receive it only if has_trialed is 0. If the
-// user already trialed (has_trialed = 1) their prior subscription state is preserved unchanged.
+// Telegram user (upsert).
 func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezone string, cancelCutoffHrs int) (*models.Specialist, error) {
 	webhookSecret := generateWebhookSecret()
 	referralCode := generateReferralCode()
@@ -332,20 +295,18 @@ func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezon
 
 	// Check whether this Telegram user already has a row (active or soft-deleted).
 	var existingID string
-	var hasTrialed int
-	err = DB.QueryRow(Q(`SELECT id, has_trialed FROM specialists WHERE telegram_user_id = ?`), telegramUserID).Scan(&existingID, &hasTrialed)
+	err = DB.QueryRow(Q(`SELECT id FROM specialists WHERE telegram_user_id = ?`), telegramUserID).Scan(&existingID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to check existing specialist: %w", err)
 	}
 
 	if err == sql.ErrNoRows {
-		// Brand-new user: INSERT a fresh row with trial.
+		// Brand-new user: INSERT a fresh row.
 		id := uuid.New().String()
-		trialEndsAt := time.Now().UTC().Add(time.Duration(TrialDays) * 24 * time.Hour)
 		_, err = DB.Exec(Q(`
-			INSERT INTO specialists (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, referral_code, subscription_status, trial_ends_at, has_trialed)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'trialing', ?, 1)
-		`), id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, trialEndsAt)
+			INSERT INTO specialists (id, telegram_user_id, bot_token, bot_token_hash, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, referral_code)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`), id, telegramUserID, encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode)
 		if err != nil {
 			return nil, err
 		}
@@ -353,27 +314,13 @@ func CreateSpecialist(telegramUserID int64, botToken, botUsername, name, timezon
 	}
 
 	// Returning/soft-deleted user: REACTIVATE the existing row.
-	if hasTrialed == 0 {
-		// Never trialed before — grant trial now.
-		trialEndsAt := time.Now().UTC().Add(time.Duration(TrialDays) * 24 * time.Hour)
-		_, err = DB.Exec(Q(`
-			UPDATE specialists
-			SET bot_token = ?, bot_token_hash = ?, bot_username = ?, webhook_secret = ?,
-			    name = ?, timezone = ?, cancel_cutoff_hrs = ?, referral_code = ?,
-			    is_active = 1, deleted_at = NULL,
-			    subscription_status = 'trialing', trial_ends_at = ?, has_trialed = 1
-			WHERE id = ?
-		`), encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, trialEndsAt, existingID)
-	} else {
-		// Already trialed — preserve prior subscription state, do not touch trial columns.
-		_, err = DB.Exec(Q(`
-			UPDATE specialists
-			SET bot_token = ?, bot_token_hash = ?, bot_username = ?, webhook_secret = ?,
-			    name = ?, timezone = ?, cancel_cutoff_hrs = ?, referral_code = ?,
-			    is_active = 1, deleted_at = NULL
-			WHERE id = ?
-		`), encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, existingID)
-	}
+	_, err = DB.Exec(Q(`
+		UPDATE specialists
+		SET bot_token = ?, bot_token_hash = ?, bot_username = ?, webhook_secret = ?,
+		    name = ?, timezone = ?, cancel_cutoff_hrs = ?, referral_code = ?,
+		    is_active = 1, deleted_at = NULL
+		WHERE id = ?
+	`), encryptedToken, tokenHash, botUsername, webhookSecret, name, timezone, cancelCutoffHrs, referralCode, existingID)
 	if err != nil {
 		return nil, err
 	}
@@ -392,12 +339,6 @@ func SetSpecialistReferredViaCode(specialistID, code string) error {
 	return err
 }
 
-// SetSpecialistEmail stores the specialist's contact email (used for payment receipts).
-func SetSpecialistEmail(specialistID, email string) error {
-	_, err := DB.Exec(Q(`UPDATE specialists SET email = ? WHERE id = ?`), email, specialistID)
-	return err
-}
-
 // SetSpecialistConsent records that the specialist accepted the terms/privacy docs.
 // The timestamp is set to the current time; version identifies the document revision accepted.
 func SetSpecialistConsent(specialistID, version string) error {
@@ -410,22 +351,20 @@ func SetSpecialistConsent(specialistID, version string) error {
 
 // ReferredSpecialistStat is a row in the specialist-referral listing.
 type ReferredSpecialistStat struct {
-	ID             string
-	Name           string
-	BotUsername    string
-	CreatedAt      time.Time
-	FirstPaymentAt *time.Time
+	ID          string
+	Name        string
+	BotUsername string
+	CreatedAt   time.Time
 }
 
 // ListReferredSpecialists returns every specialist whose referred_via_code matches the given
-// code, sorted by most recent signup first. Used by the admin referrals endpoint to power the
-// active vs passive breakdown.
+// code, sorted by most recent signup first. Used by the admin referrals endpoint.
 func ListReferredSpecialists(code string) ([]ReferredSpecialistStat, error) {
 	if code == "" {
 		return nil, nil
 	}
 	rows, err := DB.Query(Q(`
-		SELECT id, name, bot_username, created_at, first_payment_at
+		SELECT id, name, bot_username, created_at
 		FROM specialists
 		WHERE referred_via_code = ?
 		ORDER BY created_at DESC
@@ -438,13 +377,8 @@ func ListReferredSpecialists(code string) ([]ReferredSpecialistStat, error) {
 	var out []ReferredSpecialistStat
 	for rows.Next() {
 		var item ReferredSpecialistStat
-		var firstPayment sql.NullTime
-		if err := rows.Scan(&item.ID, &item.Name, &item.BotUsername, &item.CreatedAt, &firstPayment); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.BotUsername, &item.CreatedAt); err != nil {
 			return nil, err
-		}
-		if firstPayment.Valid {
-			v := firstPayment.Time
-			item.FirstPaymentAt = &v
 		}
 		out = append(out, item)
 	}

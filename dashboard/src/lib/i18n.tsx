@@ -13,7 +13,6 @@ const ru: Record<string, string> = {
   "Action failed.": "Действие не выполнено.",
   Actions: "Действия",
   Active: "Активен",
-  "Active referred specialists": "Активные приглашенные специалисты",
   Activity: "Активность",
   Actor: "Администратор",
   "Add day off": "Добавить выходной",
@@ -234,7 +233,6 @@ const ru: Record<string, string> = {
   "invalid interval": "некорректный интервал",
   "overlaps another working interval":
     "пересекается с другим рабочим интервалом",
-  passive: "пассивен",
   "whole-bot deletion is not available here":
     "полное удаление бота здесь недоступно",
   min: "мин",
@@ -265,7 +263,6 @@ const statusRu: Record<string, string> = {
   deleted: "удален",
   declined: "отклонено",
   inactive: "неактивен",
-  passive: "пассивен",
   pending: "ожидает",
   rejected: "отклонено",
   reschedule_pending: "ожидает переноса",

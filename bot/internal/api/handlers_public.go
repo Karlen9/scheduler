@@ -3,7 +3,6 @@ package api
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"scheduler-bot/internal/db"
 	"scheduler-bot/internal/models"
@@ -22,7 +21,6 @@ func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 		ensureSpecialistTelegramProfilePhoto(r, specialist)
 	}
 
-	ent := specialist.Entitlement(time.Now())
 	resp := SpecialistResponse{
 		ID:                  specialist.ID,
 		Name:                specialist.Name,
@@ -40,11 +38,6 @@ func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 		IsOwner:             isOwner,
 		Language:            specialist.Language,
 		Wallpaper:           specialist.Wallpaper,
-		IsPro:               ent.IsPro,
-		SubscriptionStatus:  specialist.SubscriptionStatus,
-		TrialEndsAt:         specialist.TrialEndsAt,
-		CurrentPeriodEndAt:  specialist.CurrentPeriodEndAt,
-		AutoRenew:           specialist.AutoRenew,
 	}
 
 	setPrivateCache(w, 60, 300)
