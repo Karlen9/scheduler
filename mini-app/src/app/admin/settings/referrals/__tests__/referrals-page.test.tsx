@@ -29,20 +29,17 @@ const messages = {
   AdminReferrals: {
     title: 'Приглашения',
     heroHeading: 'Пригласите коллег',
-    heroBody: 'Активируется после первой оплаты.',
+    heroBody: 'Приглашённые коллеги появятся в этом списке.',
     yourLink: 'Ваша ссылка',
     copyLink: 'Скопировать',
     linkCopied: 'Ок',
     copyFailed: 'Ошибка',
     shareTelegram: 'Поделиться',
     shareText: 'Попробуй 👉',
-    statsActive: 'Активные',
-    statsPending: 'Ожидают',
-    sectionActive: 'Активные',
-    sectionPending: 'Ожидают',
+    statsInvited: 'Приглашённые',
+    sectionInvited: 'Приглашённые',
     listEmpty: 'Никого нет',
     joinedOn: 'Присоединился {date}',
-    activatedOn: 'Оплатил {date}',
   },
 };
 
@@ -67,65 +64,36 @@ function makeResponse(overrides: Partial<TReferralsResponse> = {}): TReferralsRe
     count: 0,
     referrals: [],
     specialistCount: 0,
-    activeCount: 0,
-    passiveCount: 0,
     specialists: [],
     ...overrides,
   };
 }
 
 describe('ReferralsPage', () => {
-  it('renders both sections when active and pending specialists exist', () => {
+  it('lists invited specialists, newest first', () => {
     renderWith(
       makeResponse({
-        activeCount: 1,
-        passiveCount: 1,
         specialistCount: 2,
         specialists: [
           {
             id: 'a',
-            name: 'Paid Anna',
+            name: 'Anna',
             botUsername: 'anna_bot',
             createdAt: '2026-03-01T00:00:00Z',
-            firstPaymentAt: '2026-04-10T00:00:00Z',
-            isActive: true,
           },
           {
             id: 'b',
-            name: 'Pending Boris',
+            name: 'Boris',
             botUsername: 'boris_bot',
             createdAt: '2026-04-15T00:00:00Z',
-            isActive: false,
           },
         ],
       }),
     );
 
-    expect(screen.getByText('Paid Anna')).toBeTruthy();
-    expect(screen.getByText('Pending Boris')).toBeTruthy();
-    expect(screen.getAllByText('Активные').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Ожидают').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Никого нет')).toBeNull();
-  });
-
-  it('renders only pending section when no active referrals', () => {
-    renderWith(
-      makeResponse({
-        passiveCount: 1,
-        specialistCount: 1,
-        specialists: [
-          {
-            id: 'b',
-            name: 'Pending Boris',
-            botUsername: 'boris_bot',
-            createdAt: '2026-04-15T00:00:00Z',
-            isActive: false,
-          },
-        ],
-      }),
-    );
-
-    expect(screen.getByText('Pending Boris')).toBeTruthy();
+    const names = screen.getAllByText(/^(Anna|Boris)$/).map((el) => el.textContent);
+    expect(names).toEqual(['Boris', 'Anna']);
+    expect(screen.getAllByText('Приглашённые').length).toBeGreaterThan(0);
     expect(screen.queryByText('Никого нет')).toBeNull();
   });
 

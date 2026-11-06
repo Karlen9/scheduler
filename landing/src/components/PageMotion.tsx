@@ -119,30 +119,6 @@ export function PageMotion(): ReactNode {
           });
         }
 
-        // Pricing cards settle; the annual card arrives last.
-        const cards = all('[data-price-card]');
-        const featured = cards.filter((c) => c.hasAttribute('data-price-featured'));
-        const plain = cards.filter((c) => !c.hasAttribute('data-price-featured'));
-        const cardsHidden = hide([...plain, ...featured], { opacity: 0, y: 44 });
-        if (cardsHidden.length) {
-          ScrollTrigger.create({
-            trigger: cards[0].parentElement ?? cards[0],
-            start: 'top 88%',
-            once: true,
-            onEnter: () => {
-              shown(cardsHidden);
-              gsap.to(cardsHidden, {
-                opacity: 1,
-                y: 0,
-                duration: 0.75,
-                ease: 'back.out(1.3)',
-                stagger: 0.12,
-                clearProps: 'transform,opacity',
-              });
-            },
-          });
-        }
-
         // Closing card scales in.
         const closing = document.querySelector('[data-closing-card]');
         if (closing) {

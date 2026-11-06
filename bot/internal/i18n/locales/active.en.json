@@ -3,13 +3,13 @@
     "other": "Welcome! Press the button below to open the booking app."
   },
   "Welcome.Specialist": {
-    "other": "👋 <b>Your dashboard</b>\n\nYour bot accepts online bookings and helps you run your practice:\n• 📅 Clients book themselves — you just confirm\n• 🔔 Reminders for clients, notifications for you\n• 🔁 Recurring bookings\n• 👥 Client base with history\n\n💳 Subscription, partner program and support — in the \"Specialist master bot\" bot."
+    "other": "👋 <b>Your dashboard</b>\n\nYour bot accepts online bookings and helps you run your practice:\n• 📅 Clients book themselves — you just confirm\n• 🔔 Reminders for clients, notifications for you\n• 🔁 Recurring bookings\n• 👥 Client base with history\n\n🤝 Invitations and support — in the \"Specialist master bot\" bot."
   },
   "Help.Client": {
     "other": "This is a bot for online booking with a specialist.\n\nWhat you can do:\n• Choose a convenient date and time\n• Book a session\n• View and cancel your bookings\n• Create a recurring schedule\n\nPress the \"Book\" button below or /start to open the app."
   },
   "Help.Specialist": {
-    "other": "ℹ️ <b>How it works</b>\n\n<b>Setup.</b> Open \"📲 Open\" → Profile (name, photo, description), Services and prices, Schedule, Days off.\n\n<b>Bookings.</b> A client books — you get a notification and confirm or decline right in the chat. All bookings are visible in the admin panel.\n\n<b>Link for clients</b> (send it to them):\n<code>%s</code>\n\n<b>Buttons:</b>\n• \"📲 Open\" — admin panel\n• \"👁 Preview\" — your client-facing page\n\n💳 Subscription, partner program and support — in the \"Specialist master bot\" bot."
+    "other": "ℹ️ <b>How it works</b>\n\n<b>Setup.</b> Open \"📲 Open\" → Profile (name, photo, description), Services and prices, Schedule, Days off.\n\n<b>Bookings.</b> A client books — you get a notification and confirm or decline right in the chat. All bookings are visible in the admin panel.\n\n<b>Link for clients</b> (send it to them):\n<code>%s</code>\n\n<b>Buttons:</b>\n• \"📲 Open\" — admin panel\n• \"👁 Preview\" — your client-facing page\n\n🤝 Invitations and support — in the \"Specialist master bot\" bot."
   },
   "Btn.App": {
     "other": "App"
@@ -529,7 +529,7 @@
     "other": "Telegram profile photo not available"
   },
   "Master.Welcome": {
-    "other": "👋 Hello! I'll help you create a bot for online booking of your clients.\n\n🎯 What you'll get:\n• A personal bot with your name (@your_name_bot)\n• Clients book themselves — you just confirm\n• Calendar, services and prices — everything is customizable\n• Notifications about new bookings right in Telegram\n\n⏱ Setup takes 2 minutes.\n\n📝 First step — create a bot in Telegram:\n\n1. Open @BotFather (click the link)\n2. Send the /newbot command\n3. Enter a name (e.g. \"Specialist John\")\n4. Enter a username (e.g. specialist_john_bot)\n5. Copy the token — a long string of numbers and letters\n\nSend me your bot token:"
+    "other": "👋 Hello! I'll help you create a bot for online booking of your clients.\n\n🎯 What you'll get:\n• A personal bot with your name (@your_name_bot)\n• Clients book themselves — you just confirm\n• Calendar, services and prices — everything is customizable\n• Notifications about new bookings right in Telegram\n• 🎁 All features are free\n\n⏱ Setup takes 2 minutes.\n\n📝 First step — create a bot in Telegram:\n\n1. Open @BotFather (click the link)\n2. Send the /newbot command\n3. Enter a name (e.g. \"Specialist John\")\n4. Enter a username (e.g. specialist_john_bot)\n5. Copy the token — a long string of numbers and letters\n\nSend me your bot token:"
   },
   "Master.Help": {
     "other": "🤖 This bot helps you launch and maintain your client-booking bot.\n\nAvailable commands:\n/start — Open the main menu\n/menu — Open the main menu again\n/language — Change language\n/help — Show this help\n/cancel — Cancel the current action\n/replacetoken — Replace your existing bot token only if you know what you are doing\n\nUse the menu to create a bot, read the FAQ, or contact an operator."
@@ -557,12 +557,6 @@
   },
   "Master.NameTooShort": {
     "other": "❌ Name is too short. Enter your full name:"
-  },
-  "Master.AskEmail": {
-    "other": "📧 Enter an email for payment receipts:"
-  },
-  "Master.InvalidEmail": {
-    "other": "That doesn't look like an email. Please enter a valid address, e.g. name@example.com"
   },
   "Master.ConsentPrompt": {
     "other": "Last step. By creating a bot you accept the Terms of Use and the Privacy Policy and consent to the processing of your personal data in accordance with Russian Federal Law No. 152-FZ “On Personal Data”. Review the documents using the buttons below and tap “I accept” to continue."
@@ -598,10 +592,10 @@
     "other": "A platform for specialists: launch your own Telegram bot for online client bookings. Each specialist gets a dedicated bot with a Mini App — clients book themselves, reminders are sent automatically, and visit history is tracked. Tap Start to create your bot in just a couple of minutes."
   },
   "MasterMenu.Home": {
-    "other": "👋 Hi! I'll help you launch your own Telegram bot for online client bookings.\n\nWhat your bot does:\n• 📅 Accepts bookings 24/7 via a Mini App\n• 🔔 Sends reminders to clients and notifications to you\n• 👥 Keeps a client base with visit history\n\n🚀 Pro (first 14 days free):\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n• Revenue and workload analytics\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nPick an option:"
+    "other": "👋 Hi! I'll help you launch your own Telegram bot for online client bookings.\n\nWhat your bot does:\n• 📅 Accepts bookings 24/7 via a Mini App\n• 🔔 Sends reminders to clients and notifications to you\n• 👥 Keeps a client base with visit history\n\n🎁 All features are free:\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n• Revenue and workload analytics\n\nSetup takes a couple of minutes — you'll get your own bot with your name and avatar.\n\nPick an option:"
   },
   "MasterMenu.HomeRegistered": {
-    "other": "👋 Welcome back! Your bot is up and running.\n\nHere you can:\n• 💳 Manage your Pro subscription — clients book themselves, recurring bookings, subscriptions and analytics\n• 🎁 Invite colleagues and earn bonuses\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
+    "other": "👋 Welcome back! Your bot is up and running, and all features are free.\n\nHere you can:\n• 🤝 Invite colleagues\n• ℹ️ Browse frequently asked questions\n• 💬 Contact an operator\n\nPick an option:"
   },
   "MasterMenu.BtnCreateBot": {
     "other": "🤖 Create my bot"
@@ -627,14 +621,11 @@
   "MasterMenu.BtnFAQUsage": {
     "other": "📱 How to use the service"
   },
-  "MasterMenu.BtnFAQPricing": {
-    "other": "💳 Pricing & payment"
-  },
-  "MasterMenu.BtnFAQPro": {
-    "other": "⭐ Free vs Pro"
+  "MasterMenu.BtnFAQCost": {
+    "other": "🎁 How much it costs"
   },
   "MasterMenu.BtnFAQReferral": {
-    "other": "🤝 Referral program"
+    "other": "🤝 How to invite a colleague"
   },
   "MasterMenu.BtnFAQToken": {
     "other": "🔑 Replace token & help"
@@ -643,7 +634,7 @@
     "other": "🤝 Invite a colleague"
   },
   "MasterInvite.Body": {
-    "other": "Invite fellow specialists to the platform.\n\nYour invite link:\n{{.Link}}\n\nWhen an invited specialist pays for their first subscription, you get {{.Days}} free Pro days — for every one who pays."
+    "other": "Invite fellow specialists to the platform. It is free for them too.\n\nYour invite link:\n{{.Link}}"
   },
   "MasterInvite.ShareBtn": {
     "other": "Share link"
@@ -660,14 +651,11 @@
   "MasterFAQ.Usage": {
     "other": "<b>📱 How to use the service</b>\n\n• After registration you get your own bot — share its link with clients.\n• Set up your services, prices and schedule in the mini-app.\n• Clients open the bot and book themselves: date, duration, time.\n• You get a notification and confirm or decline with a single button.\n• Inside: calendar, client base, visit history, and reminders."
   },
-  "MasterFAQ.Pricing": {
-    "other": "<b>💳 Pricing & payment</b>\n\n🎁 14 days of Pro free when you sign up.\n\nAfter that Pro is a subscription — 1, 3 or 12 months (the longer the term, the better the rate). Current prices are in the «💳 Subscription» section.\n\nPayment by card via YooKassa, with an electronic receipt. Got a promo code? Enter it at checkout."
-  },
-  "MasterFAQ.Pro": {
-    "other": "<b>⭐ Free vs Pro</b>\n\n<b>Free</b> — keep your client base and book clients manually.\n\n<b>Pro</b> adds:\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n• Revenue and workload analytics\n\n🎁 First 14 days of Pro are free, no card required. After the trial, manual booking stays available."
+  "MasterFAQ.Cost": {
+    "other": "<b>🎁 How much it costs</b>\n\nNothing. The service is free, and every specialist gets all features from day one:\n• Clients book themselves through your bot\n• Recurring bookings\n• Prepaid passes (session packages)\n• Bulk scheduling tools\n• Revenue and workload analytics"
   },
   "MasterFAQ.Referral": {
-    "other": "<b>🤝 Referral program</b>\n\nInvite fellow specialists with your personal link — the «🤝 Invite a colleague» button in the menu.\n\nWhen an invited specialist pays for their first subscription, you get free Pro days — for every one who pays."
+    "other": "<b>🤝 How to invite a colleague</b>\n\nTap «🤝 Invite a colleague» in the menu and send your personal link to a fellow specialist."
   },
   "MasterFAQ.Token": {
     "other": "<b>🔑 Replace token & help</b>\n\nIf your bot token stopped working or you recreated the bot in BotFather — send /replacetoken and follow the steps.\n\nFor anything else, tap «💬 Talk to operator» — we're here."
@@ -695,24 +683,6 @@
   },
   "MasterAdmin.BtnList": {
     "other": "📋 Specialist list"
-  },
-  "MasterAdmin.BtnRecurringPay": {
-    "other": "💳 Recurring payments"
-  },
-  "MasterAdmin.RecurringPayTitle": {
-    "other": "<b>💳 Recurring payments</b>\n\nWhen enabled — the payment method is saved for automatic subscription renewal (requires recurring/autopayments to be enabled on the YooKassa shop). When disabled — one-time payments only, no auto-renewal."
-  },
-  "MasterAdmin.RecurringPayStatusOn": {
-    "other": "Status: <b>ON</b>"
-  },
-  "MasterAdmin.RecurringPayStatusOff": {
-    "other": "Status: <b>OFF</b>"
-  },
-  "MasterAdmin.BtnRecurringPayEnable": {
-    "other": "Turn on"
-  },
-  "MasterAdmin.BtnRecurringPayDisable": {
-    "other": "Turn off"
   },
   "MasterReplace.Prompt": {
     "other": "🔑 Replace token for @%s\n\n⚠️ Use this only if you know what you are doing. This is an advanced recovery action for a bot you already own.\n\nOpen @BotFather → /mybots → pick your bot → API Token → /revoke if needed, then send me the new long token.\n\nSend /cancel to abort."
@@ -744,9 +714,6 @@
   "Error.DateTooFar": {
     "other": "Cannot book more than 3 months ahead"
   },
-  "Error.ProRequired": {
-    "other": "This feature requires a Pro subscription"
-  },
 
   "Btn.Terms": {
     "other": "📄 Terms of Use"
@@ -756,196 +723,5 @@
   },
   "Btn.AcceptConsent": {
     "other": "✅ I accept"
-  },
-
-  "Btn.Subscription": {
-    "other": "💳 Subscription"
-  },
-  "Btn.Pay": {
-    "other": "💳 Pay"
-  },
-  "Btn.PromoCode": {
-    "other": "🎟 I have a promo code"
-  },
-
-  "Subscription.PricingTitle": {
-    "other": "💳 Pro plans"
-  },
-  "Subscription.NoBotYet": {
-    "other": "Please create your bot first using the «Create bot» button."
-  },
-  "Subscription.Title": {
-    "other": "<b>💳 Pro Subscription</b>\n\n{{.StatusLine}}\n\nChoose a plan:"
-  },
-  "Subscription.StatusTrial": {
-    "other": "Trial period — {{.Days}} days left (until {{.Until}})"
-  },
-  "Subscription.StatusActive": {
-    "other": "✅ Pro active until {{.Until}}"
-  },
-  "Subscription.StatusInactive": {
-    "other": "❌ Subscription not active"
-  },
-  "Subscription.PlanMonthly": {
-    "other": "1 month"
-  },
-  "Subscription.PlanQuarterly": {
-    "other": "3 months"
-  },
-  "Subscription.PlanAnnual": {
-    "other": "12 months"
-  },
-  "Subscription.ProBenefits": {
-    "other": "What Pro unlocks:\n• Clients book themselves through your bot\n• Recurring appointments\n• Prepaid passes (session packages)\n• Bulk schedule tools\n• Revenue and workload analytics\n\nWithout Pro: you can still book clients manually."
-  },
-  "Subscription.TrialNote": {
-    "other": "🎁 First 14 days free."
-  },
-  "Subscription.PlanLineMonthly": {
-    "other": "• {{.Label}} — {{.Price}} ₽/mo"
-  },
-  "Subscription.PlanLineMulti": {
-    "other": "• {{.Label}}{{.Star}} — {{.Price}} ₽ ({{.PerMonth}} ₽/mo · −{{.Save}}%)"
-  },
-  "Subscription.PaymentUnavailable": {
-    "other": "⚠️ Payment is temporarily unavailable. Please try again later."
-  },
-  "Subscription.PaymentFailed": {
-    "other": "⚠️ Failed to create payment. Please try again later."
-  },
-  "Subscription.Activated": {
-    "other": "✅ Pro subscription activated!"
-  },
-  "Subscription.PayPrompt": {
-    "other": "Press the button below to pay. Your subscription will be activated automatically after payment."
-  },
-  "Subscription.EnterPromoCode": {
-    "other": "Enter promo code:"
-  },
-  "Subscription.PromoUnavailable": {
-    "other": "⚠️ Payment is temporarily unavailable. Please try again later."
-  },
-  "Subscription.PromoInvalid": {
-    "other": "Promo code is not valid."
-  },
-  "Subscription.PromoApplyFailed": {
-    "other": "⚠️ Failed to apply promo code. Please try again later."
-  },
-  "Subscription.PromoApplied": {
-    "other": "Promo code applied. Press the button below to pay:"
-  },
-
-  "Subscription.EventActivated": {
-    "other": "✅ Your Pro subscription has been activated! All features of the scheduler are now available to you."
-  },
-  "Subscription.EventRenewed": {
-    "other": "🔄 Your Pro subscription has been renewed. Thank you for staying with us!"
-  },
-  "Subscription.EventPaymentFailed": {
-    "other": "⚠️ Failed to renew your Pro subscription — payment was declined. Please check your payment details."
-  },
-  "Subscription.EventTrialExpired": {
-    "other": "⏰ Your trial period has ended. Get a Pro subscription to continue using all features."
-  },
-  "Subscription.EventExpired": {
-    "other": "🔔 Your Pro subscription has expired. Subscribe to restore access to all features."
-  },
-  "Subscription.EventReferralReward": {
-    "other": "🎁 The specialist you referred has subscribed to Pro! You've been credited {{.Days}} bonus Pro days."
-  },
-  "Subscription.BtnAutoRenewOn": {
-    "other": "🔄 Auto-renewal: on"
-  },
-  "Subscription.BtnAutoRenewOff": {
-    "other": "🔄 Auto-renewal: off"
-  },
-
-  "Promo.AdminListTitle": {
-    "other": "<b>🎟 Promo codes</b>\n\n"
-  },
-  "Promo.AdminListEmpty": {
-    "other": "<i>No promo codes yet.</i>"
-  },
-  "Promo.AdminBtnCreate": {
-    "other": "➕ Create promo code"
-  },
-  "Promo.AdminBtnDeactivate": {
-    "other": "🚫 Deact: {{.Code}}"
-  },
-  "Promo.AdminBtnPromoCodes": {
-    "other": "🎟 Promo codes"
-  },
-  "Promo.AdminCreatePrompt": {
-    "other": "Enter the promo code (letters and digits). /cancel to abort:"
-  },
-  "Promo.AdminCodeInvalid": {
-    "other": "Code must be a non-empty string up to 32 characters. Try again:"
-  },
-  "Promo.AdminCodeExists": {
-    "other": "Promo code <code>{{.Code}}</code> already exists. Enter a different code:"
-  },
-  "Promo.AdminChooseDiscountType": {
-    "other": "Code: <code>{{.Code}}</code>\n\nChoose discount type:"
-  },
-  "Promo.AdminBtnTypePercent": {
-    "other": "% Percent"
-  },
-  "Promo.AdminBtnTypeAmount": {
-    "other": "₽ Amount"
-  },
-  "Promo.AdminSelectTypeFirst": {
-    "other": "Please choose a discount type first:"
-  },
-  "Promo.AdminEnterPercent": {
-    "other": "Enter the discount percentage (1–100):"
-  },
-  "Promo.AdminEnterAmount": {
-    "other": "Enter the discount amount in roubles (positive integer):"
-  },
-  "Promo.AdminEnterPositiveInt": {
-    "other": "Enter a positive integer:"
-  },
-  "Promo.AdminPercentRange": {
-    "other": "Percentage must be between 1 and 100:"
-  },
-  "Promo.AdminEnterMaxRedempt": {
-    "other": "Maximum number of uses (positive integer) or «0»/«skip» for unlimited:"
-  },
-  "Promo.AdminEnterPositiveIntOrSkip": {
-    "other": "Enter a positive integer or «skip»:"
-  },
-  "Promo.AdminEnterDurationDays": {
-    "other": "Subscription duration in days (overrides the plan's duration) or «skip» to use the plan's duration:"
-  },
-  "Promo.AdminCreatedSummary": {
-    "other": "✅ Promo code created!\n\nCode: <code>{{.Code}}</code>\nDiscount: {{.Discount}}\nMax uses: {{.MaxRedemptions}}\nDuration: {{.Duration}}"
-  },
-  "Promo.AdminDurationPlan": {
-    "other": "plan default"
-  },
-  "Promo.AdminDurationDays": {
-    "other": "{{.Days}} days"
-  },
-
-  "Subscription.PromoPrompt": {
-    "other": "You chose the «{{.Plan}}» plan — {{.Price}} ₽.\n\nDo you have a promo code?"
-  },
-  "Subscription.BtnHavePromo": {
-    "other": "🎟 I have a promo code"
-  },
-  "Subscription.BtnNoPromo": {
-    "other": "No promo code"
-  },
-  "Subscription.FinalPriceNoPromo": {
-    "other": "Plan: {{.Plan}}\nTotal: {{.Final}} ₽"
-  },
-  "Subscription.FinalPriceWithPromo": {
-    "other": "Plan: {{.Plan}}\nPrice: {{.Base}} ₽\nPromo {{.Code}}: −{{.Discount}} ₽\nTotal: {{.Final}} ₽"
-  },
-  "Subscription.BtnPayAmount": {
-    "other": "💳 Pay {{.Price}} ₽"
-  },
-  "Subscription.BtnActivateFree": {
-    "other": "✅ Activate Pro"
   }
 }

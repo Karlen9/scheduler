@@ -202,9 +202,6 @@ func HandleCreateBooking(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
-	if !requirePro(w, r, specialist) {
-		return
-	}
 
 	var req CreateBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

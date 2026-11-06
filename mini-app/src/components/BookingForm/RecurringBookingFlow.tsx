@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { invalidateRecurring } from '@/hooks/mutations';
-import { ProRequiredError } from '@/lib/api/shared';
 import { generateTimeSlotsForDay } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 
@@ -260,12 +259,8 @@ export function RecurringBookingFlow({
        * Usage context:
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
-      if (err instanceof ProRequiredError) {
-        toast.error(te('scheduleCreateFailed'));
-      } else {
-        const msg = err instanceof Error ? err.message : te('scheduleCreateFailed');
-        toast.error(msg);
-      }
+      const msg = err instanceof Error ? err.message : te('scheduleCreateFailed');
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }

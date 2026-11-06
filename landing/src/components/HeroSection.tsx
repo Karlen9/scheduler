@@ -50,7 +50,7 @@ export function HeroSection(): ReactNode {
                 aria-hidden={'true'}
                 className={'text-success mr-2 inline-block size-4 align-[-0.2em]'}
               />
-              {t('cta.trial')}
+              {t('cta.note')}
             </p>
           </div>
         </div>

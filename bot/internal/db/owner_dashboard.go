@@ -18,7 +18,6 @@ type DashboardSpecialistListItem struct {
 	IsActive       bool       `json:"isActive"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	DeletedAt      *time.Time `json:"deletedAt,omitempty"`
-	FirstPaymentAt *time.Time `json:"firstPaymentAt,omitempty"`
 	BookingCount   int        `json:"bookingCount"`
 	ClientCount    int        `json:"clientCount"`
 }
@@ -81,7 +80,6 @@ func ListDashboardSpecialists(search, status string, limit, offset int) ([]Dashb
 			is_active,
 			created_at,
 			deleted_at,
-			first_payment_at,
 			(SELECT COUNT(*) FROM bookings WHERE bookings.specialist_id = specialists.id),
 			(SELECT COUNT(*) FROM clients WHERE clients.specialist_id = specialists.id)
 		FROM specialists
@@ -98,7 +96,7 @@ func ListDashboardSpecialists(search, status string, limit, offset int) ([]Dashb
 	for rows.Next() {
 		var item DashboardSpecialistListItem
 		var isActive int
-		var deletedAt, firstPaymentAt sql.NullTime
+		var deletedAt sql.NullTime
 		if err := rows.Scan(
 			&item.ID,
 			&item.TelegramUserID,
@@ -110,7 +108,6 @@ func ListDashboardSpecialists(search, status string, limit, offset int) ([]Dashb
 			&isActive,
 			&item.CreatedAt,
 			&deletedAt,
-			&firstPaymentAt,
 			&item.BookingCount,
 			&item.ClientCount,
 		); err != nil {
@@ -120,10 +117,6 @@ func ListDashboardSpecialists(search, status string, limit, offset int) ([]Dashb
 		if deletedAt.Valid {
 			t := deletedAt.Time
 			item.DeletedAt = &t
-		}
-		if firstPaymentAt.Valid {
-			t := firstPaymentAt.Time
-			item.FirstPaymentAt = &t
 		}
 		items = append(items, item)
 	}

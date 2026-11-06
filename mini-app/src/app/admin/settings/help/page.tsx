@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { TopBar } from '@/components/TopBar';
-import { useSubscription } from '@/hooks/queries';
+import { useAdminProfile } from '@/hooks/queries';
 import { openTelegramUserChat } from '@/lib/telegram';
 
 import type { TFAQItem } from '@/lib/types';
@@ -34,7 +34,7 @@ function FAQAccordion({ item }: { item: TFAQItem }): ReactNode {
 
 export default function HelpPage(): ReactNode {
   const t = useTranslations('AdminHelp');
-  const { data } = useSubscription();
+  const { data } = useAdminProfile();
 
   const faqItems: TFAQItem[] = [
     { question: t('faq_q1'), answer: t('faq_a1') },

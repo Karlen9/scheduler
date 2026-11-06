@@ -17,8 +17,6 @@ export type {
   TScheduleContext,
   TSessionType,
   TSpecialist,
-  TSubscription,
-  TPromoValidation,
   TTimeSlot,
   TWorkingHours,
   TWorkingInterval,

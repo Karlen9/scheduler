@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 	"unicode/utf8"
 
 	"scheduler-bot/internal/changes"
@@ -34,7 +33,6 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	ensureSpecialistTelegramProfilePhoto(r, specialist)
 
-	ent := specialist.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
 		ID:                  specialist.ID,
 		Name:                specialist.Name,
@@ -50,11 +48,7 @@ func HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 		LocationLongitude:   specialist.LocationLongitude,
 		Language:            specialist.Language,
 		Wallpaper:           specialist.Wallpaper,
-		IsPro:               ent.IsPro,
-		SubscriptionStatus:  specialist.SubscriptionStatus,
-		TrialEndsAt:         specialist.TrialEndsAt,
-		CurrentPeriodEndAt:  specialist.CurrentPeriodEndAt,
-		AutoRenew:           specialist.AutoRenew,
+		MasterBotUsername:   getMasterBotUsername(),
 	})
 }
 
@@ -166,7 +160,6 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
-	updEnt := updated.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
 		ID:                  updated.ID,
 		Name:                updated.Name,
@@ -182,11 +175,7 @@ func HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		LocationLongitude:   updated.LocationLongitude,
 		Language:            updated.Language,
 		Wallpaper:           updated.Wallpaper,
-		IsPro:               updEnt.IsPro,
-		SubscriptionStatus:  updated.SubscriptionStatus,
-		TrialEndsAt:         updated.TrialEndsAt,
-		CurrentPeriodEndAt:  updated.CurrentPeriodEndAt,
-		AutoRenew:           updated.AutoRenew,
+		MasterBotUsername:   getMasterBotUsername(),
 	})
 }
 
@@ -222,7 +211,6 @@ func HandleRestoreSpecialistTelegramPhoto(w http.ResponseWriter, r *http.Request
 	}
 
 	changes.Publish(specialist.ID, changes.GroupSpecialist)
-	restEnt := updated.Entitlement(time.Now())
 	writeJSON(w, SpecialistResponse{
 		ID:                  updated.ID,
 		Name:                updated.Name,
@@ -238,10 +226,6 @@ func HandleRestoreSpecialistTelegramPhoto(w http.ResponseWriter, r *http.Request
 		LocationLongitude:   updated.LocationLongitude,
 		Language:            updated.Language,
 		Wallpaper:           updated.Wallpaper,
-		IsPro:               restEnt.IsPro,
-		SubscriptionStatus:  updated.SubscriptionStatus,
-		TrialEndsAt:         updated.TrialEndsAt,
-		CurrentPeriodEndAt:  updated.CurrentPeriodEndAt,
-		AutoRenew:           updated.AutoRenew,
+		MasterBotUsername:   getMasterBotUsername(),
 	})
 }

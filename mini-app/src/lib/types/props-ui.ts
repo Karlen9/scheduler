@@ -49,7 +49,6 @@ type TTab = {
   href: string;
   isCenter?: boolean;
   matchPaths?: string[];
-  locked?: boolean;
 };
 
 export type TBottomTabBarProps = {

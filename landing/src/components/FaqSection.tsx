@@ -1,7 +1,7 @@
 import { ChevronDown } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
-import { FAQ_GROUPS, faqPriceValues } from '@/lib/faq';
+import { FAQ_GROUPS } from '@/lib/faq';
 import { accent } from '@/lib/rich';
 
 import { SectionHeading } from './SectionHeading';
@@ -10,7 +10,6 @@ import type { ReactNode } from 'react';
 
 export function FaqSection(): ReactNode {
   const t = useTranslations('faq');
-  const values = faqPriceValues(useLocale());
 
   return (
     <section
@@ -46,7 +45,7 @@ export function FaqSection(): ReactNode {
                     </span>
                   </summary>
                   <p className={'text-soft px-5 pb-5 text-[0.9375rem] leading-relaxed sm:px-6'}>
-                    {t(`items.i${n}.a`, values)}
+                    {t(`items.i${n}.a`)}
                   </p>
                 </details>
               ))}

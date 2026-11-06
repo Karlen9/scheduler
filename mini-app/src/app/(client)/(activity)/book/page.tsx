@@ -1,18 +1,15 @@
 'use client';
 
-import { CalendarOff } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 
 import { BookingForm } from '@/components/BookingForm';
-import { EmptyState } from '@/components/EmptyState';
 import {
   useBookings,
   useClientBatches,
   useScheduleContext,
   useSessionTypes,
-  useSpecialist,
 } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { parseDateParam } from '@/lib/helpers';
@@ -42,9 +39,7 @@ function ClientBookContent(): ReactNode {
    ***************************************************************************************************/
   const t = useTranslations('BookingForm');
   const tp = useTranslations('PreviewMode');
-  const ts = useTranslations('Subscription');
   const pathname = usePathname();
-  const { data: specialist, isLoading: specialistLoading } = useSpecialist();
   const { data: scheduleData, isLoading: scheduleLoading } = useScheduleContext();
   /***************************************************************************************************
    * Defines the working hours value used by the page layer.
@@ -94,22 +89,6 @@ function ClientBookContent(): ReactNode {
       .filter((b) => b.status === 'pending' || b.status === 'confirmed')
       .map((b) => b.startsAt.slice(0, 10));
   }, [bookings]);
-
-  /***************************************************************************************************
-   * Show a friendly "unavailable" state when the specialist is not on a Pro plan.
-   * Clients must never see billing or "Pro" language — keep the message neutral.
-   ***************************************************************************************************/
-  if (!specialistLoading && specialist !== null && !specialist.isPro) {
-    return (
-      <div className={'flex min-h-[60vh] items-center justify-center p-4'}>
-        <EmptyState
-          icon={<CalendarOff className={'h-16 w-16'} />}
-          title={ts('bookingUnavailableTitle')}
-          description={ts('bookingUnavailableDescription')}
-        />
-      </div>
-    );
-  }
 
   return (
     <BookingForm

@@ -9,7 +9,6 @@ import type {
   TRecurringSchedule,
   TSessionType,
   TSpecialist,
-  TSubscription,
   TWorkingHours,
 } from '../types';
 
@@ -31,7 +30,6 @@ export type TMockState = {
   recurringSchedules: TRecurringSchedule[];
   services: TSessionType[];
   workingHours: TWorkingHours[];
-  subscription: TSubscription;
 };
 
 export const changeGroups: TChangeGroup[] = [

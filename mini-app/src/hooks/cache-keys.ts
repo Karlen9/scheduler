@@ -88,7 +88,4 @@ export const CACHE_KEYS = {
   get adminReferrals(): string {
     return scopedKey('adminReferrals');
   },
-  get adminSubscription(): string {
-    return scopedKey('adminSubscription');
-  },
 };

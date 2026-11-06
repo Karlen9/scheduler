@@ -17,13 +17,11 @@ import type {
   TClientListQuery,
   TClientListResponse,
   TDayOff,
-  TPromoValidation,
   TRecurringPreviewResponse,
   TRecurringSchedule,
   TReferralsResponse,
   TSessionType,
   TSpecialist,
-  TSubscription,
   TWorkingHours,
 } from '../types';
 
@@ -380,43 +378,6 @@ export const adminApi = {
     await fetchAPI<void>('/api/admin/specialist', {
       method: 'DELETE',
       body: JSON.stringify({ confirm }),
-    });
-  },
-
-  async getSubscription(): Promise<TSubscription> {
-    return fetchAPI<TSubscription>('/api/admin/subscription');
-  },
-
-  async checkoutSubscription(
-    plan: string,
-    promoCode?: string,
-    autoRenew?: boolean,
-  ): Promise<{ confirmationUrl?: string; granted?: boolean }> {
-    return fetchAPI<{ confirmationUrl?: string; granted?: boolean }>(
-      '/api/admin/subscription/checkout',
-      {
-        method: 'POST',
-        body: JSON.stringify({ plan, promoCode, autoRenew }),
-      },
-    );
-  },
-
-  async validatePromo(code: string, plan: string): Promise<TPromoValidation> {
-    return fetchAPI<TPromoValidation>('/api/admin/promocode/validate', {
-      method: 'POST',
-      body: JSON.stringify({ code, plan }),
-    });
-  },
-
-  async cancelSubscription(): Promise<TSubscription> {
-    return fetchAPI<TSubscription>('/api/admin/subscription/cancel', {
-      method: 'POST',
-    });
-  },
-
-  async resumeSubscription(): Promise<TSubscription> {
-    return fetchAPI<TSubscription>('/api/admin/subscription/resume', {
-      method: 'POST',
     });
   },
 };

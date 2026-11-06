@@ -109,9 +109,6 @@ func HandleAdminAssignClientBatch(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.SpecialistNotFound", http.StatusNotFound)
 		return
 	}
-	if !requirePro(w, r, specialist) {
-		return
-	}
 
 	client, ok := getAdminOwnedClient(w, r, specialist.ID)
 	if !ok {

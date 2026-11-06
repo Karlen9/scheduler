@@ -16,39 +16,7 @@ export type TSpecialist = {
   language?: string;
   wallpaper?: string;
   referralCode?: string;
-  isPro?: boolean;
-  subscriptionStatus?: string;
-  trialEndsAt?: string;
-  currentPeriodEndAt?: string;
-  autoRenew?: boolean;
-};
-
-type TSubscriptionPlan = {
-  code: string;
-  priceKopecks: number;
-  durationDays: number;
-};
-
-export type TSubscription = {
-  status: string;
-  plan: string;
-  isPro: boolean;
-  trialEndsAt?: string;
-  currentPeriodEndAt?: string;
-  autoRenew: boolean;
-  cancelAtPeriodEnd: boolean;
-  recurringAvailable?: boolean;
   masterBotUsername?: string;
-  plans: TSubscriptionPlan[];
-};
-
-export type TPromoValidation = {
-  valid: boolean;
-  discountType?: string;
-  discountValue?: number;
-  finalKopecks?: number;
-  discountKopecks?: number;
-  reason?: string;
 };
 
 type TReferralClient = {
@@ -66,8 +34,6 @@ export type TReferredSpecialist = {
   name: string;
   botUsername: string;
   createdAt: string;
-  firstPaymentAt?: string;
-  isActive: boolean;
 };
 
 export type TReferralsResponse = {
@@ -76,10 +42,7 @@ export type TReferralsResponse = {
   count: number;
   referrals: TReferralClient[];
   specialistCount: number;
-  activeCount: number;
-  passiveCount: number;
   specialists: TReferredSpecialist[];
-  rewardDays?: number;
 };
 
 export type TSessionType = {

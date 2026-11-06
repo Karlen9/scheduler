@@ -8,7 +8,7 @@ Multi-tenant Telegram Mini App scheduler for specialists (trainers, teachers, be
 
 - **bot/** - Go backend (chi router, SQLite/PostgreSQL, Telegram webhooks + REST API)
 - **mini-app/** - Next.js 15 frontend (Telegram Mini App) for booking UI
-- **landing/** - Next.js 16 marketing site for specialists (ru at `/`, en at `/en`), static, Vercel Root Directory = `landing`; prices/trial/theme tokens are drift-tested against `bot/internal/config/config.go` and `mini-app/src/styles/theme.css`
+- **landing/** - Next.js 16 marketing site for specialists (ru at `/`, en at `/en`), static, Vercel Root Directory = `landing`; theme tokens are drift-tested against `mini-app/src/styles/theme.css`
 
 Language: Russian UI throughout, English supported via i18n (go-i18n backend, next-intl frontend).
 

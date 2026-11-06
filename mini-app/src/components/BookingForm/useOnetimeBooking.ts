@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 
 import { invalidateBookings } from '@/hooks/mutations';
 import { api } from '@/lib/api';
-import { ProRequiredError } from '@/lib/api/shared';
 import { formatDateISO } from '@/lib/helpers';
 import { monthGenKeys } from '@/lib/mappings';
 import { resolveTestAwareHref } from '@/lib/routes';
@@ -825,12 +824,8 @@ export function useOnetimeBooking({
        * Usage context:
        * - Reused by the component layer to keep shared values centralized.
        ***************************************************************************************************/
-      if (err instanceof ProRequiredError) {
-        toast.error(te('proRequiredBooking'));
-      } else {
-        const msg = err instanceof Error ? err.message : te('bookingCreateFailed');
-        toast.error(msg);
-      }
+      const msg = err instanceof Error ? err.message : te('bookingCreateFailed');
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -886,12 +881,8 @@ export function useOnetimeBooking({
         });
         invalidateBookings();
       }
-      if (err instanceof ProRequiredError) {
-        toast.error(te('proRequiredBooking'));
-      } else {
-        const msg = err instanceof Error ? err.message : te('bookingCreateFailed');
-        toast.error(msg);
-      }
+      const msg = err instanceof Error ? err.message : te('bookingCreateFailed');
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

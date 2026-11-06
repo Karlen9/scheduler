@@ -22,7 +22,6 @@ import type {
   TScheduleContext,
   TSessionType,
   TSpecialist,
-  TSubscription,
   TWorkingHours,
 } from '@/lib/types';
 import type { KeyedMutator, SWRConfiguration } from 'swr';
@@ -721,31 +720,5 @@ export function useAdminNotifications(): {
     notifyNewBookings: boolean;
     notifyCancellations: boolean;
   }>(CACHE_KEYS.adminNotifications, async () => api.admin.getNotificationPrefs(), staticConfig);
-  return { data: data ?? null, isLoading, error, mutate };
-}
-
-/***************************************************************************************************
- * Loads and exposes subscription status + available plans for consuming components.
- *
- * Parameters:
- * - None.
- *
- * Returns:
- * - The computed value for the current operation as .
- *
- * Side effects:
- * - May trigger SWR fetches, cache reads, cache writes, or React-driven revalidation.
- ***************************************************************************************************/
-export function useSubscription(): {
-  data: TSubscription | null;
-  isLoading: boolean;
-  error: Error | undefined;
-  mutate: KeyedMutator<TSubscription>;
-} {
-  const { data, isLoading, error, mutate } = useSWR<TSubscription>(
-    CACHE_KEYS.adminSubscription,
-    async () => api.admin.getSubscription(),
-    userConfig,
-  );
   return { data: data ?? null, isLoading, error, mutate };
 }

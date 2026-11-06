@@ -61,10 +61,6 @@ func HandleBatchCreateDayOff(w http.ResponseWriter, r *http.Request) {
 		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
 	}
-	// Bulk day-off ranges (more than one date) require Pro.
-	if len(req.Dates) > 1 && !requirePro(w, r, specialist) {
-		return
-	}
 
 	seen := make(map[string]struct{}, len(req.Dates))
 	dates := make([]time.Time, 0, len(req.Dates))
