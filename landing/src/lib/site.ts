@@ -15,12 +15,6 @@ export function getProductName(locale: string): string {
 export const MASTER_BOT_USERNAME = 'schedu1erbot';
 export const MASTER_BOT_URL = `https://t.me/${MASTER_BOT_USERNAME}`;
 
-export const LEGAL_ENTITY = {
-  name: 'ИП «Мисакян А.Г.»',
-  inn: '615417797158',
-  ogrnip: '306615401600040',
-} as const;
-
 export function resolveSiteUrl(env: NodeJS.ProcessEnv = process.env): string {
   const explicit = env.NEXT_PUBLIC_SITE_URL?.trim();
   if (explicit) {

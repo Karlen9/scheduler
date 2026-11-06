@@ -12,7 +12,7 @@
   "cta": {
     "primary": "Create my bot",
     "hero": "Create my bot for free",
-    "note": "Every feature is free, no limits"
+    "note": "Every feature is <mark>free</mark>, no limits"
   },
   "hero": {
     "eyebrow": "Free online booking in Telegram",
@@ -250,8 +250,6 @@
     "privacy": "Privacy policy (in Russian)",
     "terms": "Terms of use (in Russian)",
     "support": "Support",
-    "inn": "TIN {inn}",
-    "ogrnip": "OGRNIP {ogrnip}",
     "rights": "All rights reserved"
   },
   "a11y": {

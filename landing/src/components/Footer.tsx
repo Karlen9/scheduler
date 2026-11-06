@@ -1,14 +1,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 
 import { getPathname } from '@/i18n/navigation';
-import {
-  CONTACT_EMAIL,
-  LEGAL_ENTITY,
-  MASTER_BOT_URL,
-  PRIVACY_URL,
-  TERMS_URL,
-  getProductName,
-} from '@/lib/site';
+import { CONTACT_EMAIL, MASTER_BOT_URL, PRIVACY_URL, TERMS_URL, getProductName } from '@/lib/site';
 
 import { Logo } from './Logo';
 
@@ -71,21 +64,16 @@ export function Footer(): ReactNode {
             </a>
           </div>
         </div>
-        <div
+        <p
           className={
-            'border-hairline text-soft mt-10 flex flex-col gap-1 border-t pt-6 text-[0.8125rem] leading-relaxed sm:flex-row sm:flex-wrap sm:gap-x-3'
+            'border-hairline text-soft mt-10 border-t pt-6 text-[0.8125rem] leading-relaxed'
           }
         >
-          <span>{LEGAL_ENTITY.name}</span>
-          <span>{t('footer.inn', { inn: LEGAL_ENTITY.inn })}</span>
-          <span>{t('footer.ogrnip', { ogrnip: LEGAL_ENTITY.ogrnip })}</span>
-          <span className={'sm:ml-auto'}>
-            {'© '}
-            {year} {productName}
-            {'. '}
-            {t('footer.rights')}
-          </span>
-        </div>
+          {'© '}
+          {year} {productName}
+          {'. '}
+          {t('footer.rights')}
+        </p>
       </div>
     </footer>
   );
