@@ -32,7 +32,7 @@ Environment variables (see `.env.example`):
 ## Where things live
 
 - Copy: `messages/ru.json`, `messages/en.json` (keys must stay identical; `<accent>` marks the italic phrase).
-- Product name, bot link, legal entity, email: `src/lib/site.ts`. Rename the product per locale in `PRODUCT_NAMES` (Специалист in ru, Scheduler in en).
+- Product name, bot link, email: `src/lib/site.ts`. Rename the product per locale in `PRODUCT_NAMES` (Специалист in ru, Scheduler in en).
 - Colors: `src/styles/theme.css` is copied from `mini-app/src/styles/theme.css`; a test fails on drift.
 - FAQ items 7 to 18 are copied from the mini-app help page; a test fails if they drift.
 

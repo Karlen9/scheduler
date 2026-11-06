@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { accent } from '@/lib/rich';
+import { accent, marker } from '@/lib/rich';
 
 import { CtaButton } from './CtaButton';
 import { PhoneFrame } from './PhoneFrame';
@@ -12,7 +12,7 @@ export function HeroSection(): ReactNode {
   const t = useTranslations();
 
   return (
-    <section id={'top'} aria-labelledby={'hero-title'} className={'px-3 pt-3 sm:px-4'}>
+    <section id={'top'} aria-labelledby={'hero-title'} className={'px-3 pt-7 sm:px-4'}>
       <div
         data-hero-root={''}
         className={
@@ -50,7 +50,7 @@ export function HeroSection(): ReactNode {
                 aria-hidden={'true'}
                 className={'text-success mr-2 inline-block size-4 align-[-0.2em]'}
               />
-              {t('cta.note')}
+              {t.rich('cta.note', { mark: marker })}
             </p>
           </div>
         </div>

@@ -6,9 +6,11 @@
   --soft: color-mix(in srgb, var(--foreground) 72%, var(--card));
   --hairline: color-mix(in srgb, var(--foreground) 9%, transparent);
   --phone-glow: color-mix(in srgb, var(--brand) 22%, transparent);
+  --marker: color-mix(in srgb, var(--success) 50%, transparent);
 }
 
 :root.dark {
+  --marker: color-mix(in srgb, var(--success) 38%, transparent);
   --soft: color-mix(in srgb, var(--foreground) 74%, var(--card));
   --hairline: color-mix(in srgb, var(--foreground) 11%, transparent);
   --phone-glow: color-mix(in srgb, var(--brand) 30%, transparent);
@@ -137,6 +139,25 @@ html.hero-pending [data-hero] {
   html {
     scroll-behavior: auto;
   }
+}
+
+/* Green highlighter swipe behind a word: slanted parallelogram edges, text stays upright. */
+.marker {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0.15em;
+  padding: 0.1em 0.6em;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.marker::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--marker);
+  clip-path: polygon(0.4em 0, 100% 0, calc(100% - 0.4em) 100%, 0 100%);
 }
 
 .surface-featured {
