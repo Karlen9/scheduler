@@ -244,7 +244,7 @@ func HandleAdminUpdateClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updated.IsSelf = isSelfClient(updated, specialist)
-	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring)
+	changes.Publish(specialist.ID, changes.GroupClients, changes.GroupBookings, changes.GroupRecurring, changes.GroupClientBatches)
 	writeJSON(w, updated)
 }
 
@@ -344,10 +344,22 @@ func HandleAdminBlockClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Blocked && req.CancelBookings {
+		activeIDs, err := db.GetActiveBookingIDsForClient(clientID, specialist.ID)
+		if err != nil {
+			log.Printf("Error listing client bookings before cancel: %v", err)
+		}
 		if n, err := db.CancelAllClientBookings(clientID, specialist.ID); err != nil {
 			log.Printf("Error cancelling client bookings: %v", err)
 		} else if n > 0 {
 			log.Printf("Cancelled %d bookings for blocked client %s", n, clientID[:8])
+			/***************************************************************************************************
+			* Drop stale Accept/Reject buttons from the saved Telegram messages of the cancelled bookings.
+			***************************************************************************************************/
+			for _, id := range activeIDs {
+				if cancelled, _ := db.GetBookingByID(id); cancelled != nil {
+					refreshBookingMessages(cancelled)
+				}
+			}
 		}
 		if n, err := db.CancelAllClientRecurring(clientID, specialist.ID); err != nil {
 			log.Printf("Error cancelling client recurring: %v", err)

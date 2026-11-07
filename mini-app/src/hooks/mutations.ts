@@ -122,7 +122,7 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
   if (path === '/api/admin/notifications') {
     return ['adminNotifications'];
   }
-  if (path === '/api/admin/profile' || path === '/api/admin/upload/photo') {
+  if (path === '/api/admin/profile') {
     return ['specialist'];
   }
 
@@ -147,8 +147,15 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
         keys.add(CACHE_KEYS.clientStats);
         keys.add(CACHE_KEYS.adminBookings);
         keys.add(CACHE_KEYS.adminStats);
+        // Bookings also surface inside recurring schedule details and consume batch sessions,
+        // so a status change made elsewhere (e.g. in the Telegram bot) must refresh those too.
+        keys.add(CACHE_KEYS.recurringSchedules);
+        keys.add(CACHE_KEYS.adminRecurringSchedules);
+        keys.add(CACHE_KEYS.clientBatches);
         shouldRevalidateAdminBookingsLists = true;
         shouldRevalidateBookingsLists = true;
+        shouldRevalidateRecurringDetails = true;
+        shouldRevalidateAdminClientBatches = true;
         break;
       case 'clientBatches':
         keys.add(CACHE_KEYS.clientBatches);

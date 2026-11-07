@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -414,10 +415,53 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func UpdateBookingStatus(bookingID string, status models.BookingStatus) error {
-	return updateBookingStatus(bookingID, status, nil, nil)
+	return updateBookingStatus(bookingID, "", status, nil, nil)
 }
 
-func updateBookingStatus(bookingID string, status models.BookingStatus, reason *string, cancelledBy *models.CancelledBy) error {
+/***************************************************************************************************
+* ErrBookingStatusConflict is returned by the *IfCurrent transition helpers when the booking is no
+* longer in the status the caller observed, i.e. somebody else (bot callback, mini-app, another
+* device) already processed it.
+***************************************************************************************************/
+var ErrBookingStatusConflict = errors.New("booking status changed concurrently")
+
+/***************************************************************************************************
+* UpdateBookingStatusIfCurrent moves a booking to a new status only when it is still in the
+* expected status. The check is part of the UPDATE itself, so two concurrent actors cannot both win.
+*
+* Returns:
+* - ErrBookingStatusConflict when the booking is no longer in the expected status.
+***************************************************************************************************/
+func UpdateBookingStatusIfCurrent(bookingID string, expected, status models.BookingStatus) error {
+	return updateBookingStatus(bookingID, expected, status, nil, nil)
+}
+
+/***************************************************************************************************
+* CancelBookingIfCurrent cancels a booking only when it is still in the expected status.
+*
+* Returns:
+* - ErrBookingStatusConflict when the booking is no longer in the expected status.
+***************************************************************************************************/
+func CancelBookingIfCurrent(bookingID string, expected models.BookingStatus, reason string, cancelledBy models.CancelledBy) error {
+	return updateBookingStatus(bookingID, expected, models.BookingStatusCancelled, &reason, &cancelledBy)
+}
+
+/***************************************************************************************************
+* RejectBookingWithReasonIfCurrent rejects a booking only when it is still in the expected status.
+*
+* Returns:
+* - ErrBookingStatusConflict when the booking is no longer in the expected status.
+***************************************************************************************************/
+func RejectBookingWithReasonIfCurrent(bookingID string, expected models.BookingStatus, reason string) error {
+	return updateBookingStatus(bookingID, expected, models.BookingStatusRejected, &reason, nil)
+}
+
+/***************************************************************************************************
+* updateBookingStatus applies a status transition. When expected is non-empty the UPDATE is
+* conditional on the booking still having that status (race-safe pending -> X transitions) and
+* ErrBookingStatusConflict is returned when no row matched.
+***************************************************************************************************/
+func updateBookingStatus(bookingID string, expected, status models.BookingStatus, reason *string, cancelledBy *models.CancelledBy) error {
 	tx, err := DB.Begin()
 	if err != nil {
 		return err
@@ -437,6 +481,9 @@ func updateBookingStatus(bookingID string, status models.BookingStatus, reason *
 	if err != nil {
 		return err
 	}
+	if expected != "" && oldStatus != expected {
+		return ErrBookingStatusConflict
+	}
 
 	var reasonValue interface{}
 	if reason != nil && *reason != "" {
@@ -447,16 +494,35 @@ func updateBookingStatus(bookingID string, status models.BookingStatus, reason *
 		cancelledByValue = *cancelledBy
 	}
 
+	var query string
+	var args []interface{}
 	switch status {
 	case models.BookingStatusRejected:
-		_, err = tx.Exec(Q(`UPDATE bookings SET status = ?, cancel_reason = ?, cancelled_by = NULL WHERE id = ?`), status, reasonValue, bookingID)
+		query = `UPDATE bookings SET status = ?, cancel_reason = ?, cancelled_by = NULL WHERE id = ?`
+		args = []interface{}{status, reasonValue, bookingID}
 	case models.BookingStatusCancelled:
-		_, err = tx.Exec(Q(`UPDATE bookings SET status = ?, cancel_reason = ?, cancelled_by = ? WHERE id = ?`), status, reasonValue, cancelledByValue, bookingID)
+		query = `UPDATE bookings SET status = ?, cancel_reason = ?, cancelled_by = ? WHERE id = ?`
+		args = []interface{}{status, reasonValue, cancelledByValue, bookingID}
 	default:
-		_, err = tx.Exec(Q(`UPDATE bookings SET status = ? WHERE id = ?`), status, bookingID)
+		query = `UPDATE bookings SET status = ? WHERE id = ?`
+		args = []interface{}{status, bookingID}
 	}
+	if expected != "" {
+		query += ` AND status = ?`
+		args = append(args, expected)
+	}
+	result, err := tx.Exec(Q(query), args...)
 	if err != nil {
 		return err
+	}
+	if expected != "" {
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return ErrBookingStatusConflict
+		}
 	}
 
 	if oldStatus != models.BookingStatusCompleted && status == models.BookingStatusCompleted && serviceType.String == "batch" {
@@ -477,7 +543,9 @@ func updateBookingStatus(bookingID string, status models.BookingStatus, reason *
 }
 
 /***************************************************************************************************
-* Completes confirmed bookings whose start time has passed for one specialist.
+* Completes confirmed bookings whose end time has passed for one specialist. A session only counts
+* as spent once it has finished (ends_at <= now). Batch consumption never blocks completion: when
+* a client has no batch left the booking is still completed, just without consuming a session.
 *
 * Parameters:
 * - specialistID: Identifier used to target the current specialist records.
@@ -502,7 +570,7 @@ func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Ti
 		LEFT JOIN session_types st ON st.id = b.session_type_id
 		WHERE b.specialist_id = ?
 		  AND b.status = 'confirmed'
-		  AND b.starts_at <= ?
+		  AND b.ends_at <= ?
 	`), specialistID, now)
 	if err != nil {
 		return 0, err
@@ -536,7 +604,7 @@ func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Ti
 		SET status = ?
 		WHERE specialist_id = ?
 		  AND status = 'confirmed'
-		  AND starts_at <= ?
+		  AND ends_at <= ?
 	`), models.BookingStatusCompleted, specialistID, now); err != nil {
 		return 0, err
 	}
@@ -571,14 +639,13 @@ func CompletePastConfirmedBookingsForSpecialist(specialistID string, now time.Ti
 * - Reads from or writes to the shared database connection.
 ***************************************************************************************************/
 func CancelBooking(bookingID string, reason string, cancelledBy models.CancelledBy) error {
-	return updateBookingStatus(bookingID, models.BookingStatusCancelled, &reason, &cancelledBy)
+	return updateBookingStatus(bookingID, "", models.BookingStatusCancelled, &reason, &cancelledBy)
 }
 
 // CompleteBooking marks a booking as completed without a cancellation reason.
 // Used for late cancellations when the specialist has a cutoff policy enabled.
 func CompleteBooking(bookingID string) error {
-	_, err := DB.Exec(Q(`UPDATE bookings SET status = 'completed' WHERE id = ?`), bookingID)
-	return err
+	return updateBookingStatus(bookingID, "", models.BookingStatusCompleted, nil, nil)
 }
 
 /***************************************************************************************************
@@ -587,7 +654,7 @@ func CompleteBooking(bookingID string) error {
 * from CancelBooking so downstream consumers (notifications, analytics) can tell them apart.
 ***************************************************************************************************/
 func RejectBookingWithReason(bookingID, reason string) error {
-	return updateBookingStatus(bookingID, models.BookingStatusRejected, &reason, nil)
+	return updateBookingStatus(bookingID, "", models.BookingStatusRejected, &reason, nil)
 }
 
 /***************************************************************************************************
@@ -1014,18 +1081,37 @@ func ApproveRescheduleBooking(newBookingID string) error {
 		return fmt.Errorf("booking is not pending reschedule")
 	}
 
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	/***************************************************************************************************
+	* Confirm the new booking first; the status guard makes concurrent approvals race-safe.
+	***************************************************************************************************/
+	result, err := tx.Exec(Q(`UPDATE bookings SET status = 'confirmed' WHERE id = ? AND status = 'reschedule_pending'`), newBookingID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrBookingStatusConflict
+	}
+
 	/***************************************************************************************************
 	* Cancel the old booking.
 	***************************************************************************************************/
 	if newBooking.ReplacesBookingID != "" {
-		DB.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancel_reason = 'rescheduled' WHERE id = ?`), newBooking.ReplacesBookingID)
+		if _, err := tx.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancel_reason = 'rescheduled' WHERE id = ?`), newBooking.ReplacesBookingID); err != nil {
+			return err
+		}
 	}
 
-	/***************************************************************************************************
-	* Confirm the new booking.
-	***************************************************************************************************/
-	_, err = DB.Exec(Q(`UPDATE bookings SET status = 'confirmed' WHERE id = ?`), newBookingID)
-	return err
+	return tx.Commit()
 }
 
 /***************************************************************************************************

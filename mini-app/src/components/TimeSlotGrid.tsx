@@ -15,26 +15,36 @@ import type { ReactNode } from 'react';
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-function TimeSlotGridComponent({ slots, selected, onSelect }: TTimeSlotGridProps): ReactNode {
+function TimeSlotGridComponent({
+  slots,
+  selected,
+  onSelect,
+  currentLabel,
+}: TTimeSlotGridProps): ReactNode {
   return (
     <div className={'grid grid-cols-3 gap-2'}>
       {slots.map((slot) => (
         <button
           key={slot.time}
           onClick={() => slot.available && onSelect(slot.time)}
-          disabled={!slot.available}
+          disabled={!slot.available || slot.current}
           className={`min-h-12 rounded-lg px-2 py-2 text-sm leading-tight transition-all ${
-            selected === slot.time
-              ? 'bg-primary text-primary-foreground'
-              : slot.available
-                ? 'bg-card text-foreground hover:bg-border'
-                : slot.mine
-                  ? 'bg-success/15 text-success cursor-not-allowed'
-                  : 'bg-error/15 text-error cursor-not-allowed'
+            slot.current
+              ? 'bg-brand/15 text-brand ring-brand cursor-not-allowed ring-2'
+              : selected === slot.time
+                ? 'bg-primary text-primary-foreground'
+                : slot.available
+                  ? 'bg-card text-foreground hover:bg-border'
+                  : slot.mine
+                    ? 'bg-success/15 text-success cursor-not-allowed'
+                    : 'bg-error/15 text-error cursor-not-allowed'
           }`}
         >
           <span className={'block font-medium'}>{slot.time}</span>
-          {slot.endTime && (
+          {slot.current && currentLabel && (
+            <span className={'mt-0.5 block text-[11px] font-medium'}>{currentLabel}</span>
+          )}
+          {slot.endTime && !slot.current && (
             <span className={'mt-0.5 block text-[11px] opacity-70'}>{slot.endTime}</span>
           )}
         </button>

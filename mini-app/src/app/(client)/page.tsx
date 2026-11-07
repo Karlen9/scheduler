@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { ServiceCard } from '@/components/ServiceCard';
 import { StatusBadge } from '@/components/StatusBadge';
-import { WallpaperBackground } from '@/components/WallpaperPicker';
+import { reportBookingActionFailure } from '@/hooks/booking-action-error';
 import { invalidateBookings } from '@/hooks/mutations';
 import {
   useBookings,
@@ -159,7 +159,7 @@ export default function HomePage(): ReactNode {
   const [photoError, setPhotoError] = useState(false);
   const [ownerRedirecting, setOwnerRedirecting] = useState(false);
   const [activeModal, setActiveModal] = useState<THomeModal>(null);
-  const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
+  const [selectedBookingSnapshot, setSelectedBooking] = useState<TBooking | null>(null);
   const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -268,6 +268,20 @@ export default function HomePage(): ReactNode {
   );
 
   const activeBookingsCount = activeBookings.length;
+
+  /***************************************************************************************************
+   * The open booking is re-derived from the live SWR list by id, so a status change made elsewhere
+   * (e.g. confirmed from the Telegram bot) is reflected in the sheet within the sync poll and
+   * the action buttons disappear once the booking is no longer pending.
+   ***************************************************************************************************/
+  const selectedBooking = useMemo(
+    () =>
+      selectedBookingSnapshot
+        ? (bookings.find((booking) => booking.id === selectedBookingSnapshot.id) ??
+          selectedBookingSnapshot)
+        : null,
+    [bookings, selectedBookingSnapshot],
+  );
   const syncingPreviewLanguageRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -419,8 +433,43 @@ export default function HomePage(): ReactNode {
       setCancelBookingTarget(null);
       setCancelReason('');
       invalidateBookings();
-    } catch {
-      toast.error(te('bookingCancelFailed'));
+    } catch (err) {
+      setCancelBookingTarget(null);
+      setCancelReason('');
+      await reportBookingActionFailure(err, {
+        fallback: te('bookingCancelFailed'),
+        stale: te('bookingAlreadyProcessed'),
+      });
+    }
+  };
+
+  const handleConfirmBooking = async (booking: TBooking): Promise<void> => {
+    setSelectedBooking(null);
+    try {
+      await api.confirmBooking(booking.id);
+      toast.success(ts('bookingConfirmed'));
+      await invalidateBookings();
+    } catch (err) {
+      await reportBookingActionFailure(
+        err,
+        { fallback: te('bookingConfirmFailed'), stale: te('bookingAlreadyProcessed') },
+        { includeBadRequest: true },
+      );
+    }
+  };
+
+  const handleDeclineBooking = async (booking: TBooking): Promise<void> => {
+    setSelectedBooking(null);
+    try {
+      await api.declineBooking(booking.id);
+      toast.success(ts('bookingDeclined'));
+      await invalidateBookings();
+    } catch (err) {
+      await reportBookingActionFailure(
+        err,
+        { fallback: te('bookingDeclineFailed'), stale: te('bookingAlreadyProcessed') },
+        { includeBadRequest: true },
+      );
     }
   };
 
@@ -435,13 +484,8 @@ export default function HomePage(): ReactNode {
   if (ownerRedirecting || isLoading) {
     return (
       <div className={'animate-pulse'}>
-        <div className={'bg-background h-[150px] w-full'} />
-        <div className={'bg-card relative rounded-t-2xl px-4 pt-20 pb-6'}>
-          <div
-            className={
-              'bg-skeleton absolute top-0 left-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full'
-            }
-          />
+        <div className={'bg-card relative rounded-b-2xl px-4 pt-8 pb-6'}>
+          <div className={'bg-skeleton mx-auto mb-5 h-28 w-28 rounded-full'} />
           <div className={'bg-skeleton mx-auto h-7 w-2/3 rounded'} />
           <div className={'bg-skeleton mx-auto mt-3 h-4 w-1/2 rounded'} />
           <div className={'bg-skeleton mt-8 h-20 rounded-lg'} />
@@ -475,29 +519,19 @@ export default function HomePage(): ReactNode {
 
   return (
     <div className={'bg-bookings-bg -mb-[calc(7rem+env(safe-area-inset-bottom))] min-h-screen'}>
-      <div className={'bg-background relative h-[192px] overflow-hidden'}>
-        <WallpaperBackground wallpaper={specialist.wallpaper} />
-        <div
+      <section className={'bg-card relative rounded-b-[16px] px-4 pt-8 pb-14'}>
+        <button
+          type={'button'}
+          onClick={handleShare}
           className={
-            'from-brand/10 pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t to-transparent'
+            'border-brand/20 bg-brand/10 text-brand absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition-opacity active:opacity-80'
           }
-        />
-        <div className={'relative h-[160px] px-4 pt-5'}>
-          <button
-            type={'button'}
-            onClick={handleShare}
-            className={
-              'border-brand/20 bg-brand/10 text-brand absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition-opacity active:opacity-80'
-            }
-            aria-label={t('share')}
-          >
-            <Share2 className={'h-5 w-5'} />
-          </button>
-        </div>
-      </div>
+          aria-label={t('share')}
+        >
+          <Share2 className={'h-5 w-5'} />
+        </button>
 
-      <section className={'bg-card relative -mt-8 rounded-[16px] px-4 pt-20 pb-14'}>
-        <div className={'absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2'}>
+        <div className={'mb-5 flex justify-center'}>
           <div className={'bg-card ring-brand/20 rounded-full p-2 ring-2'}>
             {photoSrc ? (
               <Image
@@ -854,6 +888,29 @@ export default function HomePage(): ReactNode {
                 <p className={'text-muted-foreground text-center text-sm'}>
                   {tb('awaitingRescheduleConfirmation')}
                 </p>
+              </div>
+            ) : !isPreviewInstance &&
+              selectedBooking.status === 'pending' &&
+              selectedBooking.createdBy === 'specialist' ? (
+              <div className={'mt-5 flex gap-3'}>
+                <button
+                  type={'button'}
+                  onClick={() => void handleConfirmBooking(selectedBooking)}
+                  className={
+                    'bg-action-confirm-bg text-action-confirm-text flex-1 rounded-lg px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {tc('confirm')}
+                </button>
+                <button
+                  type={'button'}
+                  onClick={() => void handleDeclineBooking(selectedBooking)}
+                  className={
+                    'bg-action-danger-bg text-action-danger-text flex-1 rounded-lg px-4 py-3 text-sm font-medium transition-opacity active:opacity-80'
+                  }
+                >
+                  {tc('cancelVerb')}
+                </button>
               </div>
             ) : !isPreviewInstance &&
               (selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') ? (

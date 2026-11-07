@@ -110,12 +110,6 @@ export type TNotificationPreferencesProps = {
   ) => void;
 };
 
-export type TPhotoEditorProps = {
-  imageSrc: string;
-  onConfirm: (blob: Blob) => void;
-  onCancel: TVoidFunction;
-};
-
 export type TPrimaryButtonProps = {
   children: ReactNode;
   onClick?: TVoidFunction;
@@ -136,6 +130,8 @@ export type TServiceSelectorProps = {
   services: TSessionType[];
   selectedId: string;
   onChange: (service: TSessionType) => void;
+  isDisabled?: (service: TSessionType) => boolean;
+  disabledLabel?: string;
 };
 
 export type TSettingsGroupProps = {

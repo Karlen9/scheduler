@@ -7,9 +7,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BookingCard } from '@/components/BookingCard';
+import { ClientBookingsPageWatcher } from '@/components/BookingsPageWatchers';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { BookingCardSkeleton } from '@/components/LoadingSkeleton';
+import { reportBookingActionFailure } from '@/hooks/booking-action-error';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useBookingsPage, useSpecialist } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
@@ -71,7 +73,7 @@ export default function BookingsPage(): ReactNode {
   const pathname = usePathname();
   const { data: specialist } = useSpecialist();
   const [page, setPage] = useState(1);
-  const [allBookings, setAllBookings] = useState<TBooking[]>([]);
+  const [pages, setPages] = useState<Record<number, TBooking[]>>({});
   const { data, isLoading, error } = useBookingsPage({ page, limit: BOOKINGS_PAGE_LIMIT });
   const [cancelBookingTarget, setCancelBookingTarget] = useState<TBooking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -79,22 +81,39 @@ export default function BookingsPage(): ReactNode {
   const [now, setNow] = useState(() => wallClockNow());
   const isPreview = isPreviewRoute(pathname);
   const hasMore = data.page < data.totalPages;
-  const bookings = allBookings;
 
+  const handlePageData = useCallback((pageNumber: number, list: TBooking[]): void => {
+    setPages((prev) => (prev[pageNumber] === list ? prev : { ...prev, [pageNumber]: list }));
+  }, []);
+
+  /***************************************************************************************************
+   * The current page is reported here; earlier pages stay mounted through ClientBookingsPageWatcher,
+   * so every loaded page is revalidated by the `bookings` change group (e.g. when a booking is
+   * confirmed or declined from the Telegram bot).
+   ***************************************************************************************************/
   useEffect(() => {
-    if (page === 1) {
-      setAllBookings(data.bookings);
-      return;
+    if (!isLoading && !error) {
+      handlePageData(page, data.bookings);
     }
+  }, [data.bookings, error, handlePageData, isLoading, page]);
 
-    setAllBookings((prev) => {
-      const nextByID = new Map(data.bookings.map((booking) => [booking.id, booking]));
-      const merged = prev.map((booking) => nextByID.get(booking.id) ?? booking);
-      const seen = new Set(merged.map((booking) => booking.id));
-      const appended = data.bookings.filter((booking) => !seen.has(booking.id));
-      return appended.length === 0 ? merged : [...merged, ...appended];
-    });
-  }, [data.bookings, page]);
+  const bookings = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: TBooking[] = [];
+    const pageNumbers = Object.keys(pages)
+      .map(Number)
+      .filter((pageNumber) => pageNumber <= page)
+      .sort((left, right) => left - right);
+    for (const pageNumber of pageNumbers) {
+      for (const booking of pages[pageNumber]) {
+        if (!seen.has(booking.id)) {
+          seen.add(booking.id);
+          merged.push(booking);
+        }
+      }
+    }
+    return merged;
+  }, [page, pages]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(wallClockNow()), 5000);
@@ -154,19 +173,17 @@ export default function BookingsPage(): ReactNode {
 
     try {
       await api.cancelBooking(bookingId, reason);
-      setAllBookings((currentBookings) =>
-        currentBookings.map((booking) =>
-          booking.id === bookingId
-            ? { ...booking, status: 'cancelled', cancelReason: reason }
-            : booking,
-        ),
-      );
       toast.success(ts('bookingCancelled'));
       setCancelBookingTarget(null);
       setCancelReason('');
-      invalidateBookings();
-    } catch {
-      toast.error(te('bookingCancelFailed'));
+      await invalidateBookings();
+    } catch (err) {
+      setCancelBookingTarget(null);
+      setCancelReason('');
+      await reportBookingActionFailure(err, {
+        fallback: te('bookingCancelFailed'),
+        stale: te('bookingAlreadyProcessed'),
+      });
     }
   }, [cancelBookingTarget, cancelReason, t, te, ts]);
 
@@ -181,9 +198,13 @@ export default function BookingsPage(): ReactNode {
       try {
         await api.confirmBooking(booking.id);
         toast.success(ts('bookingConfirmed'));
-        invalidateBookings();
-      } catch {
-        toast.error(te('bookingConfirmFailed'));
+        await invalidateBookings();
+      } catch (err) {
+        await reportBookingActionFailure(
+          err,
+          { fallback: te('bookingConfirmFailed'), stale: te('bookingAlreadyProcessed') },
+          { includeBadRequest: true },
+        );
       }
     },
     [te, ts],
@@ -200,9 +221,13 @@ export default function BookingsPage(): ReactNode {
       try {
         await api.declineBooking(booking.id);
         toast.success(ts('bookingDeclined'));
-        invalidateBookings();
-      } catch {
-        toast.error(te('bookingDeclineFailed'));
+        await invalidateBookings();
+      } catch (err) {
+        await reportBookingActionFailure(
+          err,
+          { fallback: te('bookingDeclineFailed'), stale: te('bookingAlreadyProcessed') },
+          { includeBadRequest: true },
+        );
       }
     },
     [te, ts],
@@ -251,6 +276,14 @@ export default function BookingsPage(): ReactNode {
 
   return (
     <div>
+      {Array.from({ length: Math.max(page - 1, 0) }, (_, index) => (
+        <ClientBookingsPageWatcher
+          key={index + 1}
+          page={index + 1}
+          limit={BOOKINGS_PAGE_LIMIT}
+          onData={handlePageData}
+        />
+      ))}
       <div className={'space-y-4 p-4'}>
         <h2 className={'px-1 text-lg font-semibold'}>{t('title')}</h2>
 

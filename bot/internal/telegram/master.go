@@ -677,15 +677,30 @@ func (h *MasterHandler) handleNameInput(chatID, userID int64, text string, sessi
 		return
 	}
 
+	session.Name = name
+
+	/***************************************************************************************************
+	* The app is free and the legal documents are hidden, so onboarding skips the consent step. The
+	* consent flow stays reachable behind requireOnboardingConsent so it can be re-enabled.
+	***************************************************************************************************/
+	if !requireOnboardingConsent {
+		h.finalizeOnboarding(chatID, userID, username, session, loc)
+		return
+	}
+
 	/***************************************************************************************************
 	* Store the name in the session and ask for consent to the Terms and Privacy Policy.
 	***************************************************************************************************/
-	session.Name = name
 	session.State = StateAwaitingConsent
 	h.setSession(userID, session)
 
 	h.sendConsentPrompt(chatID, loc)
 }
+
+// requireOnboardingConsent gates the Terms / Privacy consent step of the master bot onboarding.
+// It is off while the app is free and the legal documents are hidden; flip it to true to bring
+// the consent step (and the recorded consent_accepted_at / consent_version) back.
+const requireOnboardingConsent = false
 
 // ConsentVersion identifies the current revision of the Terms / Privacy documents.
 // Increment this string whenever the documents materially change so that re-consent can be
@@ -746,8 +761,10 @@ func (h *MasterHandler) finalizeOnboarding(chatID, userID int64, username string
 	/***************************************************************************************************
 	* Record consent acceptance (log-only on failure; do not abort registration).
 	***************************************************************************************************/
-	if err := db.SetSpecialistConsent(specialist.ID, ConsentVersion); err != nil {
-		log.Printf("master: record consent failed (%s): %v", specialist.ID, err)
+	if requireOnboardingConsent {
+		if err := db.SetSpecialistConsent(specialist.ID, ConsentVersion); err != nil {
+			log.Printf("master: record consent failed (%s): %v", specialist.ID, err)
+		}
 	}
 
 	/***************************************************************************************************

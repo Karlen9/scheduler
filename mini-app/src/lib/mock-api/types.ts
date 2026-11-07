@@ -44,6 +44,3 @@ export const changeGroups: TChangeGroup[] = [
   'clientProfile',
   'adminNotifications',
 ];
-
-export const mockPhotoDataUrl =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';

@@ -259,7 +259,7 @@ export default function DaysOffPage(): ReactNode {
     try {
       await api.admin.createDayOffsBatch(datesToSubmit, reason || undefined);
       await mutate();
-      invalidateDaysOff();
+      await invalidateDaysOff();
       setShowCalendar(false);
       resetPicker();
     } catch (err) {
@@ -279,7 +279,7 @@ export default function DaysOffPage(): ReactNode {
 
     try {
       await api.admin.deleteDayOff(id);
-      invalidateDaysOff();
+      await invalidateDaysOff();
     } catch (err) {
       console.error('Failed to delete day off:', err);
       toast.error(te('deleteDayOffFailed'));

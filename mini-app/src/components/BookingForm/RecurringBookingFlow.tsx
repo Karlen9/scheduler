@@ -7,9 +7,11 @@ import { toast } from 'sonner';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { invalidateRecurring } from '@/hooks/mutations';
+import { isServiceBookable } from '@/lib/batches';
 import { generateTimeSlotsForDay } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 
+import { PinnedPanel } from './PinnedPanel';
 import { RecurringDayForm } from './RecurringDayForm';
 
 import type { TRecurringBookingFlowProps, TSessionType } from '@/lib/types';
@@ -29,6 +31,7 @@ import type { ReactNode } from 'react';
  ***************************************************************************************************/
 export function RecurringBookingFlow({
   services,
+  clientBatches,
   workingHours,
   selectedClient,
   hasClientSelector,
@@ -289,15 +292,11 @@ export function RecurringBookingFlow({
         handlePreview={handlePreview}
         previewDates={previewDates}
         handleRecTimeSelect={handleRecTimeSelect}
+        isServiceBookable={(service) => isServiceBookable(service, clientBatches)}
       />
 
       {recFormReady && (
-        <div
-          className={
-            'bg-background/80 fixed right-0 bottom-0 left-0 space-y-3 p-4 backdrop-blur-sm'
-          }
-          style={{ maxWidth: '430px', margin: '0 auto' }}
-        >
+        <PinnedPanel>
           <PrimaryButton onClick={handleCreateSchedule} disabled={isSaving || readOnly}>
             {readOnly
               ? (readOnlyActionLabel ?? t('submitRecurring'))
@@ -305,7 +304,7 @@ export function RecurringBookingFlow({
                 ? tc('saving')
                 : t('submitRecurring')}
           </PrimaryButton>
-        </div>
+        </PinnedPanel>
       )}
     </>
   );

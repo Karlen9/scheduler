@@ -1,7 +1,6 @@
 import { createBookingFromBody, createRecurringSchedule, updateBooking } from './mutations';
 import { buildPreviewDates } from './queries';
 import { bumpChangeVersions } from './state';
-import { mockPhotoDataUrl } from './types';
 import { clone, getNumber, getOptionalString, getString } from './utils';
 
 import type {
@@ -114,9 +113,6 @@ export function handlePost<T>(
     state.clients = [client, ...state.clients];
     bumpChangeVersions(state, ['clients']);
     return clone(client) as T;
-  }
-  if (path === '/api/admin/upload/photo') {
-    return clone({ fileId: mockPhotoDataUrl }) as T;
   }
 
   const moveMatch = path.match(/^\/api\/recurring\/([^/]+)\/bookings\/([^/]+)\/move$/);

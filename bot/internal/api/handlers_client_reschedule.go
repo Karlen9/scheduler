@@ -154,11 +154,7 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 	if booking != nil {
 		changes.Publish(booking.SpecialistID, changes.GroupBookings)
 	}
-	if UpdateSpecialistMessageFunc != nil && booking != nil {
-		if err := UpdateSpecialistMessageFunc(booking); err != nil {
-			log.Printf("Error updating specialist booking notification: %v", err)
-		}
-	}
+	refreshBookingMessages(booking)
 	if NotifyRescheduleRequestFunc != nil && booking != nil {
 		if err := NotifyRescheduleRequestFunc(booking, &oldBooking); err != nil {
 			log.Printf("Error notifying specialist about client reschedule: %v", err)

@@ -37,7 +37,7 @@ func HandleGetDaysOff(w http.ResponseWriter, r *http.Request) {
 		daysOff = []models.DayOff{}
 	}
 
-	setPrivateCache(w, 300, 600)
+	setNoStore(w)
 	writeJSON(w, daysOff)
 }
 

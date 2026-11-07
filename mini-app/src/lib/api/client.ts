@@ -49,8 +49,18 @@ export const clientApi = {
     return fetchAPI<{ date: string }[]>('/api/days-off');
   },
 
-  async getAvailableSlots(date: string, duration: number): Promise<TTimeSlot[]> {
-    return fetchAPI<TTimeSlot[]>(`/api/availability?date=${date}&duration=${duration}`);
+  async getAvailableSlots(
+    date: string,
+    duration: number,
+    excludeBookingId?: string,
+  ): Promise<TTimeSlot[]> {
+    const query = new URLSearchParams({ date, duration: String(duration) });
+    if (excludeBookingId) {
+      // Reschedule: the backend ignores this booking for conflicts and flags its own start slot
+      // as { available: false, current: true }.
+      query.set('excludeBookingId', excludeBookingId);
+    }
+    return fetchAPI<TTimeSlot[]>(`/api/availability?${query.toString()}`);
   },
 
   async getBookings(): Promise<TBooking[]> {
@@ -134,7 +144,6 @@ export const clientApi = {
   async updateProfile(data: {
     name?: string;
     phone?: string;
-    photoUrl?: string;
     preferredDuration?: number;
     language?: string;
   }): Promise<TClientProfile> {

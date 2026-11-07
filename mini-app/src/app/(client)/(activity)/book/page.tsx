@@ -138,7 +138,6 @@ function ClientBookContent(): ReactNode {
       }}
       readOnly={isPreview}
       readOnlyActionLabel={tp('readOnlyAction')}
-      showConsentNote={true}
     />
   );
 }

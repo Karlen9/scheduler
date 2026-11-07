@@ -254,9 +254,7 @@
     "successRecurringTitle": "Расписание отправлено",
     "successRecurringForClient": "Расписание для {name} отправлено на подтверждение.",
     "successRecurringForSpecialist": "Расписание отправлено на подтверждение специалисту.",
-    "bookedDateWarning": "У вас уже есть запись на этот день. Отмените её, чтобы записаться на новое время.",
-    "consentNote": "Записываясь, вы соглашаетесь на обработку персональных данных в соответствии с № 152-ФЗ",
-    "privacyPolicy": "Политика конфиденциальности"
+    "bookedDateWarning": "У вас уже есть запись на этот день. Отмените её, чтобы записаться на новое время."
   },
   "BookingsPage": {
     "title": "Мои записи",
@@ -314,7 +312,7 @@
     "preferredService": "Основной вид занятия",
     "notifications": "Уведомления",
     "notifyBookingStatus": "Статус записи",
-    "notifyBookingStatusDesc": "Подтверждение и отклонение записей",
+    "notifyBookingStatusDesc": "Подтверждение или отклонение ваших запросов на запись. Запросы специалиста приходят всегда",
     "notifyCancellations": "Отмена записей",
     "notifyCancellationsDesc": "Уведомления об отмене записей специалистом",
     "notifyReminders": "Напоминания",
@@ -324,9 +322,7 @@
     "useTelegramPhoto": "Использовать фото Telegram",
     "removePhoto": "Удалить фото",
     "telegramPhotoActive": "Используется фото Telegram",
-    "theme": "Тема",
-    "termsOfUse": "Пользовательское соглашение",
-    "privacyPolicy": "Политика конфиденциальности"
+    "theme": "Тема"
   },
   "ServicesPage": {
     "title": "Услуги и цены",
@@ -367,10 +363,7 @@
     "other": "Прочее",
     "notifications": "Уведомления",
     "help": "Помощь",
-    "theme": "Тема",
-    "legal": "Документы",
-    "termsOfUse": "Пользовательское соглашение",
-    "privacyPolicy": "Политика конфиденциальности"
+    "theme": "Тема"
   },
   "DeleteBot": {
     "zoneTitle": "Опасная зона",
@@ -415,11 +408,7 @@
     "bioPlaceholder": "Расскажите о своем опыте и подходе к работе...",
     "phoneLabel": "Телефон",
     "telegramLabel": "Telegram",
-    "telegramPlaceholder": "@username",
-    "useTelegramPhoto": "Использовать фото Telegram",
-    "removePhoto": "Удалить фото",
-    "telegramPhotoActive": "Используется фото Telegram",
-    "wallpaperLabel": "Фон шапки"
+    "telegramPlaceholder": "@username"
   },
   "AdminSchedule": {
     "title": "Расписание",
@@ -455,9 +444,10 @@
     "serviceType": "Тип услуги",
     "typeCommon": "Обычная",
     "typeBatch": "Абонемент",
-    "nameLabel": "Название",
     "namePlaceholder": "Парный сеанс",
-    "priceLabel": "Цена",
+    "priceLabelCommon": "Цена за занятие",
+    "priceLabelBatch": "Цена за весь абонемент",
+    "perSessionHint": "≈ {perSession} {currency} за занятие",
     "pricePlaceholder": "2500",
     "sessionsCountLabel": "Количество занятий",
     "sessionsCountPlaceholder": "10",
@@ -488,8 +478,8 @@
   },
   "AdminNotifications": {
     "title": "Уведомления",
-    "newBookings": "Новые записи",
-    "newBookingsDesc": "Уведомления о новых записях клиентов",
+    "newBookings": "Переносы и регулярные записи",
+    "newBookingsDesc": "Информационные уведомления. Запросы на подтверждение записей приходят всегда",
     "clientCancellations": "Отмены клиентов",
     "clientCancellationsDesc": "Уведомления об отмене записей",
     "theme": "Тема"
@@ -522,9 +512,10 @@
     "messageClient": "Написать клиенту",
     "bookingsHistory": "История записей ({count})",
     "addBatch": "Добавить абонемент",
-    "activeBatches": "Активные абонементы",
+    "batches": "Абонементы",
     "batchFallbackName": "Абонемент",
     "batchServiceLabel": "Услуга",
+    "batchOptionLabel": "{name} · {count, plural, one {# занятие} few {# занятия} many {# занятий} other {# занятий}} · {price} {currency}",
     "batchRemainingShort": "{remaining} из {total}",
     "batchAssignSuccess": "Абонемент добавлен",
     "batchAssignError": "Не удалось добавить абонемент",
@@ -621,10 +612,6 @@
     "ru": "Русский",
     "en": "English"
   },
-  "PhotoEditor": {
-    "title": "Редактирование фото",
-    "zoom": "Масштаб"
-  },
   "BookingDetailModal": {
     "serviceLabel": "Услуга",
     "dateLabel": "Дата",
@@ -651,7 +638,9 @@
     "submitButton": "Перенести",
     "sendRequestButton": "Отправить запрос",
     "approvalRequired": "Клиент должен будет подтвердить новое время. Можно добавить комментарий:",
-    "messagePlaceholder": "Например: нужно перенести из-за другой встречи"
+    "messagePlaceholder": "Например: нужно перенести из-за другой встречи",
+    "currentSlotLabel": "Текущая",
+    "currentBookingLegend": "Текущая запись"
   },
   "PendingBookingCard": {
     "accept": "Принять",
@@ -691,7 +680,8 @@
     "remaining": "Осталось: {remaining}/{total}",
     "exhausted": "Абонемент закончился",
     "editAction": "Редактировать",
-    "deleteAction": "Удалить"
+    "deleteAction": "Удалить",
+    "noActiveBatch": "Нет активного абонемента"
   },
   "Analytics": {
     "title": "Аналитика",
@@ -764,19 +754,16 @@
     "previewFailed": "Не удалось загрузить предпросмотр",
     "saveFailed": "Ошибка сохранения",
     "saveSettingsFailed": "Ошибка сохранения настроек",
-    "photoUploadFailed": "Ошибка загрузки фото",
-    "telegramPhotoUnavailable": "Фото профиля Telegram недоступно",
     "addDayOffFailed": "Ошибка добавления",
     "deleteDayOffFailed": "Ошибка удаления",
     "clientCreateFailed": "Не удалось создать клиента",
     "clientDeleteFailed": "Не удалось удалить клиента",
     "loadBookingsFailed": "Не удалось загрузить записи",
-    "clientBlocked": "Вы заблокированы и не можете записаться"
+    "clientBlocked": "Вы заблокированы и не можете записаться",
+    "bookingAlreadyProcessed": "Запись уже обработана или изменена. Список обновлён."
   },
   "Success": {
     "profileSaved": "Профиль сохранен",
-    "photoUpdated": "Фото обновлено",
-    "photoRemoved": "Фото удалено",
     "scheduleSaved": "Расписание сохранено",
     "bookingCancelled": "Запись отменена",
     "bookingConfirmed": "Запись подтверждена",

@@ -59,9 +59,15 @@ export function ClientDetailModal({
   const canMessage =
     !displayClient.isGhost && !displayClient.isSelf && !!displayClient.telegramUsername;
   const batchServices = services.filter((service) => service.type === 'batch');
-  const activeBatches = clientBatches.filter(
-    (batch) => batch.status === 'active' && batch.remainingSessions > 0,
-  );
+  const isBatchActive = (batch: (typeof clientBatches)[number]): boolean =>
+    batch.status === 'active' && batch.remainingSessions > 0;
+  // Active packages first; exhausted ones stay visible (greyed, "0 of N") so both sides can see history.
+  const visibleBatches = [
+    ...clientBatches.filter(isBatchActive),
+    ...clientBatches.filter((batch) => !isBatchActive(batch)),
+  ];
+  const formatPrice = (price: number): string =>
+    new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU').format(price);
   const canAssignBatch = batchServices.length > 0;
 
   const createdDate = new Date(displayClient.createdAt);
@@ -151,20 +157,23 @@ export function ClientDetailModal({
       </button>
 
       <div className={'mt-3 space-y-3'}>
-        {activeBatches.length > 0 && (
+        {visibleBatches.length > 0 && (
           <div className={'bg-card rounded-xl p-3'}>
-            <div className={'text-muted-foreground mb-2 text-xs font-medium'}>
-              {t('activeBatches')}
-            </div>
+            <div className={'text-muted-foreground mb-2 text-xs font-medium'}>{t('batches')}</div>
             <div className={'space-y-2'}>
-              {activeBatches.map((batch) => (
-                <div key={batch.id} className={'flex items-center justify-between gap-3 text-sm'}>
+              {visibleBatches.map((batch) => (
+                <div
+                  key={batch.id}
+                  className={`flex items-center justify-between gap-3 text-sm ${
+                    isBatchActive(batch) ? '' : 'opacity-50'
+                  }`}
+                >
                   <span className={'text-foreground min-w-0 truncate'}>
                     {batch.service?.name ?? t('batchFallbackName')}
                   </span>
                   <span className={'text-muted-foreground shrink-0'}>
                     {t('batchRemainingShort', {
-                      remaining: batch.remainingSessions,
+                      remaining: isBatchActive(batch) ? batch.remainingSessions : 0,
                       total: batch.totalSessions,
                     })}
                   </span>
@@ -202,7 +211,12 @@ export function ClientDetailModal({
             >
               {batchServices.map((service) => (
                 <option key={service.id} value={service.id}>
-                  {service.name}
+                  {t('batchOptionLabel', {
+                    name: service.name,
+                    count: service.sessionsCount ?? 0,
+                    price: formatPrice(service.price),
+                    currency: service.currency === 'RUB' ? '\u20BD' : service.currency,
+                  })}
                 </option>
               ))}
             </select>

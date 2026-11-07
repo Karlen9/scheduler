@@ -17,22 +17,33 @@ export function ServiceSelector({
   services,
   selectedId,
   onChange,
+  isDisabled,
+  disabledLabel,
 }: TServiceSelectorProps): ReactNode {
   return (
     <div className={'flex flex-wrap gap-2'}>
-      {services.map((service) => (
-        <button
-          key={service.id}
-          onClick={() => onChange(service)}
-          className={`rounded-full px-4 py-2 text-sm transition-colors ${
-            selectedId === service.id
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-card text-foreground'
-          }`}
-        >
-          {service.name}
-        </button>
-      ))}
+      {services.map((service) => {
+        const disabled = isDisabled?.(service) ?? false;
+        return (
+          <button
+            key={service.id}
+            type={'button'}
+            onClick={() => onChange(service)}
+            disabled={disabled}
+            aria-disabled={disabled}
+            className={`rounded-full px-4 py-2 text-sm transition-colors ${
+              selectedId === service.id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card text-foreground'
+            } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+          >
+            {service.name}
+            {disabled && disabledLabel && (
+              <span className={'text-warning ml-1.5 text-xs'}>{disabledLabel}</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

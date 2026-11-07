@@ -24,7 +24,7 @@ export function SWRProvider({ children }: { children: React.ReactNode }): ReactN
       value={{
         revalidateOnFocus: false,
         revalidateOnReconnect: false,
-        revalidateIfStale: false,
+        revalidateIfStale: true,
         dedupingInterval: 30000,
         errorRetryCount: 2,
       }}

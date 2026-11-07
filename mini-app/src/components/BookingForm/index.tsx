@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { CalendarSkeleton } from '@/components/LoadingSkeleton';
+import { useAdminClientBatches } from '@/hooks/queries';
 import { getNonWorkingDays } from '@/lib/helpers';
 
 import { ClientSelector } from './ClientSelector';
@@ -48,7 +49,6 @@ export function BookingForm({
   initialTime,
   initialComment,
   initialSelectedClient,
-  showConsentNote = false,
 }: TBookingFormProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -109,11 +109,23 @@ export function BookingForm({
   const showForm = !hasClientSelector || selectedClient;
 
   /***************************************************************************************************
+   * Whose batches decide which batch services are selectable:
+   * - client app: the signed-in client's own batches (passed in by the page);
+   * - specialist: the batches of the CLIENT SELECTED for this booking, loaded here. Before a client
+   *   is selected there are none, so batch services stay disabled.
+   ***************************************************************************************************/
+  const isSpecialistFlow = hasClientSelector || initialSelectedClient !== undefined;
+  const { data: specialistClientBatches, isLoading: specialistBatchesLoading } =
+    useAdminClientBatches(isSpecialistFlow ? selectedClient?.id : undefined);
+  const effectiveBatches = isSpecialistFlow ? specialistClientBatches : clientBatches;
+  const isLoadingForm = isInitialLoading || (isSpecialistFlow && specialistBatchesLoading);
+
+  /***************************************************************************************************
    * Render.
    ***************************************************************************************************/
   return (
     <div className={'flex flex-col'}>
-      <div className={'flex-1 space-y-4 p-4 pb-48'}>
+      <div className={'flex-1 space-y-4 p-4 pb-0'}>
         <h2 className={'px-1 text-lg font-semibold'}>{resolvedTitle}</h2>
 
         <ClientSelector
@@ -190,7 +202,7 @@ export function BookingForm({
               </div>
             )}
 
-            {isInitialLoading ? (
+            {isLoadingForm ? (
               <div className={'animate-pulse space-y-4'}>
                 <div>
                   <div className={'bg-card mb-2 h-4 w-28 rounded'} />
@@ -209,7 +221,7 @@ export function BookingForm({
                 services={services}
                 daysOff={daysOff}
                 bookedDates={bookedDates}
-                clientBatches={clientBatches}
+                clientBatches={effectiveBatches}
                 showRecurring={showRecurring}
                 selectedClient={selectedClient}
                 hasClientSelector={hasClientSelector}
@@ -222,11 +234,11 @@ export function BookingForm({
                 initialService={initialService}
                 initialTime={initialTime}
                 initialComment={initialComment}
-                showConsentNote={showConsentNote}
               />
             ) : (
               <RecurringBookingFlow
                 services={services}
+                clientBatches={effectiveBatches}
                 workingHours={workingHoursData}
                 selectedClient={selectedClient}
                 hasClientSelector={hasClientSelector}

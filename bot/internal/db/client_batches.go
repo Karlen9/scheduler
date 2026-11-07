@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -97,7 +98,67 @@ func AssignClientBatch(clientID, specialistID, serviceID string) (*models.Client
 	return scanClientBatch(row, true)
 }
 
+/***************************************************************************************************
+* getOldestActiveClientBatchTx returns the oldest active batch of the client for the service that
+* still has free capacity, i.e. remaining_sessions minus the pending/confirmed bookings already
+* reserved against that batch is greater than zero.
+***************************************************************************************************/
 func getOldestActiveClientBatchTx(tx *sql.Tx, clientID, specialistID, serviceID string) (string, error) {
+	var id string
+	err := tx.QueryRow(Q(`
+		SELECT cb.id
+		FROM client_batches cb
+		WHERE cb.client_id = ?
+		  AND cb.specialist_id = ?
+		  AND cb.service_id = ?
+		  AND cb.status = 'active'
+		  AND cb.remaining_sessions - (
+		        SELECT COUNT(*)
+		        FROM bookings rb
+		        WHERE rb.client_batch_id = cb.id
+		          AND rb.status IN ('pending', 'confirmed')
+		      ) > 0
+		ORDER BY cb.created_at ASC, cb.id ASC
+		LIMIT 1
+	`), clientID, specialistID, serviceID).Scan(&id)
+	if err == sql.ErrNoRows {
+		return "", ErrNoActiveClientBatch
+	}
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+/***************************************************************************************************
+* getConsumableClientBatchTx picks the batch a finished session is charged to: the batch already
+* attached to the booking when it is still active with sessions left, otherwise the oldest active
+* batch of the client for the service. Reservations are intentionally ignored here: the session
+* has already happened, so it must be charged whenever any session is left.
+***************************************************************************************************/
+func getConsumableClientBatchTx(tx *sql.Tx, bookingID, clientID, specialistID, serviceID string) (string, error) {
+	var attached sql.NullString
+	if err := tx.QueryRow(Q(`SELECT client_batch_id FROM bookings WHERE id = ?`), bookingID).Scan(&attached); err != nil && err != sql.ErrNoRows {
+		return "", err
+	}
+	if attached.Valid {
+		var id string
+		err := tx.QueryRow(Q(`
+			SELECT id
+			FROM client_batches
+			WHERE id = ?
+			  AND client_id = ?
+			  AND status = 'active'
+			  AND remaining_sessions > 0
+		`), attached.String, clientID).Scan(&id)
+		if err == nil {
+			return id, nil
+		}
+		if err != sql.ErrNoRows {
+			return "", err
+		}
+	}
+
 	var id string
 	err := tx.QueryRow(Q(`
 		SELECT id
@@ -140,8 +201,19 @@ func attachClientBatchForServiceTx(tx *sql.Tx, clientID, specialistID, serviceID
 	return sql.NullString{String: batchID, Valid: true}, nil
 }
 
+/***************************************************************************************************
+* consumeClientBatchForBookingTx charges one session of a batch to a completed booking. It never
+* fails the surrounding transaction because of a missing batch: when the client has no batch left
+* the booking stays completed without consumption (and its batch link is cleared so a later
+* refund cannot hand back a session that was never taken).
+***************************************************************************************************/
 func consumeClientBatchForBookingTx(tx *sql.Tx, bookingID, clientID, specialistID, serviceID string) error {
-	batchID, err := getOldestActiveClientBatchTx(tx, clientID, specialistID, serviceID)
+	batchID, err := getConsumableClientBatchTx(tx, bookingID, clientID, specialistID, serviceID)
+	if errors.Is(err, ErrNoActiveClientBatch) {
+		log.Printf("Batch consumption skipped for booking %s: client %s has no active batch for service %s", bookingID, clientID, serviceID)
+		_, err = tx.Exec(Q(`UPDATE bookings SET client_batch_id = NULL WHERE id = ?`), bookingID)
+		return err
+	}
 	if err != nil {
 		return err
 	}

@@ -1099,8 +1099,9 @@ func HandleClientCancelRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	refreshBookingMessages(updated)
 	if updated != nil {
-		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring, changes.GroupClientBatches)
 	}
 	writeJSON(w, updated)
 }
@@ -1226,8 +1227,9 @@ func HandleAdminBookingCancelRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	refreshBookingMessages(updated)
 	if updated != nil {
-		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring)
+		changes.Publish(updated.SpecialistID, changes.GroupBookings, changes.GroupRecurring, changes.GroupClientBatches)
 	}
 	writeJSON(w, updated)
 }

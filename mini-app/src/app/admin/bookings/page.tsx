@@ -3,16 +3,18 @@
 import { CalendarX, ChevronRight, Filter, ListChecks } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BookingDetailModal } from '@/components/BookingDetailModal';
+import { AdminBookingsPageWatcher } from '@/components/BookingsPageWatchers';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ClientAvatar } from '@/components/ClientAvatar';
 import { EmptyState } from '@/components/EmptyState';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TopBar } from '@/components/TopBar';
+import { reportBookingActionFailure } from '@/hooks/booking-action-error';
 import { invalidateBookings } from '@/hooks/mutations';
 import { useAdminBookingsPage, useAdminServices, useClients } from '@/hooks/queries';
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
@@ -159,12 +161,19 @@ export default function AdminAllBookingsPage(): ReactNode {
 
   const adminReschedule = useRescheduleActions('admin');
 
-  const [page, setPage] = useState(1);
-  const [allBookings, setAllBookings] = useState<TBooking[]>([]);
+  /***************************************************************************************************
+   * Pagination state is tagged with the filter signature (searchParamsString), so a filter change
+   * implicitly resets it without an effect round-trip that could leak the old pages into the new list.
+   ***************************************************************************************************/
+  const [pageState, setPageState] = useState({ key: searchParamsString, page: 1 });
+  const page = pageState.key === searchParamsString ? pageState.page : 1;
+  const [pagesState, setPagesState] = useState<{
+    key: string;
+    pages: Record<number, TBooking[]>;
+  }>({ key: searchParamsString, pages: {} });
   const [draftFilters, setDraftFilters] = useState<TBookingPageFilters>(filters);
-  const prevPageRef = useRef(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
+  const [selectedBookingSnapshot, setSelectedBooking] = useState<TBooking | null>(null);
   const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -243,15 +252,6 @@ export default function AdminAllBookingsPage(): ReactNode {
     );
   }, [filters.clientId, clients, tc]);
 
-  /***************************************************************************************************
-   * Reset pagination whenever the URL-driven filters change (via apply, reset, or back/forward).
-   ***************************************************************************************************/
-  useEffect(() => {
-    setPage(1);
-    setAllBookings([]);
-    prevPageRef.current = 1;
-  }, [searchParamsString]);
-
   const writeFiltersToUrl = useCallback(
     (next: TBookingPageFilters): void => {
       const nextQuery = serializeFiltersToParams(next).toString();
@@ -260,28 +260,67 @@ export default function AdminAllBookingsPage(): ReactNode {
     [pathname, router],
   );
 
+  const handlePageData = useCallback(
+    (pageNumber: number, bookings: TBooking[]): void => {
+      setPagesState((prev) => {
+        if (prev.key !== searchParamsString) {
+          return { key: searchParamsString, pages: { [pageNumber]: bookings } };
+        }
+        if (prev.pages[pageNumber] === bookings) {
+          return prev;
+        }
+        return { key: prev.key, pages: { ...prev.pages, [pageNumber]: bookings } };
+      });
+    },
+    [searchParamsString],
+  );
+
   useEffect(() => {
-    if (data.bookings.length === 0) {
-      if (page === 1) {
-        setAllBookings([]);
+    if (!isLoading && !error) {
+      handlePageData(page, data.bookings);
+    }
+  }, [data.bookings, error, handlePageData, isLoading, page]);
+
+  const allBookings = useMemo(() => {
+    if (pagesState.key !== searchParamsString) {
+      return [];
+    }
+    const seen = new Set<string>();
+    const merged: TBooking[] = [];
+    const pageNumbers = Object.keys(pagesState.pages)
+      .map(Number)
+      .filter((pageNumber) => pageNumber <= page)
+      .sort((left, right) => left - right);
+    for (const pageNumber of pageNumbers) {
+      for (const booking of pagesState.pages[pageNumber]) {
+        if (!seen.has(booking.id)) {
+          seen.add(booking.id);
+          merged.push(booking);
+        }
       }
-      return;
     }
-    if (page === 1) {
-      setAllBookings(data.bookings);
-    } else if (page !== prevPageRef.current) {
-      setAllBookings((prev) => [...prev, ...data.bookings]);
-    }
-    prevPageRef.current = page;
-  }, [data.bookings, page]);
+    return merged;
+  }, [page, pagesState, searchParamsString]);
+
+  /***************************************************************************************************
+   * The open booking is always re-derived from the live list by id, so a status change made
+   * elsewhere (e.g. accepted from the Telegram bot) updates the modal within the sync poll.
+   ***************************************************************************************************/
+  const selectedBooking = useMemo(
+    () =>
+      selectedBookingSnapshot
+        ? (allBookings.find((b) => b.id === selectedBookingSnapshot.id) ?? selectedBookingSnapshot)
+        : null,
+    [allBookings, selectedBookingSnapshot],
+  );
 
   const hasMore = data.totalPages > 0 && page < data.totalPages;
 
   const loadMore = useCallback(() => {
     if (hasMore && !isLoading) {
-      setPage((p) => p + 1);
+      setPageState({ key: searchParamsString, page: page + 1 });
     }
-  }, [hasMore, isLoading]);
+  }, [hasMore, isLoading, page, searchParamsString]);
 
   /***************************************************************************************************
    * Collapse reschedule_pending shadows over their originals in the displayed list. Only
@@ -390,8 +429,12 @@ export default function AdminAllBookingsPage(): ReactNode {
       setSelectedBooking(null);
       await mutate();
       await invalidateBookings();
-    } catch {
-      toast.error(te('bookingConfirmFailed'));
+    } catch (err) {
+      setSelectedBooking(null);
+      await reportBookingActionFailure(err, {
+        fallback: te('bookingConfirmFailed'),
+        stale: te('bookingAlreadyProcessed'),
+      });
     }
   };
 
@@ -410,8 +453,11 @@ export default function AdminAllBookingsPage(): ReactNode {
       toast.success(ts('bookingRejected'));
       await mutate();
       await invalidateBookings();
-    } catch {
-      toast.error(te('bookingRejectFailed'));
+    } catch (err) {
+      await reportBookingActionFailure(err, {
+        fallback: te('bookingRejectFailed'),
+        stale: te('bookingAlreadyProcessed'),
+      });
     }
     setShowRejectDialog(false);
     setRejectTarget(null);
@@ -436,8 +482,11 @@ export default function AdminAllBookingsPage(): ReactNode {
       toast.success(ts('bookingCancelled'));
       await mutate();
       await invalidateBookings();
-    } catch {
-      toast.error(te('bookingCancelFailed'));
+    } catch (err) {
+      await reportBookingActionFailure(err, {
+        fallback: te('bookingCancelFailed'),
+        stale: te('bookingAlreadyProcessed'),
+      });
     }
     setShowCancelDialog(false);
     setSelectedBooking(null);
@@ -921,6 +970,14 @@ export default function AdminAllBookingsPage(): ReactNode {
           </div>
         </div>
       </BottomSheet>
+
+      {Array.from({ length: Math.max(page - 1, 0) }, (_, index) => (
+        <AdminBookingsPageWatcher
+          key={`${searchParamsString}:${index + 1}`}
+          query={{ ...query, page: index + 1 }}
+          onData={handlePageData}
+        />
+      ))}
 
       <BookingDetailModal
         booking={selectedBooking}

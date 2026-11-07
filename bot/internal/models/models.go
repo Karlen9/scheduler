@@ -328,6 +328,9 @@ type TimeSlot struct {
 	EndTime   string `json:"endTime,omitempty"`
 	Available bool   `json:"available"`
 	Mine      bool   `json:"mine,omitempty"`
+	// Current marks the slot occupied by the booking passed as excludeBookingId (reschedule flow).
+	// Such a slot is reported with available=false but never blocks other slots.
+	Current bool `json:"current,omitempty"`
 }
 
 /***************************************************************************************************

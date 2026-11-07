@@ -121,18 +121,26 @@ export function setThemePreference(pref: TThemePreference): void {
   localStorage.setItem(THEME_STORAGE_KEY, pref);
 }
 
+/***************************************************************************************************
+ * Dark palette owned by the app (Telegram's own dark params are intentionally ignored so contrast
+ * stays under our control). Must stay in sync with the `:root.dark` fallbacks in
+ * styles/theme.css and landing/src/styles/theme.css.
+ *
+ * Layers: page #0e1621 < card #233242 < surface #2d3f53 (see theme.css). Hint text #9aa9b8 is
+ * 5.4:1 on the card, destructive #f56e76 is 4.6:1.
+ ***************************************************************************************************/
 const darkThemeVars: Record<string, string> = {
-  '--tg-theme-bg-color': '#15202B',
+  '--tg-theme-bg-color': '#0E1621',
   '--tg-theme-text-color': '#FFFFFF',
-  '--tg-theme-hint-color': '#8899A6',
+  '--tg-theme-hint-color': '#9AA9B8',
   '--tg-theme-link-color': '#24A1DE',
   '--tg-theme-button-color': '#24A1DE',
   '--tg-theme-button-text-color': '#FFFFFF',
-  '--tg-theme-secondary-bg-color': '#192734',
-  '--tg-theme-header-bg-color': '#15202B',
-  '--tg-theme-section-bg-color': '#192734',
-  '--tg-theme-subtitle-text-color': '#8899A6',
-  '--tg-theme-destructive-text-color': '#24A1DE',
+  '--tg-theme-secondary-bg-color': '#233242',
+  '--tg-theme-header-bg-color': '#0E1621',
+  '--tg-theme-section-bg-color': '#233242',
+  '--tg-theme-subtitle-text-color': '#9AA9B8',
+  '--tg-theme-destructive-text-color': '#F56E76',
 };
 
 const lightThemeVars: Record<string, string> = {

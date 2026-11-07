@@ -36,7 +36,7 @@ func TestCompletePastConfirmedBookingsForSpecialist(t *testing.T) {
 	}
 
 	now := time.Now().UTC()
-	pastBooking := createStatsBooking(t, specialist.ID, client, service.ID, now.Add(-time.Minute), 60, models.BookingStatusConfirmed, now.Add(-time.Hour))
+	pastBooking := createStatsBooking(t, specialist.ID, client, service.ID, now.Add(-2*time.Hour), 60, models.BookingStatusConfirmed, now.Add(-3*time.Hour))
 	futureBooking := createStatsBooking(t, specialist.ID, client, service.ID, now.Add(time.Hour), 60, models.BookingStatusConfirmed, now.Add(-time.Hour))
 
 	completedCount, err := CompletePastConfirmedBookingsForSpecialist(specialist.ID, now)
@@ -61,6 +61,50 @@ func TestCompletePastConfirmedBookingsForSpecialist(t *testing.T) {
 	}
 	if updatedFuture == nil || updatedFuture.Status != models.BookingStatusConfirmed {
 		t.Fatalf("expected future booking confirmed, got %#v", updatedFuture)
+	}
+}
+
+/***************************************************************************************************
+* A session only counts as passed once it has ended (ends_at <= now), not when it merely started.
+***************************************************************************************************/
+func TestCompletePastConfirmedBookingsOnlyAfterEnd(t *testing.T) {
+	setupStatsTestDB(t)
+
+	specialist, err := CreateSpecialist(1012, "token-ends-at", "endsatbot", "Ends At Specialist", "UTC", 24)
+	if err != nil {
+		t.Fatalf("CreateSpecialist: %v", err)
+	}
+	client, err := CreateClient(2012, specialist.ID, "Alice")
+	if err != nil {
+		t.Fatalf("CreateClient: %v", err)
+	}
+	service, err := CreateSessionType(specialist.ID, "consult", "Consultation", 60, 1000, "USD", "")
+	if err != nil {
+		t.Fatalf("CreateSessionType: %v", err)
+	}
+
+	now := time.Now().UTC()
+	inProgress := createStatsBooking(t, specialist.ID, client, service.ID, now.Add(-30*time.Minute), 60, models.BookingStatusConfirmed, now.Add(-time.Hour))
+
+	count, err := CompletePastConfirmedBookingsForSpecialist(specialist.ID, now)
+	if err != nil {
+		t.Fatalf("CompletePastConfirmedBookingsForSpecialist: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected in-progress session not completed, got count %d", count)
+	}
+
+	// 31 minutes later the session has ended.
+	count, err = CompletePastConfirmedBookingsForSpecialist(specialist.ID, now.Add(31*time.Minute))
+	if err != nil {
+		t.Fatalf("CompletePastConfirmedBookingsForSpecialist(later): %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected session completed after it ended, got count %d", count)
+	}
+	updated, _ := GetBookingByID(inProgress.ID)
+	if updated == nil || updated.Status != models.BookingStatusCompleted {
+		t.Fatalf("expected completed booking, got %#v", updated)
 	}
 }
 
@@ -174,5 +218,44 @@ func TestGetBookingRemindersDue(t *testing.T) {
 	}
 	if reminder.SpecialistWebhookSecret != specialist.WebhookSecret {
 		t.Fatalf("expected SpecialistWebhookSecret %q, got %q", specialist.WebhookSecret, reminder.SpecialistWebhookSecret)
+	}
+}
+
+/***************************************************************************************************
+* Conditional transitions are race-safe: the second actor on a pending booking gets
+* ErrBookingStatusConflict instead of silently overwriting the first decision.
+***************************************************************************************************/
+func TestBookingStatusTransitionIfCurrentRejectsSecondActor(t *testing.T) {
+	setupStatsTestDB(t)
+
+	specialist, err := CreateSpecialist(1022, "token-if-current", "ifcurrentbot", "Race Specialist", "UTC", 24)
+	if err != nil {
+		t.Fatalf("CreateSpecialist: %v", err)
+	}
+	client, err := CreateClient(2022, specialist.ID, "Alice")
+	if err != nil {
+		t.Fatalf("CreateClient: %v", err)
+	}
+	service, err := CreateSessionType(specialist.ID, "consult", "Consultation", 60, 1000, "USD", "")
+	if err != nil {
+		t.Fatalf("CreateSessionType: %v", err)
+	}
+
+	start := time.Now().UTC().Add(24 * time.Hour)
+	booking, err := CreateBooking(specialist.ID, client.ID, service.ID, start, start.Add(time.Hour), client.Name, "", 60)
+	if err != nil {
+		t.Fatalf("CreateBooking: %v", err)
+	}
+
+	if err := UpdateBookingStatusIfCurrent(booking.ID, models.BookingStatusPending, models.BookingStatusConfirmed); err != nil {
+		t.Fatalf("first actor should win: %v", err)
+	}
+	if err := CancelBookingIfCurrent(booking.ID, models.BookingStatusPending, "", models.CancelledByClient); err != ErrBookingStatusConflict {
+		t.Fatalf("expected ErrBookingStatusConflict for second actor, got %v", err)
+	}
+
+	updated, _ := GetBookingByID(booking.ID)
+	if updated == nil || updated.Status != models.BookingStatusConfirmed {
+		t.Fatalf("expected booking to stay confirmed, got %#v", updated)
 	}
 }

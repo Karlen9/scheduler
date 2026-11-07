@@ -551,6 +551,28 @@ func SetClientBlocked(clientID string, blocked bool) error {
 	return err
 }
 
+/***************************************************************************************************
+* GetActiveBookingIDsForClient returns the ids of the client's pending and confirmed bookings with
+* the specialist. Used to refresh Telegram messages after a bulk cancellation.
+***************************************************************************************************/
+func GetActiveBookingIDsForClient(clientID, specialistID string) ([]string, error) {
+	rows, err := DB.Query(Q(`SELECT id FROM bookings WHERE client_id = ? AND specialist_id = ? AND status IN ('pending', 'confirmed')`), clientID, specialistID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func CancelAllClientBookings(clientID, specialistID string) (int, error) {
 	result, err := DB.Exec(Q(`UPDATE bookings SET status = 'cancelled', cancelled_by = 'specialist' WHERE client_id = ? AND specialist_id = ? AND status IN ('pending', 'confirmed')`), clientID, specialistID)
 	if err != nil {

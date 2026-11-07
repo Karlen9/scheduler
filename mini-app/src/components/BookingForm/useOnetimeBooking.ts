@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 
 import { invalidateBookings } from '@/hooks/mutations';
 import { api } from '@/lib/api';
+import { findActiveBatch, isServiceBookable } from '@/lib/batches';
 import { formatDateISO } from '@/lib/helpers';
 import { monthGenKeys } from '@/lib/mappings';
 import { resolveTestAwareHref } from '@/lib/routes';
@@ -106,28 +107,34 @@ export function useOnetimeBooking({
   const slotsRequestIdRef = useRef(0);
   const todayAvailabilityRequestIdRef = useRef(0);
   const bookedDatesSet = useMemo(() => new Set(bookedDates ?? []), [bookedDates]);
-  const selectedServiceActiveBatch = useMemo(() => {
-    if (selectedService?.type !== 'batch') {
-      return null;
-    }
-    return (
-      clientBatches?.find(
-        (batch) =>
-          batch.serviceId === selectedService.id &&
-          batch.status === 'active' &&
-          batch.remainingSessions > 0,
-      ) ?? null
-    );
-  }, [clientBatches, selectedService]);
+  const selectedServiceActiveBatch = useMemo(
+    () =>
+      selectedService?.type === 'batch' ? findActiveBatch(selectedService.id, clientBatches) : null,
+    [clientBatches, selectedService],
+  );
+  /***************************************************************************************************
+   * Batch services stay visible in the list but can only be picked while the relevant client
+   * (the signed-in client, or the specialist's selected client) has an active batch for them.
+   ***************************************************************************************************/
+  const isServiceSelectable = useCallback(
+    (service: TSessionType): boolean => isServiceBookable(service, clientBatches),
+    [clientBatches],
+  );
   const todayISO = useMemo(() => formatDateISO(new Date()), []);
 
   /***************************************************************************************************
    * Auto-select first service when only one exists.
    ***************************************************************************************************/
+  const autoSelectedRef = useRef(false);
   useEffect(() => {
-    if (services.length === 1 && !selectedService) {
-      setSelectedService(services[0]);
+    if (autoSelectedRef.current || services.length !== 1 || selectedService) {
+      return;
     }
+    if (!isServiceSelectable(services[0])) {
+      return;
+    }
+    autoSelectedRef.current = true;
+    setSelectedService(services[0]);
   }, [services]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /***************************************************************************************************
@@ -254,6 +261,10 @@ export function useOnetimeBooking({
       return;
     }
     appliedInitialServiceKeyRef.current = initialService.id;
+    if (!isServiceSelectable(initialService)) {
+      // A batch service without an active package must not be preselected from the URL.
+      return;
+    }
     applyServiceSelection(initialService);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialService]);
@@ -915,7 +926,7 @@ export function useOnetimeBooking({
     if (!selectedService) {
       return { text: t('btnSelectService'), disabled: true };
     }
-    if (selectedService.type === 'batch' && !selectedServiceActiveBatch && !hasClientSelector) {
+    if (selectedService.type === 'batch' && !selectedServiceActiveBatch) {
       return { text: t('btnNoBatch'), disabled: true };
     }
     if (mode === 'single') {
@@ -936,8 +947,7 @@ export function useOnetimeBooking({
     if (
       selectedService.type === 'batch' &&
       selectedServiceActiveBatch &&
-      selectedDates.length > selectedServiceActiveBatch.remainingSessions &&
-      !hasClientSelector
+      selectedDates.length > selectedServiceActiveBatch.remainingSessions
     ) {
       return { text: t('btnNoBatch'), disabled: true };
     }
@@ -979,6 +989,7 @@ export function useOnetimeBooking({
     onetimeButtonDisabled,
     handleServiceSelect,
     handleEditService,
+    isServiceSelectable,
     handleSingleDateSelect,
     handleSingleTimeSelect,
     handleMultiDateToggle,

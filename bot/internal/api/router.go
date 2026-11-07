@@ -82,7 +82,6 @@ func NewRouter() http.Handler {
 	clientBookingWrites := perClient(0.2, 10)
 	adminBookingWrites := perClient(1, 30)
 	sensitiveAdminActions := perClient(0.1, 5)
-	photoUploads := perClient(0.2, 5)
 	dashboardLogin := perIP(0.2, 10)
 
 	/***************************************************************************************************
@@ -192,8 +191,6 @@ func NewRouter() http.Handler {
 				r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleAdminBookingMoveRequest)
 				r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-move", HandleAdminApproveMoveBooking)
 				r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
-
-				r.Post("/upload/photo", HandleAdminUploadPhoto)
 
 				r.Get("/notifications", HandleAdminGetNotificationPrefs)
 				r.Put("/notifications", HandleAdminUpdateNotificationPrefs)
@@ -316,7 +313,6 @@ func NewRouter() http.Handler {
 			***************************************************************************************************/
 			r.Get("/profile", HandleGetProfile)
 			r.Put("/profile", HandleUpdateProfile)
-			r.Post("/profile/restore-telegram-photo", HandleRestoreSpecialistTelegramPhoto)
 
 			/***************************************************************************************************
 			* Recurring schedules (admin).
@@ -336,11 +332,6 @@ func NewRouter() http.Handler {
 			r.Post("/recurring/{scheduleId}/bookings/{bookingId}/move", HandleAdminBookingMoveRequest)
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/approve-move", HandleAdminApproveMoveBooking)
 			r.Put("/recurring/{scheduleId}/bookings/{bookingId}/decline-move", HandleAdminDeclineMoveBooking)
-
-			/***************************************************************************************************
-			* Photo upload (specialist).
-			***************************************************************************************************/
-			r.With(photoUploads).Post("/upload/photo", HandleAdminUploadPhoto)
 
 			/***************************************************************************************************
 			* Notification preferences.

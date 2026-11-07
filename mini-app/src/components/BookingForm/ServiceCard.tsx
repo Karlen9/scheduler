@@ -22,12 +22,15 @@ export function ServiceCard({
   onSelect,
   onEdit,
   minLabel,
+  disabled = false,
 }: {
   service: TSessionType;
   selected: boolean;
   onSelect: TVoidFunction;
   onEdit?: TVoidFunction;
   minLabel: string;
+  /** Batch service the relevant client has no active package for: visible but not selectable. */
+  disabled?: boolean;
 }): ReactNode {
   /***************************************************************************************************
    * Defines the locale value used by the component layer.
@@ -68,10 +71,13 @@ export function ServiceCard({
 
   return (
     <button
+      type={'button'}
       onClick={selected ? onEdit : onSelect}
+      disabled={disabled}
+      aria-disabled={disabled}
       className={`bg-card w-full rounded-xl p-4 text-left transition-all ${
         selected ? 'ring-brand ring-2' : ''
-      }`}
+      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
     >
       <div className={'flex items-start justify-between gap-2'}>
         <div className={'min-w-0'}>
@@ -116,6 +122,7 @@ export function ServiceCard({
             : `${formattedPrice} ${currencyLabel}`}
         </span>
       </div>
+      {disabled && <p className={'text-warning mt-2 text-xs font-medium'}>{t('noActiveBatch')}</p>}
     </button>
   );
 }

@@ -1,9 +1,7 @@
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
-
 import { addMinutesToTime, formatDateISO } from '@/lib/helpers';
 
 import { DateChip } from './DateChip';
+import { PinnedPanel } from './PinnedPanel';
 import { PrimaryButton } from '../PrimaryButton';
 
 import type { TPinnedBottomButtonProps } from '@/lib/types';
@@ -33,14 +31,9 @@ export function PinnedBottomButton({
   onetimeButtonText,
   readOnly = false,
   readOnlyActionLabel,
-  showConsentNote = false,
 }: TPinnedBottomButtonProps): ReactNode {
-  const t = useTranslations('BookingForm');
   return (
-    <div
-      className={'bg-background/80 fixed right-0 bottom-0 left-0 space-y-3 p-4 backdrop-blur-sm'}
-      style={{ maxWidth: '430px', margin: '0 auto' }}
-    >
+    <PinnedPanel>
       {mode === 'multi' && selectedDates.length > 0 && (
         <div className={'-mx-1 flex gap-2 overflow-x-auto px-1 py-1'}>
           {selectedDates.map((date) => {
@@ -81,18 +74,9 @@ export function PinnedBottomButton({
           })}
         </div>
       )}
-      {showConsentNote && (
-        <p className={'text-muted-foreground text-center text-xs'}>
-          {t('consentNote')}
-          {' · '}
-          <Link href={'/privacy'} className={'underline'}>
-            {t('privacyPolicy')}
-          </Link>
-        </p>
-      )}
       <PrimaryButton onClick={handleOnetimeSubmit} disabled={onetimeButtonDisabled || readOnly}>
         {readOnly ? (readOnlyActionLabel ?? onetimeButtonText) : onetimeButtonText}
       </PrimaryButton>
-    </div>
+    </PinnedPanel>
   );
 }

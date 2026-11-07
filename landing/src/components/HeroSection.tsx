@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { accent, marker } from '@/lib/rich';
@@ -51,6 +51,17 @@ export function HeroSection(): ReactNode {
                 className={'text-success mr-2 inline-block size-4 align-[-0.2em]'}
               />
               {t.rich('cta.note', { mark: marker })}
+            </p>
+            <p
+              className={
+                'bg-card text-foreground max-w-md rounded-2xl px-4 py-2.5 text-sm leading-snug font-semibold text-balance shadow-[0_0_0_1px_var(--hairline)]'
+              }
+            >
+              <UserPlus
+                aria-hidden={'true'}
+                className={'text-primary mr-2 inline-block size-4 align-[-0.2em]'}
+              />
+              {t('hero.noTelegram')}
             </p>
           </div>
         </div>

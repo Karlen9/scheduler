@@ -184,11 +184,20 @@ export function getAvailableSlots(state: TMockState, endpoint: string): TTimeSlo
   const query = new URLSearchParams(endpoint.split('?')[1] ?? '');
   const date = query.get('date') ?? dateString(1);
   const duration = Number(query.get('duration') ?? '60');
+  const excludeBookingId = query.get('excludeBookingId');
+  const excludedBooking = excludeBookingId
+    ? getAllBookings(state).find((booking) => booking.id === excludeBookingId)
+    : undefined;
   const visibleBookings = getAllBookings(state).filter(
     (booking) =>
+      booking.id !== excludeBookingId &&
       booking.startsAt.startsWith(date) &&
       ['pending', 'confirmed', 'reschedule_pending'].includes(booking.status),
   );
+  // Start time (HH:MM, wall clock) of the booking being rescheduled when it falls on this date.
+  const currentTime = excludedBooking?.startsAt.startsWith(date)
+    ? excludedBooking.startsAt.slice(11, 16)
+    : null;
 
   const slotDate = new Date(`${date}T00:00:00Z`);
   const dayWorkingHours = state.workingHours.filter(
@@ -223,13 +232,26 @@ export function getAvailableSlots(state: TMockState, endpoint: string): TTimeSlo
       });
 
       seen.add(time);
+      const isCurrent = time === currentTime;
       slots.push({
         time,
         endTime: addMinutesToTime(time, duration),
-        available: !booked,
+        available: !booked && !isCurrent,
         mine: booked?.clientName === state.clientProfile.name,
+        ...(isCurrent ? { current: true } : {}),
       });
     }
+  }
+
+  if (currentTime && !seen.has(currentTime)) {
+    // The booking's own start is not on the regular slot grid: still surface it as "current".
+    slots.push({
+      time: currentTime,
+      endTime: addMinutesToTime(currentTime, duration),
+      available: false,
+      current: true,
+    });
+    slots.sort((left, right) => left.time.localeCompare(right.time));
   }
 
   return slots;
