@@ -82,7 +82,7 @@ export function FeaturesSection(): ReactNode {
           </div>
           <div className={'mt-8 flex flex-1 items-end justify-center overflow-hidden px-6'}>
             <div className={'h-[300px] w-[236px] overflow-hidden sm:h-[340px] sm:w-[256px]'}>
-              <PhoneFrame screen={'booking'} className={'w-full'} />
+              <PhoneFrame screen={'slots'} className={'w-full'} />
             </div>
           </div>
         </div>

@@ -3,15 +3,13 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 // Sized in container units of the phone screen; clears the dynamic island in the middle.
-export function StatusBar(): ReactNode {
+export function StatusBar({ className = 'text-foreground' }: { className?: string }): ReactNode {
   const t = useTranslations('mocks');
 
   return (
     <div
       aria-hidden={'true'}
-      className={
-        'text-foreground pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[10.4cqw] items-center justify-between px-[8.6cqw] pt-[0.8cqw]'
-      }
+      className={`${className} pointer-events-none absolute inset-x-0 top-0 z-10 flex h-[10.4cqw] items-center justify-between px-[8.6cqw] pt-[0.8cqw]`}
     >
       <span className={'text-[4.3cqw] leading-none font-semibold tracking-tight'}>
         {t('statusTime')}

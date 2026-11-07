@@ -18,7 +18,7 @@
     "eyebrow": "Free online booking in Telegram",
     "title": "Clients book themselves, <accent>you just confirm</accent>",
     "subtitle": "Your own bot with your name, plus a calendar and notifications right in Telegram. It's free, setup takes 2 minutes, and your clients have nothing to install.",
-    "noTelegram": "Your clients don't need Telegram: add them manually and keep the whole schedule in one place"
+    "noTelegram": "Clients on Telegram book through your bot on their own, and anyone without it can be added manually"
   },
   "pain": {
     "title": "Bookings shouldn't live <accent>in your DMs</accent>",
@@ -76,7 +76,7 @@
     }
   },
   "noTelegram": {
-    "title": "Your clients <accent>don't need Telegram</accent>",
+    "title": "Book clients <accent>without Telegram</accent> too",
     "subtitle": "Clients on Telegram book through your bot. Add everyone else manually and put them on the schedule yourself. Every booking lives in one calendar.",
     "telegram": {
       "title": "Clients on Telegram",
@@ -289,9 +289,10 @@
     "home": "{name}: back to top"
   },
   "phones": {
-    "booking": "A client booking in the bot",
-    "calendar": "The specialist's calendar",
-    "request": "A booking request in Telegram"
+    "booking": "The specialist's page in the client's bot",
+    "bookings": "The specialist's booking list",
+    "calendar": "The specialist's schedule for the day",
+    "slots": "Picking a date and time"
   },
   "mocks": {
     "booking": {

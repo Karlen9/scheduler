@@ -43,10 +43,17 @@ The phones render CSS mocks until real screenshots exist. To swap one in:
 2. Set its path in `src/lib/screens.ts`:
 
 ```ts
-export const SCREENS = { booking: '/screens/booking.png', calendar: null, request: null };
+export const SCREENS = {
+  booking: { src: '/screens/booking.png', statusBg: '#ffffff' },
+  bookings: null,
+  calendar: null,
+  slots: null,
+};
 ```
 
-`null` keeps the mock for that phone.
+Screenshots are taken without the iOS status bar. The phone draws its own status bar (time, signal, wifi, battery) above the image, and `statusBg` is the colour of the screenshot's top edge, painted behind that bar so the two blend.
+
+The four keys are `booking` (specialist page in the client's bot), `bookings` (specialist's booking list), `calendar` (schedule for the day) and `slots` (date and time picker). `null` keeps the mock for that phone.
 
 ## Contact email
 

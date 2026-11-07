@@ -80,7 +80,7 @@ export function HeroSection(): ReactNode {
               data-hero={'phone'}
               className={'mt-12 w-[168px] sm:w-[172px] md:mt-14 md:w-[196px] lg:mt-16 lg:w-[224px]'}
             >
-              <PhoneFrame screen={'request'} />
+              <PhoneFrame screen={'bookings'} />
             </div>
             <div data-hero={'phone'} className={'w-[216px] md:w-[244px] lg:w-[272px]'}>
               <PhoneFrame screen={'booking'} priority />

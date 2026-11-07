@@ -20,7 +20,8 @@ type TPhoneFrameProps = {
 const MOCKS: Record<TScreenKey, () => ReactNode> = {
   booking: MockBooking,
   calendar: MockCalendar,
-  request: MockRequest,
+  bookings: MockRequest,
+  slots: MockBooking,
 };
 
 // Side hardware as [top %, height %] of the body height.
@@ -40,12 +41,15 @@ export function PhoneFrame({
   priority = false,
 }: TPhoneFrameProps): ReactNode {
   const t = useTranslations('phones');
-  const src = SCREENS[screen];
+  const shot = SCREENS[screen];
   const Mock = MOCKS[screen];
   const alt = t(screen);
 
   return (
-    <div {...(src ? {} : { role: 'img', 'aria-label': alt })} className={`@container ${className}`}>
+    <div
+      {...(shot ? {} : { role: 'img', 'aria-label': alt })}
+      className={`@container ${className}`}
+    >
       <div className={'phone relative aspect-[780/1634] w-full'}>
         {LEFT_BUTTONS.map(([top, height]) => (
           <span
@@ -68,15 +72,20 @@ export function PhoneFrame({
         <div className={'phone-body'}>
           <div className={'phone-bezel'} />
           <div className={'phone-screen'}>
-            {src ? (
-              <Image
-                src={src}
-                alt={alt}
-                fill
-                priority={priority}
-                sizes={'(min-width: 1024px) 272px, 240px'}
-                className={'object-cover'}
-              />
+            {shot ? (
+              <div className={'absolute inset-0'} style={{ background: shot.statusBg }}>
+                <StatusBar className={'text-black'} />
+                <div className={'absolute inset-x-0 top-[10.4cqw] bottom-0'}>
+                  <Image
+                    src={shot.src}
+                    alt={alt}
+                    fill
+                    priority={priority}
+                    sizes={'(min-width: 1024px) 272px, 240px'}
+                    className={'object-cover object-top'}
+                  />
+                </div>
+              </div>
             ) : (
               <div aria-hidden={'true'} className={'h-full w-full'}>
                 <Mock />
