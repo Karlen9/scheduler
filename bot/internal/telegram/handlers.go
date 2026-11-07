@@ -37,6 +37,22 @@ func NewHandler(bot *Bot, webAppURL, masterBotUsername string) *Handler {
 }
 
 /***************************************************************************************************
+* SyncClientPhotoFunc refreshes a client's Telegram profile photo in the background. Wired from
+* main.go to the api package (which owns the cache-guarded sync) because telegram cannot import api.
+* Nil in tests; always called through syncClientPhoto.
+***************************************************************************************************/
+var SyncClientPhotoFunc func(botToken, specialistID string, client *models.Client)
+
+// syncClientPhoto triggers the async avatar sync for a client who just talked to the bot, so the
+// photo is available to the specialist without the client ever opening the Profile tab.
+func (h *Handler) syncClientPhoto(specialistID string, client *models.Client) {
+	if SyncClientPhotoFunc == nil || client == nil || client.IsGhost {
+		return
+	}
+	SyncClientPhotoFunc(h.Bot.Token, specialistID, client)
+}
+
+/***************************************************************************************************
 * syncClientTelegramUsername persists the latest Telegram @username when it changes, so the admin
 * mini app can build `https://t.me/<username>` links (tg://user?id=<id> triggers a confirmation
 * dialog outside Telegram and cannot reliably open the chat in an in-app webview).
@@ -287,6 +303,7 @@ func (h *Handler) handleStartWithPayload(msg *Message, payload string) {
 	if syncClientTelegramUsername(client, msg.From.Username) {
 		changes.Publish(specialist.ID, changes.GroupClientProfile, changes.GroupClients)
 	}
+	h.syncClientPhoto(specialist.ID, client)
 	lang := client.Language
 	if lang == "" {
 		lang = "ru"
@@ -640,6 +657,7 @@ func (h *Handler) handleLanguageCallback(update Update) {
 	***************************************************************************************************/
 	db.UpdateClientLanguage(client.ID, lang)
 	changes.Publish(specialistID, changes.GroupClientProfile, changes.GroupClients)
+	h.syncClientPhoto(specialistID, client)
 
 	/***************************************************************************************************
 	* Answer callback.
@@ -704,6 +722,7 @@ func (h *Handler) handleClientLanguageSwitch(update Update) {
 			log.Printf("Error updating client language: %v", err)
 		}
 		changes.Publish(specialist.ID, changes.GroupClientProfile, changes.GroupClients)
+		h.syncClientPhoto(specialist.ID, client)
 	}
 
 	newLoc := myI18n.NewLocalizer(lang)

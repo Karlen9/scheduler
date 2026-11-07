@@ -489,6 +489,12 @@ func main() {
 	log.Printf("Loaded %d specialist bot(s)", len(specialists))
 
 	/***************************************************************************************************
+	* Let the specialist bot refresh a client's Telegram avatar when they press /start or pick a
+	* language, so photos appear without the client ever opening the Profile tab.
+	***************************************************************************************************/
+	telegram.SyncClientPhotoFunc = api.SyncClientTelegramProfilePhotoAsync
+
+	/***************************************************************************************************
 	* Set up notification callback for client-created bookings (notify specialist).
 	***************************************************************************************************/
 	api.NotifyBookingFunc = func(booking *models.Booking) error {

@@ -105,15 +105,24 @@ func TestMain(m *testing.M) {
 	api.NotifyMoveRequestFunc = func(newBooking, oldBooking *models.Booking, requestedBy string) error { return nil }
 	api.NotifyRescheduleRequestFunc = func(newBooking, oldBooking *models.Booking) error { return nil }
 	api.NotifyRescheduleResponseFunc = func(newBooking, oldBooking *models.Booking, approved bool, respondedBy string) error { return nil }
-	api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) { return "", nil })
+	api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, string, error) { return "", "", nil })
 
 	/***************************************************************************************************
 	* Create the router. Per-route limits are disabled for the shared router because most tests reuse
 	* one Telegram user; limit-specific tests build their own router with limits enabled.
 	***************************************************************************************************/
 	api.SetRouteRateLimitsDisabledForTest(true)
-	router = api.NewRouter()
+	apiRouter := api.NewRouter()
 	api.SetRouteRateLimitsDisabledForTest(false)
+
+	/***************************************************************************************************
+	* Authenticated requests schedule background Telegram photo syncs. Waiting for them after every
+	* request keeps tests deterministic: no goroutine from one test can write photos during the next.
+	***************************************************************************************************/
+	router = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		apiRouter.ServeHTTP(w, r)
+		api.WaitForTelegramProfilePhotoSyncForTest()
+	})
 
 	os.Exit(m.Run())
 }

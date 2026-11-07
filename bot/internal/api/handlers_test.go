@@ -820,8 +820,8 @@ func TestGetAdminProfileIgnoresPhotoRemovedFlag(t *testing.T) {
 * A legacy custom (non-Telegram) photo is replaced by the Telegram photo.
 ***************************************************************************************************/
 func TestGetAdminProfileReplacesCustomPhotoWithTelegram(t *testing.T) {
-	restore := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) {
-		return "admin_telegram_file_id", nil
+	restore := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, string, error) {
+		return "admin_telegram_file_id", "admin_unique", nil
 	})
 	defer restore()
 	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return true })
@@ -848,8 +848,8 @@ func TestGetAdminProfileReplacesCustomPhotoWithTelegram(t *testing.T) {
 * A legacy custom photo is cleared when Telegram has no photo for the user.
 ***************************************************************************************************/
 func TestGetAdminProfileClearsCustomPhotoWhenTelegramHasNone(t *testing.T) {
-	restore := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) {
-		return "", nil
+	restore := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, string, error) {
+		return "", "", nil
 	})
 	defer restore()
 
@@ -889,14 +889,14 @@ func TestGetAdminProfileConvertsStoredTelegramPhotoURLWithBotAPI(t *testing.T) {
 	}
 	defer db.UpdateSpecialistPhoto(testSpecialist.ID, current.PhotoURL)
 
-	restore := api.SetTelegramProfilePhotoLookupForTest(func(botToken string, userID int64) (string, error) {
+	restore := api.SetTelegramProfilePhotoLookupForTest(func(botToken string, userID int64) (string, string, error) {
 		if botToken != testSpecialist.BotToken {
 			t.Fatalf("expected bot token %q, got %q", testSpecialist.BotToken, botToken)
 		}
 		if userID != testSpecialist.TelegramUserID {
 			t.Fatalf("expected user ID %d, got %d", testSpecialist.TelegramUserID, userID)
 		}
-		return "refreshed_admin_file_id", nil
+		return "refreshed_admin_file_id", "refreshed_unique", nil
 	})
 	defer restore()
 	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return true })

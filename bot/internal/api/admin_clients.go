@@ -285,6 +285,12 @@ func HandleAdminGetClients(w http.ResponseWriter, r *http.Request) {
 		clients[i].IsSelf = isSelfClient(&clients[i], specialist)
 	}
 
+	/***************************************************************************************************
+	* Backfill missing/stale Telegram avatars for this page in the background (cache-guarded and
+	* bounded); a change event refreshes the list once photos land. Never delays the response.
+	***************************************************************************************************/
+	backfillClientTelegramPhotos(specialist, clients)
+
 	totalPages := 0
 	if total > 0 {
 		totalPages = (total + limit - 1) / limit
