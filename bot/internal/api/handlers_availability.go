@@ -54,7 +54,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isDayOff {
-		setPrivateCache(w, 15, 30)
+		setNoStore(w)
 		writeJSON(w, []models.TimeSlot{})
 		return
 	}
@@ -74,7 +74,7 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(dayWorkingHours) == 0 {
-		setPrivateCache(w, 15, 30)
+		setNoStore(w)
 		writeJSON(w, []models.TimeSlot{})
 		return
 	}
@@ -93,8 +93,36 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		clientID = client.ID
 	}
 
-	setPrivateCache(w, 15, 30)
-	writeJSON(w, generateTimeSlots(date, dayWorkingHours, duration, bookings, clientID, specialist.Timezone))
+	/***************************************************************************************************
+	* Reschedule flow: the booking being moved must not block its own slot. It is ignored when
+	* computing conflicts and its slot is reported as "current". The booking is honoured only when it
+	* belongs to the current specialist (and to the requesting client for client requests).
+	***************************************************************************************************/
+	var currentStart *time.Time
+	if excludeID := r.URL.Query().Get("excludeBookingId"); excludeID != "" {
+		excluded, err := db.GetBookingByID(excludeID)
+		if err != nil {
+			log.Printf("Error getting excluded booking: %v", err)
+			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+			return
+		}
+		if excluded != nil && excluded.SpecialistID == specialist.ID && (clientID == "" || excluded.ClientID == clientID) {
+			filtered := make([]models.Booking, 0, len(bookings))
+			for _, booking := range bookings {
+				if booking.ID != excluded.ID {
+					filtered = append(filtered, booking)
+				}
+			}
+			bookings = filtered
+			if excluded.StartsAt.Year() == date.Year() && excluded.StartsAt.Month() == date.Month() && excluded.StartsAt.Day() == date.Day() {
+				start := excluded.StartsAt
+				currentStart = &start
+			}
+		}
+	}
+
+	setNoStore(w)
+	writeJSON(w, generateTimeSlots(date, dayWorkingHours, duration, bookings, clientID, specialist.Timezone, currentStart))
 }
 
 func resolveAvailabilityDuration(specialistID, durationParam, sessionTypeParam string) (int, error) {
@@ -119,7 +147,7 @@ func (e errString) Error() string {
 	return string(e)
 }
 
-func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration int, bookings []models.Booking, clientID string, timezone string) []models.TimeSlot {
+func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration int, bookings []models.Booking, clientID string, timezone string, currentStart *time.Time) []models.TimeSlot {
 	var slots []models.TimeSlot
 	seen := make(map[string]bool)
 	now := scheduleClockNow(timezone)
@@ -164,12 +192,19 @@ func generateTimeSlots(date time.Time, intervals []models.WorkingHours, duration
 				}
 			}
 
+			current := false
+			if currentStart != nil && currentStart.Hour() == hour && currentStart.Minute() == min {
+				current = true
+				available = false
+			}
+
 			seen[timeStr] = true
 			slots = append(slots, models.TimeSlot{
 				Time:      timeStr,
 				EndTime:   endTimeStr,
 				Available: available,
 				Mine:      mine,
+				Current:   current,
 			})
 		}
 	}

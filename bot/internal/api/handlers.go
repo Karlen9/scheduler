@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -122,6 +123,30 @@ var NotifyRescheduleRequestFunc func(booking *models.Booking, oldBooking *models
 var NotifyRescheduleResponseFunc func(newBooking *models.Booking, oldBooking *models.Booking, approved bool, respondedBy string) error
 var UpdateClientMessageFunc func(booking *models.Booking) error
 var NotifyCancellationFunc func(booking *models.Booking, cancelledBy string) error
+
+/***************************************************************************************************
+* refreshBookingMessages re-renders both saved Telegram notification messages (the specialist's and
+* the client's) so that stale Accept/Reject buttons disappear after a status change made outside
+* the bot (e.g. in the mini-app). Failures are logged and never block the HTTP response.
+*
+* Parameters:
+* - booking: The booking in its new state.
+***************************************************************************************************/
+func refreshBookingMessages(booking *models.Booking) {
+	if booking == nil {
+		return
+	}
+	if UpdateSpecialistMessageFunc != nil {
+		if err := UpdateSpecialistMessageFunc(booking); err != nil {
+			log.Printf("Error updating specialist booking message: %v", err)
+		}
+	}
+	if UpdateClientMessageFunc != nil {
+		if err := UpdateClientMessageFunc(booking); err != nil {
+			log.Printf("Error updating client booking message: %v", err)
+		}
+	}
+}
 
 type SpecialistResponse struct {
 	ID                  string  `json:"id"`

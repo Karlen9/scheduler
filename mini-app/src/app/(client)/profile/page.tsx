@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -366,16 +365,6 @@ export default function ClientProfilePage(): ReactNode {
             </div>
           </>
         )}
-
-        <div className={'flex justify-center gap-1 pb-2 text-xs'}>
-          <Link href={'/terms'} className={'text-muted-foreground hover:underline'}>
-            {t('termsOfUse')}
-          </Link>
-          <span className={'text-muted-foreground'}>{'·'}</span>
-          <Link href={'/privacy'} className={'text-muted-foreground hover:underline'}>
-            {t('privacyPolicy')}
-          </Link>
-        </div>
       </div>
     </div>
   );

@@ -1,15 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { TimeSlotLegend } from '@/components/BookingForm/TimeSlotLegend';
 import { BottomSheet } from '@/components/BottomSheet';
 import { CalendarView } from '@/components/CalendarView';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
 import { useScheduleContext } from '@/hooks/queries';
 import { api } from '@/lib/api';
-import { formatDateISO, getNonWorkingDays } from '@/lib/helpers';
+import { formatDateISO, getNonWorkingDays, parseDateParam } from '@/lib/helpers';
 
 import type { TRescheduleSheetProps, TTimeSlot } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -41,6 +42,7 @@ export function RescheduleSheet({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const t = useTranslations('RescheduleSheet');
+  const tf = useTranslations('BookingForm');
   /***************************************************************************************************
    * Defines the tb value used by the component layer.
    *
@@ -116,6 +118,16 @@ export function RescheduleSheet({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const duration = booking?.durationMinutes || booking?.sessionType?.durationMinutes || 60;
+  const bookingId = booking?.id;
+
+  /***************************************************************************************************
+   * The booking's current date (wall clock, same convention as the rest of the app). The calendar
+   * opens on it and its slots are pre-loaded, so the booking's own time is visible straight away.
+   ***************************************************************************************************/
+  const currentDate = useMemo(
+    () => (booking ? parseDateParam(booking.startsAt.slice(0, 10)) : undefined),
+    [booking],
+  );
 
   /***************************************************************************************************
    * Defines the fetch slots value used by the component layer.
@@ -150,7 +162,7 @@ export function RescheduleSheet({
          * Usage context:
          * - Reused by the component layer to keep shared values centralized.
          ***************************************************************************************************/
-        const slots = await api.getAvailableSlots(dateStr, duration);
+        const slots = await api.getAvailableSlots(dateStr, duration, bookingId);
         if (requestId !== slotsRequestIdRef.current) {
           return;
         }
@@ -166,8 +178,19 @@ export function RescheduleSheet({
         }
       }
     },
-    [duration],
+    [bookingId, duration],
   );
+
+  const currentDateISO = currentDate ? formatDateISO(currentDate) : null;
+  useEffect(() => {
+    if (!isOpen || !currentDate) {
+      return;
+    }
+    setSelectedDate(currentDate);
+    void fetchSlots(currentDate);
+    // Only (re)run when the sheet opens for a booking; fetchSlots/currentDate change identity with it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, bookingId, currentDateISO]);
 
   /***************************************************************************************************
    * Handles date select.
@@ -237,6 +260,7 @@ export function RescheduleSheet({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const hasAvailableSlots = timeSlots.some((s) => s.available);
+  const hasCurrentSlot = timeSlots.some((s) => s.current);
 
   return (
     <BottomSheet
@@ -254,6 +278,8 @@ export function RescheduleSheet({
       )}
       <div className={'space-y-4'}>
         <CalendarView
+          key={bookingId ?? 'none'}
+          initialMonth={currentDate}
           selectedDate={selectedDate}
           onSelectDate={handleDateSelect}
           nonWorkingDays={nonWorkingDays}
@@ -277,7 +303,21 @@ export function RescheduleSheet({
           <>
             <h4 className={'text-muted-foreground text-sm font-medium'}>{t('selectTime')}</h4>
             {hasAvailableSlots ? (
-              <TimeSlotGrid slots={timeSlots} selected={selectedTime} onSelect={setSelectedTime} />
+              <>
+                {hasCurrentSlot && (
+                  <TimeSlotLegend
+                    availableLabel={tf('available')}
+                    occupiedLabel={tf('occupied')}
+                    currentLabel={t('currentBookingLegend')}
+                  />
+                )}
+                <TimeSlotGrid
+                  slots={timeSlots}
+                  selected={selectedTime}
+                  onSelect={setSelectedTime}
+                  currentLabel={t('currentSlotLabel')}
+                />
+              </>
             ) : (
               <p className={'text-muted-foreground py-4 text-center text-sm'}>{t('noSlots')}</p>
             )}

@@ -123,6 +123,8 @@ export type TTimeSlot = {
   endTime?: string;
   available: boolean;
   mine?: boolean;
+  /** Reschedule only: this slot is the booking being moved (its own current time). */
+  current?: boolean;
 };
 
 export type TClientProfile = {

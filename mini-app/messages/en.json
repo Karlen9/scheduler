@@ -254,9 +254,7 @@
     "successRecurringTitle": "Schedule Submitted",
     "successRecurringForClient": "Schedule for {name} has been submitted for confirmation.",
     "successRecurringForSpecialist": "Schedule has been submitted for specialist's confirmation.",
-    "bookedDateWarning": "You already have a booking on this day. Cancel it to book a new time.",
-    "consentNote": "By booking, you consent to the processing of your personal data under Federal Law No. 152-FZ",
-    "privacyPolicy": "Privacy Policy"
+    "bookedDateWarning": "You already have a booking on this day. Cancel it to book a new time."
   },
   "BookingsPage": {
     "title": "My Bookings",
@@ -314,7 +312,7 @@
     "preferredService": "Preferred service",
     "notifications": "Notifications",
     "notifyBookingStatus": "Booking status",
-    "notifyBookingStatusDesc": "Booking confirmations and rejections",
+    "notifyBookingStatusDesc": "Confirmation or rejection of your booking requests. Requests from the specialist are always delivered",
     "notifyCancellations": "Cancellations",
     "notifyCancellationsDesc": "Notifications about specialist cancellations",
     "notifyReminders": "Reminders",
@@ -324,9 +322,7 @@
     "useTelegramPhoto": "Use Telegram photo",
     "removePhoto": "Remove photo",
     "telegramPhotoActive": "Telegram photo is active",
-    "theme": "Theme",
-    "termsOfUse": "Terms of Use",
-    "privacyPolicy": "Privacy Policy"
+    "theme": "Theme"
   },
   "ServicesPage": {
     "title": "Services & Prices",
@@ -367,10 +363,7 @@
     "other": "Other",
     "notifications": "Notifications",
     "help": "Help",
-    "theme": "Theme",
-    "legal": "Legal",
-    "termsOfUse": "Terms of Use",
-    "privacyPolicy": "Privacy Policy"
+    "theme": "Theme"
   },
   "DeleteBot": {
     "zoneTitle": "Danger zone",
@@ -415,11 +408,7 @@
     "bioPlaceholder": "Tell about your experience and approach...",
     "phoneLabel": "Phone",
     "telegramLabel": "Telegram",
-    "telegramPlaceholder": "@username",
-    "useTelegramPhoto": "Use Telegram photo",
-    "removePhoto": "Remove photo",
-    "telegramPhotoActive": "Telegram photo is active",
-    "wallpaperLabel": "Header wallpaper"
+    "telegramPlaceholder": "@username"
   },
   "AdminSchedule": {
     "title": "Schedule",
@@ -457,7 +446,9 @@
     "typeBatch": "Batch",
     "nameLabel": "Name",
     "namePlaceholder": "Pair session",
-    "priceLabel": "Price",
+    "priceLabelCommon": "Price per session",
+    "priceLabelBatch": "Price for the whole package",
+    "perSessionHint": "≈ {perSession} {currency} per session",
     "pricePlaceholder": "2500",
     "sessionsCountLabel": "Sessions count",
     "sessionsCountPlaceholder": "10",
@@ -488,8 +479,8 @@
   },
   "AdminNotifications": {
     "title": "Notifications",
-    "newBookings": "New bookings",
-    "newBookingsDesc": "Notifications about new client bookings",
+    "newBookings": "Reschedules and recurring bookings",
+    "newBookingsDesc": "Informational notifications. Booking approval requests are always delivered",
     "clientCancellations": "Client cancellations",
     "clientCancellationsDesc": "Notifications about booking cancellations",
     "theme": "Theme"
@@ -522,9 +513,10 @@
     "messageClient": "Message client",
     "bookingsHistory": "Bookings history ({count})",
     "addBatch": "Add batch",
-    "activeBatches": "Active batches",
+    "batches": "Batches",
     "batchFallbackName": "Batch",
     "batchServiceLabel": "Service",
+    "batchOptionLabel": "{name} · {count, plural, one {# session} other {# sessions}} · {price} {currency}",
     "batchRemainingShort": "{remaining} of {total}",
     "batchAssignSuccess": "Batch added",
     "batchAssignError": "Failed to add batch",
@@ -621,10 +613,6 @@
     "ru": "Русский",
     "en": "English"
   },
-  "PhotoEditor": {
-    "title": "Edit Photo",
-    "zoom": "Zoom"
-  },
   "BookingDetailModal": {
     "serviceLabel": "Service",
     "dateLabel": "Date",
@@ -651,7 +639,9 @@
     "submitButton": "Reschedule",
     "sendRequestButton": "Send request",
     "approvalRequired": "The client will be asked to approve the new time. Add an optional note:",
-    "messagePlaceholder": "e.g. I need to move because of another appointment"
+    "messagePlaceholder": "e.g. I need to move because of another appointment",
+    "currentSlotLabel": "Current",
+    "currentBookingLegend": "Current booking"
   },
   "PendingBookingCard": {
     "accept": "Accept",
@@ -691,7 +681,8 @@
     "remaining": "Remaining: {remaining}/{total}",
     "exhausted": "Batch exhausted",
     "editAction": "Edit",
-    "deleteAction": "Delete"
+    "deleteAction": "Delete",
+    "noActiveBatch": "No active package"
   },
   "Analytics": {
     "title": "Analytics",
@@ -764,19 +755,16 @@
     "previewFailed": "Failed to load preview",
     "saveFailed": "Failed to save",
     "saveSettingsFailed": "Failed to save settings",
-    "photoUploadFailed": "Failed to upload photo",
-    "telegramPhotoUnavailable": "Telegram profile photo is not available",
     "addDayOffFailed": "Failed to add day off",
     "deleteDayOffFailed": "Failed to delete day off",
     "clientCreateFailed": "Failed to create client",
     "clientDeleteFailed": "Failed to delete client",
     "loadBookingsFailed": "Failed to load bookings",
-    "clientBlocked": "You are blocked and cannot book"
+    "clientBlocked": "You are blocked and cannot book",
+    "bookingAlreadyProcessed": "This booking was already processed or changed. The list has been refreshed."
   },
   "Success": {
     "profileSaved": "Profile saved",
-    "photoUpdated": "Photo updated",
-    "photoRemoved": "Photo removed",
     "scheduleSaved": "Schedule saved",
     "bookingCancelled": "Booking cancelled",
     "bookingConfirmed": "Booking confirmed",

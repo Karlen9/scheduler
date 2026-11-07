@@ -460,7 +460,7 @@ export default function SchedulePage(): ReactNode {
         cancelCutoffEnabled: cutoffEnabled,
         cancelCutoffHours: cutoffHours,
       });
-      invalidateSpecialist();
+      await invalidateSpecialist();
       toast.success(ts('saved'));
     } catch (err) {
       console.error('Failed to save policy:', err);
@@ -493,7 +493,9 @@ export default function SchedulePage(): ReactNode {
       }
 
       await api.admin.updateWorkingHours(hours);
-      invalidateWorkingHours();
+      // Await so the schedule context is revalidated (or its dedupe marker dropped) before the
+      // specialist can navigate to a booking page that would otherwise render the stale schedule.
+      await invalidateWorkingHours();
       toast.success(ts('scheduleSaved'));
     } catch (err) {
       console.error('Failed to save working hours:', err);

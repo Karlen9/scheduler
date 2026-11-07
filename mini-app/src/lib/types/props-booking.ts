@@ -78,7 +78,6 @@ export type TBookingFormProps = {
   initialTime?: string;
   initialComment?: string;
   initialSelectedClient?: TClientInfo;
-  showConsentNote?: boolean;
 };
 
 export type TBookingRowProps = {
@@ -143,6 +142,7 @@ export type TUseOnetimeBookingReturn = {
   onetimeButtonDisabled: boolean;
   handleServiceSelect: (service: TSessionType) => void;
   handleEditService: TVoidFunction;
+  isServiceSelectable: (service: TSessionType) => boolean;
   handleSingleDateSelect: (date: Date) => void;
   handleSingleTimeSelect: (time: string) => void;
   handleMultiDateToggle: (date: Date) => void;
@@ -153,6 +153,7 @@ export type TUseOnetimeBookingReturn = {
 
 export type TRecurringBookingFlowProps = {
   services: TSessionType[];
+  clientBatches?: TClientBatch[];
   workingHours: TWorkingHours[];
   selectedClient: TClientInfo | null;
   hasClientSelector: boolean;
@@ -181,6 +182,8 @@ export type TRecurringDayFormProps = {
   handlePreview: () => Promise<void>;
   previewDates: string[] | null;
   handleRecTimeSelect: (time: string) => void;
+  /** Batch services without an active package for the relevant client are not selectable. */
+  isServiceBookable?: (service: TSessionType) => boolean;
 };
 
 export type TOnetimeBookingFlowProps = {
@@ -200,7 +203,6 @@ export type TOnetimeBookingFlowProps = {
   initialService?: TSessionType;
   initialTime?: string;
   initialComment?: string;
-  showConsentNote?: boolean;
 };
 
 export type TRecurringScheduleCardProps = {

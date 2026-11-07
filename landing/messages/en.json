@@ -17,7 +17,8 @@
   "hero": {
     "eyebrow": "Free online booking in Telegram",
     "title": "Clients book themselves, <accent>you just confirm</accent>",
-    "subtitle": "Your own bot with your name, plus a calendar and notifications right in Telegram. It's free, setup takes 2 minutes, and your clients have nothing to install."
+    "subtitle": "Your own bot with your name, plus a calendar and notifications right in Telegram. It's free, setup takes 2 minutes, and your clients have nothing to install.",
+    "noTelegram": "Your clients don't need Telegram: add them manually and keep the whole schedule in one place"
   },
   "pain": {
     "title": "Bookings shouldn't live <accent>in your DMs</accent>",
@@ -73,6 +74,29 @@
         "text": "Revenue and workload, so you can see how things are going."
       }
     }
+  },
+  "noTelegram": {
+    "title": "Your clients <accent>don't need Telegram</accent>",
+    "subtitle": "Clients on Telegram book through your bot. Add everyone else manually and put them on the schedule yourself. Every booking lives in one calendar.",
+    "telegram": {
+      "title": "Clients on Telegram",
+      "text": "They open your bot, pick a date and time, and send a request. You confirm it with one tap.",
+      "points": {
+        "p1": "Book any time, no back-and-forth chats",
+        "p2": "Reminders reach the client",
+        "p3": "Busy times are never shown to them"
+      }
+    },
+    "manual": {
+      "title": "Clients without Telegram",
+      "text": "Add a client by name and put them on the schedule yourself: the booking appears in your calendar and is confirmed right away.",
+      "points": {
+        "p1": "Add a client without Telegram in a couple of taps",
+        "p2": "One-off and recurring bookings",
+        "p3": "The same client base and visit history"
+      }
+    },
+    "note": "Clients don't have to install anything or sign up. You decide how it suits them to book."
   },
   "audience": {
     "title": "For anyone who works <accent>by appointment</accent>",
@@ -232,6 +256,10 @@
       "i18": {
         "q": "How do I set up the cancellation policy?",
         "a": "Go to Settings > Schedule and scroll down to the Cancellation policy section. Enable the toggle and set how many hours in advance clients must notify you of a cancellation or reschedule. If a client cancels after that deadline, the session is automatically marked as completed instead of cancelled."
+      },
+      "i19": {
+        "q": "Do my clients need Telegram?",
+        "a": "No. You can add a client without Telegram manually: enter their name in the clients section and put them on the schedule yourself, and the booking is confirmed right away. Clients on Telegram book on their own through your bot. Both kinds show up in the same calendar and client base. Reminders and notifications only reach clients who use Telegram."
       }
     }
   },
@@ -247,8 +275,6 @@
     "qrLabel": "QR code that opens the bot in Telegram"
   },
   "footer": {
-    "privacy": "Privacy policy (in Russian)",
-    "terms": "Terms of use (in Russian)",
     "support": "Support",
     "rights": "All rights reserved"
   },

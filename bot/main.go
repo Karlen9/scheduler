@@ -496,10 +496,9 @@ func main() {
 		if err != nil || specialist == nil {
 			return err
 		}
-		if !specialist.NotifyNewBookings {
-			log.Printf("Skipping new booking notification for specialist %s (disabled)", specialist.Name)
-			return nil
-		}
+		/***************************************************************************************************
+		* The approval request (Confirm/Reject buttons) is mandatory and is never gated by preferences.
+		***************************************************************************************************/
 		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
 			log.Printf("No handler found for specialist %s", specialist.Name)
@@ -572,10 +571,9 @@ func main() {
 		if client.IsGhost || client.IsSelfOf(specialist.TelegramUserID) {
 			return nil
 		}
-		if !client.NotifyBookingStatus {
-			log.Printf("Skipping specialist booking notification for client %s (disabled)", client.Name)
-			return nil
-		}
+		/***************************************************************************************************
+		* The approval request (Confirm/Decline buttons) is mandatory and is never gated by preferences.
+		***************************************************************************************************/
 		handler := botManager.GetHandler(specialist.WebhookSecret)
 		if handler == nil {
 			log.Printf("No handler found for specialist %s", specialist.Name)

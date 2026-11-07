@@ -45,7 +45,6 @@ export function OnetimeBookingFlow({
   initialService,
   initialTime,
   initialComment,
-  showConsentNote = false,
 }: TOnetimeBookingFlowProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -96,6 +95,7 @@ export function OnetimeBookingFlow({
     onetimeButtonDisabled,
     handleServiceSelect,
     handleEditService,
+    isServiceSelectable,
     handleSingleDateSelect,
     handleSingleTimeSelect,
     handleMultiDateToggle,
@@ -166,6 +166,7 @@ export function OnetimeBookingFlow({
               key={service.id}
               service={service}
               selected={false}
+              disabled={!isServiceSelectable(service)}
               onSelect={() => handleServiceSelectAndScroll(service)}
               minLabel={tc('min')}
             />
@@ -362,7 +363,6 @@ export function OnetimeBookingFlow({
         timeAssignments={timeAssignments}
         readOnly={readOnly}
         readOnlyActionLabel={readOnlyActionLabel}
-        showConsentNote={showConsentNote}
       />
     </>
   );

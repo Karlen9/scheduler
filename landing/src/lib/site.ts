@@ -33,9 +33,4 @@ export function resolveContactEmail(raw: string | undefined): string | null {
 }
 
 export const SITE_URL = resolveSiteUrl();
-export const APP_URL = (
-  process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://sport-app-orcin.vercel.app'
-).replace(/\/+$/, '');
 export const CONTACT_EMAIL = resolveContactEmail(process.env.NEXT_PUBLIC_CONTACT_EMAIL);
-export const PRIVACY_URL = `${APP_URL}/privacy`;
-export const TERMS_URL = `${APP_URL}/terms`;

@@ -43,7 +43,7 @@ func HandleAdminGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 		hours = []models.WorkingHours{}
 	}
 
-	setPrivateCache(w, 60, 300)
+	setNoStore(w)
 	writeJSON(w, hours)
 }
 
@@ -124,7 +124,7 @@ func HandleAdminGetScheduleContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setPrivateCache(w, 60, 300)
+	setNoStore(w)
 	writeJSON(w, resp)
 }
 

@@ -39,6 +39,7 @@ export function RecurringDayForm({
   handlePreview,
   previewDates,
   handleRecTimeSelect,
+  isServiceBookable,
 }: TRecurringDayFormProps): ReactNode {
   /***************************************************************************************************
    * Defines the t value used by the component layer.
@@ -54,6 +55,7 @@ export function RecurringDayForm({
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
   const tc = useTranslations('Common');
+  const tsc = useTranslations('ServiceCard');
   /***************************************************************************************************
    * Defines the td value used by the component layer.
    *
@@ -161,6 +163,8 @@ export function RecurringDayForm({
             services={services}
             selectedId={recService?.id ?? ''}
             onChange={setRecService}
+            isDisabled={isServiceBookable ? (service) => !isServiceBookable(service) : undefined}
+            disabledLabel={isServiceBookable ? tsc('noActiveBatch') : undefined}
           />
         </div>
       )}

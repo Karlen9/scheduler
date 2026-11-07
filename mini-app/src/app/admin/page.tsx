@@ -11,6 +11,7 @@ import { PendingBookingCard } from '@/components/PendingBookingCard';
 import { RescheduleSheet } from '@/components/RescheduleSheet';
 import { NextBookingBanner } from '@/components/schedule/NextBookingBanner';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
+import { reportBookingActionFailure } from '@/hooks/booking-action-error';
 import { invalidateBookings } from '@/hooks/mutations';
 import {
   useAdminBookings,
@@ -126,7 +127,7 @@ export default function AdminHomePage(): ReactNode {
   );
   const adminReschedule = useRescheduleActions('admin');
 
-  const [selectedBooking, setSelectedBooking] = useState<TBooking | null>(null);
+  const [selectedBookingSnapshot, setSelectedBooking] = useState<TBooking | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<TBooking | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -134,6 +135,19 @@ export default function AdminHomePage(): ReactNode {
   const [cancelReason, setCancelReason] = useState('');
   const [rescheduleBooking, setRescheduleBooking] = useState<TBooking | null>(null);
   const [showPendingSheet, setShowPendingSheet] = useState(false);
+
+  /***************************************************************************************************
+   * The open booking is always re-derived from the live SWR list by id, so a status change made
+   * elsewhere (e.g. accepted from the Telegram bot) updates the modal within the sync poll and
+   * the Accept/Reject buttons disappear once the booking is no longer pending.
+   ***************************************************************************************************/
+  const selectedBooking = useMemo(
+    () =>
+      selectedBookingSnapshot
+        ? (bookings.find((b) => b.id === selectedBookingSnapshot.id) ?? selectedBookingSnapshot)
+        : null,
+    [bookings, selectedBookingSnapshot],
+  );
 
   useEffect(() => {
     const handleVisibilityChange = (): void => {
@@ -179,6 +193,12 @@ export default function AdminHomePage(): ReactNode {
         .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
     [bookings],
   );
+
+  useEffect(() => {
+    if (showPendingSheet && pendingBookings.length === 0) {
+      setShowPendingSheet(false);
+    }
+  }, [pendingBookings.length, showPendingSheet]);
 
   /***************************************************************************************************
    * Defines the pending count value used by the page layer.
@@ -233,8 +253,12 @@ export default function AdminHomePage(): ReactNode {
         toast.success(ts('bookingConfirmed'));
         setSelectedBooking(null);
         await invalidateBookings();
-      } catch {
-        toast.error(te('bookingConfirmFailed'));
+      } catch (err) {
+        setSelectedBooking(null);
+        await reportBookingActionFailure(err, {
+          fallback: te('bookingConfirmFailed'),
+          stale: te('bookingAlreadyProcessed'),
+        });
       }
     },
     [te, ts],
@@ -266,8 +290,11 @@ export default function AdminHomePage(): ReactNode {
       await api.admin.updateBookingStatus(rejectTarget.id, 'rejected', rejectReason || undefined);
       toast.success(ts('bookingRejected'));
       await invalidateBookings();
-    } catch {
-      toast.error(te('bookingRejectFailed'));
+    } catch (err) {
+      await reportBookingActionFailure(err, {
+        fallback: te('bookingRejectFailed'),
+        stale: te('bookingAlreadyProcessed'),
+      });
     }
     setShowRejectDialog(false);
     setRejectTarget(null);
@@ -336,8 +363,11 @@ export default function AdminHomePage(): ReactNode {
       );
       toast.success(ts('bookingCancelled'));
       await invalidateBookings();
-    } catch {
-      toast.error(te('bookingCancelFailed'));
+    } catch (err) {
+      await reportBookingActionFailure(err, {
+        fallback: te('bookingCancelFailed'),
+        stale: te('bookingAlreadyProcessed'),
+      });
     }
     setShowCancelDialog(false);
     setSelectedBooking(null);

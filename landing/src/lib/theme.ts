@@ -4,7 +4,7 @@ export type TThemePreference = 'light' | 'dark';
 
 export const THEME_COLORS: Record<TThemePreference, string> = {
   light: '#efeff4',
-  dark: '#15202b',
+  dark: '#0e1621',
 };
 
 export function readThemePreference(): TThemePreference | null {

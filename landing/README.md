@@ -26,7 +26,6 @@ Environment variables (see `.env.example`):
 | Variable                    | Purpose                                                                                                              |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_SITE_URL`      | Canonical origin for metadata, sitemap, robots. Falls back to Vercel's production URL, then `http://localhost:3000`. |
-| `NEXT_PUBLIC_APP_URL`       | Mini-app origin that serves `/privacy` and `/terms`.                                                                 |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Optional. When empty, no email and no `mailto:` link is rendered anywhere.                                           |
 
 ## Where things live

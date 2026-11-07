@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -43,7 +44,11 @@ func HandleClientConfirmBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.UpdateBookingStatus(bookingID, models.BookingStatusConfirmed); err != nil {
+	if err := db.UpdateBookingStatusIfCurrent(bookingID, models.BookingStatusPending, models.BookingStatusConfirmed); err != nil {
+		if errors.Is(err, db.ErrBookingStatusConflict) {
+			httpError(w, r, "Error.BookingCannotConfirm", http.StatusConflict)
+			return
+		}
 		log.Printf("Error confirming booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
@@ -99,7 +104,11 @@ func HandleClientDeclineBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.CancelBooking(bookingID, "", models.CancelledByClient); err != nil {
+	if err := db.CancelBookingIfCurrent(bookingID, models.BookingStatusPending, "", models.CancelledByClient); err != nil {
+		if errors.Is(err, db.ErrBookingStatusConflict) {
+			httpError(w, r, "Error.BookingCannotReject", http.StatusConflict)
+			return
+		}
 		log.Printf("Error declining booking: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return

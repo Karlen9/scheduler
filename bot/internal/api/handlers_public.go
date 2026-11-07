@@ -40,7 +40,7 @@ func HandleGetSpecialist(w http.ResponseWriter, r *http.Request) {
 		Wallpaper:           specialist.Wallpaper,
 	}
 
-	setPrivateCache(w, 60, 300)
+	setNoStore(w)
 	writeJSON(w, resp)
 }
 
@@ -61,7 +61,7 @@ func HandleGetServices(w http.ResponseWriter, r *http.Request) {
 		services = []models.SessionType{}
 	}
 
-	setPrivateCache(w, 60, 300)
+	setNoStore(w)
 	writeJSON(w, services)
 }
 
@@ -82,7 +82,7 @@ func HandleGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 		hours = []models.WorkingHours{}
 	}
 
-	setPrivateCache(w, 60, 300)
+	setNoStore(w)
 	writeJSON(w, hours)
 }
 
@@ -139,7 +139,7 @@ func HandleGetScheduleContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setPrivateCache(w, 60, 300)
+	setNoStore(w)
 	writeJSON(w, resp)
 }
 
@@ -157,6 +157,6 @@ func HandleGetPublicDaysOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setPrivateCache(w, 300, 600)
+	setNoStore(w)
 	writeJSON(w, buildPublicDayOffs(daysOff))
 }

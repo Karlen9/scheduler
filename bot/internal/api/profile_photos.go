@@ -33,16 +33,19 @@ func SetTelegramProfilePhotoLookupForTest(lookup telegramProfilePhotoLookupFunc)
 	}
 }
 
-func resolveTelegramProfilePhoto(r *http.Request, botToken string, telegramUserID int64) string {
-	return resolveTelegramProfilePhotoForCurrent(r, botToken, telegramUserID, "")
-}
-
-func resolveTelegramProfilePhotoForCurrent(r *http.Request, botToken string, telegramUserID int64, currentPhotoURL string) string {
-	if currentPhotoURL != "" && !isTelegramProfilePhotoValue(currentPhotoURL) {
-		return ""
-	}
+/***************************************************************************************************
+* lookupTelegramProfilePhoto resolves the Telegram profile photo for a user. Profile photos come
+* exclusively from Telegram: a current value that is not a Telegram photo (a legacy custom upload)
+* is treated as replaceable, never as something to keep.
+*
+* Returns:
+* - The photo value to persist ("" when Telegram has no photo or nothing needs to change).
+* - definitive: false when the lookup failed (network/API error), so callers must not clear an
+*   existing value on the strength of an empty result.
+***************************************************************************************************/
+func lookupTelegramProfilePhoto(r *http.Request, botToken string, telegramUserID int64, currentPhotoURL string) (string, bool) {
 	if strings.HasPrefix(currentPhotoURL, telegramProfilePhotoPrefix) {
-		return ""
+		return "", true
 	}
 
 	/***************************************************************************************************
@@ -55,19 +58,24 @@ func resolveTelegramProfilePhotoForCurrent(r *http.Request, botToken string, tel
 	***************************************************************************************************/
 	user := GetTelegramUserFromContext(r)
 	if user != nil && user.ID == telegramUserID && user.PhotoURL != "" && currentPhotoURL != user.PhotoURL {
-		return user.PhotoURL
+		return user.PhotoURL, true
 	}
 
+	definitive := true
 	if botToken != "" && telegramUserID != 0 {
 		fileID, err := telegramProfilePhotoLookup(botToken, telegramUserID)
 		if err != nil {
 			log.Printf("GetUserProfilePhotos error for user %d: %v", telegramUserID, err)
-		} else if fileID != "" && telegramProfilePhotoFileVerifier(botToken, fileID) {
-			return telegramProfilePhotoPrefix + fileID
+			definitive = false
+		} else if fileID != "" {
+			if telegramProfilePhotoFileVerifier(botToken, fileID) {
+				return telegramProfilePhotoPrefix + fileID, true
+			}
+			definitive = false
 		}
 	}
 
-	return ""
+	return "", definitive
 }
 
 /***************************************************************************************************
@@ -88,7 +96,7 @@ var telegramProfilePhotoFileVerifier = func(botToken, fileID string) bool {
 
 /***************************************************************************************************
 * SetTelegramProfilePhotoFileVerifierForTest replaces the bot-API fileID verifier used by
-* resolveTelegramProfilePhotoForCurrent. Returns a function that restores the previous value.
+* lookupTelegramProfilePhoto. Returns a function that restores the previous value.
 ***************************************************************************************************/
 func SetTelegramProfilePhotoFileVerifierForTest(verifier func(botToken, fileID string) bool) func() {
 	previous := telegramProfilePhotoFileVerifier
@@ -127,8 +135,21 @@ func ensureClientTelegramProfilePhoto(r *http.Request, client *models.Client, sp
 		return
 	}
 
-	photoURL := resolveTelegramProfilePhotoForCurrent(r, specialist.BotToken, client.TelegramUserID, client.PhotoURL)
-	if photoURL == "" || photoURL == client.PhotoURL {
+	photoURL, definitive := lookupTelegramProfilePhoto(r, specialist.BotToken, client.TelegramUserID, client.PhotoURL)
+	if photoURL == "" {
+		/***************************************************************************************************
+		* Telegram has no photo: drop any legacy non-Telegram value so the avatar falls back to initials.
+		***************************************************************************************************/
+		if definitive && client.PhotoURL != "" && !isTelegramProfilePhotoValue(client.PhotoURL) {
+			if err := db.UpdateClientPhoto(client.ID, ""); err != nil {
+				log.Printf("Error clearing client custom photo: %v", err)
+				return
+			}
+			client.PhotoURL = ""
+		}
+		return
+	}
+	if photoURL == client.PhotoURL {
 		return
 	}
 
@@ -139,13 +160,28 @@ func ensureClientTelegramProfilePhoto(r *http.Request, client *models.Client, sp
 	client.PhotoURL = photoURL
 }
 
+/***************************************************************************************************
+* ensureSpecialistTelegramProfilePhoto keeps the specialist's photo in sync with Telegram. The
+* Telegram photo always wins: legacy custom uploads are replaced and the old photo_removed flag is
+* ignored (and reset by UpdateSpecialistPhoto).
+***************************************************************************************************/
 func ensureSpecialistTelegramProfilePhoto(r *http.Request, specialist *models.Specialist) {
-	if specialist == nil || specialist.PhotoRemoved {
+	if specialist == nil {
 		return
 	}
 
-	photoURL := resolveTelegramProfilePhotoForCurrent(r, specialist.BotToken, specialist.TelegramUserID, specialist.PhotoURL)
-	if photoURL == "" || photoURL == specialist.PhotoURL {
+	photoURL, definitive := lookupTelegramProfilePhoto(r, specialist.BotToken, specialist.TelegramUserID, specialist.PhotoURL)
+	if photoURL == "" {
+		if definitive && specialist.PhotoURL != "" && !isTelegramProfilePhotoValue(specialist.PhotoURL) {
+			if err := db.UpdateSpecialistPhoto(specialist.ID, ""); err != nil {
+				log.Printf("Error clearing specialist custom photo: %v", err)
+				return
+			}
+			specialist.PhotoURL = ""
+		}
+		return
+	}
+	if photoURL == specialist.PhotoURL {
 		return
 	}
 

@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -528,7 +529,17 @@ func (h *Handler) handleCallbackQuery(update Update) {
 		toastText = myI18n.T(loc, "Callback.Rejected")
 	}
 
-	if err := db.UpdateBookingStatus(bookingID, newStatus); err != nil {
+	if err := db.UpdateBookingStatusIfCurrent(bookingID, models.BookingStatusPending, newStatus); err != nil {
+		if errors.Is(err, db.ErrBookingStatusConflict) {
+			/***************************************************************************************************
+			* Somebody else (mini-app, another device) processed the booking first.
+			***************************************************************************************************/
+			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.AlreadyProcessed"))
+			if current, _ := db.GetBookingByID(bookingID); current != nil && cq.Message != nil {
+				h.UpdateBookingNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, current)
+			}
+			return
+		}
 		log.Printf("Error updating booking via callback: %v", err)
 		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
 		return
@@ -771,20 +782,28 @@ func (h *Handler) handleClientBookingCallback(update Update) {
 	accepted := action == "client_accept"
 	var toastText string
 
+	var transitionErr error
 	if accepted {
-		if err := db.UpdateBookingStatus(bookingID, models.BookingStatusConfirmed); err != nil {
-			log.Printf("Error confirming booking via client callback: %v", err)
-			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
-			return
-		}
+		transitionErr = db.UpdateBookingStatusIfCurrent(bookingID, models.BookingStatusPending, models.BookingStatusConfirmed)
 		toastText = myI18n.T(loc, "Callback.ClientConfirmed")
 	} else {
-		if err := db.CancelBooking(bookingID, "", models.CancelledByClient); err != nil {
-			log.Printf("Error declining booking via client callback: %v", err)
-			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+		transitionErr = db.CancelBookingIfCurrent(bookingID, models.BookingStatusPending, "", models.CancelledByClient)
+		toastText = myI18n.T(loc, "Callback.ClientDeclined")
+	}
+	if transitionErr != nil {
+		if errors.Is(transitionErr, db.ErrBookingStatusConflict) {
+			/***************************************************************************************************
+			* Somebody else (mini-app, specialist, another device) processed the booking first.
+			***************************************************************************************************/
+			h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.AlreadyProcessed"))
+			if current, _ := db.GetBookingByID(bookingID); current != nil && cq.Message != nil {
+				h.UpdateClientNotificationMessage(loc, cq.Message.Chat.ID, cq.Message.MessageID, current)
+			}
 			return
 		}
-		toastText = myI18n.T(loc, "Callback.ClientDeclined")
+		log.Printf("Error updating booking via client callback: %v", transitionErr)
+		h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
+		return
 	}
 
 	h.Bot.AnswerCallbackQuery(cq.ID, toastText)
@@ -864,6 +883,10 @@ func (h *Handler) handleRescheduleCallback(update Update) {
 		approved := prefix == "rs_acc"
 		if approved {
 			if err := db.ApproveRescheduleBooking(bookingID); err != nil {
+				if errors.Is(err, db.ErrBookingStatusConflict) {
+					h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.AlreadyProcessed"))
+					return
+				}
 				log.Printf("Error approving reschedule via callback: %v", err)
 				h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
 				return
@@ -912,6 +935,10 @@ func (h *Handler) handleRescheduleCallback(update Update) {
 		approved := prefix == "rs_ok"
 		if approved {
 			if err := db.ApproveRescheduleBooking(bookingID); err != nil {
+				if errors.Is(err, db.ErrBookingStatusConflict) {
+					h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.AlreadyProcessed"))
+					return
+				}
 				log.Printf("Error approving reschedule via callback: %v", err)
 				h.Bot.AnswerCallbackQuery(cq.ID, myI18n.T(loc, "Callback.Error"))
 				return
@@ -968,15 +995,37 @@ func (h *Handler) handleRescheduleCallback(update Update) {
 ***************************************************************************************************/
 func (h *Handler) UpdateClientNotificationMessage(loc *i18n.Localizer, chatID int64, messageID int, booking *models.Booking) error {
 	var text string
+	var keyboard *InlineKeyboardMarkup
 	switch booking.Status {
-	case models.BookingStatusConfirmed:
+	case models.BookingStatusPending:
+		/***************************************************************************************************
+		* Still awaiting the client's answer (e.g. the specialist moved it in the mini-app): refresh
+		* the text and keep the Accept/Decline buttons.
+		***************************************************************************************************/
+		text = FormatSpecialistCreatedBookingClient(loc, booking)
+		keyboard = &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{
+					{Text: BtnAccept(loc), CallbackData: "client_accept:" + booking.ID},
+					{Text: BtnDecline(loc), CallbackData: "client_decline:" + booking.ID},
+				},
+			},
+		}
+	case models.BookingStatusConfirmed, models.BookingStatusCompleted:
 		text = FormatSpecialistCreatedBookingClientAccepted(loc, booking)
 	case models.BookingStatusCancelled, models.BookingStatusRejected:
-		text = FormatSpecialistCreatedBookingClientDeclined(loc, booking)
+		if booking.CancelledBy == models.CancelledBySpecialist {
+			/***************************************************************************************************
+			* The specialist withdrew their own proposal (e.g. cancelled it in the mini-app).
+			***************************************************************************************************/
+			text = FormatBookingCancelledBySpecialistClient(loc, booking)
+		} else {
+			text = FormatSpecialistCreatedBookingClientDeclined(loc, booking)
+		}
 	default:
 		text = FormatSpecialistCreatedBookingClient(loc, booking)
 	}
-	return h.Bot.EditMessageText(chatID, messageID, text, nil)
+	return h.Bot.EditMessageText(chatID, messageID, text, keyboard)
 }
 
 /***************************************************************************************************
@@ -1098,8 +1147,23 @@ func (h *Handler) NotifySpecialistNewBooking(booking *models.Booking) error {
 ***************************************************************************************************/
 func (h *Handler) UpdateBookingNotificationMessage(loc *i18n.Localizer, chatID int64, messageID int, booking *models.Booking) error {
 	var text string
+	var keyboard *InlineKeyboardMarkup
 	switch booking.Status {
-	case models.BookingStatusConfirmed:
+	case models.BookingStatusPending:
+		/***************************************************************************************************
+		* Still awaiting the specialist's answer (e.g. the client or specialist moved it): refresh the
+		* text and keep the Confirm/Reject buttons.
+		***************************************************************************************************/
+		text = FormatNewBookingMessage(loc, booking)
+		keyboard = &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{
+					{Text: BtnConfirm(loc), CallbackData: "accept:" + booking.ID},
+					{Text: BtnReject(loc), CallbackData: "reject:" + booking.ID},
+				},
+			},
+		}
+	case models.BookingStatusConfirmed, models.BookingStatusCompleted:
 		text = FormatBookingAcceptedSpecialist(loc, booking)
 	case models.BookingStatusRejected:
 		text = FormatBookingRejectedSpecialist(loc, booking)
@@ -1108,7 +1172,7 @@ func (h *Handler) UpdateBookingNotificationMessage(loc *i18n.Localizer, chatID i
 	default:
 		text = FormatNewBookingMessage(loc, booking)
 	}
-	return h.Bot.EditMessageText(chatID, messageID, text, nil)
+	return h.Bot.EditMessageText(chatID, messageID, text, keyboard)
 }
 
 /***************************************************************************************************

@@ -1,3 +1,4 @@
+import { ApiError } from '../api-error';
 import { markBotDeleted } from '../bot-deleted';
 import { fetchMockAPI } from '../mock-api';
 import { emitMutation } from '../mutation-events';
@@ -79,7 +80,7 @@ export async function fetchAPI<T>(endpoint: string, options?: RequestInit): Prom
 
       const errorText = await response.text();
 
-      throw new Error(errorText || `HTTP ${response.status}`);
+      throw new ApiError(errorText || `HTTP ${response.status}`, response.status);
     }
 
     const data = response.status === 204 ? (undefined as T) : await response.json();

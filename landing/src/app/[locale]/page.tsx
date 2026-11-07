@@ -13,6 +13,7 @@ import { Header } from '@/components/Header';
 import { HeroSection } from '@/components/HeroSection';
 import { HowItWorksSection } from '@/components/HowItWorksSection';
 import { MobileCta } from '@/components/MobileCta';
+import { NoTelegramSection } from '@/components/NoTelegramSection';
 import { PageMotion } from '@/components/PageMotion';
 import { PainSection } from '@/components/PainSection';
 import { ReferralSection } from '@/components/ReferralSection';
@@ -46,6 +47,7 @@ export default function HomePage({ params }: { params: Promise<{ locale: string 
         <HeroSection />
         <PainSection />
         <FeaturesSection />
+        <NoTelegramSection />
         <AudienceSection />
         <HowItWorksSection />
         <ComparisonSection />

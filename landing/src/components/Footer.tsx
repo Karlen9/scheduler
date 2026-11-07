@@ -1,7 +1,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 
 import { getPathname } from '@/i18n/navigation';
-import { CONTACT_EMAIL, MASTER_BOT_URL, PRIVACY_URL, TERMS_URL, getProductName } from '@/lib/site';
+import { CONTACT_EMAIL, MASTER_BOT_URL, getProductName } from '@/lib/site';
 
 import { Logo } from './Logo';
 
@@ -53,12 +53,6 @@ export function Footer(): ReactNode {
             ))}
           </nav>
           <div className={'flex flex-col'}>
-            <a href={PRIVACY_URL} target={'_blank'} rel={'noopener noreferrer'} className={LINK}>
-              {t('footer.privacy')}
-            </a>
-            <a href={TERMS_URL} target={'_blank'} rel={'noopener noreferrer'} className={LINK}>
-              {t('footer.terms')}
-            </a>
             <a href={MASTER_BOT_URL} target={'_blank'} rel={'noopener noreferrer'} className={LINK}>
               {t('footer.support')}
             </a>

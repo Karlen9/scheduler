@@ -68,7 +68,6 @@ export type {
   TEmptyStateProps,
   TFAQItem,
   TNotificationPreferencesProps,
-  TPhotoEditorProps,
   TPrimaryButtonProps,
   TRejectDialogProps,
   TServiceFormData,

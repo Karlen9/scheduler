@@ -53,6 +53,8 @@ export type TCalendarViewProps = {
   daysOff?: string[];
   bookedDates?: string[];
   disabledDates?: string[];
+  /** Month shown first; defaults to the current month. */
+  initialMonth?: Date;
 };
 
 export type TCurrentTimeIndicatorProps = {
@@ -154,7 +156,6 @@ export type TPinnedBottomButtonProps = {
   onetimeButtonText: string;
   readOnly?: boolean;
   readOnlyActionLabel?: string;
-  showConsentNote?: boolean;
 };
 
 export type TServiceCardProps = {
@@ -167,7 +168,15 @@ export type TServiceCardProps = {
 };
 
 export type TTimeSlotGridProps = {
-  slots: { time: string; endTime?: string; available: boolean; mine?: boolean }[];
+  slots: {
+    time: string;
+    endTime?: string;
+    available: boolean;
+    mine?: boolean;
+    current?: boolean;
+  }[];
   selected: string | null;
   onSelect: (time: string) => void;
+  /** Caption under the time of the `current` slot (the booking being rescheduled). */
+  currentLabel?: string;
 };

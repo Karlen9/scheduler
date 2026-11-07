@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -59,6 +59,7 @@ export default function ServicesPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const tsp = useTranslations('ServicesPage');
+  const locale = useLocale();
   const { data: services, isLoading, mutate } = useAdminServices();
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<TSessionType | null>(null);
@@ -184,6 +185,18 @@ export default function ServicesPage(): ReactNode {
   }
 
   if (showForm) {
+    /***************************************************************************************************
+     * For a batch (package) the entered price is the price of the WHOLE package, so a live
+     * per-session hint removes the ambiguity between "per session" and "per package".
+     ***************************************************************************************************/
+    const isBatchForm = formData.type === 'batch';
+    const formPrice = Number(formData.price);
+    const formSessions = Number(formData.sessionsCount);
+    const perSessionPrice =
+      formPrice > 0 && formSessions > 0 ? Math.round(formPrice / formSessions) : null;
+    const formCurrency = editingService?.currency ?? 'RUB';
+    const formCurrencyLabel = formCurrency === 'RUB' ? '\u20BD' : formCurrency;
+
     return (
       <div>
         <TopBar
@@ -246,7 +259,9 @@ export default function ServicesPage(): ReactNode {
           </div>
 
           <div>
-            <label className={'text-muted-foreground mb-1 block text-sm'}>{t('priceLabel')}</label>
+            <label className={'text-muted-foreground mb-1 block text-sm'}>
+              {isBatchForm ? t('priceLabelBatch') : t('priceLabelCommon')}
+            </label>
             <input
               type={'number'}
               value={formData.price}
@@ -256,6 +271,16 @@ export default function ServicesPage(): ReactNode {
                 'bg-card text-foreground focus:ring-brand w-full rounded-lg px-4 py-3 outline-none focus:ring-2'
               }
             />
+            {isBatchForm && perSessionPrice !== null && (
+              <p className={'text-muted-foreground mt-1.5 text-xs'}>
+                {t('perSessionHint', {
+                  perSession: new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU').format(
+                    perSessionPrice,
+                  ),
+                  currency: formCurrencyLabel,
+                })}
+              </p>
+            )}
           </div>
 
           <div>

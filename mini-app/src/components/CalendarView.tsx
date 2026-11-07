@@ -27,8 +27,9 @@ export function CalendarView({
   daysOff,
   bookedDates,
   disabledDates,
+  initialMonth,
 }: TCalendarViewProps): ReactNode {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(initialMonth ?? new Date());
 
   /***************************************************************************************************
    * Defines the today value used by the component layer.

@@ -71,11 +71,20 @@ function adminClientsQueryKey(params: TClientListQuery): string {
 /***************************************************************************************************
  * Static data hooks (cached aggressively).
  ***************************************************************************************************/
+/***************************************************************************************************
+ * revalidateIfStale is intentionally true for every config below.
+ *
+ * Global `mutate(key)` (used by invalidateChangeGroups) only revalidates MOUNTED hooks, but it also
+ * deletes the key's in-flight/dedupe marker. With revalidateIfStale enabled, a hook that mounts
+ * LATER (e.g. the booking page opened after the schedule was edited) sees no dedupe marker and
+ * refetches in the background, instead of trusting the stale cache forever. Plain remounts inside
+ * dedupingInterval still dedupe, so route switches stay cheap.
+ ***************************************************************************************************/
 const staticConfig: SWRConfiguration = {
   dedupingInterval: 60000,
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
-  revalidateIfStale: false,
+  revalidateIfStale: true,
 };
 
 /***************************************************************************************************
@@ -189,14 +198,14 @@ const userConfig: SWRConfiguration = {
   dedupingInterval: 30000,
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
-  revalidateIfStale: false,
+  revalidateIfStale: true,
 };
 
 const dynamicConfig: SWRConfiguration = {
   dedupingInterval: 30000,
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
-  revalidateIfStale: false,
+  revalidateIfStale: true,
 };
 
 /***************************************************************************************************

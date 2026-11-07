@@ -143,32 +143,34 @@
 /* Dark theme overrides                            */
 /* ═══════════════════════════════════════════════ */
 :root.dark {
-  /* Telegram fallbacks for dark dev mode */
-  --tg-theme-bg-color: #15202b;
+  /* Telegram fallbacks for dark dev mode.
+   * Palette (kept in sync with darkThemeVars in mini-app/src/lib/telegram.ts):
+   * page #0e1621 < card #233242 < surface #2d3f53; hint #9aa9b8 is >= 5.4:1 on the card. */
+  --tg-theme-bg-color: #0e1621;
   --tg-theme-text-color: #ffffff;
-  --tg-theme-hint-color: #8899a6;
+  --tg-theme-hint-color: #9aa9b8;
   --tg-theme-link-color: #24a1de;
   --tg-theme-button-color: #24a1de;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #192734;
-  --tg-theme-header-bg-color: #15202b;
-  --tg-theme-section-bg-color: #192734;
-  --tg-theme-subtitle-text-color: #8899a6;
-  --tg-theme-destructive-text-color: #24a1de;
+  --tg-theme-secondary-bg-color: #233242;
+  --tg-theme-header-bg-color: #0e1621;
+  --tg-theme-section-bg-color: #233242;
+  --tg-theme-subtitle-text-color: #9aa9b8;
+  --tg-theme-destructive-text-color: #f56e76;
 
-  /* Dark: page bg = primary (dark), cards = secondary (slightly lighter) */
+  /* Dark: page bg = primary (darkest), cards = secondary (lighter) */
   --background: var(--tg-theme-bg-color);
   --card: var(--tg-theme-secondary-bg-color);
 
-  --app-divider: var(--tg-theme-bg-color);
-  --skeleton: var(--tg-theme-bg-color);
-  --switch-background: var(--tg-theme-bg-color);
+  --app-divider: rgba(255, 255, 255, 0.08);
+  --skeleton: rgba(255, 255, 255, 0.08);
+  --switch-background: #4b5b6d;
   --bookings-bg: var(--tg-theme-bg-color);
 
-  /* App surface variants */
-  --surface: var(--tg-theme-secondary-bg-color);
-  --surface-hover: var(--tg-theme-bg-color);
-  --surface-border: var(--tg-theme-bg-color);
+  /* App surface variants (interactive elements inside cards) */
+  --surface: #2d3f53;
+  --surface-hover: #374b61;
+  --surface-border: #3b4f66;
   --brand: var(--tg-theme-button-color);
   --brand-hover: var(--tg-theme-link-color);
 
@@ -190,50 +192,50 @@
 
   /* Status borders */
   --status-pending-border: #f59e0b;
-  --status-confirmed-border: var(--tg-theme-link-color);
-  --status-rejected-border: var(--tg-theme-destructive-text-color);
+  --status-confirmed-border: #22c55e;
+  --status-rejected-border: #ef4444;
   --status-cancelled-border: var(--tg-theme-hint-color);
 
   /* Action buttons */
-  --action-success-bg: var(--tg-theme-bg-color);
-  --action-success-text: var(--tg-theme-link-color);
-  --action-danger-bg: var(--tg-theme-bg-color);
+  --action-success-bg: rgba(34, 197, 94, 0.15);
+  --action-success-text: #4ade80;
+  --action-danger-bg: rgba(245, 110, 118, 0.15);
   --action-danger-text: var(--tg-theme-destructive-text-color);
   --action-confirm-bg: var(--tg-theme-button-color);
   --action-confirm-text: var(--tg-theme-button-text-color);
 
   /* Calendar day-off */
-  --dayoff-bg: var(--tg-theme-bg-color);
+  --dayoff-bg: rgba(245, 110, 118, 0.15);
   --dayoff-text: var(--tg-theme-destructive-text-color);
 
   /* Tab bar */
   --tab-bar-bg: var(--tg-theme-secondary-bg-color);
-  --tab-bar-border: var(--tg-theme-bg-color);
-  --tab-bar-indicator: var(--tg-theme-bg-color);
+  --tab-bar-border: rgba(255, 255, 255, 0.08);
+  --tab-bar-indicator: #2d3f53;
 
   /* Timeline booking blocks */
-  --timeline-1-bg: var(--tg-theme-secondary-bg-color);
-  --timeline-1-border: var(--tg-theme-button-color);
-  --timeline-2-bg: var(--tg-theme-secondary-bg-color);
-  --timeline-2-border: var(--tg-theme-link-color);
-  --timeline-3-bg: var(--tg-theme-secondary-bg-color);
-  --timeline-3-border: var(--tg-theme-hint-color);
-  --timeline-4-bg: var(--tg-theme-secondary-bg-color);
-  --timeline-4-border: var(--tg-theme-destructive-text-color);
+  --timeline-1-bg: rgba(245, 158, 11, 0.15);
+  --timeline-1-border: #f59e0b;
+  --timeline-2-bg: rgba(36, 161, 222, 0.15);
+  --timeline-2-border: #24a1de;
+  --timeline-3-bg: rgba(34, 197, 94, 0.15);
+  --timeline-3-border: #22c55e;
+  --timeline-4-bg: rgba(168, 85, 247, 0.15);
+  --timeline-4-border: #a855f7;
 
   /* Card outline */
-  --card-shadow: 0 0 0 1px var(--tg-theme-bg-color);
+  --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
 
   /* Accent colors */
   --warning: #f59e0b;
   --success: #4ade80;
   --error: #f87171;
   --destructive-foreground: var(--tg-theme-button-text-color);
-  --chart-1: var(--tg-theme-button-color);
-  --chart-2: var(--tg-theme-link-color);
-  --chart-3: var(--tg-theme-text-color);
-  --chart-4: var(--tg-theme-hint-color);
-  --chart-5: var(--tg-theme-destructive-text-color);
+  --chart-1: #24a1de;
+  --chart-2: #4ade80;
+  --chart-3: #fbbf24;
+  --chart-4: #c084fc;
+  --chart-5: #f56e76;
 
   /* Sidebar */
   --sidebar: var(--tg-theme-bg-color);

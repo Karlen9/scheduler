@@ -97,10 +97,9 @@ export default function AdminNotificationsPage(): ReactNode {
   }
 
   /***************************************************************************************************
-   * Defines the items value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
+   * Booking approval requests are always delivered (the specialist must be able to approve or
+   * reject them). The "new bookings" toggle only gates informational messages (client-created
+   * recurring schedule notice, in-place reschedule notice, move responses).
    ***************************************************************************************************/
   const items = [
     {

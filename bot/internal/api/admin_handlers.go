@@ -57,6 +57,7 @@ func HandleGetDurations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	setNoStore(w)
 	writeJSON(w, getDurationsFromServices(specialist.ID))
 }
 
@@ -67,6 +68,7 @@ func HandleAdminGetDurations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	setNoStore(w)
 	writeJSON(w, getDurationsFromServices(specialist.ID))
 }
 

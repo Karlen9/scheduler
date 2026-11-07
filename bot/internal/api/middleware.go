@@ -224,10 +224,9 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 
 			/***************************************************************************************************
-			* Auto-set specialist Telegram profile photo if the owner has no custom photo and has not
-			* explicitly removed it.
+			* Auto-set the specialist Telegram profile photo when the owner has no photo yet.
 			***************************************************************************************************/
-			if specialist.PhotoURL == "" && !specialist.PhotoRemoved && user.PhotoURL != "" && user.ID == specialist.TelegramUserID {
+			if specialist.PhotoURL == "" && user.PhotoURL != "" && user.ID == specialist.TelegramUserID {
 				if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
 					specialist.PhotoURL = user.PhotoURL
 					changes.Publish(specialist.ID, changes.GroupSpecialist)
@@ -281,7 +280,7 @@ func PreviewAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if specialist.PhotoURL == "" && !specialist.PhotoRemoved && user.PhotoURL != "" {
+		if specialist.PhotoURL == "" && user.PhotoURL != "" {
 			if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
 				specialist.PhotoURL = user.PhotoURL
 				changes.Publish(specialist.ID, changes.GroupSpecialist)

@@ -37,7 +37,15 @@ func HandleGetBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	completedCount, err := db.CompletePastConfirmedBookingsForSpecialist(client.SpecialistID, time.Now().UTC())
+	/***************************************************************************************************
+	* Booking times are stored as the specialist's wall clock, so "now" must be the specialist's wall
+	* clock as well for a session to count as passed at the right moment.
+	***************************************************************************************************/
+	timezone := ""
+	if specialist := GetSpecialistFromContext(r); specialist != nil {
+		timezone = specialist.Timezone
+	}
+	completedCount, err := db.CompletePastConfirmedBookingsForSpecialist(client.SpecialistID, scheduleClockNow(timezone))
 	if err != nil {
 		log.Printf("Error completing past bookings: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -157,7 +165,11 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 	if lateCancel {
 		cancelErr = db.CompleteBooking(bookingID)
 	} else {
-		cancelErr = db.CancelBooking(bookingID, req.Reason, models.CancelledByClient)
+		cancelErr = db.CancelBookingIfCurrent(bookingID, booking.Status, req.Reason, models.CancelledByClient)
+	}
+	if errors.Is(cancelErr, db.ErrBookingStatusConflict) {
+		httpError(w, r, "Error.BookingCannotCancel", http.StatusConflict)
+		return
 	}
 	if cancelErr != nil {
 		log.Printf("Error cancelling booking: %v", cancelErr)
@@ -179,8 +191,12 @@ func HandleCancelBooking(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error notifying cancellation: %v", err)
 		}
 	}
+	/***************************************************************************************************
+	* Drop stale Accept/Reject buttons from both chats and refresh the mini-app.
+	***************************************************************************************************/
+	refreshBookingMessages(booking)
 	if booking != nil {
-		changes.Publish(booking.SpecialistID, changes.GroupBookings)
+		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
 	}
 
 	writeJSON(w, booking)

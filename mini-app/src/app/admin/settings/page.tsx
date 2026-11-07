@@ -5,10 +5,8 @@ import {
   CalendarOff,
   Clock,
   DollarSign,
-  FileText,
   Gift,
   HelpCircle,
-  Shield,
   Trash2,
   User,
   Users,
@@ -202,21 +200,6 @@ export default function SettingsPage(): ReactNode {
             label={t('help')}
             href={'/admin/settings/help'}
             iconColor={'bg-[#3b82f6]'}
-          />
-        </SettingsGroup>
-
-        <SettingsGroup title={t('legal')}>
-          <SettingsMenuItem
-            icon={FileText}
-            label={t('termsOfUse')}
-            href={'/terms'}
-            iconColor={'bg-[#64748b]'}
-          />
-          <SettingsMenuItem
-            icon={Shield}
-            label={t('privacyPolicy')}
-            href={'/privacy'}
-            iconColor={'bg-[#64748b]'}
           />
         </SettingsGroup>
 

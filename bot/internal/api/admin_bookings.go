@@ -47,7 +47,7 @@ func HandleAdminGetBookings(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	status := query.Get("status")
 
-	completedCount, err := db.CompletePastConfirmedBookingsForSpecialist(specialist.ID, time.Now().UTC())
+	completedCount, err := db.CompletePastConfirmedBookingsForSpecialist(specialist.ID, scheduleClockNow(specialist.Timezone))
 	if err != nil {
 		log.Printf("Error completing past bookings: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
@@ -164,24 +164,36 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/***************************************************************************************************
+	* Every transition is conditional on the status we just read, so a concurrent action from the bot
+	* (or another device) cannot be silently overwritten.
+	***************************************************************************************************/
 	oldStatus := booking.Status
 	switch {
 	case req.Status == "rejected":
-		if err := db.RejectBookingWithReason(bookingID, req.Reason); err != nil {
+		if err := db.RejectBookingWithReasonIfCurrent(bookingID, oldStatus, req.Reason); err != nil {
+			if errors.Is(err, db.ErrBookingStatusConflict) {
+				httpError(w, r, "Error.BookingCannotModify", http.StatusConflict)
+				return
+			}
 			log.Printf("Error rejecting booking: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
 		}
 	case req.Status == "cancelled" && req.Reason != "":
-		if err := db.CancelBooking(bookingID, req.Reason, models.CancelledBySpecialist); err != nil {
+		if err := db.CancelBookingIfCurrent(bookingID, oldStatus, req.Reason, models.CancelledBySpecialist); err != nil {
+			if errors.Is(err, db.ErrBookingStatusConflict) {
+				httpError(w, r, "Error.BookingCannotModify", http.StatusConflict)
+				return
+			}
 			log.Printf("Error cancelling booking: %v", err)
 			httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 			return
 		}
 	default:
-		if err := db.UpdateBookingStatus(bookingID, models.BookingStatus(req.Status)); err != nil {
-			if errors.Is(err, db.ErrNoActiveClientBatch) {
-				httpError(w, r, "Error.NoActiveBatch", http.StatusBadRequest)
+		if err := db.UpdateBookingStatusIfCurrent(bookingID, oldStatus, models.BookingStatus(req.Status)); err != nil {
+			if errors.Is(err, db.ErrBookingStatusConflict) {
+				httpError(w, r, "Error.BookingCannotModify", http.StatusConflict)
 				return
 			}
 			log.Printf("Error updating booking status: %v", err)
@@ -199,11 +211,7 @@ func HandleAdminUpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error notifying client about status change: %v", err)
 		}
 	}
-	if UpdateSpecialistMessageFunc != nil && booking != nil {
-		if err := UpdateSpecialistMessageFunc(booking); err != nil {
-			log.Printf("Error updating specialist message: %v", err)
-		}
-	}
+	refreshBookingMessages(booking)
 	if booking != nil {
 		changes.Publish(booking.SpecialistID, changes.GroupBookings, changes.GroupClientBatches)
 	}
@@ -332,6 +340,7 @@ func HandleAdminRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error notifying client about reschedule: %v", err)
 		}
 	}
+	refreshBookingMessages(booking)
 	if booking != nil {
 		changes.Publish(booking.SpecialistID, changes.GroupBookings)
 	}

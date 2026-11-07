@@ -13,6 +13,34 @@ describe('fetchMockAPI availability', () => {
     expect(slots.every((slot) => slot.time < '19:00')).toBe(true);
   });
 
+  it('flags the excluded booking own start slot as current and frees its time', async () => {
+    const booking = await fetchMockAPI<TBooking>('/api/bookings', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionTypeId: 'mock-service-mobility',
+        duration: 45,
+        date: '2026-04-14',
+        time: '10:00',
+        name: 'Client',
+      }),
+    });
+
+    const without = await fetchMockAPI<TTimeSlot[]>(
+      '/api/availability?date=2026-04-14&duration=45',
+    );
+    expect(without.find((slot) => slot.time === '10:00')).toMatchObject({ available: false });
+    expect(without.some((slot) => slot.current)).toBe(false);
+
+    const withExclude = await fetchMockAPI<TTimeSlot[]>(
+      `/api/availability?date=2026-04-14&duration=45&excludeBookingId=${booking.id}`,
+    );
+    expect(withExclude.find((slot) => slot.time === '10:00')).toMatchObject({
+      available: false,
+      current: true,
+    });
+    expect(withExclude.filter((slot) => slot.current)).toHaveLength(1);
+  });
+
   it('creates bookings using sessionTypeId before duration fallback', async () => {
     const booking = await fetchMockAPI<TBooking>('/api/bookings', {
       method: 'POST',

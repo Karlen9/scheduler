@@ -72,21 +72,6 @@ export const adminApi = {
     });
   },
 
-  async uploadPhoto(file: File): Promise<{ fileId: string }> {
-    const formData = new FormData();
-    formData.append('photo', file);
-    return fetchAPI<{ fileId: string }>('/api/admin/upload/photo', {
-      method: 'POST',
-      body: formData,
-    });
-  },
-
-  async restoreTelegramPhoto(): Promise<TSpecialist> {
-    return fetchAPI<TSpecialist>('/api/admin/profile/restore-telegram-photo', {
-      method: 'POST',
-    });
-  },
-
   async getServices(): Promise<TSessionType[]> {
     return fetchAPI<TSessionType[]>('/api/admin/services');
   },

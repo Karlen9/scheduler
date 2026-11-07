@@ -10,6 +10,7 @@ import (
 
 	"scheduler-bot/internal/api"
 	"scheduler-bot/internal/db"
+	"scheduler-bot/internal/models"
 )
 
 /***************************************************************************************************
@@ -753,126 +754,131 @@ func TestUpdateAdminProfileAllowsClearingFields(t *testing.T) {
 }
 
 /***************************************************************************************************
-* Implements the test update admin profile restores telegram photo logic used by this module.
-*
-* Parameters:
-* - t: T used by the current operation.
-*
-* Returns:
-* - No direct return value; work is exposed through side effects.
-*
-* Side effects:
-* - May coordinate request handling, authentication checks, or other API-facing behavior.
+* Profile photos come exclusively from Telegram: a photoUrl in PUT /api/admin/profile must be
+* ignored — neither written nor recorded as an explicit removal.
 ***************************************************************************************************/
-func TestUpdateAdminProfileClearingPhotoMarksRemoved(t *testing.T) {
-	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "custom_file_id"); err != nil {
-		t.Fatalf("failed to set custom photo: %v", err)
+func TestUpdateAdminProfileIgnoresPhotoURL(t *testing.T) {
+	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "telegram:keep_me"); err != nil {
+		t.Fatalf("failed to set telegram photo: %v", err)
 	}
 	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
 
-	body := jsonBody(map[string]interface{}{"photoUrl": ""})
-	w := doAdminRequestWithPhoto(t, http.MethodPut, "/api/admin/profile", body, "https://t.me/i/userpic/320/test.jpg")
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected clear photo update 200, got %d: %s", w.Code, w.Body.String())
-	}
+	for _, photoURL := range []string{"", "custom_file_id"} {
+		body := jsonBody(map[string]interface{}{"photoUrl": photoURL})
+		w := doAdminRequest(t, http.MethodPut, "/api/admin/profile", body)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected profile update 200, got %d: %s", w.Code, w.Body.String())
+		}
 
-	var profile map[string]interface{}
-	parseJSON(t, w, &profile)
-	if photoURL, _ := profile["photoUrl"].(string); photoURL != "" {
-		t.Fatalf("expected cleared photo url, got %q", photoURL)
-	}
+		var profile map[string]interface{}
+		parseJSON(t, w, &profile)
+		if got, _ := profile["photoUrl"].(string); got != "telegram:keep_me" {
+			t.Fatalf("expected photoUrl %q to be ignored, got %q", photoURL, got)
+		}
 
-	updated, err := db.GetSpecialistByID(testSpecialist.ID)
-	if err != nil || updated == nil {
-		t.Fatalf("expected specialist after clear, err=%v", err)
-	}
-	if !updated.PhotoRemoved {
-		t.Fatalf("expected photo_removed=true after clearing")
+		updated, err := db.GetSpecialistByID(testSpecialist.ID)
+		if err != nil || updated == nil {
+			t.Fatalf("expected specialist after update, err=%v", err)
+		}
+		if updated.PhotoURL != "telegram:keep_me" || updated.PhotoRemoved {
+			t.Fatalf("expected photo untouched and not marked removed, got url=%q removed=%v", updated.PhotoURL, updated.PhotoRemoved)
+		}
 	}
 }
 
-func TestRestoreAdminTelegramPhotoUsesInitDataURL(t *testing.T) {
+/***************************************************************************************************
+* A legacy "photo removed" flag must not stop the Telegram photo from being applied.
+***************************************************************************************************/
+func TestGetAdminProfileIgnoresPhotoRemovedFlag(t *testing.T) {
 	if err := db.MarkSpecialistPhotoRemoved(testSpecialist.ID); err != nil {
 		t.Fatalf("failed to mark photo removed: %v", err)
 	}
 	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
 
 	telegramPhotoURL := "https://t.me/i/userpic/320/test.jpg"
-	w := doAdminRequestWithPhoto(t, http.MethodPost, "/api/admin/profile/restore-telegram-photo", nil, telegramPhotoURL)
+	w := doAdminRequestWithPhoto(t, http.MethodGet, "/api/admin/profile", nil, telegramPhotoURL)
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected restore 200, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("expected profile 200, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var profile map[string]interface{}
 	parseJSON(t, w, &profile)
 	if photoURL, _ := profile["photoUrl"].(string); photoURL != telegramPhotoURL {
-		t.Fatalf("expected restored telegram photo url %q, got %q", telegramPhotoURL, photoURL)
+		t.Fatalf("expected telegram photo url %q, got %q", telegramPhotoURL, photoURL)
 	}
 
 	updated, err := db.GetSpecialistByID(testSpecialist.ID)
 	if err != nil || updated == nil {
-		t.Fatalf("expected specialist after restore, err=%v", err)
+		t.Fatalf("expected specialist, err=%v", err)
 	}
 	if updated.PhotoRemoved {
-		t.Fatalf("expected photo_removed=false after restore")
+		t.Fatalf("expected photo_removed=false once the Telegram photo is applied")
 	}
 }
 
-func TestRestoreAdminTelegramPhotoFailsWhenBotAPIFileIDIsNotDownloadable(t *testing.T) {
-	restoreLookup := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) {
-		return "phantom_file_id", nil
-	})
-	defer restoreLookup()
-	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return false })
-	defer restoreVerifier()
-
-	if err := db.MarkSpecialistPhotoRemoved(testSpecialist.ID); err != nil {
-		t.Fatalf("failed to mark photo removed: %v", err)
-	}
-	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
-
-	w := doAdminRequest(t, http.MethodPost, "/api/admin/profile/restore-telegram-photo", nil)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("expected 422 when bot-API fileID is unloadable, got %d: %s", w.Code, w.Body.String())
-	}
-
-	specialist, err := db.GetSpecialistByID(testSpecialist.ID)
-	if err != nil || specialist == nil {
-		t.Fatalf("expected specialist after failed restore, err=%v", err)
-	}
-	if specialist.PhotoURL != "" {
-		t.Fatalf("expected photo_url to remain empty after failed restore, got %q", specialist.PhotoURL)
-	}
-}
-
-func TestRestoreAdminTelegramPhotoFallsBackToBotAPI(t *testing.T) {
-	restore := api.SetTelegramProfilePhotoLookupForTest(func(botToken string, userID int64) (string, error) {
-		if botToken != testSpecialist.BotToken {
-			t.Fatalf("expected bot token %q, got %q", testSpecialist.BotToken, botToken)
-		}
-		if userID != testSpecialist.TelegramUserID {
-			t.Fatalf("expected user ID %d, got %d", testSpecialist.TelegramUserID, userID)
-		}
+/***************************************************************************************************
+* A legacy custom (non-Telegram) photo is replaced by the Telegram photo.
+***************************************************************************************************/
+func TestGetAdminProfileReplacesCustomPhotoWithTelegram(t *testing.T) {
+	restore := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) {
 		return "admin_telegram_file_id", nil
 	})
 	defer restore()
 	restoreVerifier := api.SetTelegramProfilePhotoFileVerifierForTest(func(string, string) bool { return true })
 	defer restoreVerifier()
 
-	if err := db.MarkSpecialistPhotoRemoved(testSpecialist.ID); err != nil {
-		t.Fatalf("failed to mark photo removed: %v", err)
+	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "custom_file_id"); err != nil {
+		t.Fatalf("failed to set custom photo: %v", err)
 	}
 	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
 
-	w := doAdminRequest(t, http.MethodPost, "/api/admin/profile/restore-telegram-photo", nil)
+	w := doAdminRequest(t, http.MethodGet, "/api/admin/profile", nil)
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected restore 200, got %d: %s", w.Code, w.Body.String())
+		t.Fatalf("expected profile 200, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var profile map[string]interface{}
 	parseJSON(t, w, &profile)
 	if photoURL, _ := profile["photoUrl"].(string); photoURL != "telegram:admin_telegram_file_id" {
-		t.Fatalf("expected telegram file photo, got %q", photoURL)
+		t.Fatalf("expected custom photo replaced by telegram photo, got %q", photoURL)
+	}
+}
+
+/***************************************************************************************************
+* A legacy custom photo is cleared when Telegram has no photo for the user.
+***************************************************************************************************/
+func TestGetAdminProfileClearsCustomPhotoWhenTelegramHasNone(t *testing.T) {
+	restore := api.SetTelegramProfilePhotoLookupForTest(func(string, int64) (string, error) {
+		return "", nil
+	})
+	defer restore()
+
+	if err := db.UpdateSpecialistPhoto(testSpecialist.ID, "custom_file_id"); err != nil {
+		t.Fatalf("failed to set custom photo: %v", err)
+	}
+	defer db.UpdateSpecialistPhoto(testSpecialist.ID, "")
+
+	w := doAdminRequest(t, http.MethodGet, "/api/admin/profile", nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected profile 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var profile map[string]interface{}
+	parseJSON(t, w, &profile)
+	if photoURL, _ := profile["photoUrl"].(string); photoURL != "" {
+		t.Fatalf("expected custom photo cleared, got %q", photoURL)
+	}
+}
+
+func TestRemovedPhotoRoutesAreGone(t *testing.T) {
+	for _, tc := range []struct{ method, path string }{
+		{http.MethodPost, "/api/admin/upload/photo"},
+		{http.MethodPost, "/api/admin/profile/restore-telegram-photo"},
+	} {
+		w := doAdminRequest(t, tc.method, tc.path, nil)
+		if w.Code != http.StatusNotFound && w.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("expected %s %s to be removed (404/405), got %d", tc.method, tc.path, w.Code)
+		}
 	}
 }
 
@@ -1498,5 +1504,181 @@ func TestCreateBookingRejectsPastTimeTodayInSpecialistTimezone(t *testing.T) {
 	w := doRequestFromIP(t, http.MethodPost, "/api/bookings", body, 575757, false, "203.0.113.222")
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for past same-day time, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+/***************************************************************************************************
+* Reschedule flow: excludeBookingId makes the booking's own slot "current" and stops it from
+* blocking itself, while a booking of another client is ignored.
+***************************************************************************************************/
+func TestGetAvailabilityExcludeBookingMarksCurrentSlot(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"hours": []map[string]interface{}{
+			{"dayOfWeek": 2, "startTime": "09:00", "endTime": "13:00"},
+		},
+	})
+	if w := doAdminRequest(t, http.MethodPut, "/api/admin/working-hours", body); w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for working hours update, got %d: %s", w.Code, w.Body.String())
+	}
+
+	service, err := db.CreateSessionType(testSpecialist.ID, fmt.Sprintf("avail-excl-%d", time.Now().UnixNano()), "Avail Exclude", 60, 0, "USD", "")
+	if err != nil {
+		t.Fatalf("db.CreateSessionType: %v", err)
+	}
+
+	const ownerTelegramID = int64(707001)
+	const otherTelegramID = int64(707002)
+	owner, err := db.GetOrCreateClient(ownerTelegramID, testSpecialist.ID, "Avail Owner")
+	if err != nil {
+		t.Fatalf("GetOrCreateClient(owner): %v", err)
+	}
+	if _, err := db.GetOrCreateClient(otherTelegramID, testSpecialist.ID, "Avail Other"); err != nil {
+		t.Fatalf("GetOrCreateClient(other): %v", err)
+	}
+
+	date := nextWeekday(time.Tuesday)
+	day, _ := time.Parse("2006-01-02", date)
+	startsAt := time.Date(day.Year(), day.Month(), day.Day(), 10, 0, 0, 0, time.UTC)
+	booking, err := db.CreateBooking(testSpecialist.ID, owner.ID, service.ID, startsAt, startsAt.Add(time.Hour), owner.Name, "", 60)
+	if err != nil {
+		t.Fatalf("db.CreateBooking: %v", err)
+	}
+	defer db.CancelBooking(booking.ID, "", models.CancelledByClient)
+
+	slotAt := func(slots []map[string]interface{}, clock string) map[string]interface{} {
+		for _, slot := range slots {
+			if slot["time"] == clock {
+				return slot
+			}
+		}
+		t.Fatalf("slot %s not found in %#v", clock, slots)
+		return nil
+	}
+	fetch := func(path string, telegramID int64) []map[string]interface{} {
+		w := doClientRequest(t, http.MethodGet, path, nil, telegramID)
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 for availability, got %d: %s", w.Code, w.Body.String())
+		}
+		if cc := w.Header().Get("Cache-Control"); !strings.Contains(cc, "no-store") {
+			t.Fatalf("expected availability to be served no-store, got %q", cc)
+		}
+		var slots []map[string]interface{}
+		parseJSON(t, w, &slots)
+		return slots
+	}
+
+	base := "/api/availability?date=" + date + "&duration=60"
+
+	// Without the param the booking blocks its own slot and is flagged as mine.
+	slot := slotAt(fetch(base, ownerTelegramID), "10:00")
+	if slot["available"] != false || slot["mine"] != true || slot["current"] != nil {
+		t.Fatalf("expected blocked own slot without current flag, got %#v", slot)
+	}
+
+	// With the param: the slot is current and unavailable, the neighbours stay bookable.
+	slots := fetch(base+"&excludeBookingId="+booking.ID, ownerTelegramID)
+	slot = slotAt(slots, "10:00")
+	if slot["available"] != false || slot["current"] != true {
+		t.Fatalf("expected current unavailable slot, got %#v", slot)
+	}
+	if slotAt(slots, "09:00")["available"] != true || slotAt(slots, "11:00")["available"] != true {
+		t.Fatalf("expected neighbouring slots to stay available, got %#v", slots)
+	}
+
+	// A booking that belongs to a different client must be ignored.
+	slot = slotAt(fetch(base+"&excludeBookingId="+booking.ID, otherTelegramID), "10:00")
+	if slot["available"] != false || slot["current"] != nil {
+		t.Fatalf("expected foreign excludeBookingId to be ignored, got %#v", slot)
+	}
+}
+
+/***************************************************************************************************
+* A client cancelling in the mini-app must update the saved Telegram messages of both sides.
+***************************************************************************************************/
+func TestClientCancelRefreshesTelegramMessages(t *testing.T) {
+	var specialistUpdates, clientUpdates int
+	prevSpecialist, prevClient := api.UpdateSpecialistMessageFunc, api.UpdateClientMessageFunc
+	api.UpdateSpecialistMessageFunc = func(b *models.Booking) error {
+		if b.Status == models.BookingStatusCancelled {
+			specialistUpdates++
+		}
+		return nil
+	}
+	api.UpdateClientMessageFunc = func(b *models.Booking) error {
+		if b.Status == models.BookingStatusCancelled {
+			clientUpdates++
+		}
+		return nil
+	}
+	defer func() {
+		api.UpdateSpecialistMessageFunc, api.UpdateClientMessageFunc = prevSpecialist, prevClient
+	}()
+
+	service, err := db.CreateSessionType(testSpecialist.ID, fmt.Sprintf("cancel-sync-%d", time.Now().UnixNano()), "Cancel Sync", 60, 0, "USD", "")
+	if err != nil {
+		t.Fatalf("db.CreateSessionType: %v", err)
+	}
+	const telegramID = int64(707101)
+	client, err := db.GetOrCreateClient(telegramID, testSpecialist.ID, "Cancel Sync Client")
+	if err != nil {
+		t.Fatalf("GetOrCreateClient: %v", err)
+	}
+	startsAt := time.Now().UTC().Add(72 * time.Hour)
+	booking, err := db.CreateBooking(testSpecialist.ID, client.ID, service.ID, startsAt, startsAt.Add(time.Hour), client.Name, "", 60)
+	if err != nil {
+		t.Fatalf("db.CreateBooking: %v", err)
+	}
+
+	w := doClientRequest(t, http.MethodDelete, "/api/bookings/"+booking.ID, nil, telegramID)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected cancel 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if specialistUpdates != 1 || clientUpdates != 1 {
+		t.Fatalf("expected both messages refreshed once, specialist=%d client=%d", specialistUpdates, clientUpdates)
+	}
+
+	// Cancelling again is rejected instead of re-processing the booking.
+	w = doClientRequest(t, http.MethodDelete, "/api/bookings/"+booking.ID, nil, telegramID)
+	if w.Code == http.StatusOK {
+		t.Fatalf("expected second cancel to be rejected, got 200")
+	}
+}
+
+/***************************************************************************************************
+* A specialist changing a booking status in the mini-app must update the client's saved Telegram
+* message too (its Accept/Decline buttons are stale otherwise).
+***************************************************************************************************/
+func TestAdminStatusChangeRefreshesClientMessage(t *testing.T) {
+	var clientUpdates int
+	prevClient := api.UpdateClientMessageFunc
+	api.UpdateClientMessageFunc = func(b *models.Booking) error {
+		if b.Status == models.BookingStatusCancelled {
+			clientUpdates++
+		}
+		return nil
+	}
+	defer func() { api.UpdateClientMessageFunc = prevClient }()
+
+	service, err := db.CreateSessionType(testSpecialist.ID, fmt.Sprintf("admin-sync-%d", time.Now().UnixNano()), "Admin Sync", 60, 0, "USD", "")
+	if err != nil {
+		t.Fatalf("db.CreateSessionType: %v", err)
+	}
+	client, err := db.GetOrCreateClient(707201, testSpecialist.ID, "Admin Sync Client")
+	if err != nil {
+		t.Fatalf("GetOrCreateClient: %v", err)
+	}
+	startsAt := time.Now().UTC().Add(96 * time.Hour)
+	booking, err := db.CreateBookingBySpecialist(testSpecialist.ID, client.ID, service.ID, startsAt, startsAt.Add(time.Hour), client.Name, "", 60)
+	if err != nil {
+		t.Fatalf("db.CreateBookingBySpecialist: %v", err)
+	}
+
+	body := jsonBody(map[string]interface{}{"status": "cancelled", "reason": "changed plans"})
+	w := doAdminRequest(t, http.MethodPut, "/api/admin/bookings/"+booking.ID+"/status", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status update 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if clientUpdates != 1 {
+		t.Fatalf("expected client message refreshed once, got %d", clientUpdates)
 	}
 }
