@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"scheduler-bot/internal/changes"
 	"scheduler-bot/internal/db"
 	myI18n "scheduler-bot/internal/i18n"
 	"scheduler-bot/internal/models"
@@ -214,24 +213,13 @@ func TelegramAuthMiddleware(botToken string) func(http.Handler) http.Handler {
 			}
 
 			/***************************************************************************************************
-			* Clients always adopt their Telegram profile photo when one is available; custom client
-			* avatars are not supported.
+			* Keep Telegram avatars in sync for the requesting user (client row and, for the owner, the
+			* specialist row). Photos come only from Telegram: initData photo_url is adopted inline (a DB
+			* write), anything needing a Telegram round-trip runs in the background and publishes a change
+			* event when it lands, so request latency is unaffected. Without this, a client who never
+			* opens the Profile tab would never get a photo.
 			***************************************************************************************************/
-			if client.PhotoURL == "" && user.PhotoURL != "" {
-				if err := db.UpdateClientPhoto(client.ID, user.PhotoURL); err == nil {
-					client.PhotoURL = user.PhotoURL
-				}
-			}
-
-			/***************************************************************************************************
-			* Auto-set the specialist Telegram profile photo when the owner has no photo yet.
-			***************************************************************************************************/
-			if specialist.PhotoURL == "" && user.PhotoURL != "" && user.ID == specialist.TelegramUserID {
-				if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
-					specialist.PhotoURL = user.PhotoURL
-					changes.Publish(specialist.ID, changes.GroupSpecialist)
-				}
-			}
+			syncRequestingUserPhotos(specialist, client, user)
 
 			ctx := context.WithValue(r.Context(), ClientContextKey, client)
 			ctx = context.WithValue(ctx, SpecialistContextKey, specialist)
@@ -280,12 +268,7 @@ func PreviewAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if specialist.PhotoURL == "" && user.PhotoURL != "" {
-			if err := db.UpdateSpecialistPhoto(specialist.ID, user.PhotoURL); err == nil {
-				specialist.PhotoURL = user.PhotoURL
-				changes.Publish(specialist.ID, changes.GroupSpecialist)
-			}
-		}
+		syncRequestingUserPhotos(specialist, nil, user)
 
 		ctx := context.WithValue(r.Context(), SpecialistContextKey, specialist)
 		ctx = context.WithValue(ctx, TelegramUserContextKey, user)

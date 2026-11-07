@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /***************************************************************************************************
@@ -939,13 +940,13 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 	***************************************************************************************************/
 	body := map[string]string{"file_id": fileID}
 	jsonBody, _ := json.Marshal(body)
-	resp, err := http.Post(
+	resp, err := fileHTTPClient.Post(
 		telegramAPI+b.Token+"/getFile",
 		"application/json",
 		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
-		return nil, "", err
+		return nil, "", b.scrubTokenErr(err)
 	}
 	defer resp.Body.Close()
 
@@ -975,9 +976,9 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 	* were image bytes, which surfaces as "broken image" in the browser.
 	***************************************************************************************************/
 	fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.Token, result.Result.FilePath)
-	fileResp, err := http.Get(fileURL)
+	fileResp, err := fileHTTPClient.Get(fileURL)
 	if err != nil {
-		return nil, "", err
+		return nil, "", b.scrubTokenErr(err)
 	}
 	defer fileResp.Body.Close()
 
@@ -998,21 +999,50 @@ func (b *Bot) GetFile(fileID string) ([]byte, string, error) {
 	return data, contentType, nil
 }
 
+// profilePhotoHTTPClient bounds getUserProfilePhotos round-trips; the background photo sync must
+// never hang on a stalled Telegram connection.
+var profilePhotoHTTPClient = &http.Client{Timeout: 10 * time.Second}
+
+// fileHTTPClient bounds getFile round-trips and file downloads (profile photos are small).
+var fileHTTPClient = &http.Client{Timeout: 20 * time.Second}
+
+// scrubTokenErr hides the bot token that net/http embeds in the request URL of transport errors, so
+// the error is safe to log.
+func (b *Bot) scrubTokenErr(err error) error {
+	if err == nil || b.Token == "" {
+		return err
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, b.Token) {
+		return err
+	}
+	return fmt.Errorf("%s", strings.ReplaceAll(msg, b.Token, "<token>"))
+}
+
 // GetUserProfilePhotoFileID returns the largest available file_id for the user's current Telegram
 // profile photo. An empty string means Telegram reported no profile photos for that user.
 func (b *Bot) GetUserProfilePhotoFileID(userID int64) (string, error) {
+	fileID, _, err := b.GetUserProfilePhoto(userID)
+	return fileID, err
+}
+
+// GetUserProfilePhoto returns the largest size of the user's newest Telegram profile photo as
+// (file_id, file_unique_id). file_unique_id is stable across calls and bots, so it is the right
+// identity for detecting that the user changed their avatar. Both are empty when Telegram reports
+// no profile photos for that user.
+func (b *Bot) GetUserProfilePhoto(userID int64) (string, string, error) {
 	body := map[string]interface{}{
 		"user_id": userID,
 		"limit":   1,
 	}
 	jsonBody, _ := json.Marshal(body)
-	resp, err := http.Post(
+	resp, err := profilePhotoHTTPClient.Post(
 		telegramAPI+b.Token+"/getUserProfilePhotos",
 		"application/json",
 		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
-		return "", err
+		return "", "", b.scrubTokenErr(err)
 	}
 	defer resp.Body.Close()
 
@@ -1021,23 +1051,25 @@ func (b *Bot) GetUserProfilePhotoFileID(userID int64) (string, error) {
 		Result struct {
 			TotalCount int `json:"total_count"`
 			Photos     [][]struct {
-				FileID string `json:"file_id"`
+				FileID       string `json:"file_id"`
+				FileUniqueID string `json:"file_unique_id"`
 			} `json:"photos"`
 		} `json:"result"`
 		Description string `json:"description"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if !result.OK {
-		return "", fmt.Errorf("getUserProfilePhotos failed: %s", result.Description)
+		return "", "", fmt.Errorf("getUserProfilePhotos failed: %s", result.Description)
 	}
 	if result.Result.TotalCount == 0 || len(result.Result.Photos) == 0 || len(result.Result.Photos[0]) == 0 {
-		return "", nil
+		return "", "", nil
 	}
 
 	photos := result.Result.Photos[0]
-	return photos[len(photos)-1].FileID, nil
+	largest := photos[len(photos)-1]
+	return largest.FileID, largest.FileUniqueID, nil
 }
 
 // CreateForumTopic creates a new topic in a forum supergroup and returns its message_thread_id.

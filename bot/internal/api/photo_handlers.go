@@ -51,6 +51,7 @@ func HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		if proxyTelegramFile(w, specialist.BotToken, fileID) {
 			return
 		}
+		log.Printf("Photo proxy: specialist %s bot could not resolve file_id %s", specialist.ID, truncateForLog(fileID, 20))
 		httpError(w, r, "Error.PhotoFetchFailed", http.StatusBadGateway)
 		return
 	}
