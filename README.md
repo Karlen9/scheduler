@@ -19,7 +19,7 @@ scheduler/
 
 ### How it works
 
-1. Specialist opens master bot (`@schedu1erbot`) → registers their own bot
+1. Specialist opens master bot (`@your_master_bot`) → registers their own bot
 2. Client opens specialist's bot → `/start` → "Open Scheduler" button
 3. Mini-app loads → client picks date/time/duration → booking created (status: pending)
 4. Specialist gets Telegram notification with Accept/Reject buttons
@@ -46,13 +46,13 @@ scheduler/
 
 ### Infrastructure
 
-| Component          | Where        | URL                                            |
-| ------------------ | ------------ | ---------------------------------------------- |
-| Bot (Go)           | VPS (Docker) | `sport-app.rainingman.online`                  |
-| Mini-app (Next.js) | Vercel       | deployed via `bunx vercel`                     |
-| SSL                | Caddy (VPS)  | auto-TLS, proxies to `:8080`                   |
-| DB                 | SQLite       | `/root/sport-app/bot-data/scheduler.db` on VPS |
-| Images             | Docker Hub   | `rainingman/scheduler-bot`                     |
+| Component          | Where        | URL                                           |
+| ------------------ | ------------ | --------------------------------------------- |
+| Bot (Go)           | VPS (Docker) | `api.example.com`                             |
+| Mini-app (Next.js) | Vercel       | deployed via `bunx vercel`                    |
+| SSL                | Caddy (VPS)  | auto-TLS, proxies to `:8080`                  |
+| DB                 | SQLite       | `/opt/scheduler/bot-data/scheduler.db` on VPS |
+| Images             | Docker Hub   | `your-dockerhub-user/scheduler-bot`           |
 
 ### Tech stack
 
@@ -86,7 +86,7 @@ bunx vercel --prod    # deploy to Vercel
 
 # 2. On VPS: pull and restart
 ssh root@your-vps
-cd /root/sport-app
+cd /opt/scheduler
 docker compose pull bot
 docker compose down && docker compose up -d
 
@@ -95,7 +95,7 @@ docker compose logs --tail 20 bot
 ```
 
 `build-and-push.sh` runs `go build ./...`, `go test ./...`, then builds and pushes
-`rainingman/scheduler-bot:latest`. Override the tag with `IMAGE=...` if needed.
+`your-dockerhub-user/scheduler-bot:latest`. Override the tag with `IMAGE=...` if needed.
 
 ### Updating the backup-monitor
 
@@ -105,13 +105,13 @@ docker compose logs --tail 20 bot
 
 # 2. On VPS: pull and restart
 ssh root@your-vps
-cd /root/sport-app/backup-monitor   # or wherever it lives on your VPS
+cd /opt/scheduler/backup-monitor   # or wherever it lives on your VPS
 docker compose pull monitor
 docker compose up -d monitor
 ```
 
 If the VPS still has the old `build: .` line in `backup-monitor/docker-compose.yml`,
-swap it for `image: rainingman/scheduler-monitor:latest` so it pulls instead of
+swap it for `image: your-dockerhub-user/scheduler-monitor:latest` so it pulls instead of
 building locally.
 
 ### Quick reference: VPS commands
@@ -286,7 +286,7 @@ On registration, each specialist is seeded with default session types (personal,
 ### Directory structure on VPS
 
 ```
-/root/sport-app/
+/opt/scheduler/
 ├── docker-compose.yml
 ├── bot/
 │   ├── .env              # production env
@@ -301,7 +301,7 @@ On registration, each specialist is seeded with default session types (personal,
 ```yaml
 services:
   bot:
-    image: rainingman/scheduler-bot:latest
+    image: your-dockerhub-user/scheduler-bot:latest
     network_mode: host
     volumes:
       - ./bot-data:/data
@@ -312,7 +312,7 @@ services:
     restart: unless-stopped
 
   bot-dev:
-    image: rainingman/scheduler-bot:dev
+    image: your-dockerhub-user/scheduler-bot:dev
     network_mode: host
     env_file:
       - bot/.env.dev
@@ -351,7 +351,7 @@ Key points:
 ### .env (production)
 
 ```env
-PUBLIC_BASE_URL=https://sport-app.rainingman.online
+PUBLIC_BASE_URL=https://api.example.com
 WEB_APP_URL=https://your-vercel-url.vercel.app
 MASTER_BOT_TOKEN=your-master-bot-token
 MASTER_WEBHOOK_SECRET=your-fixed-secret-hex-string
@@ -368,7 +368,7 @@ The production `.env` holds every secret: `chmod 600` it and keep it owned by th
 TELEGRAM_BOT_TOKEN=your-dev-bot-token
 SPECIALIST_TELEGRAM_ID=your-telegram-id
 SPECIALIST_NAME=Your Name
-PUBLIC_BASE_URL=https://dev-sport-app.rainingman.online
+PUBLIC_BASE_URL=https://dev.example.com
 WEB_APP_URL=https://your-vercel-preview-url
 ```
 
@@ -382,11 +382,11 @@ openssl rand -hex 32   # for ENCRYPTION_KEY
 ### Caddy config (`/etc/caddy/Caddyfile`)
 
 ```
-sport-app.rainingman.online {
+api.example.com {
     reverse_proxy localhost:8080
 }
 
-dev-sport-app.rainingman.online {
+dev.example.com {
     reverse_proxy localhost:8081
 }
 ```
@@ -429,7 +429,7 @@ Migrations run automatically on startup via idempotent `ALTER TABLE` statements.
 docker compose exec bot sh -c "sqlite3 /data/scheduler.db \"SELECT name, telegram_handle FROM specialists;\""
 
 # Or directly
-sqlite3 /root/sport-app/bot-data/scheduler.db "SELECT * FROM specialists;"
+sqlite3 /opt/scheduler/bot-data/scheduler.db "SELECT * FROM specialists;"
 
 # Dev PostgreSQL
 psql "postgres://scheduler:${DB_PASSWORD:-scheduler}@localhost:5432/scheduler?sslmode=disable"
@@ -439,10 +439,10 @@ psql "postgres://scheduler:${DB_PASSWORD:-scheduler}@localhost:5432/scheduler?ss
 
 ```bash
 # Manual backup from VPS
-scp root@your-vps:/root/sport-app/bot-data/scheduler.db ./backups/scheduler-$(date +%Y%m%d).db
+scp root@your-vps:/opt/scheduler/bot-data/scheduler.db ./backups/scheduler-$(date +%Y%m%d).db
 
 # On VPS: local backup
-cp /root/sport-app/bot-data/scheduler.db /root/sport-app/bot-data/scheduler-backup-$(date +%Y%m%d).db
+cp /opt/scheduler/bot-data/scheduler.db /opt/scheduler/bot-data/scheduler-backup-$(date +%Y%m%d).db
 ```
 
 Automatic daily backups with cron:
@@ -450,7 +450,7 @@ Automatic daily backups with cron:
 ```bash
 crontab -e
 # Add:
-0 3 * * * cp /root/sport-app/bot-data/scheduler.db /root/sport-app/bot-data/backups/scheduler-$(date +\%Y\%m\%d).db
+0 3 * * * cp /opt/scheduler/bot-data/scheduler.db /opt/scheduler/bot-data/backups/scheduler-$(date +\%Y\%m\%d).db
 ```
 
 ### Backup-monitor service
@@ -470,7 +470,7 @@ Markdown so raw error text comes through clean.
 Required env (in `backup-monitor/.env`):
 
 ```env
-HEALTH_URL=https://sport-app.rainingman.online/health
+HEALTH_URL=https://api.example.com/health
 TELEGRAM_ALERT_BOT_TOKEN=...
 TELEGRAM_ALERT_CHAT_ID=...
 # plus SSH_/DB_/RETENTION_/BACKUP_ vars used by backup.sh
@@ -498,7 +498,7 @@ Encrypted values in the DB are prefixed with `enc:` so the migration is idempote
 
 | Variable                 | Required       | Description                                                                    |
 | ------------------------ | -------------- | ------------------------------------------------------------------------------ |
-| `PUBLIC_BASE_URL`        | Yes            | VPS public URL (e.g., `https://sport-app.rainingman.online`)                   |
+| `PUBLIC_BASE_URL`        | Yes            | VPS public URL (e.g., `https://api.example.com`)                               |
 | `WEB_APP_URL`            | Yes            | Vercel mini-app URL                                                            |
 | `MASTER_BOT_TOKEN`       | Yes            | Master bot token from BotFather                                                |
 | `MASTER_WEBHOOK_SECRET`  | Recommended    | Fixed hex secret for master bot webhook (generate with `openssl rand -hex 32`) |
@@ -662,5 +662,5 @@ The `MASTER_WEBHOOK_SECRET` in `.env` must be set. Without it, a random secret i
 
 ### Database appears empty
 
-- Make sure you're pointing to the correct file (`/root/sport-app/bot-data/scheduler.db`)
+- Make sure you're pointing to the correct file (`/opt/scheduler/bot-data/scheduler.db`)
 - If the DB was recreated, re-register via the master bot (`/start`)
