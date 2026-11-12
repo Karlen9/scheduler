@@ -85,6 +85,7 @@ type MasterHandler struct {
 	adminIDs       []int64
 	supportGroupID int64                // 0 = support relay disabled
 	pendingRefs    map[int64]pendingRef // telegramUserID -> pending referrer code + capture time
+	pendingRooms   map[int64]pendingRef // telegramUserID -> pending room invite code + capture time
 }
 
 /***************************************************************************************************
@@ -111,6 +112,7 @@ func NewMasterHandler(bot *Bot, publicBaseURL, webAppURL string, adminIDs []int6
 		adminIDs:       adminIDs,
 		supportGroupID: supportGroupID,
 		pendingRefs:    make(map[int64]pendingRef),
+		pendingRooms:   make(map[int64]pendingRef),
 	}
 }
 
@@ -127,6 +129,53 @@ func extractRefPayload(text string) string {
 		return strings.TrimPrefix(payload, "ref_")
 	}
 	return ""
+}
+
+// extractRoomPayload parses the invite code from a "/start room_<code>" message (shared-room
+// invitations). Kept separate from extractRefPayload so both deep-link spaces stay independent.
+func extractRoomPayload(text string) string {
+	parts := strings.SplitN(strings.TrimSpace(text), " ", 2)
+	if len(parts) < 2 {
+		return ""
+	}
+	payload := strings.TrimSpace(parts[1])
+	if strings.HasPrefix(payload, "room_") {
+		return strings.TrimPrefix(payload, "room_")
+	}
+	return ""
+}
+
+// rememberPendingRoom stashes a room invite code until the user has finished onboarding and a
+// specialists row exists to join the room with. Same TTL and eviction as pending referrals.
+func (h *MasterHandler) rememberPendingRoom(userID int64, code string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	now := time.Now()
+	for uid, entry := range h.pendingRooms {
+		if now.Sub(entry.at) > pendingRefTTL {
+			delete(h.pendingRooms, uid)
+		}
+	}
+	h.pendingRooms[userID] = pendingRef{code: code, at: now}
+}
+
+// takePendingRoom returns and clears the pending room invite code for the user.
+func (h *MasterHandler) takePendingRoom(userID int64) string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	entry, ok := h.pendingRooms[userID]
+	delete(h.pendingRooms, userID)
+	if !ok || time.Since(entry.at) > pendingRefTTL {
+		return ""
+	}
+	return entry.code
+}
+
+// clearPendingRoom drops the pending room invite without returning it (/cancel, operator support).
+func (h *MasterHandler) clearPendingRoom(userID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.pendingRooms, userID)
 }
 
 // rememberPendingReferral stashes a referral code captured from /start until the user finishes
@@ -353,6 +402,12 @@ func (h *MasterHandler) handleCommand(chatID, userID int64, text string, loc *lo
 		if payload := extractRefPayload(text); payload != "" {
 			h.rememberPendingReferral(userID, payload)
 		}
+		// "/start room_<code>" is a shared-room invitation; it is handled on its own and never
+		// mixes with the referral flow above.
+		if code := extractRoomPayload(text); code != "" {
+			h.handleRoomInviteStart(chatID, userID, code, loc)
+			return
+		}
 		h.handleStart(chatID, userID, loc)
 	case "/menu":
 		h.renderMainMenu(chatID, userID, 0, loc)
@@ -566,6 +621,7 @@ func (h *MasterHandler) handleCancel(chatID, userID int64, loc *localizerType) {
 	h.setSession(userID, nil)
 	// Drop any referral code captured from a /start ref_<code> that the user is now abandoning.
 	h.clearPendingReferral(userID)
+	h.clearPendingRoom(userID)
 	h.bot.SendMessage(chatID, myI18n.T(loc, "Master.Cancelled"), nil)
 }
 
@@ -818,6 +874,14 @@ func (h *MasterHandler) finalizeOnboarding(chatID, userID int64, username string
 	***************************************************************************************************/
 	msg := fmt.Sprintf(myI18n.T(loc, "Master.Success"), name, session.BotUsername, session.BotUsername, session.BotUsername)
 	h.bot.SendMessage(chatID, msg, nil)
+
+	/***************************************************************************************************
+	* A room invitation captured from /start room_<code> before onboarding: join now that the
+	* specialist (and their bot) exist.
+	***************************************************************************************************/
+	if roomCode := h.takePendingRoom(userID); roomCode != "" {
+		h.joinRoomAndReport(chatID, specialist, roomCode, loc)
+	}
 
 	log.Printf("New specialist registered: %s (@%s)", name, session.BotUsername)
 }

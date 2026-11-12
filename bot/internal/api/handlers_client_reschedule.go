@@ -94,6 +94,20 @@ func HandleClientRescheduleBooking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/***************************************************************************************************
+	* Dates mode: the proposed time must fall on an opened date, inside that date's hours.
+	***************************************************************************************************/
+	slotErr, err := validateDatesModeSlot(specialist, date, startsAt, endsAt)
+	if err != nil {
+		log.Printf("Error checking work calendar: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if slotErr != "" {
+		httpError(w, r, slotErr, http.StatusBadRequest)
+		return
+	}
+
 	hasConflict, err := db.HasConflictingBooking(specialist.ID, startsAt, endsAt, bookingID)
 	if err != nil {
 		log.Printf("Error checking conflicts: %v", err)

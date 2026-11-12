@@ -756,6 +756,8 @@ func main() {
 		return handler.NotifyMoveResponse(newBooking, oldBooking, approved, respondedBy)
 	}
 
+	wireRoomNotifications()
+
 	api.SuperadminSecret = cfg.SuperadminSecret
 	api.WebAppURL = cfg.WebAppURL
 	api.CORSAllowedOrigins = cfg.CORSAllowedOrigins
@@ -838,6 +840,7 @@ func main() {
 	reminderCtx, reminderCancel := context.WithCancel(context.Background())
 	defer reminderCancel()
 	go startReminderWorker(reminderCtx)
+	go startWorkDaysReminderWorker(reminderCtx)
 	if masterHandler != nil {
 		go masterHandler.RunSupportInactivityCloser(reminderCtx)
 	}

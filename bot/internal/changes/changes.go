@@ -18,6 +18,7 @@ const (
 	GroupSpecialist         Group = "specialist"
 	GroupClientProfile      Group = "clientProfile"
 	GroupAdminNotifications Group = "adminNotifications"
+	GroupRoom               Group = "room"
 )
 
 var allGroups = []Group{
@@ -31,12 +32,22 @@ var allGroups = []Group{
 	GroupSpecialist,
 	GroupClientProfile,
 	GroupAdminNotifications,
+	GroupRoom,
 }
 
 var (
 	mu       sync.RWMutex
 	versions = map[string]map[Group]int64{}
 )
+
+/***************************************************************************************************
+* PublishMany publishes the same groups for several specialists (e.g. every member of a room).
+***************************************************************************************************/
+func PublishMany(specialistIDs []string, groups ...Group) {
+	for _, id := range specialistIDs {
+		Publish(id, groups...)
+	}
+}
 
 /***************************************************************************************************
 * Publish increments changed resource group versions for a specialist.

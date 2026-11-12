@@ -725,5 +725,174 @@
   },
   "Btn.AcceptConsent": {
     "other": "✅ Я принимаю"
+  },
+
+  "Error.WorkDatePast": {
+    "other": "Нельзя менять рабочие дни в прошлом"
+  },
+  "Error.WorkDateHasBookings": {
+    "other": "На эти дни есть активные записи — сначала отмените или перенесите их"
+  },
+  "WorkDays.ReminderText": {
+    "other": "На следующей неделе у вас нет рабочих дней — клиенты не смогут записаться."
+  },
+  "WorkDays.ReminderButton": {
+    "other": "Открыть дни"
+  },
+  "Error.DateNotAvailable": {
+    "other": "Этот день закрыт для записи"
+  },
+  "Error.RoomNotFound": {
+    "other": "Вы не состоите в кабинете"
+  },
+  "Error.AlreadyInRoom": {
+    "other": "Вы уже состоите в кабинете"
+  },
+  "Error.RoomFull": {
+    "other": "В кабинете не может быть больше 6 участников"
+  },
+  "Error.RoomForbidden": {
+    "other": "Это действие вам недоступно"
+  },
+  "Error.RoomDayTaken": {
+    "other": "Эти дни уже заняты другим участником кабинета"
+  },
+  "Error.RoomDayNotYours": {
+    "other": "Эти дни принадлежат другому участнику кабинета — попросите их у него"
+  },
+  "Error.RoomMemberNotFound": {
+    "other": "Участник кабинета не найден"
+  },
+  "Error.RoomRequestNotFound": {
+    "other": "Запрос не найден"
+  },
+  "Error.RoomRequestInvalid": {
+    "other": "Этот запрос больше недействителен"
+  },
+  "Room.RequestText": {
+    "other": "🔁 {{.Name}} просит у вас {{.Date}}{{if .Room}} («{{.Room}}»){{end}}"
+  },
+  "Room.BtnGive": {
+    "other": "Отдать"
+  },
+  "Room.BtnDecline": {
+    "other": "Отказать"
+  },
+  "Room.RequestGiven": {
+    "other": "✅ Вы отдали {{.Date}} (получатель: {{.Name}})"
+  },
+  "Room.RequestDeclinedOwner": {
+    "other": "❌ Вы отклонили запрос на {{.Date}} (автор: {{.Name}})"
+  },
+  "Room.RequestAlreadyResolved": {
+    "other": "Запрос уже обработан"
+  },
+  "Room.NeedMoveBookings": {
+    "other": "Сначала перенесите записи на этот день"
+  },
+  "Room.RequesterAccepted": {
+    "other": "✅ {{.Name}} отдаёт вам {{.Date}}"
+  },
+  "Room.RequesterDeclined": {
+    "other": "❌ {{.Name}} не может отдать {{.Date}}"
+  },
+  "Room.DaysClaimed": {
+    "other": "📅 {{.Name}} берёт {{.Dates}}"
+  },
+  "Room.MemberJoined": {
+    "other": "👋 {{.Name}} теперь в {{if .Room}}«{{.Room}}»{{else}}кабинете{{end}}"
+  },
+  "Room.MemberRemoved": {
+    "other": "Вас исключили из {{if .Room}}«{{.Room}}»{{else}}кабинета{{end}}. Ваши рабочие дни сохранены."
+  },
+  "MasterRoom.Invite": {
+    "other": "{{.Inviter}} приглашает вас в {{if .Room}}«{{.Room}}»{{else}}кабинет{{end}}. Ваши дни там перенесутся в ваше расписание, и расписание переключится в режим «По датам»."
+  },
+  "MasterRoom.BtnAccept": {
+    "other": "✅ Принять"
+  },
+  "MasterRoom.BtnDecline": {
+    "other": "Отклонить"
+  },
+  "MasterRoom.InvalidInvite": {
+    "other": "Приглашение недействительно или уже использовано."
+  },
+  "MasterRoom.AlreadyInRoom": {
+    "other": "Вы уже состоите в кабинете. Чтобы принять это приглашение, сначала выйдите из текущего кабинета: Настройки → Расписание → Кабинет."
+  },
+  "MasterRoom.NeedBotFirst": {
+    "other": "Сначала создайте своего бота — после этого вы автоматически присоединитесь к {{if .Room}}«{{.Room}}»{{else}}кабинету{{end}}."
+  },
+  "MasterRoom.Joined": {
+    "other": "✅ Вы теперь в {{if .Room}}«{{.Room}}»{{else}}кабинете{{end}}. Дней перенесено в ваше расписание: {{.Count}}."
+  },
+  "MasterRoom.JoinedConflicts": {
+    "other": "⚠️ Эти дни заняты коллегой, но у вас на них есть записи, поэтому они остались открытыми: {{.Dates}}. Договоритесь с коллегой."
+  },
+  "MasterRoom.Declined": {
+    "other": "Приглашение отклонено."
+  },
+  "Error.RoomRequiresDatesMode": {
+    "other": "Пока вы в кабинете, расписание работает только по датам. Чтобы вернуться к постоянному графику, выйдите из кабинета."
+  },
+  "RoomDate.Format": {
+    "other": "{{.Weekday}}, {{.Day}} {{.Month}}"
+  },
+  "RoomDate.Wd0": {
+    "other": "вс"
+  },
+  "RoomDate.Wd1": {
+    "other": "пн"
+  },
+  "RoomDate.Wd2": {
+    "other": "вт"
+  },
+  "RoomDate.Wd3": {
+    "other": "ср"
+  },
+  "RoomDate.Wd4": {
+    "other": "чт"
+  },
+  "RoomDate.Wd5": {
+    "other": "пт"
+  },
+  "RoomDate.Wd6": {
+    "other": "сб"
+  },
+  "RoomDate.M1": {
+    "other": "января"
+  },
+  "RoomDate.M2": {
+    "other": "февраля"
+  },
+  "RoomDate.M3": {
+    "other": "марта"
+  },
+  "RoomDate.M4": {
+    "other": "апреля"
+  },
+  "RoomDate.M5": {
+    "other": "мая"
+  },
+  "RoomDate.M6": {
+    "other": "июня"
+  },
+  "RoomDate.M7": {
+    "other": "июля"
+  },
+  "RoomDate.M8": {
+    "other": "августа"
+  },
+  "RoomDate.M9": {
+    "other": "сентября"
+  },
+  "RoomDate.M10": {
+    "other": "октября"
+  },
+  "RoomDate.M11": {
+    "other": "ноября"
+  },
+  "RoomDate.M12": {
+    "other": "декабря"
   }
 }

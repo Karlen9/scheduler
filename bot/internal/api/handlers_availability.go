@@ -47,32 +47,17 @@ func HandleGetAvailability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isDayOff, err := db.IsDayOff(specialist.ID, date)
+	/***************************************************************************************************
+	* The work calendar decides whether the date is open and with which hours: weekday template minus
+	* days off in weekly mode, explicitly opened dates in dates mode.
+	***************************************************************************************************/
+	calendar, err := db.LoadWorkCalendarForSpecialist(specialist.ID, specialist)
 	if err != nil {
-		log.Printf("Error checking day off: %v", err)
+		log.Printf("Error loading work calendar: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
-	if isDayOff {
-		setNoStore(w)
-		writeJSON(w, []models.TimeSlot{})
-		return
-	}
-
-	hours, err := db.GetWorkingHoursBySpecialistID(specialist.ID)
-	if err != nil {
-		log.Printf("Error getting working hours: %v", err)
-		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
-		return
-	}
-
-	dayWorkingHours := make([]models.WorkingHours, 0)
-	dayOfWeek := int(date.Weekday())
-	for _, wh := range hours {
-		if wh.DayOfWeek == dayOfWeek {
-			dayWorkingHours = append(dayWorkingHours, wh)
-		}
-	}
+	dayWorkingHours := calendar.IntervalsFor(date)
 	if len(dayWorkingHours) == 0 {
 		setNoStore(w)
 		writeJSON(w, []models.TimeSlot{})

@@ -58,7 +58,8 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 	var telegramHandle, phone, specialization, bio, photoURL, availableDurations, language, wallpaper, referralCode, referredViaCode sql.NullString
 	var notifyNewBookings, notifyCancellations, photoRemoved sql.NullInt64
 	var deletedAt sql.NullTime
-	var cancelCutoffEnabled sql.NullInt64
+	var cancelCutoffEnabled, notifyWorkDaysReminder sql.NullInt64
+	var scheduleMode, defaultIntervals sql.NullString
 	err := row.Scan(
 		&t.ID, &t.TelegramUserID, &t.BotToken, &t.BotUsername,
 		&t.WebhookSecret, &t.Name, &t.Timezone, &t.CancelCutoffHrs,
@@ -73,6 +74,9 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		&referredViaCode,
 		&deletedAt,
 		&cancelCutoffEnabled,
+		&scheduleMode,
+		&defaultIntervals,
+		&notifyWorkDaysReminder,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -101,6 +105,12 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 		t.DeletedAt = &deleted
 	}
 	t.CancelCutoffEnabled = cancelCutoffEnabled.Valid && cancelCutoffEnabled.Int64 == 1
+	t.ScheduleMode = scheduleMode.String
+	if t.ScheduleMode != models.ScheduleModeDates {
+		t.ScheduleMode = models.ScheduleModeWeekly
+	}
+	t.DefaultIntervals = defaultIntervals.String
+	t.NotifyWorkDaysReminder = !notifyWorkDaysReminder.Valid || notifyWorkDaysReminder.Int64 == 1
 
 	/***************************************************************************************************
 	* Decrypt bot token (passthrough for plain text).
@@ -119,7 +129,7 @@ func scanSpecialist(row interface{ Scan(...any) error }) (*models.Specialist, er
 * Usage context:
 * - Reused by the database layer to keep shared values centralized.
 ***************************************************************************************************/
-const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, deleted_at, cancel_cutoff_enabled`
+const specialistColumns = `id, telegram_user_id, bot_token, bot_username, webhook_secret, name, timezone, cancel_cutoff_hrs, telegram_handle, phone, specialization, bio, photo_url, photo_removed, location_latitude, location_longitude, available_durations, notify_new_bookings, notify_cancellations, is_active, created_at, language, wallpaper, referral_code, referred_via_code, deleted_at, cancel_cutoff_enabled, schedule_mode, default_intervals, notify_work_days_reminder`
 
 /***************************************************************************************************
 * Returns specialist by telegram id.
@@ -647,7 +657,7 @@ func ActivateSpecialist(id string) error {
 * reporting still has a record the bot existed. Wrapped in a single transaction — either every
 * referenced row disappears or nothing changes.
 *
-* What gets deleted: bookings, recurring_schedules, days_off, working_hours, session_types,
+* What gets deleted: bookings, recurring_schedules, days_off, work_dates, working_hours, session_types,
 * clients (bookings and recurring_schedules reference clients via FK so they go first).
 *
 * What gets cleared on the specialists row: bot_token, bot_token_hash, webhook_secret,
@@ -662,11 +672,30 @@ func SoftDeleteSpecialistCascade(specialistID string) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	/***************************************************************************************************
+	* A specialist who shares a room leaves it first (their room days are released; the room is
+	* removed when no linked member remains).
+	***************************************************************************************************/
+	if member, err := txMemberOfSpecialist(tx, specialistID); err != nil {
+		return err
+	} else if member != nil {
+		room, err := txRoomByID(tx, member.RoomID)
+		if err != nil {
+			return err
+		}
+		if room != nil {
+			if _, err := txRemoveMember(tx, room, member); err != nil {
+				return err
+			}
+		}
+	}
+
 	deletions := []string{
 		`DELETE FROM bookings WHERE specialist_id = ?`,
 		`DELETE FROM recurring_schedules WHERE specialist_id = ?`,
 		`DELETE FROM client_batches WHERE specialist_id = ?`,
 		`DELETE FROM days_off WHERE specialist_id = ?`,
+		`DELETE FROM work_dates WHERE specialist_id = ?`,
 		`DELETE FROM working_hours WHERE specialist_id = ?`,
 		`DELETE FROM session_types WHERE specialist_id = ?`,
 		`DELETE FROM clients WHERE specialist_id = ?`,
