@@ -10,6 +10,10 @@ export function handleDelete<T>(
   path: string,
   body: Record<string, unknown>,
 ): T | undefined {
+  if (path === '/api/admin/specialist') {
+    return {} as T;
+  }
+
   const clientBookingMatch = path.match(/^\/api\/bookings\/([^/]+)$/);
   if (clientBookingMatch) {
     return updateBooking(state, clientBookingMatch[1], (booking) => ({

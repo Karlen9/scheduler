@@ -16,7 +16,7 @@ import type { ReactNode } from 'react';
  * Side effects:
  * - May derive UI state, invoke callbacks, and trigger user-facing rendering updates.
  ***************************************************************************************************/
-export function Loading(): ReactNode {
+export default function Loading(): ReactNode {
   /***************************************************************************************************
    * Defines the tp value used by the page layer.
    *
