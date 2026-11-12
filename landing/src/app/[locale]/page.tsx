@@ -17,6 +17,7 @@ import { NoTelegramSection } from '@/components/NoTelegramSection';
 import { PageMotion } from '@/components/PageMotion';
 import { PainSection } from '@/components/PainSection';
 import { ReferralSection } from '@/components/ReferralSection';
+import { RoomSection } from '@/components/RoomSection';
 import { SupportSection } from '@/components/SupportSection';
 import { routing } from '@/i18n/routing';
 import { MASTER_BOT_URL } from '@/lib/site';
@@ -48,6 +49,7 @@ export default function HomePage({ params }: { params: Promise<{ locale: string 
         <PainSection />
         <FeaturesSection />
         <NoTelegramSection />
+        <RoomSection />
         <AudienceSection />
         <HowItWorksSection />
         <ComparisonSection />

@@ -22,6 +22,9 @@ const MOCKS: Record<TScreenKey, () => ReactNode> = {
   calendar: MockCalendar,
   bookings: MockRequest,
   slots: MockBooking,
+  roomCalendar: MockCalendar,
+  room: MockCalendar,
+  roomAlternating: MockCalendar,
 };
 
 // Side hardware as [top %, height %] of the body height.

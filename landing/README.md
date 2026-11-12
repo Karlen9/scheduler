@@ -53,7 +53,21 @@ export const SCREENS = {
 
 Screenshots are taken without the iOS status bar. The phone draws its own status bar (time, signal, wifi, battery) above the image, and `statusBg` is the colour of the screenshot's top edge, painted behind that bar so the two blend.
 
-The four keys are `booking` (specialist page in the client's bot), `bookings` (specialist's booking list), `calendar` (schedule for the day) and `slots` (date and time picker). `null` keeps the mock for that phone.
+The room screens use three more keys: `roomCalendar` (the room calendar of the work-days page), `room` (the room page with its members) and `roomAlternating` (the "alternating weeks" sheet). Their files are `public/screens/room-calendar.png`, `room.png` and `room-alternating.png`. The last one is taken with the sheet open over a dimmed page, so its `statusBg` is the dimmed overlay colour (`#78787a`), not the page colour. See "Capturing the shared room screens" below for how to take them.
+
+The first four keys are `booking` (specialist page in the client's bot), `bookings` (specialist's booking list), `calendar` (schedule for the day) and `slots` (date and time picker). `null` keeps the mock for that phone.
+
+### Capturing the shared room ("Кабинет") screens
+
+The mini-app ships a mock scenario with a shared room, so the room screens can be captured without a backend. Build and start the mini-app in production mode (`bun run build && bun start` in `mini-app`, served on <http://localhost:3000>) so the Next.js dev indicator (the "N" bubble) is not in the shot; `bun dev` works too but shows it. Open the pages below in the browser at an iPhone 16 viewport (393×852) and take the screenshots. `?mock=room` works the same in both modes.
+
+- `http://localhost:3000/test/admin/settings/work-days?mock=room` - the room calendar: days filled with each member's colour, legend, an incoming request from Анна and the quick actions.
+- `http://localhost:3000/test/admin/settings/room` - members of the room (you, Анна Смирнова with her own bot, Ольга without a bot) and the schedule links.
+- `http://localhost:3000/test/admin/settings` - the settings menu with the "Кабинет" item.
+- `http://localhost:3000/test/admin` - the specialist's schedule and bookings in dates mode.
+- `http://localhost:3000/test/client?mock=room` (then `/test/client/book`) - the client side: only the specialist's own open days are bookable.
+
+`?mock=room` is remembered in `sessionStorage` (`mock-scenario`), so in-app navigation keeps the scenario and the parameter only has to be on the first URL you open. Reset with `?mock=default` (for example `http://localhost:3000/test/admin?mock=default`). All dates are relative to today, so the weeks always look current.
 
 ## Contact email
 

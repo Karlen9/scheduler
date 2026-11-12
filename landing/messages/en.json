@@ -98,6 +98,32 @@
     },
     "note": "Clients don't have to install anything or sign up. You decide how it suits them to book."
   },
+  "room": {
+    "title": "Share a room <accent>with colleagues</accent>?",
+    "subtitle": "When a room is split by days and the days change every week, mark your own — clients will only see those.",
+    "items": {
+      "dates": {
+        "title": "Work by dates",
+        "text": "Open only the days you are in the room in the calendar. All other days are closed for booking automatically."
+      },
+      "calendar": {
+        "title": "A shared room calendar",
+        "text": "Every day belongs to one specialist and colors show who works when. No double bookings."
+      },
+      "offline": {
+        "title": "A colleague without a bot",
+        "text": "If a colleague does not use the app, mark their days yourself — all you need is a name and a color."
+      },
+      "swap": {
+        "title": "Swap days in Telegram",
+        "text": "A connected colleague asks for a day with a button, and you give it up or decline right in the bot chat."
+      },
+      "weeks": {
+        "title": "A week in a couple of taps",
+        "text": "Repeat last week or set alternating weeks — the schedule fills itself."
+      }
+    }
+  },
   "audience": {
     "title": "For anyone who works <accent>by appointment</accent>",
     "items": {
@@ -260,6 +286,10 @@
       "i19": {
         "q": "Do my clients need Telegram?",
         "a": "No. You can add a client without Telegram manually: enter their name in the clients section and put them on the schedule yourself, and the booking is confirmed right away. Clients on Telegram book on their own through your bot. Both kinds show up in the same calendar and client base. Reminders and notifications only reach clients who use Telegram."
+      },
+      "i20": {
+        "q": "I rent a room with a colleague — will this work?",
+        "a": "Yes. Turn on \"By dates\" mode: clients only see the days you open in the calendar. The room has a shared calendar where every day belongs to one specialist and colors show who works when, so there are no double bookings. Your colleague can use their own bot or have none: then you mark their days."
       }
     }
   },
@@ -292,7 +322,10 @@
     "booking": "The specialist's page in the client's bot",
     "bookings": "The specialist's booking list",
     "calendar": "The specialist's schedule for the day",
-    "slots": "Picking a date and time"
+    "slots": "Picking a date and time",
+    "roomCalendar": "The room calendar: colors show who works on which day",
+    "room": "Room members and schedule links",
+    "roomAlternating": "Alternating weeks: picking days for each week"
   },
   "mocks": {
     "booking": {
