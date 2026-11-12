@@ -143,6 +143,8 @@ export type TSettingsMenuItemProps = {
   icon: LucideIcon;
   label: string;
   value?: string;
+  /** Secondary line under the label (e.g. the room name). */
+  subtitle?: string;
   href: string;
   iconColor?: string;
 };

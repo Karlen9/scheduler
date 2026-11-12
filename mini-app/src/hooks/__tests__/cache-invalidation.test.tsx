@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api';
 
-import { invalidateChangeGroups } from '../mutations';
+import { invalidateChangeGroups, invalidateMutation } from '../mutations';
 import { useScheduleContext } from '../queries';
 
 import type { TScheduleContext } from '@/lib/types';
@@ -103,6 +103,36 @@ describe('SWR invalidation of hooks that mount later', () => {
       expect(GetScheduleContext.mock.calls.length).toBeGreaterThan(callsBeforeInvalidation),
     );
     await waitFor(() => expect(latest).toBe(0));
+    view.unmount();
+  });
+  it.each([
+    '/api/admin/work-dates',
+    '/api/admin/schedule-settings',
+    '/api/admin/room/days',
+    '/api/admin/room/requests/q1/accept',
+  ])('a PUT to %s invalidates the schedule context like a working-hours save', async (endpoint) => {
+    let latest: number | undefined;
+    const onData = (day: number | undefined): void => {
+      latest = day;
+    };
+
+    // The SWR cache is shared with the other tests: whatever is cached counts as stale data.
+    GetScheduleContext.mockResolvedValue(context(1));
+    const view = render(<App showPage onData={onData} />);
+    await waitFor(() => expect(latest).toBeDefined());
+    view.rerender(<App showPage={false} onData={onData} />);
+
+    GetScheduleContext.mockResolvedValue(context(2));
+    const callsBeforeInvalidation = GetScheduleContext.mock.calls.length;
+    await act(async () => {
+      await invalidateMutation({ method: 'PUT', endpoint });
+    });
+
+    view.rerender(<App showPage onData={onData} />);
+    await waitFor(() =>
+      expect(GetScheduleContext.mock.calls.length).toBeGreaterThan(callsBeforeInvalidation),
+    );
+    await waitFor(() => expect(latest).toBe(2));
     view.unmount();
   });
 });

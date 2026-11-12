@@ -31,6 +31,7 @@ import type { ReactNode } from 'react';
 export function OnetimeBookingFlow({
   services,
   daysOff,
+  openDates,
   bookedDates,
   clientBatches,
   showRecurring,
@@ -217,6 +218,7 @@ export function OnetimeBookingFlow({
                 onSelectDate={handleSingleDateSelectAndScroll}
                 nonWorkingDays={nonWorkingDays}
                 daysOff={daysOff}
+                openDates={openDates}
                 bookedDates={bookedDates}
                 disabledDates={disabledDates}
               />
@@ -227,6 +229,7 @@ export function OnetimeBookingFlow({
                 onSelectDate={handleMultiDateToggleAndScroll}
                 nonWorkingDays={nonWorkingDays}
                 daysOff={daysOff}
+                openDates={openDates}
                 bookedDates={bookedDates}
                 disabledDates={disabledDates}
               />

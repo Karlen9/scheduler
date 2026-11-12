@@ -1,6 +1,8 @@
 'use client';
 
 import { ChevronDown, Copy, Plus, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -11,10 +13,30 @@ import { Switch } from '@/components/Switch';
 import { TimePickerModal } from '@/components/TimePickerModal';
 import { TopBar } from '@/components/TopBar';
 import { invalidateSpecialist, invalidateWorkingHours } from '@/hooks/mutations';
-import { useAdminWorkingHours, useSpecialist } from '@/hooks/queries';
+import {
+  useAdminRoom,
+  useAdminScheduleContext,
+  useAdminWorkingHours,
+  useSpecialist,
+} from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { ApiError } from '@/lib/api-error';
+import {
+  DEFAULT_WORK_INTERVAL,
+  MAX_INTERVALS,
+  TIME_OPTIONS,
+  formatMinutes,
+  formatSummaryTime,
+  getIntervalsErrorKey,
+  sortIntervals,
+  timeToMinutes,
+} from '@/lib/intervals';
+import { resolveTestAwareHref } from '@/lib/routes';
+import { countOpenDatesWithin } from '@/lib/work-calendar';
 
-import type { TDaySchedule, TWorkingHours, TWorkingInterval } from '@/lib/types';
+import { DatesScheduleSection } from './DatesScheduleSection';
+
+import type { TDaySchedule, TScheduleMode, TWorkingHours, TWorkingInterval } from '@/lib/types';
 import type { ReactNode } from 'react';
 
 /***************************************************************************************************
@@ -25,17 +47,7 @@ import type { ReactNode } from 'react';
  ***************************************************************************************************/
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const dayOrder = [1, 2, 3, 4, 5, 6, 0] as const;
-const MAX_INTERVALS = 4;
-const START_MINUTES = 6 * 60;
 const END_MINUTES = 24 * 60;
-const STEP_MINUTES = 30;
-const TIME_OPTIONS = Array.from(
-  { length: (END_MINUTES - START_MINUTES) / STEP_MINUTES + 1 },
-  (_, index) => {
-    const totalMinutes = START_MINUTES + index * STEP_MINUTES;
-    return formatMinutes(totalMinutes);
-  },
-);
 const defaultIntervalsByDay: Record<number, TWorkingInterval> = {
   0: { startTime: '09:00', endTime: '18:00' },
   1: { startTime: '09:00', endTime: '20:00' },
@@ -45,6 +57,10 @@ const defaultIntervalsByDay: Record<number, TWorkingInterval> = {
   5: { startTime: '09:00', endTime: '20:00' },
   6: { startTime: '09:00', endTime: '18:00' },
 };
+
+function buildDatesDefaults(): TWorkingInterval[] {
+  return [{ ...DEFAULT_WORK_INTERVAL }];
+}
 
 function cloneInterval(interval: TWorkingInterval): TWorkingInterval {
   return { ...interval };
@@ -66,33 +82,6 @@ function createSchedule(enabledDays: number[]): Record<number, TDaySchedule> {
     5: { enabled: enabledSet.has(5), intervals: [buildDefaultInterval(5)] },
     6: { enabled: enabledSet.has(6), intervals: [buildDefaultInterval(6)] },
   };
-}
-
-function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number);
-  return (hours === 0 ? 24 : hours) * 60 + minutes;
-}
-
-function formatMinutes(minutes: number): string {
-  return `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-}
-
-function formatSummaryTime(time: string): string {
-  const [hours = '0', minutes = '00'] = time.split(':');
-  const hourLabel = hours === '00' ? '00' : String(Number(hours));
-
-  return minutes === '00' ? hourLabel : `${hourLabel}.${minutes}`;
-}
-
-function sortIntervals(intervals: TWorkingInterval[]): TWorkingInterval[] {
-  return [...intervals].sort((a, b) => {
-    const startDiff = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
-    if (startDiff !== 0) {
-      return startDiff;
-    }
-
-    return timeToMinutes(a.endTime) - timeToMinutes(b.endTime);
-  });
 }
 
 function cloneIntervals(intervals: TWorkingInterval[]): TWorkingInterval[] {
@@ -199,6 +188,17 @@ export default function SchedulePage(): ReactNode {
   const ts = useTranslations('Success');
   const { data: specialist } = useSpecialist();
   const { data: workingHours, isLoading } = useAdminWorkingHours();
+  const { data: scheduleData, isLoading: contextLoading } = useAdminScheduleContext();
+  const pathname = usePathname();
+  const { data: roomData } = useAdminRoom();
+  // While in a shared room the schedule only works by dates.
+  const inRoom = roomData.room !== null;
+  const savedMode: TScheduleMode = scheduleData?.scheduleMode ?? 'weekly';
+  const [tab, setTab] = useState<TScheduleMode>('weekly');
+  const [defaultIntervals, setDefaultIntervals] = useState<TWorkingInterval[]>(buildDatesDefaults);
+  const [modeInitialized, setModeInitialized] = useState(false);
+  const [isSavingMode, setIsSavingMode] = useState(false);
+  const [confirmDatesOpen, setConfirmDatesOpen] = useState(false);
   const [schedule, setSchedule] = useState<Record<number, TDaySchedule>>(() =>
     createSchedule([1, 2, 3, 4, 5]),
   );
@@ -245,6 +245,17 @@ export default function SchedulePage(): ReactNode {
     setSchedule(newSchedule);
     setInitialized(true);
   }, [workingHours, isLoading, initialized]);
+
+  useEffect(() => {
+    if (contextLoading || modeInitialized) {
+      return;
+    }
+    setTab(inRoom ? 'dates' : savedMode);
+    if (scheduleData?.defaultIntervals?.length) {
+      setDefaultIntervals(sortIntervals(scheduleData.defaultIntervals).map((i) => ({ ...i })));
+    }
+    setModeInitialized(true);
+  }, [contextLoading, modeInitialized, savedMode, scheduleData, inRoom]);
 
   useEffect(() => {
     if (policyInitialized || !specialist) {
@@ -493,19 +504,65 @@ export default function SchedulePage(): ReactNode {
       }
 
       await api.admin.updateWorkingHours(hours);
+      if (savedMode === 'dates' && !inRoom) {
+        // The specialist switched back to the weekly template: persist the mode as well.
+        await api.admin.updateScheduleSettings({
+          scheduleMode: 'weekly',
+          defaultIntervals: scheduleData?.defaultIntervals ?? [],
+        });
+      }
       // Await so the schedule context is revalidated (or its dedupe marker dropped) before the
       // specialist can navigate to a booking page that would otherwise render the stale schedule.
       await invalidateWorkingHours();
       toast.success(ts('scheduleSaved'));
     } catch (err) {
       console.error('Failed to save working hours:', err);
-      toast.error(te('saveFailed'));
+      // The backend refuses the switch to weekly while in a room (409): show its message.
+      toast.error(err instanceof ApiError && err.status === 409 ? err.message : te('saveFailed'));
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) {
+  const handleSaveDates = async (): Promise<void> => {
+    if (getIntervalsErrorKey(defaultIntervals) !== null) {
+      toast.error(t('invalidIntervals'));
+      return;
+    }
+
+    setIsSavingMode(true);
+    try {
+      const result = await api.admin.updateScheduleSettings({
+        scheduleMode: 'dates',
+        defaultIntervals: sortIntervals(defaultIntervals),
+      });
+      await invalidateWorkingHours();
+      toast.success(ts('scheduleSaved'));
+      if (result.autoOpened > 0) {
+        toast.success(t('autoOpened', { count: result.autoOpened }));
+      }
+    } catch (err) {
+      console.error('Failed to save schedule settings:', err);
+      toast.error(te('saveFailed'));
+    } finally {
+      setIsSavingMode(false);
+    }
+  };
+
+  const requestSaveDates = (): void => {
+    if (getIntervalsErrorKey(defaultIntervals) !== null) {
+      toast.error(t('invalidIntervals'));
+      return;
+    }
+    if (savedMode === 'weekly') {
+      // Every day becomes closed until opened in the calendar: ask first.
+      setConfirmDatesOpen(true);
+      return;
+    }
+    void handleSaveDates();
+  };
+
+  if (isLoading || contextLoading) {
     return (
       <div>
         <TopBar title={t('title')} showBack />
@@ -538,170 +595,220 @@ export default function SchedulePage(): ReactNode {
 
       <div className={'space-y-5 px-4 pt-4 pb-6'}>
         {/***************************************************************************************************
+         * Schedule mode: weekly template or explicitly opened dates.
+         ***************************************************************************************************/}
+        <div className={'bg-card flex rounded-xl p-1'}>
+          {(['weekly', 'dates'] as TScheduleMode[]).map((mode) => (
+            <button
+              key={mode}
+              type={'button'}
+              data-testid={`schedule-mode-${mode}`}
+              disabled={inRoom && mode === 'weekly'}
+              onClick={() => setTab(mode)}
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                tab === mode ? 'bg-brand text-white' : 'text-muted-foreground'
+              }`}
+            >
+              {mode === 'weekly' ? t('modeWeekly') : t('modeDates')}
+            </button>
+          ))}
+        </div>
+        {inRoom && (
+          <p data-testid={'schedule-room-weekly-hint'} className={'text-muted-foreground text-xs'}>
+            {t('roomRequiresDates')}{' '}
+            <Link
+              href={resolveTestAwareHref(pathname, '/admin/settings/room')}
+              className={'text-brand font-medium'}
+            >
+              {t('openRoom')}
+            </Link>
+          </p>
+        )}
+
+        {tab === 'dates' && (
+          <DatesScheduleSection
+            defaultIntervals={defaultIntervals}
+            onChangeIntervals={setDefaultIntervals}
+            isDatesModeSaved={savedMode === 'dates'}
+            openCount={countOpenDatesWithin(scheduleData, 14)}
+            isSaving={isSavingMode}
+            onSave={requestSaveDates}
+          />
+        )}
+
+        {/***************************************************************************************************
          * Working Hours per Day.
          ***************************************************************************************************/}
-        <div className={'space-y-3'}>
-          <div>
-            <h3 className={'text-foreground text-base font-semibold'}>{t('workingDays')}</h3>
-            <p className={'text-muted-foreground mt-1 text-sm'}>{t('scheduleHint')}</p>
-          </div>
+        {tab === 'weekly' && (
+          <>
+            <div className={'space-y-3'}>
+              <div>
+                <h3 className={'text-foreground text-base font-semibold'}>{t('workingDays')}</h3>
+                <p className={'text-muted-foreground mt-1 text-sm'}>{t('scheduleHint')}</p>
+              </div>
 
-          <div className={'space-y-2'}>
-            {dayOrder.map((day) => {
-              const daySchedule = schedule[day];
-              const isExpanded = expandedDay === day;
-              const dayErrorKey = getDayErrorKey(daySchedule);
+              <div className={'space-y-2'}>
+                {dayOrder.map((day) => {
+                  const daySchedule = schedule[day];
+                  const isExpanded = expandedDay === day;
+                  const dayErrorKey = getDayErrorKey(daySchedule);
 
-              return (
-                <div
-                  key={day}
-                  className={`bg-card overflow-hidden rounded-lg border transition-colors ${
-                    dayErrorKey ? 'border-destructive/60' : 'border-transparent'
-                  }`}
-                >
-                  <div className={'flex items-center gap-3 p-3'}>
-                    <button
-                      type={'button'}
-                      onClick={() => handleDayToggle(day)}
-                      role={'switch'}
-                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                        daySchedule.enabled ? 'bg-brand' : 'bg-switch-background'
+                  return (
+                    <div
+                      key={day}
+                      className={`bg-card overflow-hidden rounded-lg border transition-colors ${
+                        dayErrorKey ? 'border-destructive/60' : 'border-transparent'
                       }`}
-                      aria-checked={daySchedule.enabled}
                     >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          daySchedule.enabled ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
+                      <div className={'flex items-center gap-3 p-3'}>
+                        <button
+                          type={'button'}
+                          onClick={() => handleDayToggle(day)}
+                          role={'switch'}
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                            daySchedule.enabled ? 'bg-brand' : 'bg-switch-background'
+                          }`}
+                          aria-checked={daySchedule.enabled}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              daySchedule.enabled ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
 
-                    <button
-                      type={'button'}
-                      onClick={() =>
-                        daySchedule.enabled ? setExpandedDay(isExpanded ? -1 : day) : undefined
-                      }
-                      className={'flex min-w-0 flex-1 items-center gap-3 text-left'}
-                    >
-                      <span className={'text-foreground w-9 shrink-0 text-base font-semibold'}>
-                        {tdat(`daysShort.${dayKeys[day]}`)}
-                      </span>
-                      <span
-                        className={`min-w-0 flex-1 truncate text-sm ${
-                          daySchedule.enabled ? 'text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {getDaySummary(daySchedule)}
-                      </span>
-                    </button>
-                    <div className={'flex h-9 w-[72px] shrink-0 items-center justify-end'}>
-                      {daySchedule.enabled && (
-                        <>
-                          <button
-                            type={'button'}
-                            onClick={() => openCopySelector(day)}
-                            className={
-                              'text-muted-foreground hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors'
-                            }
-                            aria-label={t('copyDay')}
+                        <button
+                          type={'button'}
+                          onClick={() =>
+                            daySchedule.enabled ? setExpandedDay(isExpanded ? -1 : day) : undefined
+                          }
+                          className={'flex min-w-0 flex-1 items-center gap-3 text-left'}
+                        >
+                          <span className={'text-foreground w-9 shrink-0 text-base font-semibold'}>
+                            {tdat(`daysShort.${dayKeys[day]}`)}
+                          </span>
+                          <span
+                            className={`min-w-0 flex-1 truncate text-sm ${
+                              daySchedule.enabled ? 'text-foreground' : 'text-muted-foreground'
+                            }`}
                           >
-                            <Copy className={'h-4 w-4'} />
-                          </button>
-                          <button
-                            type={'button'}
-                            onClick={() => setExpandedDay(isExpanded ? -1 : day)}
-                            className={
-                              'text-muted-foreground hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors'
-                            }
-                            aria-label={isExpanded ? t('collapseDay') : t('expandDay')}
-                          >
-                            <ChevronDown
-                              className={`text-muted-foreground h-4 w-4 shrink-0 transition-transform ${
-                                isExpanded ? 'rotate-180' : ''
-                              }`}
-                            />
-                          </button>
-                        </>
+                            {getDaySummary(daySchedule)}
+                          </span>
+                        </button>
+                        <div className={'flex h-9 w-[72px] shrink-0 items-center justify-end'}>
+                          {daySchedule.enabled && (
+                            <>
+                              <button
+                                type={'button'}
+                                onClick={() => openCopySelector(day)}
+                                className={
+                                  'text-muted-foreground hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors'
+                                }
+                                aria-label={t('copyDay')}
+                              >
+                                <Copy className={'h-4 w-4'} />
+                              </button>
+                              <button
+                                type={'button'}
+                                onClick={() => setExpandedDay(isExpanded ? -1 : day)}
+                                className={
+                                  'text-muted-foreground hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors'
+                                }
+                                aria-label={isExpanded ? t('collapseDay') : t('expandDay')}
+                              >
+                                <ChevronDown
+                                  className={`text-muted-foreground h-4 w-4 shrink-0 transition-transform ${
+                                    isExpanded ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {dayErrorKey && (
+                        <p className={'text-destructive px-3 pb-3 text-sm'}>{t(dayErrorKey)}</p>
+                      )}
+
+                      {isExpanded && daySchedule.enabled && (
+                        <div className={'border-border border-t px-3 pt-3 pb-4'}>
+                          <div className={'space-y-3'}>
+                            <div className={'space-y-2'}>
+                              {daySchedule.intervals.map((interval, intervalIndex) => (
+                                <div
+                                  key={`${day}-${interval.startTime}-${interval.endTime}-${intervalIndex}`}
+                                  className={'flex items-center gap-2'}
+                                >
+                                  <button
+                                    type={'button'}
+                                    onClick={() => openTimePicker(day, intervalIndex, 'start')}
+                                    className={
+                                      'bg-background text-foreground min-w-0 flex-1 rounded-lg px-3 py-3 text-sm font-semibold'
+                                    }
+                                  >
+                                    {interval.startTime}
+                                  </button>
+                                  <span className={'text-muted-foreground'}>{'–'}</span>
+                                  <button
+                                    type={'button'}
+                                    onClick={() => openTimePicker(day, intervalIndex, 'end')}
+                                    className={
+                                      'bg-background text-foreground min-w-0 flex-1 rounded-lg px-3 py-3 text-sm font-semibold'
+                                    }
+                                  >
+                                    {interval.endTime}
+                                  </button>
+                                  <button
+                                    type={'button'}
+                                    onClick={() => handleDeleteInterval(day, intervalIndex)}
+                                    className={
+                                      'text-muted-foreground hover:text-destructive flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors'
+                                    }
+                                    aria-label={tc('delete')}
+                                  >
+                                    <Trash2 className={'h-4 w-4'} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            {daySchedule.intervals.length < MAX_INTERVALS && (
+                              <button
+                                type={'button'}
+                                onClick={() => handleAddInterval(day)}
+                                className={
+                                  'border-brand/30 text-brand flex w-full items-center justify-center gap-2 rounded-lg border border-dashed py-3 text-sm font-semibold'
+                                }
+                              >
+                                <Plus className={'h-4 w-4'} />
+                                {t('addWorkingTime')}
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                  {dayErrorKey && (
-                    <p className={'text-destructive px-3 pb-3 text-sm'}>{t(dayErrorKey)}</p>
-                  )}
-
-                  {isExpanded && daySchedule.enabled && (
-                    <div className={'border-border border-t px-3 pt-3 pb-4'}>
-                      <div className={'space-y-3'}>
-                        <div className={'space-y-2'}>
-                          {daySchedule.intervals.map((interval, intervalIndex) => (
-                            <div
-                              key={`${day}-${interval.startTime}-${interval.endTime}-${intervalIndex}`}
-                              className={'flex items-center gap-2'}
-                            >
-                              <button
-                                type={'button'}
-                                onClick={() => openTimePicker(day, intervalIndex, 'start')}
-                                className={
-                                  'bg-background text-foreground min-w-0 flex-1 rounded-lg px-3 py-3 text-sm font-semibold'
-                                }
-                              >
-                                {interval.startTime}
-                              </button>
-                              <span className={'text-muted-foreground'}>{'–'}</span>
-                              <button
-                                type={'button'}
-                                onClick={() => openTimePicker(day, intervalIndex, 'end')}
-                                className={
-                                  'bg-background text-foreground min-w-0 flex-1 rounded-lg px-3 py-3 text-sm font-semibold'
-                                }
-                              >
-                                {interval.endTime}
-                              </button>
-                              <button
-                                type={'button'}
-                                onClick={() => handleDeleteInterval(day, intervalIndex)}
-                                className={
-                                  'text-muted-foreground hover:text-destructive flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors'
-                                }
-                                aria-label={tc('delete')}
-                              >
-                                <Trash2 className={'h-4 w-4'} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        {daySchedule.intervals.length < MAX_INTERVALS && (
-                          <button
-                            type={'button'}
-                            onClick={() => handleAddInterval(day)}
-                            className={
-                              'border-brand/30 text-brand flex w-full items-center justify-center gap-2 rounded-lg border border-dashed py-3 text-sm font-semibold'
-                            }
-                          >
-                            <Plus className={'h-4 w-4'} />
-                            {t('addWorkingTime')}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          {expandedDayErrorKey && (
-            <p className={'text-destructive mb-2 text-center text-sm'}>{t(expandedDayErrorKey)}</p>
-          )}
-          <p className={'text-muted-foreground mb-3 text-center text-xs'}>{t('saveReminder')}</p>
-          <PrimaryButton onClick={handleSave} disabled={isSaving}>
-            {isSaving ? tc('saving') : tc('saveChanges')}
-          </PrimaryButton>
-        </div>
+            <div>
+              {expandedDayErrorKey && (
+                <p className={'text-destructive mb-2 text-center text-sm'}>
+                  {t(expandedDayErrorKey)}
+                </p>
+              )}
+              <p className={'text-muted-foreground mb-3 text-center text-xs'}>
+                {t('saveReminder')}
+              </p>
+              <PrimaryButton onClick={handleSave} disabled={isSaving}>
+                {isSaving ? tc('saving') : tc('saveChanges')}
+              </PrimaryButton>
+            </div>
+          </>
+        )}
 
         {/* Cancellation Policy */}
         <div className={'space-y-3'}>
@@ -768,6 +875,17 @@ export default function SchedulePage(): ReactNode {
             : '09:00'
         }
         title={pickerTarget?.type === 'start' ? t('startTime') : t('endTime')}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDatesOpen}
+        onClose={() => setConfirmDatesOpen(false)}
+        onConfirm={() => {
+          void handleSaveDates();
+        }}
+        title={t('switchToDatesTitle')}
+        description={t('switchToDatesDescription')}
+        confirmText={t('switchToDatesConfirm')}
       />
 
       <ConfirmDialog

@@ -3,6 +3,7 @@ import { handleGet } from './get';
 import { handlePost } from './post';
 import { handlePut } from './put';
 import { findBooking } from './queries';
+import { handleRoomApi } from './room-handlers';
 import { getState } from './state';
 import { clone, parseRequestBody } from './utils';
 
@@ -11,6 +12,12 @@ export async function fetchMockAPI<T>(endpoint: string, options?: RequestInit): 
   const method = (options?.method ?? 'GET').toUpperCase();
   const path = endpoint.split('?')[0];
   const body = parseRequestBody(options?.body);
+
+  // Dates schedule mode and shared room (inert unless the state is in dates mode or a room call).
+  const roomHandled = handleRoomApi(state, method, endpoint, path, body);
+  if (roomHandled) {
+    return roomHandled.value as T;
+  }
 
   let response: T | undefined;
   switch (method) {

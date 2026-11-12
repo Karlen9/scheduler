@@ -1,3 +1,4 @@
+import { ApiError, WorkDatesConflictError, toRoomError } from '../api-error';
 import {
   DEFAULT_ADMIN_CLIENTS_LIMIT,
   DEFAULT_ADMIN_DASHBOARD_BOOKINGS_LIMIT,
@@ -11,6 +12,7 @@ import type {
   TAdminBookingsResponse,
   TAdminScheduleContext,
   TAdminStats,
+  TAdminWorkDate,
   TBooking,
   TClientBatch,
   TClientInfo,
@@ -20,9 +22,16 @@ import type {
   TRecurringPreviewResponse,
   TRecurringSchedule,
   TReferralsResponse,
+  TRoomDayAssign,
+  TRoomMember,
+  TRoomResponse,
+  TScheduleMode,
+  TScheduleSettings,
   TSessionType,
   TSpecialist,
+  TWorkDatesUpdate,
   TWorkingHours,
+  TWorkingInterval,
 } from '../types';
 
 async function getBookingsPage(params: TAdminBookingsQuery): Promise<TAdminBookingsResponse> {
@@ -58,6 +67,38 @@ async function getClientsPage(params: TClientListQuery): Promise<TClientListResp
     query.set('search', params.search.trim());
   }
   return fetchAPI<TClientListResponse>(`/api/admin/clients?${query.toString()}`);
+}
+
+function normalizeWorkDates(workDates: TAdminWorkDate[]): TAdminWorkDate[] {
+  return workDates.map((wd) => ({
+    ...wd,
+    intervals: normalizeIncomingHours(wd.intervals ?? []),
+  }));
+}
+
+function parseWorkDatesConflict(err: ApiError): WorkDatesConflictError {
+  try {
+    const body = JSON.parse(err.message) as { message?: string; dates?: string[] };
+    return new WorkDatesConflictError(body.message ?? err.message, body.dates ?? []);
+  } catch {
+    return new WorkDatesConflictError(err.message, []);
+  }
+}
+
+/** Room endpoints answer 403/409 with `{error, message, dates}`: surface that as a RoomError. */
+async function roomRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  try {
+    return await fetchAPI<T>(endpoint, options);
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 409 || err.status === 403)) {
+      throw toRoomError(err);
+    }
+    throw err;
+  }
+}
+
+function jsonBody(method: string, body?: unknown): RequestInit {
+  return { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) };
 }
 
 export const adminApi = {
@@ -122,7 +163,58 @@ export const adminApi = {
 
   async getScheduleContext(): Promise<TAdminScheduleContext> {
     const ctx = await fetchAPI<TAdminScheduleContext>('/api/admin/schedule-context');
-    return { ...ctx, workingHours: normalizeIncomingHours(ctx.workingHours ?? []) };
+    return {
+      ...ctx,
+      workingHours: normalizeIncomingHours(ctx.workingHours ?? []),
+      ...(ctx.defaultIntervals
+        ? { defaultIntervals: normalizeIncomingHours(ctx.defaultIntervals) }
+        : {}),
+      ...(ctx.workDates ? { workDates: normalizeWorkDates(ctx.workDates) } : {}),
+    };
+  },
+
+  /** Switches the schedule mode and saves the default hours used by dates mode. */
+  async updateScheduleSettings(body: {
+    scheduleMode: TScheduleMode;
+    defaultIntervals: TWorkingInterval[];
+  }): Promise<TScheduleSettings> {
+    const result = await fetchAPI<TScheduleSettings>('/api/admin/schedule-settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        scheduleMode: body.scheduleMode,
+        defaultIntervals: normalizeOutgoingHours(body.defaultIntervals),
+      }),
+    });
+    return {
+      ...result,
+      defaultIntervals: normalizeIncomingHours(result.defaultIntervals ?? []),
+      autoOpened: result.autoOpened ?? 0,
+    };
+  },
+
+  /**
+   * Opens and closes dates in one request. A 409 (closing dates that have bookings) is rethrown
+   * as WorkDatesConflictError carrying the conflicting dates.
+   */
+  async updateWorkDates(body: TWorkDatesUpdate): Promise<TAdminWorkDate[]> {
+    try {
+      const result = await fetchAPI<TAdminWorkDate[]>('/api/admin/work-dates', {
+        method: 'PUT',
+        body: JSON.stringify({
+          open: body.open.map((entry) => ({
+            date: entry.date,
+            intervals: entry.intervals ? normalizeOutgoingHours(entry.intervals) : null,
+          })),
+          close: body.close,
+        }),
+      });
+      return normalizeWorkDates(result ?? []);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        throw parseWorkDatesConflict(err);
+      }
+      throw err;
+    }
   },
 
   async updateWorkingHours(hours: TWorkingHours[]): Promise<TWorkingHours[]> {
@@ -341,6 +433,7 @@ export const adminApi = {
   async getNotificationPrefs(): Promise<{
     notifyNewBookings: boolean;
     notifyCancellations: boolean;
+    notifyWorkDaysReminder?: boolean;
   }> {
     return fetchAPI('/api/admin/notifications');
   },
@@ -348,10 +441,85 @@ export const adminApi = {
   async updateNotificationPrefs(prefs: {
     notifyNewBookings?: boolean;
     notifyCancellations?: boolean;
-  }): Promise<{ notifyNewBookings: boolean; notifyCancellations: boolean }> {
+    notifyWorkDaysReminder?: boolean;
+  }): Promise<{
+    notifyNewBookings: boolean;
+    notifyCancellations: boolean;
+    notifyWorkDaysReminder?: boolean;
+  }> {
     return fetchAPI('/api/admin/notifications', {
       method: 'PUT',
       body: JSON.stringify(prefs),
+    });
+  },
+
+  async getRoom(): Promise<TRoomResponse> {
+    return fetchAPI<TRoomResponse>('/api/admin/room');
+  },
+
+  async createRoom(name: string): Promise<TRoomResponse> {
+    return roomRequest<TRoomResponse>('/api/admin/room', jsonBody('POST', { name }));
+  },
+
+  async updateRoom(name: string): Promise<TRoomResponse> {
+    return roomRequest<TRoomResponse>('/api/admin/room', jsonBody('PUT', { name }));
+  },
+
+  async addRoomMember(body: {
+    name: string;
+    color: string;
+    invite: boolean;
+  }): Promise<{ member: TRoomMember; inviteLink?: string }> {
+    return roomRequest('/api/admin/room/members', jsonBody('POST', body));
+  },
+
+  async updateRoomMember(
+    id: string,
+    body: { name?: string; color?: string },
+  ): Promise<TRoomMember | undefined> {
+    return roomRequest(`/api/admin/room/members/${encodeURIComponent(id)}`, jsonBody('PUT', body));
+  },
+
+  /** Removes a member; with the caller's own member id this leaves the room. */
+  async deleteRoomMember(id: string): Promise<void> {
+    await roomRequest<void>(`/api/admin/room/members/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async createRoomMemberInvite(id: string): Promise<{ inviteLink: string }> {
+    return roomRequest(
+      `/api/admin/room/members/${encodeURIComponent(id)}/invite`,
+      jsonBody('POST'),
+    );
+  },
+
+  /** Assigns room days (memberId "" frees a day). Returns the fresh room payload. */
+  async updateRoomDays(assign: TRoomDayAssign[]): Promise<TRoomResponse> {
+    return roomRequest<TRoomResponse>('/api/admin/room/days', jsonBody('PUT', { assign }));
+  },
+
+  async createRoomRequest(date: string): Promise<void> {
+    await roomRequest<unknown>('/api/admin/room/requests', jsonBody('POST', { date }));
+  },
+
+  async acceptRoomRequest(id: string): Promise<void> {
+    await roomRequest<unknown>(
+      `/api/admin/room/requests/${encodeURIComponent(id)}/accept`,
+      jsonBody('POST'),
+    );
+  },
+
+  async declineRoomRequest(id: string): Promise<void> {
+    await roomRequest<unknown>(
+      `/api/admin/room/requests/${encodeURIComponent(id)}/decline`,
+      jsonBody('POST'),
+    );
+  },
+
+  async cancelRoomRequest(id: string): Promise<void> {
+    await roomRequest<void>(`/api/admin/room/requests/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     });
   },
 

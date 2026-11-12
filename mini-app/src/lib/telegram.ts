@@ -562,3 +562,20 @@ export function openTelegramUserChat(username: string | undefined | null): boole
   window.open(`https://t.me/${handle}`, '_blank');
   return true;
 }
+
+/***************************************************************************************************
+ * Opens the native Telegram share sheet for a link (`https://t.me/share/url`). Uses the WebApp
+ * `openTelegramLink` when available and falls back to a new browser tab.
+ ***************************************************************************************************/
+export function shareTelegramLink(url: string, text: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+  const webApp = getTelegramWebApp();
+  if (webApp?.openTelegramLink) {
+    webApp.openTelegramLink(shareUrl);
+  } else {
+    window.open(shareUrl, '_blank');
+  }
+}

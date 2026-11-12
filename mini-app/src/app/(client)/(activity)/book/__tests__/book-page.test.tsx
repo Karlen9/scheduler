@@ -43,7 +43,10 @@ vi.mock('@/components/BookingForm', () => ({
 
 const messages = {
   Common: { loading: 'Загрузка...' },
-  BookingForm: { title: 'Онлайн запись' },
+  BookingForm: {
+    title: 'Онлайн запись',
+    noOpenDates: 'Специалист пока не открыл запись на ближайшие дни',
+  },
   PreviewMode: { readOnlyAction: 'Только просмотр' },
 };
 
@@ -75,5 +78,45 @@ describe('BookingPage', () => {
     renderPage();
 
     expect(screen.getByTestId('booking-form')).toBeTruthy();
+  });
+
+  it('shows the empty state in dates mode when no date is open from today', () => {
+    setupDefaultHooks();
+    useScheduleContextMock.mockReturnValue({
+      data: {
+        workingHours: [],
+        daysOff: [],
+        scheduleMode: 'dates',
+        workDates: [{ date: '2000-01-01', intervals: [] }],
+      },
+      isLoading: false,
+    });
+    renderPage();
+
+    expect(screen.getByText('Специалист пока не открыл запись на ближайшие дни')).toBeTruthy();
+    expect(screen.queryByTestId('booking-form')).toBeNull();
+  });
+
+  it('renders the form in dates mode when a future date is open', () => {
+    setupDefaultHooks();
+    useScheduleContextMock.mockReturnValue({
+      data: {
+        workingHours: [],
+        daysOff: [],
+        scheduleMode: 'dates',
+        workDates: [{ date: '2999-01-01', intervals: [] }],
+      },
+      isLoading: false,
+    });
+    renderPage();
+
+    expect(screen.getByTestId('booking-form')).toBeTruthy();
+  });
+
+  it('does not show the empty state in weekly mode even without hours', () => {
+    setupDefaultHooks();
+    renderPage();
+
+    expect(screen.queryByText('Специалист пока не открыл запись на ближайшие дни')).toBeNull();
   });
 });

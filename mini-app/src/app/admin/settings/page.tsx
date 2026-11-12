@@ -2,9 +2,11 @@
 
 import {
   Bell,
+  CalendarCheck,
   CalendarOff,
   Clock,
   DollarSign,
+  DoorOpen,
   Gift,
   HelpCircle,
   Trash2,
@@ -22,9 +24,10 @@ import { LanguageSelector } from '@/components/LanguageSelector';
 import { SettingsGroup, SettingsMenuItem } from '@/components/SettingsMenuItem';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { TopBar } from '@/components/TopBar';
-import { useAdminProfile } from '@/hooks/queries';
+import { useAdminProfile, useAdminRoom, useAdminScheduleContext } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { getTelegramWebApp } from '@/lib/telegram';
+import { isDatesMode } from '@/lib/work-calendar';
 
 import type { ReactNode } from 'react';
 
@@ -70,6 +73,14 @@ export default function SettingsPage(): ReactNode {
    ***************************************************************************************************/
   const router = useRouter();
   const { data: specialistProfile } = useAdminProfile();
+  const { data: scheduleData } = useAdminScheduleContext();
+  const datesMode = isDatesMode(scheduleData);
+  const { data: roomData } = useAdminRoom();
+  const roomSubtitle = roomData.room
+    ? roomData.room.name
+      ? roomData.room.name
+      : t('roomMembers', { count: roomData.members?.length ?? 0 })
+    : t('roomSolo');
   const td = useTranslations('DeleteBot');
 
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -180,11 +191,27 @@ export default function SettingsPage(): ReactNode {
             href={'/admin/settings/schedule'}
             iconColor={'bg-warning'}
           />
+          {datesMode ? (
+            <SettingsMenuItem
+              icon={CalendarCheck}
+              label={t('workDays')}
+              href={'/admin/settings/work-days'}
+              iconColor={'bg-success'}
+            />
+          ) : (
+            <SettingsMenuItem
+              icon={CalendarOff}
+              label={t('daysOff')}
+              href={'/admin/settings/days-off'}
+              iconColor={'bg-error'}
+            />
+          )}
           <SettingsMenuItem
-            icon={CalendarOff}
-            label={t('daysOff')}
-            href={'/admin/settings/days-off'}
-            iconColor={'bg-error'}
+            icon={DoorOpen}
+            label={t('room')}
+            subtitle={roomSubtitle}
+            href={'/admin/settings/room'}
+            iconColor={'bg-[#14b8a6]'}
           />
         </SettingsGroup>
 

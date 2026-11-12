@@ -78,6 +78,9 @@ export const CACHE_KEYS = {
   get adminDaysOff(): string {
     return scopedKey('adminDaysOff');
   },
+  get adminRoom(): string {
+    return scopedKey('adminRoom');
+  },
   get adminNotifications(): string {
     return scopedKey('adminNotifications');
   },

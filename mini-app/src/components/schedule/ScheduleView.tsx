@@ -121,7 +121,9 @@ export function ScheduleView({
   onBookingClick,
   nonWorkingDays,
   daysOff,
+  openDates,
   workingHours,
+  getWorkingHoursForDate,
   serviceDurations,
   onEmptySlotClick,
 }: TScheduleViewProps): ReactNode {
@@ -269,6 +271,15 @@ export function ScheduleView({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
+  /***************************************************************************************************
+   * Hours handed to the day timeline. In dates mode they come from the selected date itself; in
+   * weekly mode the template is passed through untouched (the timeline filters by weekday).
+   ***************************************************************************************************/
+  const dayWorkingHours = useMemo(
+    () => (getWorkingHoursForDate ? getWorkingHoursForDate(selectedDate) : workingHours),
+    [getWorkingHoursForDate, selectedDate, workingHours],
+  );
+
   const navigate = (delta: number): void => {
     setSelectedDate((d) => {
       /***************************************************************************************************
@@ -319,6 +330,7 @@ export function ScheduleView({
             onNextWeek={() => navigate(1)}
             nonWorkingDays={nonWorkingDays}
             daysOff={daysOff}
+            openDates={openDates}
             dotDates={dotDates}
           />
         </div>
@@ -337,6 +349,7 @@ export function ScheduleView({
             onNextMonth={() => navigate(1)}
             nonWorkingDays={nonWorkingDays}
             daysOff={daysOff}
+            openDates={openDates}
             dotDates={dotDates}
             fillOuterDays
           />
@@ -371,7 +384,7 @@ export function ScheduleView({
         bookings={dayBookings}
         date={selectedDate}
         onBookingClick={onBookingClick}
-        workingHours={workingHours}
+        workingHours={dayWorkingHours}
         serviceDurations={serviceDurations}
         onEmptySlotClick={onEmptySlotClick}
       />

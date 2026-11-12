@@ -10,6 +10,7 @@ import { useAdminScheduleContext, useAdminServices, useClients } from '@/hooks/q
 import { api } from '@/lib/api';
 import { parseDateParam } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
+import { getCalendarAvailability } from '@/lib/work-calendar';
 
 import type { ReactNode } from 'react';
 
@@ -35,7 +36,10 @@ export default function AdminChooseClientBookPage(): ReactNode {
   );
 
   const workingHours = scheduleData?.workingHours ?? [];
-  const daysOff = (scheduleData?.daysOff ?? []).map((d) => d.date);
+  const { daysOff, openDates } = useMemo(
+    () => getCalendarAvailability(scheduleData),
+    [scheduleData],
+  );
 
   const selectedClient = useMemo(
     () => (clientId ? clients.find((c) => c.id === clientId) : undefined),
@@ -99,6 +103,8 @@ export default function AdminChooseClientBookPage(): ReactNode {
         services={services}
         workingHours={workingHours}
         daysOff={daysOff}
+        openDates={openDates}
+        defaultIntervals={scheduleData?.defaultIntervals}
         isLoading={svcLoading || scheduleLoading}
         showRecurring={false}
         successRedirect={'/admin'}

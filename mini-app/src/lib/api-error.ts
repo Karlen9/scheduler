@@ -36,3 +36,44 @@ export function isStaleStateError(
   }
   return Boolean(options?.includeBadRequest) && err.status === 400;
 }
+
+/***************************************************************************************************
+ * Thrown by the work-dates update when the backend refuses to close dates that still have active
+ * bookings (HTTP 409). Carries the conflicting dates (YYYY-MM-DD) so the UI can list them.
+ ***************************************************************************************************/
+export class WorkDatesConflictError extends ApiError {
+  readonly dates: string[];
+
+  constructor(message: string, dates: string[]) {
+    super(message, 409);
+    this.name = 'WorkDatesConflictError';
+    this.dates = dates;
+  }
+}
+
+/***************************************************************************************************
+ * Thrown by the room endpoints for 409 (day taken / not yours / has bookings) and 403 (forbidden)
+ * answers. The backend body is `{error, message, dates}`; `dates` lists the conflicting dates
+ * (YYYY-MM-DD), `code` is the backend error key and `message` the localized text.
+ ***************************************************************************************************/
+export class RoomError extends ApiError {
+  readonly dates: string[];
+  readonly code: string;
+
+  constructor(message: string, status: number, dates: string[], code = '') {
+    super(message, status);
+    this.name = 'RoomError';
+    this.dates = dates;
+    this.code = code;
+  }
+}
+
+/** Converts a 403/409 ApiError into a RoomError, tolerating non-JSON bodies. */
+export function toRoomError(err: ApiError): RoomError {
+  try {
+    const body = JSON.parse(err.message) as { error?: string; message?: string; dates?: string[] };
+    return new RoomError(body.message ?? err.message, err.status, body.dates ?? [], body.error);
+  } catch {
+    return new RoomError(err.message, err.status, []);
+  }
+}

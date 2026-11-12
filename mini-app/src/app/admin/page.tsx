@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,9 +23,15 @@ import {
 import { useRescheduleActions } from '@/hooks/useRescheduleActions';
 import { ADMIN_UPCOMING_BOOKING_STATUSES, todayISO } from '@/lib/admin-bookings';
 import { api } from '@/lib/api';
-import { clientEntityLabel, getNonWorkingDays, wallClockNow } from '@/lib/helpers';
+import { clientEntityLabel, wallClockNow } from '@/lib/helpers';
 import { resolveTestAwareHref } from '@/lib/routes';
 import { openTelegramUserChat } from '@/lib/telegram';
+import {
+  getCalendarAvailability,
+  getIntervalsForDate,
+  hasOpenDateWithin,
+  isDatesMode,
+} from '@/lib/work-calendar';
 
 import { CancelDialog } from './CancelDialog';
 import { RejectDialog } from './RejectDialog';
@@ -108,18 +115,16 @@ export default function AdminHomePage(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const nonWorkingDays = useMemo(
-    () => getNonWorkingDays(scheduleData?.workingHours ?? []),
+  const { nonWorkingDays, daysOff, openDates } = useMemo(
+    () => getCalendarAvailability(scheduleData),
     [scheduleData],
   );
-
-  /***************************************************************************************************
-   * Defines the days off value used by the page layer.
-   *
-   * Usage context:
-   * - Reused by the page layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const daysOff = useMemo(() => (scheduleData?.daysOff ?? []).map((d) => d.date), [scheduleData]);
+  const datesMode = isDatesMode(scheduleData);
+  const getWorkingHoursForDate = useCallback(
+    (date: Date) => getIntervalsForDate(scheduleData, date),
+    [scheduleData],
+  );
+  const showNoOpenDaysBanner = datesMode && !hasOpenDateWithin(scheduleData, 7);
   const serviceDurations = useMemo(
     () =>
       Array.from(new Set(services.map((service) => service.durationMinutes))).sort((a, b) => a - b),
@@ -429,6 +434,26 @@ export default function AdminHomePage(): ReactNode {
         <NextBookingBanner booking={nextBooking} onBookingClick={handleBookingClick} />
 
         {/***************************************************************************************************
+         * Dates mode: nothing is open in the coming week, so clients cannot book.
+         ***************************************************************************************************/}
+        {showNoOpenDaysBanner && (
+          <div
+            data-testid={'no-open-days-banner'}
+            className={
+              'bg-status-warning-bg text-status-warning-text mx-4 flex items-center gap-3 rounded-xl p-4 text-sm'
+            }
+          >
+            <span className={'flex-1'}>{t('noOpenDaysBanner')}</span>
+            <Link
+              href={resolveTestAwareHref(pathname, '/admin/settings/work-days')}
+              className={'bg-brand shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-white'}
+            >
+              {t('openDays')}
+            </Link>
+          </div>
+        )}
+
+        {/***************************************************************************************************
          * Stats row.
          ***************************************************************************************************/}
         <StatsSection
@@ -447,7 +472,9 @@ export default function AdminHomePage(): ReactNode {
             onBookingClick={handleBookingClick}
             nonWorkingDays={nonWorkingDays}
             daysOff={daysOff}
+            openDates={openDates}
             workingHours={scheduleData?.workingHours ?? []}
+            getWorkingHoursForDate={datesMode ? getWorkingHoursForDate : undefined}
             serviceDurations={serviceDurations}
             onEmptySlotClick={handleEmptySlotClick}
           />

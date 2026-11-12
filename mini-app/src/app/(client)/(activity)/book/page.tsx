@@ -1,10 +1,12 @@
 'use client';
 
+import { CalendarX } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 
 import { BookingForm } from '@/components/BookingForm';
+import { EmptyState } from '@/components/EmptyState';
 import {
   useBookings,
   useClientBatches,
@@ -15,6 +17,7 @@ import { api } from '@/lib/api';
 import { parseDateParam } from '@/lib/helpers';
 import { isPreviewRoute } from '@/lib/routes';
 import { getUserName } from '@/lib/telegram';
+import { getCalendarAvailability, getUpcomingOpenDates, isDatesMode } from '@/lib/work-calendar';
 
 import type { ReactNode } from 'react';
 
@@ -54,7 +57,6 @@ function ClientBookContent(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const daysOffData = scheduleData?.daysOff ?? [];
   const { data: services, isLoading: svcLoading } = useSessionTypes();
   const { data: clientBatches, isLoading: batchesLoading } = useClientBatches();
   const { data: bookings } = useBookings();
@@ -76,7 +78,12 @@ function ClientBookContent(): ReactNode {
    * Usage context:
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
-  const daysOff = daysOffData.map((d) => d.date);
+  const { daysOff, openDates } = useMemo(
+    () => getCalendarAvailability(scheduleData),
+    [scheduleData],
+  );
+  const datesMode = isDatesMode(scheduleData);
+  const hasNoOpenDates = datesMode && getUpcomingOpenDates(scheduleData, 1).length === 0;
 
   /***************************************************************************************************
    * Defines the booked dates value used by the page layer.
@@ -90,11 +97,16 @@ function ClientBookContent(): ReactNode {
       .map((b) => b.startsAt.slice(0, 10));
   }, [bookings]);
 
+  if (!scheduleLoading && hasNoOpenDates) {
+    return <EmptyState icon={<CalendarX className={'h-12 w-12'} />} title={t('noOpenDates')} />;
+  }
+
   return (
     <BookingForm
       services={services}
       workingHours={workingHours}
       daysOff={daysOff}
+      openDates={openDates}
       bookedDates={bookedDates}
       clientBatches={clientBatches}
       isLoading={scheduleLoading || svcLoading || batchesLoading}

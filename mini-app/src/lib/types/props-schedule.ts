@@ -51,6 +51,8 @@ export type TCalendarViewProps = {
   onSelectDate: (date: Date) => void;
   nonWorkingDays?: number[];
   daysOff?: string[];
+  /** Dates mode: when set, every date outside the set is closed. */
+  openDates?: Set<string>;
   bookedDates?: string[];
   disabledDates?: string[];
   /** Month shown first; defaults to the current month. */
@@ -81,9 +83,15 @@ export type TMonthGridProps = {
   onNextMonth: TVoidFunction;
   nonWorkingDays?: number[];
   daysOff?: string[];
+  /** Dates mode: when set, every date outside the set is non-working. */
+  openDates?: Set<string>;
   disablePast?: boolean;
   disabledDates?: Set<string>;
   dotDates?: Set<string>;
+  /** Dates that get a small dot under the number (e.g. days that already have bookings). */
+  markedDates?: Set<string>;
+  /** Date -> CSS colour: fills the day with that colour (room owner colours). */
+  dayColors?: Map<string, string>;
   bookedDates?: Set<string>;
   fillOuterDays?: boolean;
   card?: boolean;
@@ -103,7 +111,10 @@ export type TScheduleViewProps = {
   onBookingClick?: (booking: TBooking) => void;
   nonWorkingDays?: number[];
   daysOff?: string[];
+  openDates?: Set<string>;
   workingHours?: TWorkingHours[];
+  /** Dates mode: resolves the hours of a specific date (overrides `workingHours`). */
+  getWorkingHoursForDate?: (date: Date) => TWorkingHours[];
   serviceDurations?: number[];
   onEmptySlotClick?: (date: Date, time: string) => void;
 };
@@ -134,6 +145,7 @@ export type TWeekStripProps = {
   onNextWeek: TVoidFunction;
   nonWorkingDays?: number[];
   daysOff?: string[];
+  openDates?: Set<string>;
   dotDates?: Set<string>;
 };
 

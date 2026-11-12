@@ -7,6 +7,7 @@ import type {
   TSessionType,
   TTimeSlot,
   TWorkingHours,
+  TWorkingInterval,
 } from './domain';
 import type { TTranslateFunction, TVoidFunction } from './shared';
 import type { Dispatch, SetStateAction } from 'react';
@@ -60,6 +61,10 @@ export type TBookingFormProps = {
   services: TSessionType[];
   workingHours: TWorkingHours[];
   daysOff: string[];
+  /** Dates mode: only these dates are bookable. Absent in weekly mode. */
+  openDates?: Set<string>;
+  /** Dates mode: default intervals; used to feed the weekly-shaped recurring flow. */
+  defaultIntervals?: TWorkingInterval[];
   isLoading: boolean;
   clients?: TClientInfo[];
   showRecurring?: boolean;
@@ -189,6 +194,7 @@ export type TRecurringDayFormProps = {
 export type TOnetimeBookingFlowProps = {
   services: TSessionType[];
   daysOff: string[];
+  openDates?: Set<string>;
   bookedDates?: string[];
   clientBatches?: TClientBatch[];
   showRecurring: boolean;
