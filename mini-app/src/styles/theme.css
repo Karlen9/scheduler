@@ -116,6 +116,15 @@
   /* Card outline (ring via box-shadow, doesn't conflict with border-l-4) */
   --card-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
 
+  /* Shared room: owner colours (readable as day fills with white text) */
+  --room-fg: #ffffff;
+  --room-green: #15803d;
+  --room-violet: #7c3aed;
+  --room-orange: #c2410c;
+  --room-blue: #2563eb;
+  --room-pink: #db2777;
+  --room-teal: #0f766e;
+
   /* Accent colors */
   --warning: #d97706;
   --success: #16a34a;
@@ -225,6 +234,15 @@
 
   /* Card outline */
   --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+
+  /* Shared room: owner colours */
+  --room-fg: #ffffff;
+  --room-green: #16a34a;
+  --room-violet: #8b5cf6;
+  --room-orange: #ea580c;
+  --room-blue: #3b82f6;
+  --room-pink: #ec4899;
+  --room-teal: #0d9488;
 
   /* Accent colors */
   --warning: #f59e0b;

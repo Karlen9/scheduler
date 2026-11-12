@@ -22,8 +22,12 @@ type BulkWorkingHoursRequest struct {
 }
 
 type AdminScheduleContextResponse struct {
-	WorkingHours []models.WorkingHours `json:"workingHours"`
-	DaysOff      []models.DayOff       `json:"daysOff"`
+	WorkingHours     []models.WorkingHours `json:"workingHours"`
+	DaysOff          []models.DayOff       `json:"daysOff"`
+	ScheduleMode     string                `json:"scheduleMode"`
+	DefaultIntervals []models.WorkInterval `json:"defaultIntervals"`
+	WorkDates        []AdminWorkDate       `json:"workDates"`
+	BookedDates      []AdminBookedDate     `json:"bookedDates"`
 }
 
 func HandleAdminGetWorkingHours(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +51,8 @@ func HandleAdminGetWorkingHours(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, hours)
 }
 
-func loadAdminScheduleContext(specialistID string) (AdminScheduleContextResponse, error) {
+func loadAdminScheduleContext(specialist *models.Specialist) (AdminScheduleContextResponse, error) {
+	specialistID := specialist.ID
 	hours, err := db.GetWorkingHoursBySpecialistID(specialistID)
 	if err != nil {
 		return AdminScheduleContextResponse{}, err
@@ -64,10 +69,81 @@ func loadAdminScheduleContext(specialistID string) (AdminScheduleContextResponse
 		daysOff = []models.DayOff{}
 	}
 
+	workDates, bookedDates, err := loadAdminWorkDates(specialist)
+	if err != nil {
+		return AdminScheduleContextResponse{}, err
+	}
+
 	return AdminScheduleContextResponse{
-		WorkingHours: hours,
-		DaysOff:      daysOff,
+		WorkingHours:     hours,
+		DaysOff:          daysOff,
+		ScheduleMode:     scheduleModeOf(specialist),
+		DefaultIntervals: db.EffectiveWorkIntervals("", specialist.DefaultIntervals),
+		WorkDates:        workDates,
+		BookedDates:      bookedDates,
 	}, nil
+}
+
+/***************************************************************************************************
+* hasOverlappingIntervals reports whether any two of the given (already individually valid) time
+* ranges overlap. Ranges that merely touch (one ends when the next starts) do not overlap. The
+* input slice is not modified.
+*
+* Parameters:
+* - intervals: Time ranges of a single day.
+*
+* Returns:
+* - true when at least two ranges overlap.
+***************************************************************************************************/
+func hasOverlappingIntervals(intervals []models.WorkInterval) bool {
+	if len(intervals) < 2 {
+		return false
+	}
+	sorted := append([]models.WorkInterval(nil), intervals...)
+	sort.Slice(sorted, func(i, j int) bool {
+		startI, _ := timeToMinutes(sorted[i].StartTime)
+		startJ, _ := timeToMinutes(sorted[j].StartTime)
+		if startI != startJ {
+			return startI < startJ
+		}
+		endI, _ := timeToMinutes(sorted[i].EndTime)
+		endJ, _ := timeToMinutes(sorted[j].EndTime)
+		return endI < endJ
+	})
+
+	previousEnd, _ := timeToMinutes(sorted[0].EndTime)
+	for i := 1; i < len(sorted); i++ {
+		currentStart, _ := timeToMinutes(sorted[i].StartTime)
+		if currentStart < previousEnd {
+			return true
+		}
+		previousEnd, _ = timeToMinutes(sorted[i].EndTime)
+	}
+	return false
+}
+
+/***************************************************************************************************
+* validateWorkIntervals validates a list of same-day intervals: every range needs both times, a
+* valid format and end after start, and ranges must not overlap. Shared by dates-mode defaults and
+* per-date hours.
+*
+* Returns:
+* - nil when valid, errMissingTimeRange when a time is empty, errOverlappingTimeRange on overlap,
+*   or the underlying parse error for malformed ranges.
+***************************************************************************************************/
+func validateWorkIntervals(intervals []models.WorkInterval) error {
+	for _, in := range intervals {
+		if in.StartTime == "" || in.EndTime == "" {
+			return errMissingTimeRange
+		}
+		if err := validateTimeRange(in.StartTime, in.EndTime); err != nil {
+			return err
+		}
+	}
+	if hasOverlappingIntervals(intervals) {
+		return errOverlappingTimeRange
+	}
+	return nil
 }
 
 func validateWorkingHoursRequests(hours []WorkingHoursRequest) error {
@@ -86,24 +162,12 @@ func validateWorkingHoursRequests(hours []WorkingHoursRequest) error {
 	}
 
 	for _, dayHours := range hoursByDay {
-		sort.Slice(dayHours, func(i, j int) bool {
-			startI, _ := timeToMinutes(dayHours[i].StartTime)
-			startJ, _ := timeToMinutes(dayHours[j].StartTime)
-			if startI != startJ {
-				return startI < startJ
-			}
-			endI, _ := timeToMinutes(dayHours[i].EndTime)
-			endJ, _ := timeToMinutes(dayHours[j].EndTime)
-			return endI < endJ
-		})
-
-		previousEnd, _ := timeToMinutes(dayHours[0].EndTime)
-		for i := 1; i < len(dayHours); i++ {
-			currentStart, _ := timeToMinutes(dayHours[i].StartTime)
-			if currentStart < previousEnd {
-				return errOverlappingTimeRange
-			}
-			previousEnd, _ = timeToMinutes(dayHours[i].EndTime)
+		intervals := make([]models.WorkInterval, 0, len(dayHours))
+		for _, wh := range dayHours {
+			intervals = append(intervals, models.WorkInterval{StartTime: wh.StartTime, EndTime: wh.EndTime})
+		}
+		if hasOverlappingIntervals(intervals) {
+			return errOverlappingTimeRange
 		}
 	}
 
@@ -117,7 +181,7 @@ func HandleAdminGetScheduleContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := loadAdminScheduleContext(specialist.ID)
+	resp, err := loadAdminScheduleContext(specialist)
 	if err != nil {
 		log.Printf("Error getting admin schedule context: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)

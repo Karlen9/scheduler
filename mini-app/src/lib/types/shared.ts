@@ -12,7 +12,8 @@ export type TChangeGroup =
   | 'daysOff'
   | 'specialist'
   | 'clientProfile'
-  | 'adminNotifications';
+  | 'adminNotifications'
+  | 'room';
 
 export type TChangeVersions = Record<TChangeGroup, number>;
 

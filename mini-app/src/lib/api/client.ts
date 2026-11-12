@@ -42,7 +42,18 @@ export const clientApi = {
 
   async getScheduleContext(): Promise<TScheduleContext> {
     const ctx = await fetchAPI<TScheduleContext>('/api/schedule-context');
-    return { ...ctx, workingHours: normalizeIncomingHours(ctx.workingHours ?? []) };
+    return {
+      ...ctx,
+      workingHours: normalizeIncomingHours(ctx.workingHours ?? []),
+      ...(ctx.workDates
+        ? {
+            workDates: ctx.workDates.map((wd) => ({
+              ...wd,
+              intervals: normalizeIncomingHours(wd.intervals ?? []),
+            })),
+          }
+        : {}),
+    };
   },
 
   async getDaysOff(): Promise<{ date: string }[]> {

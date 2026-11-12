@@ -7,6 +7,7 @@ import { ClientAvatar } from '@/components/ClientAvatar';
 import { CalendarSkeleton } from '@/components/LoadingSkeleton';
 import { useAdminClientBatches } from '@/hooks/queries';
 import { getNonWorkingDays } from '@/lib/helpers';
+import { weeklyHoursFromIntervals } from '@/lib/work-calendar';
 
 import { ClientSelector } from './ClientSelector';
 import { OnetimeBookingFlow } from './OnetimeBookingFlow';
@@ -31,6 +32,8 @@ export function BookingForm({
   services,
   workingHours: workingHoursData,
   daysOff,
+  openDates,
+  defaultIntervals,
   isLoading: isInitialLoading,
   clients,
   showRecurring = true,
@@ -98,7 +101,12 @@ export function BookingForm({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const nonWorkingDays = useMemo(() => getNonWorkingDays(workingHoursData), [workingHoursData]);
+  // Dates mode is signalled by `openDates`: weekday rules do not apply, only the opened dates do.
+  const isDatesMode = openDates !== undefined;
+  const nonWorkingDays = useMemo(
+    () => (isDatesMode ? [] : getNonWorkingDays(workingHoursData)),
+    [isDatesMode, workingHoursData],
+  );
 
   /***************************************************************************************************
    * Defines the show form value used by the component layer.
@@ -119,6 +127,14 @@ export function BookingForm({
     useAdminClientBatches(isSpecialistFlow ? selectedClient?.id : undefined);
   const effectiveBatches = isSpecialistFlow ? specialistClientBatches : clientBatches;
   const isLoadingForm = isInitialLoading || (isSpecialistFlow && specialistBatchesLoading);
+
+  // Clients cannot create a recurring series when the schedule works by dates; the specialist can,
+  // and the series is generated only on the opened dates.
+  const recurringAllowed = showRecurring && !(isDatesMode && !isSpecialistFlow);
+  const recurringWorkingHours = useMemo(
+    () => (isDatesMode ? weeklyHoursFromIntervals(defaultIntervals ?? []) : workingHoursData),
+    [isDatesMode, defaultIntervals, workingHoursData],
+  );
 
   /***************************************************************************************************
    * Render.
@@ -181,7 +197,7 @@ export function BookingForm({
             {/***************************************************************************************************
              * Top-level toggle: one-time / recurring.
              ***************************************************************************************************/}
-            {showRecurring && (
+            {recurringAllowed && (
               <div className={'bg-card flex rounded-xl p-1'}>
                 <button
                   onClick={() => setBookingType('onetime')}
@@ -202,6 +218,10 @@ export function BookingForm({
               </div>
             )}
 
+            {recurringAllowed && isDatesMode && bookingType === 'recurring' && (
+              <p className={'text-muted-foreground px-1 text-xs'}>{t('recurringDatesHint')}</p>
+            )}
+
             {isLoadingForm ? (
               <div className={'animate-pulse space-y-4'}>
                 <div>
@@ -220,9 +240,10 @@ export function BookingForm({
               <OnetimeBookingFlow
                 services={services}
                 daysOff={daysOff}
+                openDates={openDates}
                 bookedDates={bookedDates}
                 clientBatches={effectiveBatches}
-                showRecurring={showRecurring}
+                showRecurring={recurringAllowed}
                 selectedClient={selectedClient}
                 hasClientSelector={hasClientSelector}
                 nonWorkingDays={nonWorkingDays}
@@ -239,7 +260,7 @@ export function BookingForm({
               <RecurringBookingFlow
                 services={services}
                 clientBatches={effectiveBatches}
-                workingHours={workingHoursData}
+                workingHours={recurringWorkingHours}
                 selectedClient={selectedClient}
                 hasClientSelector={hasClientSelector}
                 onCreateRecurring={onCreateRecurring}

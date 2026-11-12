@@ -177,14 +177,62 @@ export type TDayOff = {
   createdAt: string;
 };
 
+export type TScheduleMode = 'weekly' | 'dates';
+
+/** A date the specialist opened for booking (dates schedule mode). Intervals are effective ones. */
+export type TWorkDate = {
+  date: string;
+  intervals: TWorkingInterval[];
+};
+
+/** Admin view of a work date; `custom` is true when the day has its own hours. */
+export type TAdminWorkDate = TWorkDate & {
+  custom: boolean;
+  /** Active bookings on the date. Absent on older backends and mock data: treat as 0. */
+  bookingCount?: number;
+};
+
+/** A date with active bookings (open or not). */
+export type TBookedDate = {
+  date: string;
+  bookingCount: number;
+};
+
 export type TScheduleContext = {
   workingHours: TWorkingHours[];
   daysOff: { date: string }[];
+  /** Absent on older backends and mock data: treat as 'weekly'. */
+  scheduleMode?: TScheduleMode;
+  /** Absent on older backends and mock data: treat as []. */
+  workDates?: TWorkDate[];
 };
 
 export type TAdminScheduleContext = {
   workingHours: TWorkingHours[];
   daysOff: TDayOff[];
+  scheduleMode?: TScheduleMode;
+  defaultIntervals?: TWorkingInterval[];
+  /** Starts at the Monday of the previous week: past dates are read-only context. */
+  workDates?: TAdminWorkDate[];
+  /** Every date from the previous Monday onward that has active bookings, open or not. */
+  bookedDates?: TBookedDate[];
+};
+
+export type TScheduleSettings = {
+  scheduleMode: TScheduleMode;
+  defaultIntervals: TWorkingInterval[];
+  autoOpened: number;
+};
+
+/** One entry of the work-dates diff: `intervals: null` means "use the default hours". */
+export type TWorkDateOpenInput = {
+  date: string;
+  intervals: TWorkingInterval[] | null;
+};
+
+export type TWorkDatesUpdate = {
+  open: TWorkDateOpenInput[];
+  close: string[];
 };
 
 export type TRecurringSchedule = {
@@ -211,4 +259,45 @@ export type TRecurringSchedule = {
 export type TRecurringPreviewResponse = {
   dates: string[];
   count: number;
+};
+
+export type TRoomColor = 'green' | 'violet' | 'orange' | 'blue' | 'pink' | 'teal';
+
+export type TRoomMember = {
+  id: string;
+  name: string;
+  color: string;
+  /** True for a real specialist with a bot; false for an offline colleague kept by the creator. */
+  linked?: boolean;
+  isMe?: boolean;
+  hasInvite?: boolean;
+};
+
+/** One date of the room and who owns it. Dates before today are read-only history. */
+export type TRoomDay = {
+  date: string;
+  memberId: string;
+  /** Only for the caller's own days and linked colleagues' days; never client data. */
+  hasBookings?: boolean;
+};
+
+export type TRoomRequests = {
+  incoming: { id: string; date: string; fromMemberId: string }[];
+  outgoing: { id: string; date: string; toMemberId: string }[];
+};
+
+/** `GET /api/admin/room`: `room: null` (or a failed request) means solo mode. */
+export type TRoomResponse = {
+  room: { id: string; name: string; isCreator?: boolean } | null;
+  meMemberId?: string;
+  members?: TRoomMember[];
+  /** Starts at the Monday of the previous week, like admin work dates. */
+  days?: TRoomDay[];
+  requests?: TRoomRequests;
+};
+
+export type TRoomDayAssign = {
+  date: string;
+  /** Member id, or "" to free the day. */
+  memberId: string;
 };

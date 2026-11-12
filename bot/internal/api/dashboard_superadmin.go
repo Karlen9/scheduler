@@ -297,7 +297,7 @@ func HandleDashboardSpecialistSnapshot(w http.ResponseWriter, r *http.Request) {
 	if recurring == nil {
 		recurring = []models.RecurringSchedule{}
 	}
-	schedule, err := loadAdminScheduleContext(specialist.ID)
+	schedule, err := loadAdminScheduleContext(specialist)
 	if err != nil {
 		dashboardInternalError(w, "dashboard specialist schedule", err)
 		return

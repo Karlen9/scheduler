@@ -1,4 +1,11 @@
-export type TScreenKey = 'booking' | 'bookings' | 'calendar' | 'slots';
+export type TScreenKey =
+  | 'booking'
+  | 'bookings'
+  | 'calendar'
+  | 'slots'
+  | 'roomCalendar'
+  | 'room'
+  | 'roomAlternating';
 
 export type TScreen = { src: string; statusBg: string };
 
@@ -11,4 +18,8 @@ export const SCREENS: Record<TScreenKey, TScreen | null> = {
   bookings: { src: '/screens/bookings.png', statusBg: '#efeff4' },
   calendar: { src: '/screens/calendar.png', statusBg: '#ffffff' },
   slots: { src: '/screens/slots.png', statusBg: '#efeff4' },
+  roomCalendar: { src: '/screens/room-calendar.png', statusBg: '#efeff4' },
+  room: { src: '/screens/room.png', statusBg: '#efeff4' },
+  // The sheet screenshot has the dimmed page overlay at its top edge.
+  roomAlternating: { src: '/screens/room-alternating.png', statusBg: '#78787a' },
 };

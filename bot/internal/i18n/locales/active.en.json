@@ -723,5 +723,174 @@
   },
   "Btn.AcceptConsent": {
     "other": "✅ I accept"
+  },
+
+  "Error.WorkDatePast": {
+    "other": "Cannot change working days in the past"
+  },
+  "Error.WorkDateHasBookings": {
+    "other": "These days have active bookings — cancel or move them first"
+  },
+  "WorkDays.ReminderText": {
+    "other": "You have no working days next week — clients won't be able to book."
+  },
+  "WorkDays.ReminderButton": {
+    "other": "Open days"
+  },
+  "Error.DateNotAvailable": {
+    "other": "This day is not open for booking"
+  },
+  "Error.RoomNotFound": {
+    "other": "You are not in a room"
+  },
+  "Error.AlreadyInRoom": {
+    "other": "You are already in a room"
+  },
+  "Error.RoomFull": {
+    "other": "A room cannot have more than 6 members"
+  },
+  "Error.RoomForbidden": {
+    "other": "You cannot do this"
+  },
+  "Error.RoomDayTaken": {
+    "other": "These days are already taken by another room member"
+  },
+  "Error.RoomDayNotYours": {
+    "other": "These days belong to another room member - ask them for it"
+  },
+  "Error.RoomMemberNotFound": {
+    "other": "Room member not found"
+  },
+  "Error.RoomRequestNotFound": {
+    "other": "Request not found"
+  },
+  "Error.RoomRequestInvalid": {
+    "other": "This request is no longer valid"
+  },
+  "Room.RequestText": {
+    "other": "🔁 {{.Name}} asks you for {{.Date}}{{if .Room}} (\"{{.Room}}\"){{end}}"
+  },
+  "Room.BtnGive": {
+    "other": "Give"
+  },
+  "Room.BtnDecline": {
+    "other": "Decline"
+  },
+  "Room.RequestGiven": {
+    "other": "✅ You gave {{.Date}} (recipient: {{.Name}})"
+  },
+  "Room.RequestDeclinedOwner": {
+    "other": "❌ You declined a request for {{.Date}} (from: {{.Name}})"
+  },
+  "Room.RequestAlreadyResolved": {
+    "other": "This request was already handled"
+  },
+  "Room.NeedMoveBookings": {
+    "other": "Move the bookings from that day first"
+  },
+  "Room.RequesterAccepted": {
+    "other": "✅ {{.Name}} is giving you {{.Date}}"
+  },
+  "Room.RequesterDeclined": {
+    "other": "❌ {{.Name}} cannot give you {{.Date}}"
+  },
+  "Room.DaysClaimed": {
+    "other": "📅 {{.Name}} is taking {{.Dates}}"
+  },
+  "Room.MemberJoined": {
+    "other": "👋 {{.Name}} is now in {{if .Room}}\"{{.Room}}\"{{else}}the room{{end}}"
+  },
+  "Room.MemberRemoved": {
+    "other": "You were removed from {{if .Room}}\"{{.Room}}\"{{else}}the room{{end}}. Your working days are kept."
+  },
+  "MasterRoom.Invite": {
+    "other": "{{.Inviter}} invites you to {{if .Room}}\"{{.Room}}\"{{else}}their room{{end}}. Your days there will move into your schedule, and your schedule will switch to \"By dates\" mode."
+  },
+  "MasterRoom.BtnAccept": {
+    "other": "✅ Accept"
+  },
+  "MasterRoom.BtnDecline": {
+    "other": "Decline"
+  },
+  "MasterRoom.InvalidInvite": {
+    "other": "This invitation is invalid or has already been used."
+  },
+  "MasterRoom.AlreadyInRoom": {
+    "other": "You are already in a room. To accept this invitation, leave your current room first: Settings → Schedule → Room."
+  },
+  "MasterRoom.NeedBotFirst": {
+    "other": "Create your own bot first - after that you will join {{if .Room}}\"{{.Room}}\"{{else}}the room{{end}} automatically."
+  },
+  "MasterRoom.Joined": {
+    "other": "✅ You are now in {{if .Room}}\"{{.Room}}\"{{else}}the room{{end}}. Days moved into your schedule: {{.Count}}."
+  },
+  "MasterRoom.JoinedConflicts": {
+    "other": "⚠️ These days are taken by a colleague, but you have bookings on them, so they stayed open: {{.Dates}}. Sort it out with your colleague."
+  },
+  "MasterRoom.Declined": {
+    "other": "Invitation declined."
+  },
+  "Error.RoomRequiresDatesMode": {
+    "other": "While you are in a room, your schedule works by dates only. To return to a fixed weekly schedule, leave the room."
+  },
+  "RoomDate.Format": {
+    "other": "{{.Weekday}}, {{.Month}} {{.Day}}"
+  },
+  "RoomDate.Wd0": {
+    "other": "Sun"
+  },
+  "RoomDate.Wd1": {
+    "other": "Mon"
+  },
+  "RoomDate.Wd2": {
+    "other": "Tue"
+  },
+  "RoomDate.Wd3": {
+    "other": "Wed"
+  },
+  "RoomDate.Wd4": {
+    "other": "Thu"
+  },
+  "RoomDate.Wd5": {
+    "other": "Fri"
+  },
+  "RoomDate.Wd6": {
+    "other": "Sat"
+  },
+  "RoomDate.M1": {
+    "other": "Jan"
+  },
+  "RoomDate.M2": {
+    "other": "Feb"
+  },
+  "RoomDate.M3": {
+    "other": "Mar"
+  },
+  "RoomDate.M4": {
+    "other": "Apr"
+  },
+  "RoomDate.M5": {
+    "other": "May"
+  },
+  "RoomDate.M6": {
+    "other": "Jun"
+  },
+  "RoomDate.M7": {
+    "other": "Jul"
+  },
+  "RoomDate.M8": {
+    "other": "Aug"
+  },
+  "RoomDate.M9": {
+    "other": "Sep"
+  },
+  "RoomDate.M10": {
+    "other": "Oct"
+  },
+  "RoomDate.M11": {
+    "other": "Nov"
+  },
+  "RoomDate.M12": {
+    "other": "Dec"
   }
 }

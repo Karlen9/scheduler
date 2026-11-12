@@ -10,7 +10,8 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { TimeSlotGrid } from '@/components/TimeSlotGrid';
 import { useScheduleContext } from '@/hooks/queries';
 import { api } from '@/lib/api';
-import { formatDateISO, getNonWorkingDays, parseDateParam } from '@/lib/helpers';
+import { formatDateISO, parseDateParam } from '@/lib/helpers';
+import { getCalendarAvailability } from '@/lib/work-calendar';
 
 import type { TRescheduleSheetProps, TTimeSlot } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -72,18 +73,10 @@ export function RescheduleSheet({
    * Usage context:
    * - Reused by the component layer to keep shared values centralized.
    ***************************************************************************************************/
-  const nonWorkingDays = useMemo(
-    () => getNonWorkingDays(scheduleData?.workingHours ?? []),
+  const { nonWorkingDays, daysOff, openDates } = useMemo(
+    () => getCalendarAvailability(scheduleData),
     [scheduleData],
   );
-
-  /***************************************************************************************************
-   * Defines the days off value used by the component layer.
-   *
-   * Usage context:
-   * - Reused by the component layer to keep shared values centralized.
-   ***************************************************************************************************/
-  const daysOff = useMemo(() => (scheduleData?.daysOff ?? []).map((d) => d.date), [scheduleData]);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -284,6 +277,7 @@ export function RescheduleSheet({
           onSelectDate={handleDateSelect}
           nonWorkingDays={nonWorkingDays}
           daysOff={daysOff}
+          openDates={openDates}
         />
 
         {isLoadingSlots && (

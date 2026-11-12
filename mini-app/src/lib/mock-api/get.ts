@@ -1,3 +1,4 @@
+import { buildAdminStats, buildClientStats, buildReferrals } from './fixtures-stats';
 import {
   getAdminBookingsPage,
   getAdminClientsPage,
@@ -8,7 +9,7 @@ import {
 } from './queries';
 import { clone } from './utils';
 
-import type { TAdminScheduleContext, TAdminStats, TClientStats, TScheduleContext } from '../types';
+import type { TAdminScheduleContext, TScheduleContext } from '../types';
 import type { TMockState } from './types';
 
 export function handleGet<T>(state: TMockState, endpoint: string, path: string): T | undefined {
@@ -66,63 +67,13 @@ export function handleGet<T>(state: TMockState, endpoint: string, path: string):
     return clone(status ? bookings.filter((booking) => booking.status === status) : bookings) as T;
   }
   if (path === '/api/stats') {
-    return clone({
-      totalSessions: 18,
-      totalHours: 21,
-      completionRate: 86,
-      sessionsThisMonth: 5,
-      sessionsLastMonth: 4,
-      currentStreak: 3,
-      longestStreak: 7,
-      mostCommonDay: 1,
-      mostCommonTimeSlot: 'afternoon',
-      averageDuration: 70,
-      durationBreakdown: [
-        { duration: 45, count: 4 },
-        { duration: 60, count: 10 },
-        { duration: 90, count: 4 },
-      ],
-      monthlyTrend: [
-        { month: 'Jan', count: 3 },
-        { month: 'Feb', count: 4 },
-        { month: 'Mar', count: 6 },
-        { month: 'Apr', count: 5 },
-      ],
-    } satisfies TClientStats) as T;
+    return clone(buildClientStats()) as T;
   }
   if (path === '/api/admin/stats') {
-    return clone({
-      totalBookings: 64,
-      activeClients: 14,
-      completionRate: 91,
-      bookingsThisMonth: 22,
-      bookingsLastMonth: 18,
-      totalClients: state.clients.length,
-      newClientsThisMonth: 3,
-      topClients: state.clients.slice(0, 3).map((client, index) => ({
-        name: client.displayName || client.name,
-        count: 8 - index * 2,
-        photoUrl: client.photoUrl,
-      })),
-      returningRate: 74,
-      busiestDay: 3,
-      busiestTimeSlot: 'afternoon',
-      avgBookingsPerWeek: 9.5,
-      cancellationRate: 7,
-      revenueThisMonth: 84000,
-      revenueLastMonth: 72000,
-      revenueCurrency: 'RUB',
-      revenueByMonth: [
-        { month: 'Jan', revenue: 52000 },
-        { month: 'Feb', revenue: 66000 },
-        { month: 'Mar', revenue: 72000 },
-        { month: 'Apr', revenue: 84000 },
-      ],
-      revenueByService: state.services.map((service, index) => ({
-        name: service.name,
-        revenue: [54000, 21000, 9000][index] ?? 0,
-      })),
-    } satisfies TAdminStats) as T;
+    return clone(buildAdminStats(state)) as T;
+  }
+  if (path === '/api/admin/referrals') {
+    return clone(buildReferrals(state)) as T;
   }
 
   const adminClientBatchesMatch = path.match(/^\/api\/admin\/clients\/([^/]+)\/batches$/);
@@ -137,7 +88,14 @@ export function handleGet<T>(state: TMockState, endpoint: string, path: string):
   if (path === '/api/profile') {
     return clone(state.clientProfile) as T;
   }
-  if (path === '/api/recurring' || path === '/api/admin/recurring') {
+  if (path === '/api/recurring') {
+    return clone(
+      state.recurringSchedules.filter(
+        (schedule) => schedule.clientName === state.clientProfile.name,
+      ),
+    ) as T;
+  }
+  if (path === '/api/admin/recurring') {
     return clone(state.recurringSchedules) as T;
   }
   if (path === '/api/admin/profile') {

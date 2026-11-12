@@ -498,6 +498,15 @@ func (h *Handler) handleCallbackQuery(update Update) {
 		return
 	}
 
+	/***************************************************************************************************
+	* Shared-room day requests (owner presses Give / Decline). Routed before the generic
+	* accept/reject parsing below.
+	***************************************************************************************************/
+	if strings.HasPrefix(data, roomRequestOKPrefix) || strings.HasPrefix(data, roomRequestNoPrefix) {
+		h.handleRoomRequestCallback(update)
+		return
+	}
+
 	parts := strings.SplitN(data, ":", 2)
 	if len(parts) != 2 {
 		h.Bot.AnswerCallbackQuery(cq.ID, "")

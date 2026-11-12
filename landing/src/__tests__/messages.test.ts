@@ -33,11 +33,11 @@ describe('messages', () => {
   it.each([
     ['ru', ru],
     ['en', en],
-  ])('%s has 19 FAQ items and no empty strings', (_, messages) => {
+  ])('%s has 20 FAQ items and no empty strings', (_, messages) => {
     const items = messages.faq.items as Record<string, TFaqItem>;
-    expect(Object.keys(items)).toHaveLength(19);
+    expect(Object.keys(items)).toHaveLength(20);
     expect(FAQ_GROUPS.flatMap((group) => [...group.items]).sort((a, b) => a - b)).toEqual(
-      Array.from({ length: 19 }, (_, i) => i + 1),
+      Array.from({ length: 20 }, (_, i) => i + 1),
     );
     for (const key of keys(messages as TTree)) {
       const value = key.split('.').reduce<unknown>((node, part) => (node as TTree)[part], messages);

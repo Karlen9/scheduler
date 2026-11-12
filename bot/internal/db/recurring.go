@@ -344,18 +344,12 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 	fallbackTimeParts := parseTimeStr(schedule.Time)
 
 	/***************************************************************************************************
-	* Get working hours and days off for filtering.
+	* Load the working calendar for filtering: weekday hours minus days off in weekly mode, explicitly
+	* opened dates in dates mode.
 	***************************************************************************************************/
-	workingHours, _ := GetWorkingHoursBySpecialistID(schedule.SpecialistID)
-	daysOff, _ := GetDaysOffBySpecialistID(schedule.SpecialistID)
-
-	dayOffSet := make(map[string]bool)
-	for _, d := range daysOff {
-		dayOffSet[d.Date.Format("2006-01-02")] = true
-	}
-	workingDaySet := make(map[int]bool)
-	for _, wh := range workingHours {
-		workingDaySet[wh.DayOfWeek] = true
+	calendar, err := LoadWorkCalendar(schedule.SpecialistID)
+	if err != nil {
+		return 0, err
 	}
 	requestedDays := make(map[int]bool)
 	for _, d := range daysOfWeek {
@@ -380,10 +374,7 @@ func ApproveAndGenerateBookings(scheduleID string) (int, error) {
 		if !requestedDays[dow] {
 			continue
 		}
-		if !workingDaySet[dow] {
-			continue
-		}
-		if dayOffSet[d.Format("2006-01-02")] {
+		if !calendar.IsWorkingDate(d) {
 			continue
 		}
 

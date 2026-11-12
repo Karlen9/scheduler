@@ -202,6 +202,8 @@ func (h *MasterHandler) dispatchCallback(q *CallbackQuery) bool {
 	case data == cbMenuInvite:
 		h.renderInviteScreen(chatID, userID, messageID, loc)
 	// Stale subscription-screen buttons on messages already sitting in users' chats.
+	case strings.HasPrefix(data, "m:room:"):
+		h.handleRoomInviteCallback(chatID, userID, messageID, data, loc)
 	case strings.HasPrefix(data, "m:sub"):
 		h.renderMainMenu(chatID, userID, messageID, loc)
 	case strings.HasPrefix(data, "adm:"):

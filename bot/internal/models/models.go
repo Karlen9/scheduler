@@ -9,33 +9,36 @@ import (
 * Defines the specialist type used by the shared model layer.
 ***************************************************************************************************/
 type Specialist struct {
-	ID                  string     `json:"id"`
-	TelegramUserID      int64      `json:"telegramUserId"`
-	BotToken            string     `json:"-"`
-	BotUsername         string     `json:"botUsername"`
-	WebhookSecret       string     `json:"-"`
-	Name                string     `json:"name"`
-	Timezone            string     `json:"timezone"`
-	CancelCutoffHrs     int        `json:"cancelCutoffHours"`
-	CancelCutoffEnabled bool       `json:"cancelCutoffEnabled"`
-	TelegramHandle      string     `json:"telegramHandle"`
-	Phone               string     `json:"phone"`
-	Specialization      string     `json:"specialization"`
-	Bio                 string     `json:"bio"`
-	PhotoURL            string     `json:"photoUrl"`
-	PhotoRemoved        bool       `json:"-"`
-	LocationLatitude    float64    `json:"locationLatitude"`
-	LocationLongitude   float64    `json:"locationLongitude"`
-	Language            string     `json:"language,omitempty"`
-	Wallpaper           string     `json:"wallpaper,omitempty"`
-	AvailableDurations  string     `json:"availableDurations,omitempty"`
-	ReferralCode        string     `json:"referralCode,omitempty"`
-	ReferredViaCode     string     `json:"referredViaCode,omitempty"`
-	NotifyNewBookings   bool       `json:"notifyNewBookings"`
-	NotifyCancellations bool       `json:"notifyCancellations"`
-	IsActive            bool       `json:"-"`
-	CreatedAt           time.Time  `json:"createdAt"`
-	DeletedAt           *time.Time `json:"deletedAt,omitempty"`
+	ID                     string     `json:"id"`
+	TelegramUserID         int64      `json:"telegramUserId"`
+	BotToken               string     `json:"-"`
+	BotUsername            string     `json:"botUsername"`
+	WebhookSecret          string     `json:"-"`
+	Name                   string     `json:"name"`
+	Timezone               string     `json:"timezone"`
+	CancelCutoffHrs        int        `json:"cancelCutoffHours"`
+	CancelCutoffEnabled    bool       `json:"cancelCutoffEnabled"`
+	ScheduleMode           string     `json:"scheduleMode"`
+	DefaultIntervals       string     `json:"-"`
+	NotifyWorkDaysReminder bool       `json:"notifyWorkDaysReminder"`
+	TelegramHandle         string     `json:"telegramHandle"`
+	Phone                  string     `json:"phone"`
+	Specialization         string     `json:"specialization"`
+	Bio                    string     `json:"bio"`
+	PhotoURL               string     `json:"photoUrl"`
+	PhotoRemoved           bool       `json:"-"`
+	LocationLatitude       float64    `json:"locationLatitude"`
+	LocationLongitude      float64    `json:"locationLongitude"`
+	Language               string     `json:"language,omitempty"`
+	Wallpaper              string     `json:"wallpaper,omitempty"`
+	AvailableDurations     string     `json:"availableDurations,omitempty"`
+	ReferralCode           string     `json:"referralCode,omitempty"`
+	ReferredViaCode        string     `json:"referredViaCode,omitempty"`
+	NotifyNewBookings      bool       `json:"notifyNewBookings"`
+	NotifyCancellations    bool       `json:"notifyCancellations"`
+	IsActive               bool       `json:"-"`
+	CreatedAt              time.Time  `json:"createdAt"`
+	DeletedAt              *time.Time `json:"deletedAt,omitempty"`
 }
 
 /***************************************************************************************************
@@ -110,6 +113,36 @@ type WorkingHours struct {
 	DayOfWeek    int    `json:"dayOfWeek"`
 	StartTime    string `json:"startTime"`
 	EndTime      string `json:"endTime"`
+}
+
+/***************************************************************************************************
+* Schedule modes a specialist can work in: "weekly" is the classic weekday template minus days
+* off; "dates" keeps every day closed until the specialist explicitly opens it (see WorkDate).
+***************************************************************************************************/
+const (
+	ScheduleModeWeekly = "weekly"
+	ScheduleModeDates  = "dates"
+)
+
+/***************************************************************************************************
+* WorkInterval is one open time range inside a day, as stored in JSON by dates schedule mode
+* (work_dates.intervals and specialists.default_intervals) and exposed through the API.
+***************************************************************************************************/
+type WorkInterval struct {
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+}
+
+/***************************************************************************************************
+* WorkDate is a single explicitly opened date of a specialist working in "dates" schedule mode.
+* Intervals holds the raw JSON of the date's own hours ([{"startTime":..,"endTime":..}]); when it
+* is empty the specialist's default intervals apply.
+***************************************************************************************************/
+type WorkDate struct {
+	ID           string
+	SpecialistID string
+	Date         time.Time
+	Intervals    string
 }
 
 /***************************************************************************************************
@@ -384,3 +417,66 @@ type SupportThread struct {
 	LastMessageAt    *time.Time `json:"lastMessageAt,omitempty"`
 	ClosedAt         *time.Time `json:"closedAt,omitempty"`
 }
+
+/***************************************************************************************************
+* Room is a shared room ("кабинет") several specialists rent by whole days. CreatedBy is the id of
+* the specialist who created it (the only one who may remove other linked members).
+***************************************************************************************************/
+type Room struct {
+	ID        string
+	Name      string
+	CreatedBy string
+	CreatedAt time.Time
+}
+
+/***************************************************************************************************
+* RoomMember is one participant of a room. SpecialistID is empty for an "offline" colleague (just
+* a name and a color maintained by another member); InviteCode is set while an invitation to turn
+* an offline member into a linked one is outstanding.
+***************************************************************************************************/
+type RoomMember struct {
+	ID           string
+	RoomID       string
+	SpecialistID string
+	Name         string
+	Color        string
+	InviteCode   string
+	CreatedAt    time.Time
+}
+
+/***************************************************************************************************
+* IsLinked reports whether the member is a real specialist (has their own bot).
+***************************************************************************************************/
+func (m *RoomMember) IsLinked() bool {
+	return m != nil && m.SpecialistID != ""
+}
+
+/***************************************************************************************************
+* RoomDay assigns one calendar date of a room to exactly one member.
+***************************************************************************************************/
+type RoomDay struct {
+	RoomID   string
+	Date     time.Time
+	MemberID string
+}
+
+/***************************************************************************************************
+* RoomDayRequest is a linked member's request to take over a date owned by another linked member.
+* Status is one of pending, accepted, declined, cancelled.
+***************************************************************************************************/
+type RoomDayRequest struct {
+	ID           string
+	RoomID       string
+	Date         time.Time
+	FromMemberID string
+	ToMemberID   string
+	Status       string
+	CreatedAt    time.Time
+}
+
+const (
+	RoomRequestPending   = "pending"
+	RoomRequestAccepted  = "accepted"
+	RoomRequestDeclined  = "declined"
+	RoomRequestCancelled = "cancelled"
+)

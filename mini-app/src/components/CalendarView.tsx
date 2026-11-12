@@ -25,6 +25,7 @@ export function CalendarView({
   onSelectDate,
   nonWorkingDays,
   daysOff,
+  openDates,
   bookedDates,
   disabledDates,
   initialMonth,
@@ -132,6 +133,7 @@ export function CalendarView({
       onNextMonth={nextMonth}
       nonWorkingDays={nonWorkingDays}
       daysOff={daysOff}
+      openDates={openDates}
       bookedDates={bookedDatesSet}
       disabledDates={disabledDatesSet}
       disablePast

@@ -37,7 +37,7 @@ test.describe('Client booking smoke tests', () => {
     await expect(loadingText).not.toBeVisible();
 
     // Confirm specialist specialization line is present
-    await expect(page.getByText('Strength and mobility coach')).toBeVisible();
+    await expect(page.getByText('Массажист и специалист по восстановлению')).toBeVisible();
 
     // "Ваши записи" section heading confirms the page is fully loaded
     await expect(page.getByRole('heading', { name: 'Ваши записи' })).toBeVisible();
@@ -52,9 +52,9 @@ test.describe('Client booking smoke tests', () => {
     // Wait for the booking form title to appear (confirms page loaded, not skeleton)
     await expect(page.getByRole('heading', { name: 'Онлайн запись' })).toBeVisible();
 
-    // The form has 3 services; "Nutrition consultation" is common type (30min, no batch).
+    // The form has 3 services; "Консультация и подбор программы" is common type (30min, no batch).
     // It should be a button whose accessible name contains the service name.
-    const nutritionCard = page.getByRole('button', { name: /Nutrition consultation/i });
+    const nutritionCard = page.getByRole('button', { name: /Консультация и подбор программы/i });
     await expect(nutritionCard).toBeVisible();
     await nutritionCard.click();
 
@@ -97,8 +97,8 @@ test.describe('Client booking smoke tests', () => {
 
     await expect(page.getByRole('heading', { name: 'Онлайн запись' })).toBeVisible();
 
-    // Select "Nutrition consultation" service
-    const nutritionCard = page.getByRole('button', { name: /Nutrition consultation/i });
+    // Select the consultation service
+    const nutritionCard = page.getByRole('button', { name: /Консультация и подбор программы/i });
     await nutritionCard.click();
 
     // Pick a future working day (first bookable day in the next month)

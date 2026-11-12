@@ -61,6 +61,7 @@ func (h *MasterHandler) startOperatorSupport(chatID, userID int64, messageID int
 	// drop any pending referral since they're clearly not completing that onboarding right now.
 	h.setSession(userID, nil)
 	h.clearPendingReferral(userID)
+	h.clearPendingRoom(userID)
 
 	thread, err := h.ensureSupportThread(userID, user)
 	if err != nil {

@@ -19,6 +19,7 @@ import { invalidateBookings } from '@/hooks/mutations';
 import {
   useBookings,
   useClientBatches,
+  useScheduleContext,
   useSessionTypes,
   useSpecialist,
   useWorkingHours,
@@ -31,10 +32,12 @@ import {
   formatDateISO,
   isWithinCutoff,
   nextDateForWeekday,
+  parseDateParam,
   wallClockNow,
 } from '@/lib/helpers';
 import { isPreviewRoute, isTestRoute, resolveTestAwareHref } from '@/lib/routes';
 import { getSpecialistId, getTelegramWebApp } from '@/lib/telegram';
+import { getIntervalsForDate, getUpcomingOpenDates, isDatesMode } from '@/lib/work-calendar';
 
 import type { TBooking, TClientBatch, TSessionType, TWorkingHours } from '@/lib/types';
 import type { ReactNode } from 'react';
@@ -48,6 +51,20 @@ const scheduleDayOrder = [
   { day: 5, key: 'fri' },
   { day: 6, key: 'sat' },
   { day: 0, key: 'sun' },
+] as const;
+const monthGenKeys = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
 ] as const;
 const ACTIVE_BOOKING_STATUSES = new Set<TBooking['status']>([
   'pending',
@@ -147,6 +164,7 @@ export default function HomePage(): ReactNode {
   const tb = useTranslations('BookingDetailModal');
   const tc = useTranslations('Common');
   const tdays = useTranslations('Dates.daysShort');
+  const tmonths = useTranslations('Dates.monthsGen');
   const te = useTranslations('Errors');
   const ts = useTranslations('Success');
   const locale = useLocale();
@@ -154,6 +172,7 @@ export default function HomePage(): ReactNode {
   const { data: services, isLoading: servicesLoading } = useSessionTypes();
   const { data: clientBatches, isLoading: batchesLoading } = useClientBatches();
   const { data: workingHours, isLoading: workingHoursLoading } = useWorkingHours();
+  const { data: scheduleData } = useScheduleContext();
   const { data: bookings, isLoading: bookingsLoading, mutate: mutateBookings } = useBookings();
   const [bioExpanded, setBioExpanded] = useState(false);
   const [photoError, setPhotoError] = useState(false);
@@ -249,6 +268,30 @@ export default function HomePage(): ReactNode {
    * Collapse reschedule_pending shadows over their originals so the home hero / badge count
    * treat the proposal as a replacement rather than a duplicate booking.
    ***************************************************************************************************/
+  /***************************************************************************************************
+   * Dates mode: instead of the weekly template, show the next few opened dates (or that booking is
+   * closed for now). `null` in weekly mode, which keeps the weekday list below untouched.
+   ***************************************************************************************************/
+  const upcomingOpenDates = useMemo((): string[] | null => {
+    if (!isDatesMode(scheduleData)) {
+      return null;
+    }
+    return getUpcomingOpenDates(scheduleData, 3);
+  }, [scheduleData]);
+
+  const upcomingDatesLabel = useMemo((): string => {
+    if (!upcomingOpenDates || upcomingOpenDates.length === 0) {
+      return '';
+    }
+    const dates = upcomingOpenDates.map((iso) => parseDateParam(iso) ?? new Date(iso));
+    const monthName = (d: Date): string => tmonths(monthGenKeys[d.getMonth()]);
+    const sameMonth = dates.every((d) => d.getMonth() === dates[0].getMonth());
+    if (sameMonth) {
+      return `${dates.map((d) => d.getDate()).join(', ')} ${monthName(dates[0])}`;
+    }
+    return dates.map((d) => `${d.getDate()} ${monthName(d)}`).join(', ');
+  }, [tmonths, upcomingOpenDates]);
+
   const activeBookings = useMemo(() => {
     const now = wallClockNow();
     const all = bookings.filter(
@@ -753,42 +796,89 @@ export default function HomePage(): ReactNode {
         title={t('scheduleTitle')}
         className={'pb-6'}
       >
-        <div className={'space-y-2'}>
-          {scheduleRows.map((row) =>
-            row.isClosed ? (
-              <div
-                key={row.day}
-                className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
-              >
-                <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
-                <span className={'text-muted-foreground text-right text-sm'}>{row.hoursLabel}</span>
-              </div>
-            ) : isPreviewInstance ? (
-              <div
-                key={row.day}
-                className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
-              >
-                <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
-                <span className={'text-foreground text-right text-sm'}>{row.hoursLabel}</span>
-              </div>
-            ) : (
-              <Link
-                key={row.day}
-                href={resolveTestAwareHref(
-                  pathname,
-                  `/book?date=${formatDateISO(nextDateForWeekday(row.day, new Date()))}`,
-                )}
-                onClick={() => setActiveModal(null)}
-                className={
-                  'bg-background flex items-center justify-between gap-4 rounded-lg p-3 transition-opacity active:opacity-80'
-                }
-              >
-                <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
-                <span className={'text-foreground text-right text-sm'}>{row.hoursLabel}</span>
-              </Link>
-            ),
-          )}
-        </div>
+        {upcomingOpenDates ? (
+          <div className={'space-y-2'} data-testid={'home-open-dates'}>
+            <div className={'bg-background rounded-lg p-3 text-sm'}>
+              {upcomingOpenDates.length === 0 ? (
+                <span className={'text-muted-foreground'}>{t('bookingClosed')}</span>
+              ) : (
+                <span className={'text-foreground'}>
+                  {t('upcomingDays', { dates: upcomingDatesLabel })}
+                </span>
+              )}
+            </div>
+            {upcomingOpenDates.map((iso) => {
+              const hoursLabel = getDayHoursLabel(getIntervalsForDate(scheduleData, iso));
+              const date = parseDateParam(iso) ?? new Date(iso);
+              const label = (
+                <>
+                  <span className={'text-foreground text-sm font-medium'}>
+                    {`${tdays(scheduleDayOrder.find((d) => d.day === date.getDay())!.key)}, ${date.getDate()}`}
+                  </span>
+                  <span className={'text-foreground text-right text-sm'}>{hoursLabel}</span>
+                </>
+              );
+              return isPreviewInstance ? (
+                <div
+                  key={iso}
+                  className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
+                >
+                  {label}
+                </div>
+              ) : (
+                <Link
+                  key={iso}
+                  href={resolveTestAwareHref(pathname, `/book?date=${iso}`)}
+                  onClick={() => setActiveModal(null)}
+                  className={
+                    'bg-background flex items-center justify-between gap-4 rounded-lg p-3 transition-opacity active:opacity-80'
+                  }
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={'space-y-2'}>
+            {scheduleRows.map((row) =>
+              row.isClosed ? (
+                <div
+                  key={row.day}
+                  className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
+                >
+                  <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
+                  <span className={'text-muted-foreground text-right text-sm'}>
+                    {row.hoursLabel}
+                  </span>
+                </div>
+              ) : isPreviewInstance ? (
+                <div
+                  key={row.day}
+                  className={'bg-background flex items-center justify-between gap-4 rounded-lg p-3'}
+                >
+                  <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
+                  <span className={'text-foreground text-right text-sm'}>{row.hoursLabel}</span>
+                </div>
+              ) : (
+                <Link
+                  key={row.day}
+                  href={resolveTestAwareHref(
+                    pathname,
+                    `/book?date=${formatDateISO(nextDateForWeekday(row.day, new Date()))}`,
+                  )}
+                  onClick={() => setActiveModal(null)}
+                  className={
+                    'bg-background flex items-center justify-between gap-4 rounded-lg p-3 transition-opacity active:opacity-80'
+                  }
+                >
+                  <span className={'text-foreground text-sm font-medium'}>{row.dayLabel}</span>
+                  <span className={'text-foreground text-right text-sm'}>{row.hoursLabel}</span>
+                </Link>
+              ),
+            )}
+          </div>
+        )}
       </BottomSheet>
 
       <BottomSheet

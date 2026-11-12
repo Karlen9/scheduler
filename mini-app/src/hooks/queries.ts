@@ -19,6 +19,7 @@ import type {
   TDayOff,
   TRecurringSchedule,
   TReferralsResponse,
+  TRoomResponse,
   TScheduleContext,
   TSessionType,
   TSpecialist,
@@ -719,15 +720,45 @@ export function useAdminReferrals(): {
   return { data: data ?? null, isLoading, error, mutate };
 }
 
+/***************************************************************************************************
+ * Loads the specialist's shared room. A missing room, a `{room: null}` answer and a failed
+ * request all mean solo mode, so the hook never surfaces an error.
+ ***************************************************************************************************/
+export function useAdminRoom(): {
+  data: TRoomResponse;
+  isLoading: boolean;
+  mutate: KeyedMutator<TRoomResponse>;
+} {
+  const { data, isLoading, mutate } = useSWR<TRoomResponse>(
+    CACHE_KEYS.adminRoom,
+    async () => {
+      try {
+        return await api.admin.getRoom();
+      } catch {
+        return { room: null };
+      }
+    },
+    staticConfig,
+  );
+  return { data: data ?? { room: null }, isLoading, mutate };
+}
+
+type TAdminNotificationPrefs = {
+  notifyNewBookings: boolean;
+  notifyCancellations: boolean;
+  notifyWorkDaysReminder?: boolean;
+};
+
 export function useAdminNotifications(): {
-  data: { notifyNewBookings: boolean; notifyCancellations: boolean } | null;
+  data: TAdminNotificationPrefs | null;
   isLoading: boolean;
   error: Error | undefined;
-  mutate: KeyedMutator<{ notifyNewBookings: boolean; notifyCancellations: boolean }>;
+  mutate: KeyedMutator<TAdminNotificationPrefs>;
 } {
-  const { data, isLoading, error, mutate } = useSWR<{
-    notifyNewBookings: boolean;
-    notifyCancellations: boolean;
-  }>(CACHE_KEYS.adminNotifications, async () => api.admin.getNotificationPrefs(), staticConfig);
+  const { data, isLoading, error, mutate } = useSWR<TAdminNotificationPrefs>(
+    CACHE_KEYS.adminNotifications,
+    async () => api.admin.getNotificationPrefs(),
+    staticConfig,
+  );
   return { data: data ?? null, isLoading, error, mutate };
 }

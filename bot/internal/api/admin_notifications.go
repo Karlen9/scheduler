@@ -10,13 +10,15 @@ import (
 )
 
 type AdminNotificationPrefsResponse struct {
-	NotifyNewBookings   bool `json:"notifyNewBookings"`
-	NotifyCancellations bool `json:"notifyCancellations"`
+	NotifyNewBookings      bool `json:"notifyNewBookings"`
+	NotifyCancellations    bool `json:"notifyCancellations"`
+	NotifyWorkDaysReminder bool `json:"notifyWorkDaysReminder"`
 }
 
 type UpdateAdminNotificationPrefsRequest struct {
-	NotifyNewBookings   *bool `json:"notifyNewBookings"`
-	NotifyCancellations *bool `json:"notifyCancellations"`
+	NotifyNewBookings      *bool `json:"notifyNewBookings"`
+	NotifyCancellations    *bool `json:"notifyCancellations"`
+	NotifyWorkDaysReminder *bool `json:"notifyWorkDaysReminder"`
 }
 
 func HandleAdminGetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
@@ -27,8 +29,9 @@ func HandleAdminGetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, AdminNotificationPrefsResponse{
-		NotifyNewBookings:   specialist.NotifyNewBookings,
-		NotifyCancellations: specialist.NotifyCancellations,
+		NotifyNewBookings:      specialist.NotifyNewBookings,
+		NotifyCancellations:    specialist.NotifyCancellations,
+		NotifyWorkDaysReminder: specialist.NotifyWorkDaysReminder,
 	})
 }
 
@@ -54,15 +57,26 @@ func HandleAdminUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 		notifyCancellations = *req.NotifyCancellations
 	}
 
+	notifyWorkDaysReminder := specialist.NotifyWorkDaysReminder
+	if req.NotifyWorkDaysReminder != nil {
+		notifyWorkDaysReminder = *req.NotifyWorkDaysReminder
+	}
+
 	if err := db.UpdateSpecialistNotificationPrefs(specialist.ID, notifyNewBookings, notifyCancellations); err != nil {
 		log.Printf("Error updating notification prefs: %v", err)
+		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+		return
+	}
+	if err := db.UpdateSpecialistWorkDaysReminderPref(specialist.ID, notifyWorkDaysReminder); err != nil {
+		log.Printf("Error updating work days reminder pref: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)
 		return
 	}
 
 	changes.Publish(specialist.ID, changes.GroupAdminNotifications)
 	writeJSON(w, AdminNotificationPrefsResponse{
-		NotifyNewBookings:   notifyNewBookings,
-		NotifyCancellations: notifyCancellations,
+		NotifyNewBookings:      notifyNewBookings,
+		NotifyCancellations:    notifyCancellations,
+		NotifyWorkDaysReminder: notifyWorkDaysReminder,
 	})
 }

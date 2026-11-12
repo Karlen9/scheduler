@@ -97,7 +97,12 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
     return ['services'];
   }
 
-  if (path.startsWith('/api/admin/working-hours')) {
+  if (
+    path.startsWith('/api/admin/working-hours') ||
+    path.startsWith('/api/admin/schedule-settings') ||
+    path.startsWith('/api/admin/work-dates')
+  ) {
+    // Work dates and the schedule mode live in the same schedule-context caches as working hours.
     return ['workingHours'];
   }
 
@@ -117,6 +122,11 @@ function mutationGroupsForEndpoint({ method, endpoint }: TMutationEvent): TChang
   }
   if (path === '/api/profile') {
     return ['clientProfile', 'clients', 'bookings', 'recurring'];
+  }
+
+  if (path.startsWith('/api/admin/room')) {
+    // Room mutations also change the caller's (and colleagues') schedule contexts.
+    return ['room', 'workingHours'];
   }
 
   if (path === '/api/admin/notifications') {
@@ -196,6 +206,11 @@ export async function invalidateChangeGroups(groups: TChangeGroup[]): Promise<vo
       case 'adminNotifications':
         keys.add(CACHE_KEYS.adminNotifications);
         break;
+      case 'room':
+        keys.add(CACHE_KEYS.adminRoom);
+        keys.add(CACHE_KEYS.adminScheduleContext);
+        keys.add(CACHE_KEYS.scheduleContext);
+        break;
     }
   }
 
@@ -218,6 +233,14 @@ export async function invalidateBookings(): Promise<void> {
 }
 
 export async function invalidateWorkingHours(): Promise<void> {
+  await invalidateChangeGroups(['workingHours']);
+}
+
+export async function invalidateRoom(): Promise<void> {
+  await invalidateChangeGroups(['room', 'workingHours']);
+}
+
+export async function invalidateWorkDates(): Promise<void> {
   await invalidateChangeGroups(['workingHours']);
 }
 

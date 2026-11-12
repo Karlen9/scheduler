@@ -134,16 +134,9 @@ func generatePreviewDates(specialistID string, daysOfWeek []int, timeStr string,
 		return nil, err
 	}
 
-	workingHours, _ := db.GetWorkingHoursBySpecialistID(specialistID)
-	daysOff, _ := db.GetDaysOffBySpecialistID(specialistID)
-
-	dayOffSet := make(map[string]bool)
-	for _, d := range daysOff {
-		dayOffSet[d.Date.Format("2006-01-02")] = true
-	}
-	workingDaySet := make(map[int]bool)
-	for _, wh := range workingHours {
-		workingDaySet[wh.DayOfWeek] = true
+	calendar, err := db.LoadWorkCalendar(specialistID)
+	if err != nil {
+		return nil, err
 	}
 	requestedDays := make(map[int]bool)
 	for _, d := range daysOfWeek {
@@ -160,10 +153,7 @@ func generatePreviewDates(specialistID string, daysOfWeek []int, timeStr string,
 		if !requestedDays[dow] {
 			continue
 		}
-		if !workingDaySet[dow] {
-			continue
-		}
-		if dayOffSet[d.Format("2006-01-02")] {
+		if !calendar.IsWorkingDate(d) {
 			continue
 		}
 		/***************************************************************************************************
@@ -1144,6 +1134,29 @@ func HandleClientMoveRequest(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpError(w, r, "Error.BadRequest", http.StatusBadRequest)
 		return
+	}
+
+	/***************************************************************************************************
+	* Dates mode: the client may only move a booking onto an opened date, inside that date's hours.
+	* Malformed date/time input is left to the shared validation below.
+	***************************************************************************************************/
+	if specialist := GetSpecialistFromContext(r); specialist != nil && scheduleModeOf(specialist) == models.ScheduleModeDates {
+		if newDate, dateErr := time.Parse("2006-01-02", req.Date); dateErr == nil {
+			if hour, minute, timeErr := parseTime(req.Time); timeErr == nil {
+				startsAt := time.Date(newDate.Year(), newDate.Month(), newDate.Day(), hour, minute, 0, 0, time.UTC)
+				endsAt := startsAt.Add(time.Duration(booking.DurationMinutes) * time.Minute)
+				slotErr, err := validateDatesModeSlot(specialist, newDate, startsAt, endsAt)
+				if err != nil {
+					log.Printf("Error checking work calendar: %v", err)
+					httpError(w, r, "Error.Internal", http.StatusInternalServerError)
+					return
+				}
+				if slotErr != "" {
+					httpError(w, r, slotErr, http.StatusBadRequest)
+					return
+				}
+			}
+		}
 	}
 
 	// Auto-apply for ghost/self clients — update in place without approval.

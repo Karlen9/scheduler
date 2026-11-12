@@ -163,9 +163,12 @@ export function MonthGrid({
   onNextMonth,
   nonWorkingDays,
   daysOff,
+  openDates,
   disablePast,
   disabledDates,
   dotDates,
+  markedDates,
+  dayColors,
   bookedDates,
   fillOuterDays = false,
   card = false,
@@ -269,6 +272,9 @@ export function MonthGrid({
     if (nonWorkingSet.has(d.getDay())) {
       return true;
     }
+    if (openDates && !openDates.has(toISODate(d))) {
+      return true;
+    }
     return daysOffSet.has(toISODate(d));
   }
 
@@ -370,6 +376,9 @@ export function MonthGrid({
         return true;
       }
       if (daysOffSet.size > 0 && daysOffSet.has(toISODate(d))) {
+        return true;
+      }
+      if (openDates && !openDates.has(toISODate(d))) {
         return true;
       }
     }
@@ -489,6 +498,8 @@ export function MonthGrid({
            * - Reused by the component layer to keep shared values centralized.
            ***************************************************************************************************/
           const hasDot = dotDates?.has(toISODate(date)) && !selected && !nonWorking;
+          const hasMark = (markedDates?.has(toISODate(date)) ?? false) && isCurrentMonth;
+          const ownerColor = dayColors?.get(toISODate(date));
 
           /***************************************************************************************************
            * Range highlight: renders a connecting bar between rangeStart and rangeEnd.
@@ -521,32 +532,49 @@ export function MonthGrid({
                 />
               )}
               <span
+                style={
+                  ownerColor && !(selected || rangeEndpoint)
+                    ? { backgroundColor: ownerColor }
+                    : undefined
+                }
                 className={`relative flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors ${
+                  (selected || ownerColor) && disabled && isPast(date) ? 'opacity-50' : ''
+                } ${
                   selected || rangeEndpoint
                     ? 'bg-brand font-medium text-white'
-                    : inRange
-                      ? 'text-brand font-medium'
-                      : booked && isCurrentMonth
-                        ? 'bg-action-success-bg text-action-success-text'
-                        : dayOff && isCurrentMonth
-                          ? 'bg-dayoff-bg text-dayoff-text'
-                          : disabled &&
-                              (isPast(date) || isBeyondMax(date) || disabledByAvailability)
-                            ? 'text-muted-foreground opacity-40'
-                            : nonWorking
-                              ? isCurrentMonth
-                                ? 'text-muted-foreground/30'
-                                : 'text-muted-foreground/20'
-                              : hasDot && isCurrentMonth
-                                ? 'bg-brand/10 text-brand'
-                                : isDayToday
-                                  ? 'ring-brand text-brand font-medium ring-1'
-                                  : isCurrentMonth
-                                    ? 'text-foreground'
-                                    : 'text-muted-foreground/40'
+                    : ownerColor
+                      ? 'font-medium text-white'
+                      : inRange
+                        ? 'text-brand font-medium'
+                        : booked && isCurrentMonth
+                          ? 'bg-action-success-bg text-action-success-text'
+                          : dayOff && isCurrentMonth
+                            ? 'bg-dayoff-bg text-dayoff-text'
+                            : disabled &&
+                                (isPast(date) || isBeyondMax(date) || disabledByAvailability)
+                              ? 'text-muted-foreground opacity-40'
+                              : nonWorking
+                                ? isCurrentMonth
+                                  ? 'text-muted-foreground/30'
+                                  : 'text-muted-foreground/20'
+                                : hasDot && isCurrentMonth
+                                  ? 'bg-brand/10 text-brand'
+                                  : isDayToday
+                                    ? 'ring-brand text-brand font-medium ring-1'
+                                    : isCurrentMonth
+                                      ? 'text-foreground'
+                                      : 'text-muted-foreground/40'
                 }`}
               >
                 {date.getDate()}
+                {hasMark && (
+                  <span
+                    data-testid={`calendar-mark-${toISODate(date)}`}
+                    className={`absolute bottom-0.5 h-1 w-1 rounded-full ${
+                      selected || rangeEndpoint || ownerColor ? 'bg-white' : 'bg-brand'
+                    }`}
+                  />
+                )}
               </span>
             </button>
           );
@@ -639,6 +667,7 @@ export function WeekStrip({
   onNextWeek,
   nonWorkingDays,
   daysOff,
+  openDates,
   dotDates,
 }: TWeekStripProps): ReactNode {
   /***************************************************************************************************
@@ -729,6 +758,9 @@ export function WeekStrip({
    ***************************************************************************************************/
   function isNonWorking(d: Date): boolean {
     if (nonWorkingSet.has(d.getDay())) {
+      return true;
+    }
+    if (openDates && !openDates.has(toISODate(d))) {
       return true;
     }
     return daysOffSet.has(toISODate(d));

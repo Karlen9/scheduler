@@ -25,6 +25,7 @@ export function SettingsMenuItem({
   icon: Icon,
   label,
   value,
+  subtitle,
   href,
   iconColor = 'bg-brand',
 }: TSettingsMenuItemProps): ReactNode {
@@ -39,7 +40,14 @@ export function SettingsMenuItem({
       <div className={`h-8 w-8 rounded-lg ${iconColor} flex shrink-0 items-center justify-center`}>
         <Icon className={'h-[18px] w-[18px] text-white'} />
       </div>
-      <span className={'text-foreground flex-1 text-[15px]'}>{label}</span>
+      {subtitle ? (
+        <div className={'min-w-0 flex-1'}>
+          <span className={'text-foreground block text-[15px]'}>{label}</span>
+          <span className={'text-muted-foreground block truncate text-xs'}>{subtitle}</span>
+        </div>
+      ) : (
+        <span className={'text-foreground flex-1 text-[15px]'}>{label}</span>
+      )}
       {value && <span className={'text-muted-foreground mr-1 text-[15px]'}>{value}</span>}
       <ChevronRight className={'text-muted-foreground h-4 w-4 shrink-0'} />
     </Link>

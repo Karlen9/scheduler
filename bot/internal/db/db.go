@@ -247,6 +247,51 @@ func migrateSQLite() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_days_off_specialist_id ON days_off(specialist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_days_off_date ON days_off(date)`,
+		`CREATE TABLE IF NOT EXISTS work_dates (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			date DATE NOT NULL,
+			intervals TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(specialist_id, date)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_work_dates_specialist_date ON work_dates(specialist_id, date)`,
+		`CREATE TABLE IF NOT EXISTS rooms (
+			id TEXT PRIMARY KEY,
+			name TEXT DEFAULT '',
+			created_by TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS room_members (
+			id TEXT PRIMARY KEY,
+			room_id TEXT NOT NULL,
+			specialist_id TEXT,
+			name TEXT NOT NULL,
+			color TEXT NOT NULL,
+			invite_code TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_room_members_room ON room_members(room_id)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_room_members_specialist ON room_members(specialist_id) WHERE specialist_id IS NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_room_members_invite ON room_members(invite_code) WHERE invite_code IS NOT NULL`,
+		`CREATE TABLE IF NOT EXISTS room_days (
+			room_id TEXT NOT NULL,
+			date DATE NOT NULL,
+			member_id TEXT NOT NULL,
+			PRIMARY KEY (room_id, date)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_room_days_member ON room_days(member_id)`,
+		`CREATE TABLE IF NOT EXISTS room_day_requests (
+			id TEXT PRIMARY KEY,
+			room_id TEXT NOT NULL,
+			date DATE NOT NULL,
+			from_member_id TEXT NOT NULL,
+			to_member_id TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			resolved_at DATETIME
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_room_day_requests_room_date ON room_day_requests(room_id, date)`,
 		`CREATE TABLE IF NOT EXISTS recurring_schedules (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -335,6 +380,10 @@ func migrateSQLite() error {
 		`ALTER TABLE specialists ADD COLUMN consent_accepted_at DATETIME`,
 		`ALTER TABLE specialists ADD COLUMN consent_version TEXT DEFAULT ''`,
 		`ALTER TABLE specialists ADD COLUMN cancel_cutoff_enabled INTEGER DEFAULT 0`,
+		`ALTER TABLE specialists ADD COLUMN schedule_mode TEXT DEFAULT 'weekly'`,
+		`ALTER TABLE specialists ADD COLUMN default_intervals TEXT DEFAULT ''`,
+		`ALTER TABLE specialists ADD COLUMN notify_work_days_reminder INTEGER DEFAULT 1`,
+		`ALTER TABLE specialists ADD COLUMN work_days_reminder_week TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN notify_booking_status INTEGER DEFAULT 1`,
@@ -536,6 +585,51 @@ func migratePostgres() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_days_off_specialist_id ON days_off(specialist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_days_off_date ON days_off(date)`,
+		`CREATE TABLE IF NOT EXISTS work_dates (
+			id TEXT PRIMARY KEY,
+			specialist_id TEXT NOT NULL REFERENCES specialists(id),
+			date DATE NOT NULL,
+			intervals TEXT DEFAULT '',
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(specialist_id, date)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_work_dates_specialist_date ON work_dates(specialist_id, date)`,
+		`CREATE TABLE IF NOT EXISTS rooms (
+			id TEXT PRIMARY KEY,
+			name TEXT DEFAULT '',
+			created_by TEXT NOT NULL,
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS room_members (
+			id TEXT PRIMARY KEY,
+			room_id TEXT NOT NULL,
+			specialist_id TEXT,
+			name TEXT NOT NULL,
+			color TEXT NOT NULL,
+			invite_code TEXT,
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_room_members_room ON room_members(room_id)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_room_members_specialist ON room_members(specialist_id) WHERE specialist_id IS NOT NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_room_members_invite ON room_members(invite_code) WHERE invite_code IS NOT NULL`,
+		`CREATE TABLE IF NOT EXISTS room_days (
+			room_id TEXT NOT NULL,
+			date DATE NOT NULL,
+			member_id TEXT NOT NULL,
+			PRIMARY KEY (room_id, date)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_room_days_member ON room_days(member_id)`,
+		`CREATE TABLE IF NOT EXISTS room_day_requests (
+			id TEXT PRIMARY KEY,
+			room_id TEXT NOT NULL,
+			date DATE NOT NULL,
+			from_member_id TEXT NOT NULL,
+			to_member_id TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+			resolved_at TIMESTAMPTZ
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_room_day_requests_room_date ON room_day_requests(room_id, date)`,
 		`CREATE TABLE IF NOT EXISTS recurring_schedules (
 			id TEXT PRIMARY KEY,
 			specialist_id TEXT NOT NULL REFERENCES specialists(id),
@@ -624,6 +718,10 @@ func migratePostgres() error {
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS consent_accepted_at TIMESTAMP`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS consent_version TEXT DEFAULT ''`,
 		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS cancel_cutoff_enabled INTEGER DEFAULT 0`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS schedule_mode TEXT DEFAULT 'weekly'`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS default_intervals TEXT DEFAULT ''`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS notify_work_days_reminder INTEGER DEFAULT 1`,
+		`ALTER TABLE specialists ADD COLUMN IF NOT EXISTS work_days_reminder_week TEXT DEFAULT ''`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS phone TEXT`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_duration INTEGER DEFAULT 60`,
 		`ALTER TABLE clients ADD COLUMN IF NOT EXISTS notify_booking_status INTEGER DEFAULT 1`,

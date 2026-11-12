@@ -7,8 +7,9 @@ import { toast } from 'sonner';
 import { Switch } from '@/components/Switch';
 import { TopBar } from '@/components/TopBar';
 import { invalidateAdminNotifications } from '@/hooks/mutations';
-import { useAdminNotifications } from '@/hooks/queries';
+import { useAdminNotifications, useAdminScheduleContext } from '@/hooks/queries';
 import { api } from '@/lib/api';
+import { isDatesMode } from '@/lib/work-calendar';
 
 import type { ReactNode } from 'react';
 
@@ -40,8 +41,11 @@ export default function AdminNotificationsPage(): ReactNode {
    ***************************************************************************************************/
   const te = useTranslations('Errors');
   const { data: prefs, isLoading } = useAdminNotifications();
+  const { data: scheduleData } = useAdminScheduleContext();
+  const datesMode = isDatesMode(scheduleData);
   const [notifyNewBookings, setNotifyNewBookings] = useState(true);
   const [notifyCancellations, setNotifyCancellations] = useState(true);
+  const [notifyWorkDaysReminder, setNotifyWorkDaysReminder] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -51,6 +55,7 @@ export default function AdminNotificationsPage(): ReactNode {
 
     setNotifyNewBookings(prefs.notifyNewBookings);
     setNotifyCancellations(prefs.notifyCancellations);
+    setNotifyWorkDaysReminder(prefs.notifyWorkDaysReminder ?? true);
     setInitialized(true);
   }, [prefs, isLoading, initialized]);
 
@@ -61,7 +66,7 @@ export default function AdminNotificationsPage(): ReactNode {
    * - Reused by the page layer to keep shared values centralized.
    ***************************************************************************************************/
   const handleToggle = async (
-    key: 'notifyNewBookings' | 'notifyCancellations',
+    key: 'notifyNewBookings' | 'notifyCancellations' | 'notifyWorkDaysReminder',
     value: boolean,
   ): Promise<void> => {
     /***************************************************************************************************
@@ -73,6 +78,7 @@ export default function AdminNotificationsPage(): ReactNode {
     const setters = {
       notifyNewBookings: setNotifyNewBookings,
       notifyCancellations: setNotifyCancellations,
+      notifyWorkDaysReminder: setNotifyWorkDaysReminder,
     };
     setters[key](value);
     try {
@@ -114,6 +120,16 @@ export default function AdminNotificationsPage(): ReactNode {
       desc: t('clientCancellationsDesc'),
       value: notifyCancellations,
     },
+    ...(datesMode
+      ? [
+          {
+            key: 'notifyWorkDaysReminder' as const,
+            label: t('workDaysReminder'),
+            desc: t('workDaysReminderDesc'),
+            value: notifyWorkDaysReminder,
+          },
+        ]
+      : []),
   ];
 
   return (

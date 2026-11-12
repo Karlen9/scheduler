@@ -90,9 +90,16 @@ type PublicDayOff struct {
 	Date string `json:"date"`
 }
 
+type PublicWorkDate struct {
+	Date      string                `json:"date"`
+	Intervals []models.WorkInterval `json:"intervals"`
+}
+
 type PublicScheduleContextResponse struct {
 	WorkingHours []models.WorkingHours `json:"workingHours"`
 	DaysOff      []PublicDayOff        `json:"daysOff"`
+	ScheduleMode string                `json:"scheduleMode"`
+	WorkDates    []PublicWorkDate      `json:"workDates"`
 }
 
 func buildPublicDayOffs(daysOff []models.DayOff) []PublicDayOff {
@@ -105,7 +112,8 @@ func buildPublicDayOffs(daysOff []models.DayOff) []PublicDayOff {
 	return result
 }
 
-func loadPublicScheduleContext(specialistID string) (PublicScheduleContextResponse, error) {
+func loadPublicScheduleContext(specialist *models.Specialist) (PublicScheduleContextResponse, error) {
+	specialistID := specialist.ID
 	hours, err := db.GetWorkingHoursBySpecialistID(specialistID)
 	if err != nil {
 		return PublicScheduleContextResponse{}, err
@@ -119,9 +127,29 @@ func loadPublicScheduleContext(specialistID string) (PublicScheduleContextRespon
 		return PublicScheduleContextResponse{}, err
 	}
 
+	/***************************************************************************************************
+	* Explicitly opened dates (with their effective hours) only matter in dates mode; weekly
+	* specialists always report an empty list.
+	***************************************************************************************************/
+	workDates := make([]PublicWorkDate, 0)
+	if scheduleModeOf(specialist) == models.ScheduleModeDates {
+		rows, err := db.GetWorkDatesFromToday(specialistID)
+		if err != nil {
+			return PublicScheduleContextResponse{}, err
+		}
+		for _, row := range rows {
+			workDates = append(workDates, PublicWorkDate{
+				Date:      row.Date.Format("2006-01-02"),
+				Intervals: db.EffectiveWorkIntervals(row.Intervals, specialist.DefaultIntervals),
+			})
+		}
+	}
+
 	return PublicScheduleContextResponse{
 		WorkingHours: hours,
 		DaysOff:      buildPublicDayOffs(daysOff),
+		ScheduleMode: scheduleModeOf(specialist),
+		WorkDates:    workDates,
 	}, nil
 }
 
@@ -132,7 +160,7 @@ func HandleGetScheduleContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := loadPublicScheduleContext(specialist.ID)
+	resp, err := loadPublicScheduleContext(specialist)
 	if err != nil {
 		log.Printf("Error getting public schedule context: %v", err)
 		httpError(w, r, "Error.Internal", http.StatusInternalServerError)

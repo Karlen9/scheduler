@@ -7,8 +7,6 @@ import { dedupeRequest } from '../request-cache';
 import { isPreviewRoute, isTestRoute } from '../routes';
 import { getSpecialistId, waitForInitData } from '../telegram';
 
-import type { TWorkingHours } from '../types';
-
 const API_BASE_URL = '';
 export const DEFAULT_CLIENT_BOOKINGS_LIMIT = 50;
 export const DEFAULT_ADMIN_DASHBOARD_BOOKINGS_LIMIT = 100;
@@ -16,7 +14,7 @@ export const DEFAULT_ADMIN_CLIENTS_LIMIT = 50;
 
 const PREVIEW_READ_ONLY_ERROR = 'Preview is read-only';
 
-export function normalizeIncomingHours(hours: TWorkingHours[]): TWorkingHours[] {
+export function normalizeIncomingHours<T extends { endTime: string }>(hours: T[]): T[] {
   return hours.map((wh) => ({
     ...wh,
     endTime: wh.endTime === '24:00' ? '00:00' : wh.endTime,
